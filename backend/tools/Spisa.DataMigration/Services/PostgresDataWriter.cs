@@ -38,11 +38,27 @@ public class PostgresDataWriter : IModernDataWriter
         {
             foreach (var item in data)
             {
-                var properties = typeof(T).GetProperties()
-                    .Where(p => p.Name != "Id"); // Skip auto-generated IDs
+                // Include ALL properties including Id to preserve legacy IDs
+                var properties = typeof(T).GetProperties();
                 
                 var columns = string.Join(", ", properties.Select(p => ToSnakeCase(p.Name)));
-                var parameters = string.Join(", ", properties.Select(p => "@" + p.Name));
+                
+                // Special handling for ENUMs
+                var parametersList = new List<string>();
+                foreach (var prop in properties)
+                {
+                    var paramName = "@" + prop.Name;
+                    // Cast status to order_status ENUM for sales_orders table
+                    if (tableName == "sales_orders" && prop.Name == "Status")
+                    {
+                        parametersList.Add($"{paramName}::order_status");
+                    }
+                    else
+                    {
+                        parametersList.Add(paramName);
+                    }
+                }
+                var parameters = string.Join(", ", parametersList);
                 
                 var sql = $"INSERT INTO {tableName} ({columns}) VALUES ({parameters})";
                 
@@ -113,6 +129,28 @@ public class PostgresDataWriter : IModernDataWriter
         using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync();
         await connection.ExecuteAsync(sql);
+    }
+
+    public async Task<int> GetRecordCountAsync(string tableName)
+    {
+        using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync();
+        
+        var sql = $"SELECT COUNT(*) FROM {tableName} WHERE deleted_at IS NULL";
+        var count = await connection.ExecuteScalarAsync<int>(sql);
+        
+        return count;
+    }
+
+    public async Task<HashSet<int>> GetValidIdsAsync(string tableName)
+    {
+        using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync();
+        
+        var sql = $"SELECT id FROM {tableName}";
+        var ids = await connection.QueryAsync<int>(sql);
+        
+        return ids.ToHashSet();
     }
 
     private static string ToSnakeCase(string input)

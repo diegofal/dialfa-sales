@@ -113,7 +113,14 @@ public static class SalesOrderMapper
     public static ModernSalesOrder Map(LegacyNotaPedido legacy)
     {
         // Determine status based on whether invoices exist
-        var status = "PENDING"; // Default, can be updated later based on invoice existence
+        var status = "PENDING"; // Default - UPPERCASE to match PostgreSQL ENUM
+        
+        // Fix invalid delivery dates (must be >= order_date)
+        var deliveryDate = legacy.FechaEntrega;
+        if (deliveryDate < legacy.FechaEmision)
+        {
+            deliveryDate = legacy.FechaEmision; // Use order date as delivery date
+        }
         
         return new ModernSalesOrder
         {
@@ -121,10 +128,10 @@ public static class SalesOrderMapper
             OrderNumber = legacy.NumeroOrden.Trim(),
             ClientId = legacy.IdCliente,
             OrderDate = legacy.FechaEmision,
-            DeliveryDate = legacy.FechaEntrega,
+            DeliveryDate = deliveryDate,
             SpecialDiscountPercent = (decimal)legacy.DescuentoEspecial,
             Notes = legacy.Observaciones?.Trim(),
-            Status = status,
+            Status = status, // Will be cast to order_status ENUM by PostgreSQL
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -137,7 +144,20 @@ public static class SalesOrderItemMapper
     {
         var unitPrice = legacy.PrecioUnitario ?? 0;
         var discountPercent = legacy.Descuento ?? 0;
+        
+        // Fix invalid discount: -1 means "no discount" in legacy system
+        if (discountPercent < 0 || discountPercent > 100)
+        {
+            discountPercent = 0;
+        }
+        
         var quantity = legacy.Cantidad;
+        
+        // Fix invalid quantity: must be > 0
+        if (quantity <= 0)
+        {
+            quantity = 1; // Default to 1 unit
+        }
         
         // Calculate line total: quantity * price * (1 - discount/100)
         var lineTotal = quantity * unitPrice * (1 - (discountPercent / 100));
@@ -182,6 +202,20 @@ public static class DeliveryNoteMapper
 {
     public static ModernDeliveryNote Map(LegacyRemito legacy)
     {
+        // Fix invalid packages count: must be > 0 or NULL
+        var packagesCount = legacy.Bultos;
+        if (packagesCount.HasValue && packagesCount.Value <= 0)
+        {
+            packagesCount = null;  // Set to NULL instead of 0
+        }
+        
+        // Fix invalid weight: must be > 0 or NULL
+        var weightKg = legacy.Peso;
+        if (weightKg.HasValue && weightKg.Value <= 0)
+        {
+            weightKg = null;  // Set to NULL instead of 0
+        }
+        
         return new ModernDeliveryNote
         {
             Id = legacy.IdRemito,
@@ -189,8 +223,8 @@ public static class DeliveryNoteMapper
             SalesOrderId = legacy.IdNotaPedido,
             DeliveryDate = legacy.Fecha,
             TransporterId = legacy.IdTransportista,
-            WeightKg = legacy.Peso,
-            PackagesCount = legacy.Bultos,
+            WeightKg = weightKg,
+            PackagesCount = packagesCount,
             DeclaredValue = legacy.Valor,
             Notes = legacy.Observaciones?.Trim(),
             CreatedAt = DateTime.UtcNow,

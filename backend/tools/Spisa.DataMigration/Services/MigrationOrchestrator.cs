@@ -133,6 +133,21 @@ public class MigrationOrchestrator
         
         try
         {
+            // Check if categories already exist (manually migrated)
+            var existingCount = await _modernWriter.GetRecordCountAsync("categories");
+            if (existingCount > 0)
+            {
+                _logger.LogInformation("Categories already exist ({Count} records), skipping migration", existingCount);
+                task.Value = 100;
+                result.EntityResults.Add(new EntityMigrationResult
+                {
+                    EntityName = "Categories",
+                    MigratedCount = existingCount,
+                    Duration = stopwatch.Elapsed
+                });
+                return;
+            }
+            
             var legacyCategories = await _legacyReader.ReadDataAsync<LegacyCategoria>("Categorias");
             var totalCount = legacyCategories.Count();
             
@@ -218,10 +233,28 @@ public class MigrationOrchestrator
             
             await _modernWriter.ResetSequenceAsync("clients", "clients_id_seq");
             
-            // Migrate client discounts
+            // Migrate client discounts (filter orphaned records by client AND category)
             var legacyDiscounts = await _legacyReader.ReadDataAsync<LegacyDescuento>("Descuentos");
-            var modernDiscounts = legacyDiscounts.Select(ClientDiscountMapper.Map).ToList();
-            await _modernWriter.WriteDataAsync("client_discounts", modernDiscounts);
+            var legacyCategories = await _legacyReader.ReadDataAsync<LegacyCategoria>("Categorias");
+            
+            var validClientIds = legacyClients.Select(c => c.IdCliente).ToHashSet();
+            var validCategoryIds = legacyCategories.Select(c => c.IdCategoria).ToHashSet();
+            
+            var validDiscounts = legacyDiscounts
+                .Where(d => validClientIds.Contains(d.IdCliente) && validCategoryIds.Contains(d.IdCategoria))
+                .ToList();
+            
+            var filteredCount = legacyDiscounts.Count() - validDiscounts.Count;
+            if (filteredCount > 0)
+            {
+                _logger.LogWarning("Filtered {Orphaned} orphaned client discounts (invalid client/category FKs)", filteredCount);
+            }
+            
+            var modernDiscounts = validDiscounts.Select(ClientDiscountMapper.Map).ToList();
+            if (modernDiscounts.Any())
+            {
+                await _modernWriter.WriteDataAsync("client_discounts", modernDiscounts);
+            }
             
             result.EntityResults.Add(new EntityMigrationResult
             {
@@ -250,20 +283,48 @@ public class MigrationOrchestrator
         try
         {
             var legacyOrders = await _legacyReader.ReadDataAsync<LegacyNotaPedido>("NotaPedidos");
-            var totalCount = legacyOrders.Count();
+            var legacyClients = await _legacyReader.ReadDataAsync<LegacyCliente>("Clientes");
             
-            var modernOrders = legacyOrders.Select(SalesOrderMapper.Map).ToList();
+            // Filter orders with invalid client references
+            var validClientIds = legacyClients.Select(c => c.IdCliente).ToHashSet();
+            var validOrders = legacyOrders.Where(o => validClientIds.Contains(o.IdCliente)).ToList();
             
-            task.MaxValue = totalCount;
+            var filteredOrdersCount = legacyOrders.Count() - validOrders.Count;
+            if (filteredOrdersCount > 0)
+            {
+                _logger.LogWarning("Filtered {Orphaned} sales orders with invalid client FKs", filteredOrdersCount);
+            }
+            
+            var modernOrders = validOrders.Select(SalesOrderMapper.Map).ToList();
+            
+            task.MaxValue = validOrders.Count;
             var migrated = await _modernWriter.WriteDataAsync("sales_orders", modernOrders);
             task.Value = migrated;
             
             await _modernWriter.ResetSequenceAsync("sales_orders", "sales_orders_id_seq");
             
-            // Migrate order items
+            // Migrate order items (filter by valid orders and articles)
             var legacyItems = await _legacyReader.ReadDataAsync<LegacyNotaPedidoItem>("NotaPedido_Items");
-            var modernItems = legacyItems.Select(SalesOrderItemMapper.Map).ToList();
-            await _modernWriter.WriteDataAsync("sales_order_items", modernItems);
+            var legacyArticles = await _legacyReader.ReadDataAsync<LegacyArticulo>("Articulos");
+            
+            var validOrderIds = validOrders.Select(o => o.IdNotaPedido).ToHashSet();
+            var validArticleIds = legacyArticles.Select(a => a.idArticulo).ToHashSet();
+            
+            var validItems = legacyItems
+                .Where(i => validOrderIds.Contains(i.IdNotaPedido) && validArticleIds.Contains(i.IdArticulo))
+                .ToList();
+            
+            var filteredItemsCount = legacyItems.Count() - validItems.Count;
+            if (filteredItemsCount > 0)
+            {
+                _logger.LogWarning("Filtered {Orphaned} order items with invalid FK references", filteredItemsCount);
+            }
+            
+            var modernItems = validItems.Select(SalesOrderItemMapper.Map).ToList();
+            if (modernItems.Any())
+            {
+                await _modernWriter.WriteDataAsync("sales_order_items", modernItems);
+            }
             
             result.EntityResults.Add(new EntityMigrationResult
             {
@@ -292,11 +353,21 @@ public class MigrationOrchestrator
         try
         {
             var legacyInvoices = await _legacyReader.ReadDataAsync<LegacyFactura>("Facturas");
-            var totalCount = legacyInvoices.Count();
+            var legacyOrders = await _legacyReader.ReadDataAsync<LegacyNotaPedido>("NotaPedidos");
             
-            var modernInvoices = legacyInvoices.Select(InvoiceMapper.Map).ToList();
+            // Filter invoices with invalid sales_order references
+            var validOrderIds = legacyOrders.Select(o => o.IdNotaPedido).ToHashSet();
+            var validInvoices = legacyInvoices.Where(inv => validOrderIds.Contains(inv.IdNotaPedido)).ToList();
             
-            task.MaxValue = totalCount;
+            var filteredCount = legacyInvoices.Count() - validInvoices.Count;
+            if (filteredCount > 0)
+            {
+                _logger.LogWarning("Filtered {Orphaned} invoices with invalid sales_order FKs", filteredCount);
+            }
+            
+            var modernInvoices = validInvoices.Select(InvoiceMapper.Map).ToList();
+            
+            task.MaxValue = validInvoices.Count;
             var migrated = await _modernWriter.WriteDataAsync("invoices", modernInvoices);
             task.Value = migrated;
             
@@ -329,11 +400,40 @@ public class MigrationOrchestrator
         try
         {
             var legacyRemitos = await _legacyReader.ReadDataAsync<LegacyRemito>("Remitos");
-            var totalCount = legacyRemitos.Count();
+            var legacyOrders = await _legacyReader.ReadDataAsync<LegacyNotaPedido>("NotaPedidos");
             
-            var modernDeliveryNotes = legacyRemitos.Select(DeliveryNoteMapper.Map).ToList();
+            // Get valid transporter IDs from PostgreSQL (already migrated)
+            var validTransporterIds = await _modernWriter.GetValidIdsAsync("transporters");
             
-            task.MaxValue = totalCount;
+            // Filter delivery notes with invalid sales_order references
+            var validOrderIds = legacyOrders.Select(o => o.IdNotaPedido).ToHashSet();
+            var validRemitos = legacyRemitos.Where(r => validOrderIds.Contains(r.IdNotaPedido)).ToList();
+            
+            var filteredCount = legacyRemitos.Count() - validRemitos.Count;
+            if (filteredCount > 0)
+            {
+                _logger.LogWarning("Filtered {Orphaned} delivery notes with invalid sales_order FKs", filteredCount);
+            }
+            
+            // Map and fix invalid transporter FKs
+            var modernDeliveryNotes = validRemitos.Select(r =>
+            {
+                var note = DeliveryNoteMapper.Map(r);
+                // Set transporter to NULL if it doesn't exist
+                if (note.TransporterId.HasValue && !validTransporterIds.Contains(note.TransporterId.Value))
+                {
+                    note.TransporterId = null;
+                }
+                return note;
+            }).ToList();
+            
+            var invalidTransporterCount = validRemitos.Count(r => r.IdTransportista.HasValue && !validTransporterIds.Contains(r.IdTransportista.Value));
+            if (invalidTransporterCount > 0)
+            {
+                _logger.LogWarning("Set {Count} delivery notes with invalid transporter FKs to NULL", invalidTransporterCount);
+            }
+            
+            task.MaxValue = validRemitos.Count;
             var migrated = await _modernWriter.WriteDataAsync("delivery_notes", modernDeliveryNotes);
             task.Value = migrated;
             
