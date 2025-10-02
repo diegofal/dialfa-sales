@@ -14,3 +14,8 @@ public interface IClientRepository : IRepository<Client>
     Task<IEnumerable<Client>> GetClientsWithBalanceAsync(CancellationToken cancellationToken = default);
 }
 
+
+
+
+
+

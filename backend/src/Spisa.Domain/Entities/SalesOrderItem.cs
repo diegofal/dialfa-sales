@@ -16,3 +16,8 @@ public class SalesOrderItem
     public Article Article { get; set; } = null!;
 }
 
+
+
+
+
+

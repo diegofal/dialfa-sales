@@ -38,3 +38,8 @@ public class GetAllClientsQueryHandler : IRequestHandler<GetAllClientsQuery, Lis
     }
 }
 
+
+
+
+
+

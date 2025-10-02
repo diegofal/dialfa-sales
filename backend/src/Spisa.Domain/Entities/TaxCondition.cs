@@ -11,3 +11,8 @@ public class TaxCondition
     public ICollection<Client> Clients { get; set; } = new List<Client>();
 }
 
+
+
+
+
+

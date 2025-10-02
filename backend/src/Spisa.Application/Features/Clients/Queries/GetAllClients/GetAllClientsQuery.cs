@@ -8,3 +8,8 @@ public class GetAllClientsQuery : IRequest<List<ClientDto>>
     public bool ActiveOnly { get; set; } = false;
 }
 
+
+
+
+
+

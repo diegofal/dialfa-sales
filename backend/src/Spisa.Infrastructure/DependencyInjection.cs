@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Spisa.Domain.Interfaces;
+using Spisa.Infrastructure.Identity;
 using Spisa.Infrastructure.Persistence;
 using Spisa.Infrastructure.Repositories;
 
@@ -25,6 +26,9 @@ public static class DependencyInjection
         // Repositories
         services.AddScoped<IClientRepository, ClientRepository>();
         services.AddScoped(typeof(IRepository<>), typeof(Repository<>));
+
+        // Authentication
+        services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
 
         return services;
     }

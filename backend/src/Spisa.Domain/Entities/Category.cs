@@ -14,3 +14,8 @@ public class Category : BaseEntity
     public ICollection<ClientDiscount> ClientDiscounts { get; set; } = new List<ClientDiscount>();
 }
 
+
+
+
+
+

@@ -19,3 +19,8 @@ public class SalesOrder : BaseEntity
     public ICollection<DeliveryNote> DeliveryNotes { get; set; } = new List<DeliveryNote>();
 }
 
+
+
+
+
+

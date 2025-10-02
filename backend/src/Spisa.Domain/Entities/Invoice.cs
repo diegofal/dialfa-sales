@@ -16,3 +16,8 @@ public class Invoice : BaseEntity
     public SalesOrder SalesOrder { get; set; } = null!;
 }
 
+
+
+
+
+

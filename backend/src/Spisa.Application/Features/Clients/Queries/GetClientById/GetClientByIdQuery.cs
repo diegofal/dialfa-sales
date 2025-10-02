@@ -13,3 +13,8 @@ public class GetClientByIdQuery : IRequest<ClientDto?>
     }
 }
 
+
+
+
+
+

@@ -36,3 +36,8 @@ public class ArticleConfiguration : IEntityTypeConfiguration<Article>
     }
 }
 
+
+
+
+
+

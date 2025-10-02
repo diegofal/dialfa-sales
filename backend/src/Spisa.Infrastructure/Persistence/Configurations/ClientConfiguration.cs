@@ -46,6 +46,7 @@ public class ClientConfiguration : IEntityTypeConfiguration<Client>
         builder.HasOne(c => c.TaxCondition)
             .WithMany(t => t.Clients)
             .HasForeignKey(c => c.TaxConditionId)
+            .IsRequired()
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(c => c.Province)
@@ -56,6 +57,7 @@ public class ClientConfiguration : IEntityTypeConfiguration<Client>
         builder.HasOne(c => c.OperationType)
             .WithMany(o => o.Clients)
             .HasForeignKey(c => c.OperationTypeId)
+            .IsRequired()
             .OnDelete(DeleteBehavior.Restrict);
 
         builder.HasOne(c => c.Transporter)
@@ -74,4 +76,9 @@ public class ClientConfiguration : IEntityTypeConfiguration<Client>
         builder.HasQueryFilter(c => c.DeletedAt == null);
     }
 }
+
+
+
+
+
 

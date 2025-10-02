@@ -20,3 +20,8 @@ public class Article : BaseEntity
     public ICollection<StockMovement> StockMovements { get; set; } = new List<StockMovement>();
 }
 
+
+
+
+
+

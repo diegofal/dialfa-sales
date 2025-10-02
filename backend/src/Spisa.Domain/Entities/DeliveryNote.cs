@@ -18,3 +18,8 @@ public class DeliveryNote : BaseEntity
     public Transporter? Transporter { get; set; }
 }
 
+
+
+
+
+

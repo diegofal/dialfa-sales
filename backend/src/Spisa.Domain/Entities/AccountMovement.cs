@@ -20,3 +20,8 @@ public class AccountMovement : BaseEntity
     public PaymentMethod? PaymentMethod { get; set; }
 }
 
+
+
+
+
+

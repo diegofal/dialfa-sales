@@ -15,3 +15,8 @@ public abstract class BaseEntity
     public bool IsDeleted => DeletedAt.HasValue;
 }
 
+
+
+
+
+

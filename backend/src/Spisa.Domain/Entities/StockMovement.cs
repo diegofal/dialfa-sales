@@ -15,3 +15,8 @@ public class StockMovement : BaseEntity
     public Article Article { get; set; } = null!;
 }
 
+
+
+
+
+

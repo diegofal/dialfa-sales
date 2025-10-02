@@ -187,3 +187,8 @@ Para permitir la migración de datos legacy con problemas de calidad, se removie
 **Generado por:** SPISA Data Migration Tool v1.0  
 **Validado el:** 2025-10-01 18:30:00 UTC
 
+
+
+
+
+

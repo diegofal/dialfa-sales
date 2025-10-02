@@ -42,3 +42,8 @@ UNION ALL SELECT 'invoices', COUNT(*) FROM invoices
 UNION ALL SELECT 'transporters', COUNT(*) FROM transporters
 UNION ALL SELECT 'operation_types', COUNT(*) FROM operation_types;
 
+
+
+
+
+

@@ -42,3 +42,8 @@ public class GetClientByIdQueryHandler : IRequestHandler<GetClientByIdQuery, Cli
     }
 }
 
+
+
+
+
+

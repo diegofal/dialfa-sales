@@ -11,3 +11,8 @@ public class OperationType
     public ICollection<Client> Clients { get; set; } = new List<Client>();
 }
 
+
+
+
+
+

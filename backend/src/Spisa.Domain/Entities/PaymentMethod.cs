@@ -12,3 +12,8 @@ public class PaymentMethod
     public ICollection<AccountMovement> AccountMovements { get; set; } = new List<AccountMovement>();
 }
 
+
+
+
+
+

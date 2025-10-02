@@ -14,3 +14,8 @@ public class ClientDiscount
     public Category Category { get; set; } = null!;
 }
 
+
+
+
+
+

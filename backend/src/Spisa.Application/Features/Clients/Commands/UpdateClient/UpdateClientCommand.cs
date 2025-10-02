@@ -15,10 +15,14 @@ public class UpdateClientCommand : IRequest<ClientDto>
     public int? ProvinceId { get; set; }
     public string? Phone { get; set; }
     public string? Email { get; set; }
-    public int? TaxConditionId { get; set; }
-    public int? OperationTypeId { get; set; }
+    public int TaxConditionId { get; set; }  // Required field
+    public int OperationTypeId { get; set; }  // Required field
     public int? TransporterId { get; set; }
     public decimal? CreditLimit { get; set; }
     public bool IsActive { get; set; }
 }
+
+
+
+
 

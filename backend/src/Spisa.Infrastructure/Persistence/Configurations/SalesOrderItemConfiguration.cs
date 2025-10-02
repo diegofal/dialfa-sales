@@ -28,3 +28,8 @@ public class SalesOrderItemConfiguration : IEntityTypeConfiguration<SalesOrderIt
     }
 }
 
+
+
+
+
+

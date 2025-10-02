@@ -26,6 +26,16 @@ public class CreateClientCommandValidator : AbstractValidator<CreateClientComman
         RuleFor(x => x.CreditLimit)
             .GreaterThanOrEqualTo(0).WithMessage("El límite de crédito no puede ser negativo")
             .When(x => x.CreditLimit.HasValue);
+
+        RuleFor(x => x.TaxConditionId)
+            .GreaterThan(0).WithMessage("La condición de IVA es requerida");
+
+        RuleFor(x => x.OperationTypeId)
+            .GreaterThan(0).WithMessage("El tipo de operatoria es requerido");
     }
 }
+
+
+
+
 

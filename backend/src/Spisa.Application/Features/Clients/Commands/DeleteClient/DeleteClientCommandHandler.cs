@@ -41,3 +41,8 @@ public class DeleteClientCommandHandler : IRequestHandler<DeleteClientCommand, b
     }
 }
 
+
+
+
+
+
