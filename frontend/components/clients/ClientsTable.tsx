@@ -146,3 +146,7 @@ export default function ClientsTable({ clients, onEdit }: ClientsTableProps) {
   );
 }
 
+
+
+
+

@@ -14,6 +14,10 @@ public class MappingProfile : Profile
             .ForMember(dest => dest.ProvinceName, opt => opt.MapFrom(src => src.Province != null ? src.Province.Name : null))
             .ForMember(dest => dest.OperationTypeName, opt => opt.MapFrom(src => src.OperationType != null ? src.OperationType.Name : null))
             .ForMember(dest => dest.TransporterName, opt => opt.MapFrom(src => src.Transporter != null ? src.Transporter.Name : null));
+
+        // Category mappings
+        CreateMap<Category, CategoryDto>()
+            .ForMember(dest => dest.ArticlesCount, opt => opt.MapFrom(src => src.Articles.Count));
     }
 }
 

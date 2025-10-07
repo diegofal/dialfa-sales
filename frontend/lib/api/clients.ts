@@ -1,34 +1,34 @@
-import apiClient from './client';
-import type { ClientDto, CreateClientRequest, UpdateClientRequest } from '@/types/api';
+import { apiClient } from './client';
+import type { Client, ClientFormData } from '@/types/api';
 
 export const clientsApi = {
-  getAll: async (activeOnly: boolean = false): Promise<ClientDto[]> => {
-    const response = await apiClient.get<ClientDto[]>('/api/clients', {
+  getAll: async (activeOnly: boolean = false): Promise<Client[]> => {
+    const { data } = await apiClient.get<Client[]>('/clients', {
       params: { activeOnly },
     });
-    return response.data;
+    return data;
   },
 
-  getById: async (id: number): Promise<ClientDto> => {
-    const response = await apiClient.get<ClientDto>(`/api/clients/${id}`);
-    return response.data;
+  getById: async (id: number): Promise<Client> => {
+    const { data } = await apiClient.get<Client>(`/clients/${id}`);
+    return data;
   },
 
-  create: async (data: CreateClientRequest): Promise<ClientDto> => {
-    const response = await apiClient.post<ClientDto>('/api/clients', data);
-    return response.data;
+  create: async (clientData: ClientFormData): Promise<Client> => {
+    const { data } = await apiClient.post<Client>('/clients', clientData);
+    return data;
   },
 
-  update: async (id: number, data: UpdateClientRequest): Promise<ClientDto> => {
-    const response = await apiClient.put<ClientDto>(`/api/clients/${id}`, {
-      ...data,
+  update: async (id: number, clientData: ClientFormData): Promise<Client> => {
+    const { data } = await apiClient.put<Client>(`/clients/${id}`, {
       id,
+      ...clientData,
     });
-    return response.data;
+    return data;
   },
 
   delete: async (id: number): Promise<void> => {
-    await apiClient.delete(`/api/clients/${id}`);
+    await apiClient.delete(`/clients/${id}`);
   },
 };
 

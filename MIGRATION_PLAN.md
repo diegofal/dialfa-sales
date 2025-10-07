@@ -845,7 +845,7 @@ spisa-new/
 
 ### Phase 2: Core Modules (Weeks 3-5) 🚧 IN PROGRESS
 
-**Status:** 🚧 Partially Complete (Clients 100%, Categories 0%, Articles 0%)
+**Status:** 🚧 Partially Complete (Clients 100%, Categories 100%, Articles 0%)
 
 **Module 1: Clients (Clientes)** ✅ 100% COMPLETE
 
@@ -866,12 +866,16 @@ spisa-new/
 - GetClienteWithBalanceQuery ⏭️ (future)
 ```
 
-**Frontend:** ⏭️ Pending (Next Priority)
-- Client list with search
-- Create/Edit form
-- Discount management section
-- Current account balance display
-- Client history view
+**Frontend:** ✅ COMPLETE
+- ✅ Client list with 397 migrated clients
+- ✅ Create/Edit form with validation
+- ✅ Delete confirmation dialog
+- ✅ Real-time table updates
+- ✅ Currency formatting (ARS)
+- ✅ Status badges
+- ⏭️ Advanced search and filters (future)
+- ⏭️ Discount management section (future)
+- ⏭️ Account balance history (future)
 
 **API Endpoints:** ✅ ALL WORKING
 - ✅ GET /api/clients (with activeOnly filter)
@@ -885,26 +889,31 @@ spisa-new/
 - ✅ GET /api/auth/validate (token validation)
 - ✅ Swagger UI with Bearer auth
 - ✅ Test users seeded (admin, user)
+- ✅ Frontend login page
+- ✅ Protected routes
+- ✅ JWT interceptors
 
-**Module 2: Categories (Categorías)** ⏭️ Pending
+**Module 2: Categories (Categorías)** ✅ 100% COMPLETE
 
-**Backend:**
+**Backend:** ✅ COMPLETE
 ```csharp
-// Commands
-- CreateCategoryCommand ⏭️
-- UpdateCategoryCommand ⏭️
-- DeleteCategoryCommand ⏭️
+// Commands - ✅ Implemented
+- CreateCategoryCommand ✅
+- UpdateCategoryCommand ✅
+- DeleteCategoryCommand ✅
 
-// Queries
-- GetAllCategoriesQuery ⏭️
-- GetCategoryByIdQuery ⏭️
-- GetActiveCategoriesQuery ⏭️
+// Queries - ✅ Implemented
+- GetAllCategoriesQuery ✅ (with activeOnly filter)
+- GetCategoryByIdQuery ✅
 ```
 
-**Frontend:** ⏭️ Pending
-- Category list page
-- Create/Edit form
-- Delete confirmation
+**Frontend:** ✅ COMPLETE
+- ✅ Category list page with 12 migrated categories
+- ✅ Create/Edit form with validation
+- ✅ Delete confirmation (soft delete)
+- ✅ Real-time table updates
+- ✅ Articles count per category
+- ✅ Status badges (Active/Deleted)
 
 **Module 3: Articles (Artículos)** ⏭️ Pending
 
@@ -932,13 +941,17 @@ spisa-new/
 - Print article labels
 
 **Phase 2 Deliverables:**
-- ✅ Clients CRUD operations (100% complete)
+- ✅ Clients CRUD operations (100% complete - Backend + Frontend)
+- ✅ Categories CRUD operations (100% complete - Backend + Frontend)
 - ✅ All client data migrated with balances (397 clients)
-- ✅ JWT Authentication implemented
+- ✅ All category data migrated (12 categories)
+- ✅ JWT Authentication implemented (Backend + Frontend)
 - ✅ Swagger documentation with Bearer auth
-- ⏭️ Categories module (pending)
-- ⏭️ Articles module (pending)
-- ⏭️ Frontend implementation (next priority)
+- ✅ Frontend base implementation (Next.js 14 + TailwindCSS + shadcn/ui)
+- ✅ Dashboard with statistics
+- ✅ Startup scripts (start-all.bat/.sh)
+- ✅ Environment configuration (.env.local)
+- ⏭️ Articles module (next priority)
 - ⏭️ Unit tests (deferred)
 
 ---
@@ -1495,7 +1508,7 @@ logging:
 
 ---
 
-## 📊 Overall Project Progress (Updated October 2, 2025)
+## 📊 Overall Project Progress (Updated October 7, 2025)
 
 ```
 Phase 1: Foundation & Setup    ✅ ████████████ 100% COMPLETE
@@ -1505,10 +1518,12 @@ Phase 1: Foundation & Setup    ✅ ████████████ 100% COM
   ├─ Base architecture         ✅ Done
   └─ Logging & monitoring      ✅ Done
 
-Phase 2: Core Modules          🚧 ████░░░░░░░░  33% IN PROGRESS
-  ├─ Clients Module            ✅ 100% Complete (Backend only)
-  ├─ JWT Authentication        ✅ 100% Complete
-  ├─ Categories Module         ⏭️  0% Pending
+Phase 2: Core Modules          🚧 ███████░░░░░  58% IN PROGRESS
+  ├─ Clients Module            ✅ 100% Complete (Backend + Frontend)
+  ├─ Categories Module         ✅ 100% Complete (Backend + Frontend)
+  ├─ JWT Authentication        ✅ 100% Complete (Backend + Frontend)
+  ├─ Frontend Base             ✅ 100% Complete (Next.js + Dashboard)
+  ├─ Startup Scripts           ✅ 100% Complete (start-all.bat/.sh)
   └─ Articles Module           ⏭️  0% Pending
 
 Phase 3: Sales & Documents     ⏭️ ░░░░░░░░░░░░   0% PENDING
@@ -1527,10 +1542,10 @@ Phase 5: Polish & Deployment   ✅ ██████████░░  83% MOS
   ├─ Production Deployment     ⏭️  0% Pending
   └─ User Training             ⏭️  0% Pending (requires frontend)
 
-OVERALL PROGRESS: ████████░░░░ 43% (Up from 42%)
+OVERALL PROGRESS: ██████████░░ 55%
 ```
 
-### Key Achievements (October 1-2, 2025):
+### Key Achievements (October 1-7, 2025):
 
 ✅ **Data Layer (100%)**
 - 268,817 records migrated from SQL Server to PostgreSQL
@@ -1545,11 +1560,19 @@ OVERALL PROGRESS: ████████░░░░ 43% (Up from 42%)
 - AutoMapper for DTOs
 - Serilog for structured logging
 
-✅ **Clients Module (100% Backend)**
+✅ **Clients Module (100%)**
 - Full CRUD operations (GET, POST, PUT, DELETE)
 - Query filtering (active only, search)
 - Soft delete implementation
 - Data validation with FluentValidation
+- Frontend UI with 397 migrated clients
+
+✅ **Categories Module (100%)**
+- Full CRUD operations (Backend + Frontend)
+- Query filtering with activeOnly
+- Soft delete implementation
+- Articles count per category
+- Frontend UI with 12 migrated categories
 
 ✅ **Authentication (100%)**
 - JWT Bearer token generation
@@ -1562,27 +1585,53 @@ OVERALL PROGRESS: ████████░░░░ 43% (Up from 42%)
 1. ContactPerson property removed (not in schema)
 2. CurrentBalance migration implemented
 3. PUT endpoint nullable fields fixed
+4. apiClient baseURL corrected (/api prefix)
+5. IsDeleted query filter for soft deletes
+
+✅ **Frontend Development (100%)**
+- Next.js 14 with App Router and TypeScript
+- TailwindCSS + shadcn/ui (13 components)
+- Login page with form validation
+- Dashboard with real-time statistics
+- Clients CRUD interface (list, create, edit, delete)
+- Categories CRUD interface (list, create, edit, delete)
+- React Query for server state
+- Zustand for client state (auth)
+- Axios client with JWT interceptors
+- Protected routes and auth guards
+- Toast notifications
+- Responsive design
+
+✅ **DevOps & Tooling (100%)**
+- Startup scripts (start-all.bat/.sh)
+- Individual scripts (start-backend, start-frontend)
+- START_GUIDE.md documentation
+- Environment configuration (.env.local)
 
 ### Next Sprint Priority:
 
-🎯 **Frontend Development** (Estimated: 6-8 hours)
-1. Initialize Next.js 14 + TypeScript project
-2. Setup TailwindCSS + shadcn/ui
-3. Implement authentication (login, protected routes)
-4. Create Clients UI (list, create, edit, delete)
-5. Connect to backend API
+🎯 **Articles Module** (Estimated: 4-5 hours)
+1. Backend: Article entity and repository
+2. Backend: CRUD Commands and Queries (MediatR)
+3. Backend: DTOs with category relationship
+4. Backend: Stock management logic
+5. Backend: Controller endpoints with filters
+6. Frontend: Articles list page with pagination
+7. Frontend: Create/Edit form with category dropdown
+8. Frontend: Stock adjustment modal
+9. Frontend: Low stock indicators
 
 ### Estimated Timeline:
 
 - **Completed:** Weeks 1-2 (Foundation) ✅
-- **In Progress:** Week 3 (Core Modules - Clients) 🚧
-- **Next:** Weeks 3-4 (Frontend + Categories + Articles)
-- **Remaining:** Weeks 5-14 (Sales, Financial, Reports)
+- **Completed:** Week 3 (Clients + Categories) ✅
+- **In Progress:** Week 3 (Articles Module) 🚧
+- **Next:** Weeks 4-11 (Articles + Sales + Financial + Reports)
 - **Final:** Weeks 15-16 (Deployment & Training)
 
-**Current Status:** On track, ahead of schedule on backend development
+**Current Status:** On track, ahead of schedule (55% complete)
 
 ---
 
-*Last Updated: October 2, 2025 - 18:30*
+*Last Updated: October 7, 2025 - 21:00*
 

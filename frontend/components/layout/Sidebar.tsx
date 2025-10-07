@@ -6,6 +6,7 @@ import { cn } from '@/lib/utils';
 import { 
   LayoutDashboard, 
   Users, 
+  FolderTree,
   Package, 
   ShoppingCart,
   FileText,
@@ -17,6 +18,7 @@ import {
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Clientes', href: '/dashboard/clients', icon: Users },
+  { name: 'Categorías', href: '/dashboard/categories', icon: FolderTree },
   { name: 'Artículos', href: '/dashboard/articles', icon: Package },
   { name: 'Pedidos', href: '/dashboard/orders', icon: ShoppingCart },
   { name: 'Facturas', href: '/dashboard/invoices', icon: FileText },
