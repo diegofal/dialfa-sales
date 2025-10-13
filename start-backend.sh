@@ -15,3 +15,6 @@ echo "Press Ctrl+C to stop"
 echo ""
 
 dotnet run
+
+
+

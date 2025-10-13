@@ -30,3 +30,5 @@ public class UpdateCategoryCommandValidator : AbstractValidator<UpdateCategoryCo
 
 
 
+
+

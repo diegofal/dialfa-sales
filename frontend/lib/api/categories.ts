@@ -1,5 +1,5 @@
-import { apiClient } from './client';
-import type { Category, CategoryFormData } from '@/types/category';
+import { Category, CategoryFormData } from '@/types/category';
+import apiClient from './client';
 
 export const categoriesApi = {
   getAll: async (activeOnly: boolean = false): Promise<Category[]> => {
@@ -10,19 +10,19 @@ export const categoriesApi = {
   },
 
   getById: async (id: number): Promise<Category> => {
-    const { data} = await apiClient.get<Category>(`/categories/${id}`);
+    const { data } = await apiClient.get<Category>(`/categories/${id}`);
     return data;
   },
 
-  create: async (categoryData: CategoryFormData): Promise<Category> => {
-    const { data } = await apiClient.post<Category>('/categories', categoryData);
+  create: async (category: CategoryFormData): Promise<Category> => {
+    const { data } = await apiClient.post<Category>('/categories', category);
     return data;
   },
 
-  update: async (id: number, categoryData: CategoryFormData): Promise<Category> => {
+  update: async (id: number, category: CategoryFormData): Promise<Category> => {
     const { data } = await apiClient.put<Category>(`/categories/${id}`, {
+      ...category,
       id,
-      ...categoryData,
     });
     return data;
   },
@@ -31,8 +31,4 @@ export const categoriesApi = {
     await apiClient.delete(`/categories/${id}`);
   },
 };
-
-
-
-
 

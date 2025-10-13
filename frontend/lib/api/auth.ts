@@ -3,13 +3,13 @@ import type { LoginRequest, LoginResponse } from '@/types/api';
 
 export const authApi = {
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
-    const response = await apiClient.post<LoginResponse>('/api/auth/login', credentials);
+    const response = await apiClient.post<LoginResponse>('/auth/login', credentials);
     return response.data;
   },
 
   validate: async (): Promise<boolean> => {
     try {
-      await apiClient.get('/api/auth/validate');
+      await apiClient.get('/auth/validate');
       return true;
     } catch {
       return false;

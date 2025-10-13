@@ -141,3 +141,6 @@ export function CategoriesTable({ categories, onEdit }: CategoriesTableProps) {
 
 
 
+
+
+

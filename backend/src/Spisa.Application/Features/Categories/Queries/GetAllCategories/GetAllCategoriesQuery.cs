@@ -9,3 +9,5 @@ public record GetAllCategoriesQuery(bool ActiveOnly = false) : IRequest<List<Cat
 
 
 
+
+

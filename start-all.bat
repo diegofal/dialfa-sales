@@ -29,3 +29,6 @@ echo   2. Frontend App (port 3000)
 echo.
 echo Press any key to close this window...
 pause >nul
+
+
+

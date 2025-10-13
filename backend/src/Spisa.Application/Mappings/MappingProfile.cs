@@ -18,6 +18,11 @@ public class MappingProfile : Profile
         // Category mappings
         CreateMap<Category, CategoryDto>()
             .ForMember(dest => dest.ArticlesCount, opt => opt.MapFrom(src => src.Articles.Count));
+
+        // Article mappings
+        CreateMap<Article, ArticleDto>()
+            .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : string.Empty))
+            .ForMember(dest => dest.IsDeleted, opt => opt.MapFrom(src => src.DeletedAt != null));
     }
 }
 
