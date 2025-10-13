@@ -8,8 +8,8 @@ public class ArticleDto
     public long CategoryId { get; set; }
     public string CategoryName { get; set; } = string.Empty;
     public decimal UnitPrice { get; set; }
-    public int Stock { get; set; }
-    public int MinimumStock { get; set; }
+    public decimal Stock { get; set; }
+    public decimal MinimumStock { get; set; }
     public string? Location { get; set; }
     public bool IsDiscontinued { get; set; }
     public string? Notes { get; set; }

@@ -21,6 +21,24 @@ public class ArticleConfiguration : IEntityTypeConfiguration<Article>
         builder.Property(a => a.UnitPrice)
             .HasPrecision(18, 4);
 
+        builder.Property(a => a.Stock)
+            .HasColumnName("stock")
+            .HasPrecision(12, 3);
+
+        builder.Property(a => a.MinimumStock)
+            .HasColumnName("minimum_stock")
+            .HasPrecision(12, 3);
+
+        builder.Property(a => a.Location)
+            .HasMaxLength(100);
+
+        builder.Property(a => a.IsDiscontinued)
+            .HasColumnName("is_discontinued")
+            .HasDefaultValue(false);
+
+        builder.Property(a => a.Notes)
+            .HasColumnType("text");
+
         builder.HasOne(a => a.Category)
             .WithMany(c => c.Articles)
             .HasForeignKey(a => a.CategoryId)
