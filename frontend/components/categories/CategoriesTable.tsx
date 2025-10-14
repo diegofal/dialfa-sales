@@ -5,10 +5,10 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { SortableTableHead } from '@/components/ui/sortable-table-head';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -28,9 +28,12 @@ import { Badge } from '@/components/ui/badge';
 interface CategoriesTableProps {
   categories: Category[];
   onEdit: (id: number) => void;
+  currentSortBy?: string;
+  currentSortDescending?: boolean;
+  onSort?: (sortBy: string, sortDescending: boolean) => void;
 }
 
-export function CategoriesTable({ categories, onEdit }: CategoriesTableProps) {
+export function CategoriesTable({ categories, onEdit, currentSortBy, currentSortDescending, onSort }: CategoriesTableProps) {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const deleteMutation = useDeleteCategory();
 
@@ -47,13 +50,35 @@ export function CategoriesTable({ categories, onEdit }: CategoriesTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Código</TableHead>
-              <TableHead>Nombre</TableHead>
-              <TableHead>Descripción</TableHead>
-              <TableHead className="text-right">Descuento (%)</TableHead>
-              <TableHead className="text-center">Artículos</TableHead>
-              <TableHead className="text-center">Estado</TableHead>
-              <TableHead className="text-right">Acciones</TableHead>
+              <SortableTableHead
+                sortKey="Code"
+                currentSortBy={currentSortBy}
+                currentSortDescending={currentSortDescending}
+                onSort={onSort}
+              >
+                Código
+              </SortableTableHead>
+              <SortableTableHead
+                sortKey="Name"
+                currentSortBy={currentSortBy}
+                currentSortDescending={currentSortDescending}
+                onSort={onSort}
+              >
+                Nombre
+              </SortableTableHead>
+              <SortableTableHead>Descripción</SortableTableHead>
+              <SortableTableHead
+                sortKey="DefaultDiscountPercent"
+                currentSortBy={currentSortBy}
+                currentSortDescending={currentSortDescending}
+                onSort={onSort}
+                align="right"
+              >
+                Descuento (%)
+              </SortableTableHead>
+              <SortableTableHead align="center">Artículos</SortableTableHead>
+              <SortableTableHead align="center">Estado</SortableTableHead>
+              <SortableTableHead align="right">Acciones</SortableTableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

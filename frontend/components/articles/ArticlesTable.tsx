@@ -6,10 +6,10 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { SortableTableHead } from '@/components/ui/sortable-table-head';
 import { Badge } from '@/components/ui/badge';
 import { Pencil, Trash2 } from 'lucide-react';
 import {
@@ -28,9 +28,12 @@ interface ArticlesTableProps {
   articles: Article[];
   onEdit: (article: Article) => void;
   onDelete: (id: number) => void;
+  currentSortBy?: string;
+  currentSortDescending?: boolean;
+  onSort?: (sortBy: string, sortDescending: boolean) => void;
 }
 
-export function ArticlesTable({ articles, onEdit, onDelete }: ArticlesTableProps) {
+export function ArticlesTable({ articles, onEdit, onDelete, currentSortBy, currentSortDescending, onSort }: ArticlesTableProps) {
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-AR', {
       style: 'currency',
@@ -53,14 +56,24 @@ export function ArticlesTable({ articles, onEdit, onDelete }: ArticlesTableProps
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead>Código</TableHead>
-            <TableHead>Descripción</TableHead>
-            <TableHead>Categoría</TableHead>
-            <TableHead className="text-right">Precio</TableHead>
-            <TableHead className="text-right">Stock</TableHead>
-            <TableHead className="text-right">Stock Mín.</TableHead>
-            <TableHead>Estado</TableHead>
-            <TableHead className="text-right">Acciones</TableHead>
+            <SortableTableHead sortKey="Code" currentSortBy={currentSortBy} currentSortDescending={currentSortDescending} onSort={onSort}>
+              Código
+            </SortableTableHead>
+            <SortableTableHead sortKey="Description" currentSortBy={currentSortBy} currentSortDescending={currentSortDescending} onSort={onSort}>
+              Descripción
+            </SortableTableHead>
+            <SortableTableHead>Categoría</SortableTableHead>
+            <SortableTableHead sortKey="UnitPrice" currentSortBy={currentSortBy} currentSortDescending={currentSortDescending} onSort={onSort} align="right">
+              Precio
+            </SortableTableHead>
+            <SortableTableHead sortKey="Stock" currentSortBy={currentSortBy} currentSortDescending={currentSortDescending} onSort={onSort} align="right">
+              Stock
+            </SortableTableHead>
+            <SortableTableHead sortKey="MinimumStock" currentSortBy={currentSortBy} currentSortDescending={currentSortDescending} onSort={onSort} align="right">
+              Stock Mín.
+            </SortableTableHead>
+            <SortableTableHead>Estado</SortableTableHead>
+            <SortableTableHead align="right">Acciones</SortableTableHead>
           </TableRow>
         </TableHeader>
         <TableBody>

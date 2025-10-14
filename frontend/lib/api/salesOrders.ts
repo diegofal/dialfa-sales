@@ -1,4 +1,5 @@
 import { apiClient } from './client';
+import { PagedResult, PaginationParams } from '@/types/pagination';
 import type { 
   SalesOrder, 
   SalesOrderListDto, 
@@ -7,14 +8,14 @@ import type {
 } from '@/types/salesOrder';
 
 export const salesOrdersApi = {
-  getAll: async (params?: {
+  getAll: async (params: PaginationParams & {
     clientId?: number;
     status?: string;
     fromDate?: string;
     toDate?: string;
     activeOnly?: boolean;
-  }): Promise<SalesOrderListDto[]> => {
-    const { data } = await apiClient.get<SalesOrderListDto[]>('/sales-orders', {
+  } = {}): Promise<PagedResult<SalesOrderListDto>> => {
+    const { data } = await apiClient.get<PagedResult<SalesOrderListDto>>('/sales-orders', {
       params,
     });
     return data;

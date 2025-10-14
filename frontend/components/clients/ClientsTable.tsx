@@ -7,10 +7,10 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { SortableTableHead } from '@/components/ui/sortable-table-head';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -34,9 +34,18 @@ import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
 interface ClientsTableProps {
   clients: ClientDto[];
   onEdit: (client: ClientDto) => void;
+  currentSortBy?: string;
+  currentSortDescending?: boolean;
+  onSort?: (sortBy: string, sortDescending: boolean) => void;
 }
 
-export default function ClientsTable({ clients, onEdit }: ClientsTableProps) {
+export default function ClientsTable({ 
+  clients, 
+  onEdit,
+  currentSortBy,
+  currentSortDescending,
+  onSort 
+}: ClientsTableProps) {
   const [clientToDelete, setClientToDelete] = useState<ClientDto | null>(null);
   const deleteClientMutation = useDeleteClient();
 
@@ -60,13 +69,49 @@ export default function ClientsTable({ clients, onEdit }: ClientsTableProps) {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>Código</TableHead>
-              <TableHead>Razón Social</TableHead>
-              <TableHead>CUIT</TableHead>
-              <TableHead>Ciudad</TableHead>
-              <TableHead>Saldo</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead className="w-[70px]"></TableHead>
+              <SortableTableHead
+                sortKey="Code"
+                currentSortBy={currentSortBy}
+                currentSortDescending={currentSortDescending}
+                onSort={onSort}
+              >
+                Código
+              </SortableTableHead>
+              <SortableTableHead
+                sortKey="BusinessName"
+                currentSortBy={currentSortBy}
+                currentSortDescending={currentSortDescending}
+                onSort={onSort}
+              >
+                Razón Social
+              </SortableTableHead>
+              <SortableTableHead
+                sortKey="Cuit"
+                currentSortBy={currentSortBy}
+                currentSortDescending={currentSortDescending}
+                onSort={onSort}
+              >
+                CUIT
+              </SortableTableHead>
+              <SortableTableHead
+                sortKey="City"
+                currentSortBy={currentSortBy}
+                currentSortDescending={currentSortDescending}
+                onSort={onSort}
+              >
+                Ciudad
+              </SortableTableHead>
+              <SortableTableHead
+                sortKey="CurrentBalance"
+                currentSortBy={currentSortBy}
+                currentSortDescending={currentSortDescending}
+                onSort={onSort}
+                align="right"
+              >
+                Saldo
+              </SortableTableHead>
+              <SortableTableHead>Estado</SortableTableHead>
+              <SortableTableHead className="w-[70px]"></SortableTableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

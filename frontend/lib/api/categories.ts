@@ -1,10 +1,11 @@
 import { Category, CategoryFormData } from '@/types/category';
+import { PagedResult, PaginationParams } from '@/types/pagination';
 import apiClient from './client';
 
 export const categoriesApi = {
-  getAll: async (activeOnly: boolean = false): Promise<Category[]> => {
-    const { data } = await apiClient.get<Category[]>('/categories', {
-      params: { activeOnly },
+  getAll: async (params: PaginationParams & { activeOnly?: boolean } = {}): Promise<PagedResult<Category>> => {
+    const { data } = await apiClient.get<PagedResult<Category>>('/categories', {
+      params,
     });
     return data;
   },

@@ -1,15 +1,16 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { salesOrdersApi } from '../api/salesOrders';
+import { PaginationParams } from '@/types/pagination';
 import type { CreateSalesOrderRequest, UpdateSalesOrderRequest } from '@/types/salesOrder';
 import { toast } from 'sonner';
 
-export const useSalesOrders = (params?: {
+export const useSalesOrders = (params: PaginationParams & {
   clientId?: number;
   status?: string;
   fromDate?: string;
   toDate?: string;
   activeOnly?: boolean;
-}) => {
+} = {}) => {
   return useQuery({
     queryKey: ['salesOrders', params],
     queryFn: () => salesOrdersApi.getAll(params),

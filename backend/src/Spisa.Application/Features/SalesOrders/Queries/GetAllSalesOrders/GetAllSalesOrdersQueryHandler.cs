@@ -1,5 +1,7 @@
 using AutoMapper;
 using MediatR;
+using Spisa.Application.Common.Extensions;
+using Spisa.Application.Common.Models;
 using Spisa.Application.DTOs;
 using Spisa.Domain.Common;
 using Spisa.Domain.Entities;
@@ -7,7 +9,7 @@ using Spisa.Domain.Interfaces;
 
 namespace Spisa.Application.Features.SalesOrders.Queries.GetAllSalesOrders;
 
-public class GetAllSalesOrdersQueryHandler : IRequestHandler<GetAllSalesOrdersQuery, List<SalesOrderListDto>>
+public class GetAllSalesOrdersQueryHandler : IRequestHandler<GetAllSalesOrdersQuery, PagedResult<SalesOrderListDto>>
 {
     private readonly IRepository<SalesOrder> _salesOrderRepository;
     private readonly IMapper _mapper;
@@ -20,7 +22,7 @@ public class GetAllSalesOrdersQueryHandler : IRequestHandler<GetAllSalesOrdersQu
         _mapper = mapper;
     }
 
-    public async Task<List<SalesOrderListDto>> Handle(GetAllSalesOrdersQuery request, CancellationToken cancellationToken)
+    public async Task<PagedResult<SalesOrderListDto>> Handle(GetAllSalesOrdersQuery request, CancellationToken cancellationToken)
     {
         var allOrders = (await _salesOrderRepository.GetAllAsync()).ToList();
         var query = allOrders.AsQueryable();
@@ -57,12 +59,30 @@ public class GetAllSalesOrdersQueryHandler : IRequestHandler<GetAllSalesOrdersQu
             query = query.Where(o => o.OrderDate <= request.ToDate.Value);
         }
 
-        var salesOrders = query
-            .OrderByDescending(o => o.OrderDate)
-            .ThenByDescending(o => o.Id)
-            .ToList();
+        // Apply search filter if provided
+        if (!string.IsNullOrWhiteSpace(request.SearchTerm))
+        {
+            var searchTerm = request.SearchTerm.ToLower();
+            query = query.Where(o =>
+                o.OrderNumber.ToLower().Contains(searchTerm) ||
+                (o.Client != null && o.Client.BusinessName.ToLower().Contains(searchTerm)));
+        }
 
-        return _mapper.Map<List<SalesOrderListDto>>(salesOrders);
+        // Apply pagination and sorting
+        var paginationParams = new PaginationParams
+        {
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize,
+            SortBy = request.SortBy ?? "OrderDate",
+            SortDescending = request.SortDescending ? request.SortDescending : true // Default to descending for orders
+        };
+
+        var pagedResult = await query.ToPagedResultAsync(paginationParams, cancellationToken);
+
+        // Map to DTOs
+        var salesOrderDtos = _mapper.Map<List<SalesOrderListDto>>(pagedResult.Items);
+
+        return new PagedResult<SalesOrderListDto>(salesOrderDtos, pagedResult.TotalCount, pagedResult.PageNumber, pagedResult.PageSize);
     }
 }
 

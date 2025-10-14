@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Plus, Filter, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Pagination } from '@/components/ui/pagination';
+import { usePagination } from '@/lib/hooks/usePagination';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -21,7 +23,20 @@ export default function SalesOrdersPage() {
     activeOnly: true,
   });
 
-  const { data: orders = [], isLoading } = useSalesOrders(filters);
+  const {
+    pagination,
+    setPage,
+    setPageSize,
+    setSorting,
+  } = usePagination(10);
+
+  const { data, isLoading } = useSalesOrders({
+    ...filters,
+    pageNumber: pagination.pageNumber,
+    pageSize: pagination.pageSize,
+    sortBy: pagination.sortBy,
+    sortDescending: pagination.sortDescending,
+  });
   const cancelOrderMutation = useCancelSalesOrder();
   const deleteOrderMutation = useDeleteSalesOrder();
 
@@ -73,7 +88,7 @@ export default function SalesOrdersPage() {
             <CardTitle className="text-sm font-medium">Total Pedidos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{orders.length}</div>
+            <div className="text-2xl font-bold">{data?.totalCount || 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -82,7 +97,7 @@ export default function SalesOrdersPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {orders.filter((o) => o.status === 'PENDING').length}
+              {data?.items.filter((o) => o.status === 'PENDING').length || 0}
             </div>
           </CardContent>
         </Card>
@@ -92,7 +107,7 @@ export default function SalesOrdersPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {orders.filter((o) => o.status === 'INVOICED').length}
+              {data?.items.filter((o) => o.status === 'INVOICED').length || 0}
             </div>
           </CardContent>
         </Card>
@@ -106,7 +121,7 @@ export default function SalesOrdersPage() {
                 style: 'currency',
                 currency: 'ARS',
                 minimumFractionDigits: 0,
-              }).format(orders.reduce((sum, o) => sum + o.total, 0))}
+              }).format(data?.items.reduce((sum, o) => sum + o.total, 0) || 0)}
             </div>
           </CardContent>
         </Card>
@@ -191,19 +206,37 @@ export default function SalesOrdersPage() {
         <CardHeader>
           <CardTitle>Lista de Pedidos</CardTitle>
           <CardDescription>
-            {orders.length} pedido{orders.length !== 1 ? 's' : ''} encontrado{orders.length !== 1 ? 's' : ''}
+            {data?.totalCount || 0} pedido{(data?.totalCount || 0) !== 1 ? 's' : ''} encontrado{(data?.totalCount || 0) !== 1 ? 's' : ''}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="text-center py-8 text-muted-foreground">Cargando pedidos...</div>
+          ) : data && data.items.length > 0 ? (
+            <>
+              <SalesOrdersTable
+                orders={data.items}
+                onViewOrder={handleViewOrder}
+                onCancelOrder={handleCancelOrder}
+                onDeleteOrder={handleDeleteOrder}
+                currentSortBy={pagination.sortBy}
+                currentSortDescending={pagination.sortDescending}
+                onSort={setSorting}
+              />
+              <div className="mt-4">
+                <Pagination
+                  totalCount={data.totalCount}
+                  currentPage={data.pageNumber}
+                  pageSize={data.pageSize}
+                  onPageChange={setPage}
+                  onPageSizeChange={setPageSize}
+                />
+              </div>
+            </>
           ) : (
-            <SalesOrdersTable
-              orders={orders}
-              onViewOrder={handleViewOrder}
-              onCancelOrder={handleCancelOrder}
-              onDeleteOrder={handleDeleteOrder}
-            />
+            <div className="text-center py-8 text-muted-foreground">
+              No se encontraron pedidos
+            </div>
           )}
         </CardContent>
       </Card>

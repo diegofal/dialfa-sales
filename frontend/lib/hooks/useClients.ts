@@ -1,12 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { clientsApi } from '../api/clients';
 import type { CreateClientRequest, UpdateClientRequest } from '@/types/api';
+import type { PaginationParams } from '@/types/pagination';
 import { toast } from 'sonner';
 
-export const useClients = (activeOnly: boolean = false) => {
+export const useClients = (params: PaginationParams & { activeOnly?: boolean } = {}) => {
   return useQuery({
-    queryKey: ['clients', activeOnly],
-    queryFn: () => clientsApi.getAll(activeOnly),
+    queryKey: ['clients', params],
+    queryFn: () => clientsApi.getAll(params),
   });
 };
 

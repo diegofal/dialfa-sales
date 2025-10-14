@@ -1,12 +1,14 @@
 using AutoMapper;
 using MediatR;
+using Spisa.Application.Common.Extensions;
+using Spisa.Application.Common.Models;
 using Spisa.Application.DTOs;
 using Spisa.Domain.Entities;
 using Spisa.Domain.Interfaces;
 
 namespace Spisa.Application.Features.Articles.Queries.GetAllArticles;
 
-public class GetAllArticlesQueryHandler : IRequestHandler<GetAllArticlesQuery, List<ArticleDto>>
+public class GetAllArticlesQueryHandler : IRequestHandler<GetAllArticlesQuery, PagedResult<ArticleDto>>
 {
     private readonly IRepository<Article> _articleRepository;
     private readonly IMapper _mapper;
@@ -17,7 +19,7 @@ public class GetAllArticlesQueryHandler : IRequestHandler<GetAllArticlesQuery, L
         _mapper = mapper;
     }
 
-    public async Task<List<ArticleDto>> Handle(GetAllArticlesQuery request, CancellationToken cancellationToken)
+    public async Task<PagedResult<ArticleDto>> Handle(GetAllArticlesQuery request, CancellationToken cancellationToken)
     {
         var articles = await _articleRepository.GetAllAsync();
         
@@ -49,11 +51,21 @@ public class GetAllArticlesQueryHandler : IRequestHandler<GetAllArticlesQuery, L
             );
         }
 
-        var result = query
-            .OrderBy(a => a.Code)
-            .ToList();
+        // Apply pagination and sorting
+        var paginationParams = new PaginationParams
+        {
+            PageNumber = request.PageNumber,
+            PageSize = request.PageSize,
+            SortBy = request.SortBy ?? "Code",
+            SortDescending = request.SortDescending
+        };
 
-        return _mapper.Map<List<ArticleDto>>(result);
+        var pagedResult = await query.ToPagedResultAsync(paginationParams, cancellationToken);
+
+        // Map to DTOs
+        var articleDtos = _mapper.Map<List<ArticleDto>>(pagedResult.Items);
+
+        return new PagedResult<ArticleDto>(articleDtos, pagedResult.TotalCount, pagedResult.PageNumber, pagedResult.PageSize);
     }
 }
 

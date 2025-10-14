@@ -4,6 +4,8 @@ import { useState } from 'react';
 import { Plus, Search, Filter } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Pagination } from '@/components/ui/pagination';
+import { usePagination } from '@/lib/hooks/usePagination';
 import { useArticles, useDeleteArticle } from '@/lib/hooks/useArticles';
 import { useCategories } from '@/lib/hooks/useCategories';
 import { ArticlesTable } from '@/components/articles/ArticlesTable';
@@ -25,13 +27,24 @@ export default function ArticlesPage() {
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [stockFilter, setStockFilter] = useState<string>('all');
 
-  const { data: categories } = useCategories(true);
+  const {
+    pagination,
+    setPage,
+    setPageSize,
+    setSorting,
+  } = usePagination(10);
 
-  const { data: articles, isLoading } = useArticles({
+  const { data: categories } = useCategories({ activeOnly: true });
+
+  const { data, isLoading } = useArticles({
     activeOnly: true,
     searchTerm: searchTerm || undefined,
     categoryId: categoryFilter !== 'all' ? parseInt(categoryFilter) : undefined,
     lowStockOnly: stockFilter === 'low' ? true : undefined,
+    pageNumber: pagination.pageNumber,
+    pageSize: pagination.pageSize,
+    sortBy: pagination.sortBy,
+    sortDescending: pagination.sortDescending,
   });
 
   const deleteMutation = useDeleteArticle();
@@ -88,7 +101,10 @@ export default function ArticlesPage() {
             <Input
               placeholder="Buscar por código, descripción o categoría..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => {
+                setSearchTerm(e.target.value);
+                setPage(1); // Reset to first page when searching
+              }}
               className="pl-9"
             />
           </div>
@@ -103,7 +119,7 @@ export default function ArticlesPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas</SelectItem>
-              {categories?.map((cat) => (
+              {categories?.items?.map((cat) => (
                 <SelectItem key={cat.id} value={cat.id.toString()}>
                   {cat.name}
                 </SelectItem>
@@ -134,6 +150,7 @@ export default function ArticlesPage() {
               setSearchTerm('');
               setCategoryFilter('all');
               setStockFilter('all');
+              setPage(1);
             }}
           >
             <Filter className="h-4 w-4 mr-2" />
@@ -143,14 +160,14 @@ export default function ArticlesPage() {
       </div>
 
       {/* Stats */}
-      {articles && (
+      {data && (
         <div className="flex gap-4 flex-wrap">
           <Badge variant="secondary" className="text-sm py-1.5 px-3">
-            Total: {articles.length} artículos
+            Total: {data.totalCount} artículos
           </Badge>
           {stockFilter === 'low' && (
             <Badge variant="destructive" className="text-sm py-1.5 px-3">
-              {articles.filter((a) => a.isLowStock).length} con stock bajo
+              {data.items.filter((a) => a.isLowStock).length} con stock bajo
             </Badge>
           )}
         </div>
@@ -161,12 +178,30 @@ export default function ArticlesPage() {
         <div className="flex justify-center items-center py-12">
           <p className="text-muted-foreground">Cargando artículos...</p>
         </div>
+      ) : data && data.items.length > 0 ? (
+        <>
+          <ArticlesTable
+            articles={data.items}
+            onEdit={handleEditArticle}
+            onDelete={handleDeleteArticle}
+            currentSortBy={pagination.sortBy}
+            currentSortDescending={pagination.sortDescending}
+            onSort={setSorting}
+          />
+          <div className="mt-4">
+            <Pagination
+              totalCount={data.totalCount}
+              currentPage={data.pageNumber}
+              pageSize={data.pageSize}
+              onPageChange={setPage}
+              onPageSizeChange={setPageSize}
+            />
+          </div>
+        </>
       ) : (
-        <ArticlesTable
-          articles={articles || []}
-          onEdit={handleEditArticle}
-          onDelete={handleDeleteArticle}
-        />
+        <div className="text-center py-12 text-muted-foreground">
+          No se encontraron artículos
+        </div>
       )}
 
       {/* Dialog */}

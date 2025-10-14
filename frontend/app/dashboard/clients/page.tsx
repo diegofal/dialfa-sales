@@ -2,19 +2,37 @@
 
 import { useState } from 'react';
 import { useClients } from '@/lib/hooks/useClients';
+import { usePagination } from '@/lib/hooks/usePagination';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Plus, Search } from 'lucide-react';
+import { Pagination } from '@/components/ui/pagination';
 import ClientsTable from '@/components/clients/ClientsTable';
 import ClientDialog from '@/components/clients/ClientDialog';
 import type { ClientDto } from '@/types/api';
 
 export default function ClientsPage() {
   const [showActiveOnly] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<ClientDto | null>(null);
 
-  const { data: clients, isLoading, error } = useClients(showActiveOnly);
+  const {
+    pagination,
+    setPage,
+    setPageSize,
+    setSorting,
+  } = usePagination(10);
+
+  const { data, isLoading, error } = useClients({
+    activeOnly: showActiveOnly,
+    pageNumber: pagination.pageNumber,
+    pageSize: pagination.pageSize,
+    sortBy: pagination.sortBy,
+    sortDescending: pagination.sortDescending,
+    searchTerm,
+  });
 
   const handleCreate = () => {
     setSelectedClient(null);
@@ -48,10 +66,26 @@ export default function ClientsPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Lista de Clientes</CardTitle>
-          <CardDescription>
-            {clients?.length || 0} clientes registrados
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Lista de Clientes</CardTitle>
+              <CardDescription>
+                {data?.totalCount || 0} clientes registrados
+              </CardDescription>
+            </div>
+            <div className="relative w-64">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Buscar clientes..."
+                value={searchTerm}
+                onChange={(e) => {
+                  setSearchTerm(e.target.value);
+                  setPage(1); // Reset to first page when searching
+                }}
+                className="pl-8"
+              />
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {isLoading && (
@@ -66,11 +100,31 @@ export default function ClientsPage() {
             </div>
           )}
 
-          {clients && (
-            <ClientsTable
-              clients={clients}
-              onEdit={handleEdit}
-            />
+          {data && data.items.length > 0 && (
+            <>
+              <ClientsTable
+                clients={data.items}
+                onEdit={handleEdit}
+                currentSortBy={pagination.sortBy}
+                currentSortDescending={pagination.sortDescending}
+                onSort={setSorting}
+              />
+              <div className="mt-4">
+                <Pagination
+                  totalCount={data.totalCount}
+                  currentPage={data.pageNumber}
+                  pageSize={data.pageSize}
+                  onPageChange={setPage}
+                  onPageSizeChange={setPageSize}
+                />
+              </div>
+            </>
+          )}
+
+          {data && data.items.length === 0 && !isLoading && (
+            <div className="text-center py-8 text-muted-foreground">
+              No se encontraron clientes
+            </div>
           )}
         </CardContent>
       </Card>

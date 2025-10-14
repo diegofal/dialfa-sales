@@ -1,10 +1,11 @@
 import { apiClient } from './client';
 import type { ClientDto, CreateClientRequest, UpdateClientRequest } from '@/types/api';
+import type { PagedResult, PaginationParams } from '@/types/pagination';
 
 export const clientsApi = {
-  getAll: async (activeOnly: boolean = false): Promise<ClientDto[]> => {
-    const { data } = await apiClient.get<ClientDto[]>('/clients', {
-      params: { activeOnly },
+  getAll: async (params: PaginationParams & { activeOnly?: boolean } = {}): Promise<PagedResult<ClientDto>> => {
+    const { data } = await apiClient.get<PagedResult<ClientDto>>('/clients', {
+      params,
     });
     return data;
   },

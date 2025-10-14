@@ -22,21 +22,41 @@ public class CategoriesController : ControllerBase
     }
 
     /// <summary>
-    /// Get all categories
+    /// Get all categories with pagination and sorting
     /// </summary>
     /// <param name="activeOnly">Filter only active categories</param>
-    /// <returns>List of categories</returns>
+    /// <param name="pageNumber">Page number (default: 1)</param>
+    /// <param name="pageSize">Page size (default: 10, max: 100)</param>
+    /// <param name="sortBy">Property to sort by</param>
+    /// <param name="sortDescending">Sort in descending order</param>
+    /// <param name="searchTerm">Search term for filtering</param>
+    /// <returns>Paged list of categories</returns>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAllCategories([FromQuery] bool activeOnly = false)
+    public async Task<IActionResult> GetAllCategories(
+        [FromQuery] bool activeOnly = false,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] bool sortDescending = false,
+        [FromQuery] string? searchTerm = null)
     {
-        _logger.LogInformation("GET /api/categories - ActiveOnly: {ActiveOnly}", activeOnly);
+        _logger.LogInformation("GET /api/categories - Page: {Page}, PageSize: {PageSize}", pageNumber, pageSize);
 
-        var query = new GetAllCategoriesQuery(activeOnly);
-        var categories = await _mediator.Send(query);
+        var query = new GetAllCategoriesQuery
+        {
+            ActiveOnly = activeOnly,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            SortBy = sortBy,
+            SortDescending = sortDescending,
+            SearchTerm = searchTerm
+        };
+        
+        var pagedCategories = await _mediator.Send(query);
 
-        _logger.LogInformation("Retrieved {Count} categories", categories.Count);
-        return Ok(categories);
+        _logger.LogInformation("Retrieved {Count} of {Total} categories", pagedCategories.Items.Count, pagedCategories.TotalCount);
+        return Ok(pagedCategories);
     }
 
     /// <summary>

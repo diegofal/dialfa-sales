@@ -26,7 +26,7 @@ public class SalesOrdersController : ControllerBase
     }
 
     /// <summary>
-    /// Get all sales orders with optional filters
+    /// Get all sales orders with optional filters, pagination, and sorting
     /// </summary>
     [HttpGet]
     public async Task<ActionResult<List<SalesOrderListDto>>> GetAllSalesOrders(
@@ -34,7 +34,12 @@ public class SalesOrdersController : ControllerBase
         [FromQuery] string? status,
         [FromQuery] DateTime? fromDate,
         [FromQuery] DateTime? toDate,
-        [FromQuery] bool activeOnly = false)
+        [FromQuery] bool activeOnly = false,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] bool sortDescending = false,
+        [FromQuery] string? searchTerm = null)
     {
         try
         {
@@ -44,11 +49,16 @@ public class SalesOrdersController : ControllerBase
                 Status = status,
                 FromDate = fromDate,
                 ToDate = toDate,
-                ActiveOnly = activeOnly
+                ActiveOnly = activeOnly,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                SortBy = sortBy,
+                SortDescending = sortDescending,
+                SearchTerm = searchTerm
             };
 
-            var salesOrders = await _mediator.Send(query);
-            return Ok(salesOrders);
+            var pagedSalesOrders = await _mediator.Send(query);
+            return Ok(pagedSalesOrders);
         }
         catch (Exception ex)
         {

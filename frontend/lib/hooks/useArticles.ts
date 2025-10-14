@@ -1,14 +1,15 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { articlesApi } from '../api/articles';
 import { ArticleFormData } from '@/types/article';
+import { PaginationParams } from '@/types/pagination';
 import { toast } from 'sonner';
 
-export function useArticles(params?: {
+export function useArticles(params: PaginationParams & {
   activeOnly?: boolean;
   lowStockOnly?: boolean;
   categoryId?: number;
   searchTerm?: string;
-}) {
+} = {}) {
   return useQuery({
     queryKey: ['articles', params],
     queryFn: () => articlesApi.getAll(params),

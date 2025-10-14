@@ -7,10 +7,10 @@ import {
   Table,
   TableBody,
   TableCell,
-  TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { SortableTableHead } from '@/components/ui/sortable-table-head';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +29,9 @@ interface SalesOrdersTableProps {
   onViewOrder: (id: number) => void;
   onCancelOrder: (id: number) => void;
   onDeleteOrder: (id: number) => void;
+  currentSortBy?: string;
+  currentSortDescending?: boolean;
+  onSort?: (sortBy: string, sortDescending: boolean) => void;
 }
 
 export function SalesOrdersTable({
@@ -36,6 +39,9 @@ export function SalesOrdersTable({
   onViewOrder,
   onCancelOrder,
   onDeleteOrder,
+  currentSortBy,
+  currentSortDescending,
+  onSort,
 }: SalesOrdersTableProps) {
   const [orderToCancel, setOrderToCancel] = useState<number | null>(null);
   const [orderToDelete, setOrderToDelete] = useState<number | null>(null);
@@ -71,13 +77,25 @@ export function SalesOrdersTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>N° Pedido</TableHead>
-              <TableHead>Fecha</TableHead>
-              <TableHead>Cliente</TableHead>
-              <TableHead>Estado</TableHead>
-              <TableHead className="text-right">Items</TableHead>
-              <TableHead className="text-right">Total</TableHead>
-              <TableHead className="text-right">Acciones</TableHead>
+              <SortableTableHead sortKey="OrderNumber" currentSortBy={currentSortBy} currentSortDescending={currentSortDescending} onSort={onSort}>
+                N° Pedido
+              </SortableTableHead>
+              <SortableTableHead sortKey="OrderDate" currentSortBy={currentSortBy} currentSortDescending={currentSortDescending} onSort={onSort}>
+                Fecha
+              </SortableTableHead>
+              <SortableTableHead sortKey="ClientBusinessName" currentSortBy={currentSortBy} currentSortDescending={currentSortDescending} onSort={onSort}>
+                Cliente
+              </SortableTableHead>
+              <SortableTableHead sortKey="Status" currentSortBy={currentSortBy} currentSortDescending={currentSortDescending} onSort={onSort}>
+                Estado
+              </SortableTableHead>
+              <SortableTableHead sortKey="ItemsCount" currentSortBy={currentSortBy} currentSortDescending={currentSortDescending} onSort={onSort} align="right">
+                Items
+              </SortableTableHead>
+              <SortableTableHead sortKey="Total" currentSortBy={currentSortBy} currentSortDescending={currentSortDescending} onSort={onSort} align="right">
+                Total
+              </SortableTableHead>
+              <SortableTableHead align="right">Acciones</SortableTableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

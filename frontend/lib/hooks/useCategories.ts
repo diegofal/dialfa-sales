@@ -1,22 +1,23 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { categoriesApi } from '../api/categories';
 import type { CategoryFormData } from '@/types/category';
+import type { PaginationParams } from '@/types/pagination';
 import { toast } from 'sonner';
 
 // Query key factory
 export const categoryKeys = {
   all: ['categories'] as const,
   lists: () => [...categoryKeys.all, 'list'] as const,
-  list: (activeOnly: boolean) => [...categoryKeys.lists(), { activeOnly }] as const,
+  list: (params: PaginationParams & { activeOnly?: boolean }) => [...categoryKeys.lists(), params] as const,
   details: () => [...categoryKeys.all, 'detail'] as const,
   detail: (id: number) => [...categoryKeys.details(), id] as const,
 };
 
 // Get all categories
-export function useCategories(activeOnly: boolean = false) {
+export function useCategories(params: PaginationParams & { activeOnly?: boolean } = {}) {
   return useQuery({
-    queryKey: categoryKeys.list(activeOnly),
-    queryFn: () => categoriesApi.getAll(activeOnly),
+    queryKey: categoryKeys.list(params),
+    queryFn: () => categoriesApi.getAll(params),
   });
 }
 

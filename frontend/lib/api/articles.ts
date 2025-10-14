@@ -1,14 +1,15 @@
 import { Article, ArticleFormData } from '@/types/article';
+import { PagedResult, PaginationParams } from '@/types/pagination';
 import apiClient from './client';
 
 export const articlesApi = {
-  getAll: async (params?: {
+  getAll: async (params: PaginationParams & {
     activeOnly?: boolean;
     lowStockOnly?: boolean;
     categoryId?: number;
     searchTerm?: string;
-  }): Promise<Article[]> => {
-    const { data } = await apiClient.get<Article[]>('/articles', { params });
+  } = {}): Promise<PagedResult<Article>> => {
+    const { data } = await apiClient.get<PagedResult<Article>>('/articles', { params });
     return data;
   },
 

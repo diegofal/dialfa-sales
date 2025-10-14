@@ -24,20 +24,35 @@ public class ArticlesController : ControllerBase
     }
 
     /// <summary>
-    /// Get all articles with optional filters
+    /// Get all articles with optional filters, pagination, and sorting
     /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetAllArticles(
         [FromQuery] bool activeOnly = false,
         [FromQuery] bool? lowStockOnly = null,
         [FromQuery] long? categoryId = null,
-        [FromQuery] string? searchTerm = null)
+        [FromQuery] string? searchTerm = null,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] bool sortDescending = false)
     {
         try
         {
-            var query = new GetAllArticlesQuery(activeOnly, lowStockOnly, categoryId, searchTerm);
-            var articles = await _mediator.Send(query);
-            return Ok(articles);
+            var query = new GetAllArticlesQuery
+            {
+                ActiveOnly = activeOnly,
+                LowStockOnly = lowStockOnly,
+                CategoryId = categoryId,
+                SearchTerm = searchTerm,
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                SortBy = sortBy,
+                SortDescending = sortDescending
+            };
+            
+            var pagedArticles = await _mediator.Send(query);
+            return Ok(pagedArticles);
         }
         catch (Exception ex)
         {

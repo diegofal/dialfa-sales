@@ -22,20 +22,40 @@ public class ClientsController : ControllerBase
     }
 
     /// <summary>
-    /// Get all clients
+    /// Get all clients with pagination and sorting
     /// </summary>
     /// <param name="activeOnly">Filter to return only active clients</param>
-    /// <returns>List of clients</returns>
+    /// <param name="pageNumber">Page number (default: 1)</param>
+    /// <param name="pageSize">Page size (default: 10, max: 100)</param>
+    /// <param name="sortBy">Property to sort by</param>
+    /// <param name="sortDescending">Sort in descending order</param>
+    /// <param name="searchTerm">Search term for filtering</param>
+    /// <returns>Paged list of clients</returns>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetAllClients([FromQuery] bool activeOnly = false)
+    public async Task<IActionResult> GetAllClients(
+        [FromQuery] bool activeOnly = false,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 10,
+        [FromQuery] string? sortBy = null,
+        [FromQuery] bool sortDescending = false,
+        [FromQuery] string? searchTerm = null)
     {
-        _logger.LogInformation("GET /api/clients - ActiveOnly: {ActiveOnly}", activeOnly);
+        _logger.LogInformation("GET /api/clients - Page: {Page}, PageSize: {PageSize}", pageNumber, pageSize);
 
-        var query = new GetAllClientsQuery { ActiveOnly = activeOnly };
-        var clients = await _mediator.Send(query);
+        var query = new GetAllClientsQuery
+        {
+            ActiveOnly = activeOnly,
+            PageNumber = pageNumber,
+            PageSize = pageSize,
+            SortBy = sortBy,
+            SortDescending = sortDescending,
+            SearchTerm = searchTerm
+        };
+        
+        var pagedClients = await _mediator.Send(query);
 
-        return Ok(clients);
+        return Ok(pagedClients);
     }
 
     /// <summary>
