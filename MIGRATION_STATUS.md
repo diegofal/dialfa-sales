@@ -9,8 +9,10 @@
 **Frontend Clients Module:** October 2, 2025  
 **Backend Categories Module:** October 7, 2025  
 **Frontend Categories Module:** October 7, 2025  
+**Backend Articles Module:** October 7, 2025  
+**Frontend Articles Module:** October 7, 2025  
 **Status:** ✅ SUCCESS  
-**Duration:** ~3 minutes (migration) + 9 hours (backend) + 6 hours (frontend)
+**Duration:** ~3 minutes (migration) + 12 hours (backend) + 9 hours (frontend)
 
 #### Migrated Records:
 
@@ -79,6 +81,9 @@
    - **Categories module implemented:**
      - ✅ Queries: GetAllCategories, GetCategoryById
      - ✅ Commands: CreateCategory, UpdateCategory, DeleteCategory
+   - **Articles module implemented:**
+     - ✅ Queries: GetAllArticles (with filters), GetArticleById
+     - ✅ Commands: CreateArticle, UpdateArticle, DeleteArticle
 
 4. **✅ WebApi Layer**
    - Serilog structured logging
@@ -101,6 +106,12 @@
      - ✅ POST /api/categories (validated creation)
      - ✅ PUT /api/categories/{id}
      - ✅ DELETE /api/categories/{id} (soft delete)
+   - **Articles Controller:**
+     - ✅ GET /api/articles (with filters: activeOnly, lowStockOnly, categoryId, searchTerm)
+     - ✅ GET /api/articles/{id}
+     - ✅ POST /api/articles (validated creation)
+     - ✅ PUT /api/articles/{id}
+     - ✅ DELETE /api/articles/{id} (soft delete)
 
 ---
 
@@ -143,6 +154,7 @@
    - `/dashboard` - Main dashboard with statistics
    - `/dashboard/clients` - Clients CRUD interface
    - `/dashboard/categories` - Categories CRUD interface
+   - `/dashboard/articles` - Articles CRUD interface
 
 #### Features Implemented:
 
@@ -178,6 +190,21 @@
 - ✅ Real-time updates after CRUD operations
 - ✅ Display articles count per category
 - ✅ Status badges (Active/Deleted)
+
+**Articles Module:**
+- ✅ List view with 1,797 migrated articles
+- ✅ Table with sorting and actions
+- ✅ Create new article (dialog form with category dropdown)
+- ✅ Edit existing article (pre-populated form)
+- ✅ Delete article (with confirmation)
+- ✅ Real-time updates after CRUD operations
+- ✅ Advanced search (by code, description, category)
+- ✅ Filters (category dropdown, stock status)
+- ✅ Stock status badges (Low Stock, Sin Stock, Disponible)
+- ✅ Low stock indicators (visual alerts)
+- ✅ Price formatting (ARS)
+- ✅ Location and discontinued fields
+- ✅ Clear filters button with counter
 
 **Navigation:**
 - ✅ Sidebar with 9 menu items (Dashboard, Clientes, Categorías, etc.)
@@ -215,6 +242,13 @@ GET    /api/categories/{id}  → ✅ Working
 POST   /api/categories       → ✅ Working (with validation)
 PUT    /api/categories/{id}  → ✅ Working
 DELETE /api/categories/{id}  → ✅ Working (soft delete)
+
+# Articles (protected with JWT)
+GET    /api/articles         → ✅ Working (with filters: activeOnly, lowStockOnly, categoryId, searchTerm)
+GET    /api/articles/{id}    → ✅ Working
+POST   /api/articles         → ✅ Working (with validation)
+PUT    /api/articles/{id}    → ✅ Working
+DELETE /api/articles/{id}    → ✅ Working (soft delete)
 
 # System
 GET    /health               → ✅ Working
@@ -271,31 +305,18 @@ GET    /health               → ✅ Working
 2. ✅ **Backend Architecture** - Clean Architecture + DDD implemented
 3. ✅ **Clients Module** - Full CRUD (Backend + Frontend)
 4. ✅ **Categories Module** - Full CRUD (Backend + Frontend)
-5. ✅ **JWT Authentication** - Login and token validation working
-6. ✅ **API Documentation** - Swagger with JWT Bearer support
-7. ✅ **Frontend Setup** - Next.js 14 + TypeScript + TailwindCSS
-8. ✅ **Dashboard** - Main page with statistics and navigation
-9. ✅ **Startup Scripts** - start-all.bat/.sh for easy development
+5. ✅ **Articles Module** - Full CRUD with stock management (Backend + Frontend)
+6. ✅ **JWT Authentication** - Login and token validation working
+7. ✅ **API Documentation** - Swagger with JWT Bearer support
+8. ✅ **Frontend Setup** - Next.js 14 + TypeScript + TailwindCSS
+9. ✅ **Dashboard** - Main page with statistics and navigation
+10. ✅ **Startup Scripts** - start-all.bat/.sh for easy development
 
 ---
 
 ### 🎯 Next Phase (Additional Modules):
 
-**Priority 1: Articles Module** (~4-5 hours)
-**Backend:**
-- CRUD operations + stock management
-- Search and filter queries
-- Low stock alerts
-- Category relationship
-
-**Frontend:**
-- Articles list with pagination
-- Advanced search and filters
-- Create/Edit form with category dropdown
-- Stock adjustment modal
-- Low stock indicators
-
-**Priority 2: Sales Orders Module** (~6-8 hours)
+**Priority 1: Sales Orders Module** 🚧 IN PROGRESS (~6-8 hours)
 **Backend:**
 - Order creation with line items
 - Client and article selection
@@ -309,15 +330,39 @@ GET    /health               → ✅ Working
 - Article selection with stock validation
 - Order summary and confirmation
 
-**Priority 3: UI Improvements** (~2-3 hours)
-- Add search/filter to Clients table
-- Implement pagination
+**Priority 2: Invoices Module** (~5-7 hours)
+**Backend:**
+- Invoice creation from orders
+- USD exchange rate support
+- Cancellation tracking
+- Status management
+
+**Frontend:**
+- Invoice list with filters
+- Create from order
+- Invoice detail view
+- Print/Download PDF
+- Cancel invoice
+
+**Priority 3: Delivery Notes Module** (~4-5 hours)
+**Backend:**
+- Delivery note creation
+- Transport information
+- Link to sales orders
+
+**Frontend:**
+- Delivery notes list
+- Create from order
+- Print delivery note
+
+**Priority 4: UI Improvements** (~2-3 hours)
+- Add pagination to all tables
 - Add loading skeletons
 - Export to Excel/PDF
 - Toast notifications improvements
 - Mobile responsive optimizations
 
-**Priority 4: Testing & Quality** (~4-6 hours)
+**Priority 5: Testing & Quality** (~4-6 hours)
 - Backend unit tests (xUnit)
 - Integration tests for APIs
 - Frontend component tests
@@ -331,11 +376,11 @@ GET    /health               → ✅ Working
 
 **Code Metrics:**
 - **Backend Projects:** 4 (Domain, Application, Infrastructure, WebApi)
-- **Frontend Pages:** 4 (login, dashboard, clients, categories)
-- **React Components:** 20 components (13 UI + 7 custom)
+- **Frontend Pages:** 5 (login, dashboard, clients, categories, articles)
+- **React Components:** 23 components (15 UI + 8 custom)
 - **Entities:** 14 domain entities
-- **API Endpoints:** 12 implemented and functional
-- **Lines of Code:** ~9,000+ (6,000 backend + 3,000 frontend)
+- **API Endpoints:** 17 implemented and functional
+- **Lines of Code:** ~12,000+ (7,500 backend + 4,500 frontend)
 
 **Database:**
 - **Tables:** 16 tables
@@ -394,9 +439,24 @@ GET    /health               → ✅ Working
 - Environment configuration (.env.local)
 - Startup scripts (start-all.bat/.sh, START_GUIDE.md)
 
-**Total Effort:** ~18 hours of productive development
-- Backend: ~9 hours
-- Frontend: ~6 hours  
+**Articles Module:**
+- Backend: CRUD Commands and Queries (MediatR)
+- Backend: ArticleDto with stock management
+- Backend: FluentValidation for input validation
+- Backend: ArticlesController with 5 endpoints and advanced filters
+- Backend: Database schema fixes (stock, is_discontinued columns)
+- Frontend: Articles list page with advanced search
+- Frontend: Create/Edit article dialog with category dropdown
+- Frontend: Delete confirmation with soft delete
+- Frontend: Stock status badges (Low, Sin Stock, Disponible)
+- Frontend: Filters (category, stock status, search term)
+- Frontend: React Query hooks (useArticles)
+- Frontend: Select and Checkbox components from shadcn/ui
+- Bug fixes: character encoding, duplicate API routes, stock column mapping
+
+**Total Effort:** ~24 hours of productive development
+- Backend: ~12 hours
+- Frontend: ~9 hours  
 - Data Migration: ~3 hours
 - Documentation & Scripts: ~1 hour
 
@@ -493,9 +553,9 @@ curl -X POST http://localhost:5021/api/clients \
 
 ---
 
-**Status:** ✅ Phase 1 & 2 (Clients + Categories) Complete - Ready for Additional Modules
+**Status:** ✅ Phase 1 & 2 (Clients + Categories + Articles) Complete - Starting Phase 3 (Sales Orders)
 
-**Next:** Articles Module (Backend + Frontend)
+**Next:** Sales Orders Module (Backend + Frontend) 🚧 IN PROGRESS
 
-*Last Updated: October 7, 2025 - 21:00*
+*Last Updated: October 7, 2025 - 22:30*
 

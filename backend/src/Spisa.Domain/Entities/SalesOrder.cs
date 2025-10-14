@@ -9,7 +9,7 @@ public class SalesOrder : BaseEntity
     public DateTime OrderDate { get; set; }
     public DateTime? DeliveryDate { get; set; }
     public OrderStatus Status { get; set; } = OrderStatus.PENDING;
-    public decimal TotalAmount { get; set; }
+    public decimal Total { get; set; }
     public string? Notes { get; set; }
 
     // Navigation properties

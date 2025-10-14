@@ -23,6 +23,22 @@ public class MappingProfile : Profile
         CreateMap<Article, ArticleDto>()
             .ForMember(dest => dest.CategoryName, opt => opt.MapFrom(src => src.Category != null ? src.Category.Name : string.Empty))
             .ForMember(dest => dest.IsDeleted, opt => opt.MapFrom(src => src.DeletedAt != null));
+
+        // Sales Order mappings
+        CreateMap<SalesOrder, SalesOrderDto>()
+            .ForMember(dest => dest.ClientBusinessName, opt => opt.MapFrom(src => src.Client != null ? src.Client.BusinessName : string.Empty))
+            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
+            .ForMember(dest => dest.ItemsCount, opt => opt.MapFrom(src => src.Items.Count))
+            .ForMember(dest => dest.IsDeleted, opt => opt.MapFrom(src => src.DeletedAt != null));
+
+        CreateMap<SalesOrder, SalesOrderListDto>()
+            .ForMember(dest => dest.ClientBusinessName, opt => opt.MapFrom(src => src.Client != null ? src.Client.BusinessName : string.Empty))
+            .ForMember(dest => dest.Status, opt => opt.MapFrom(src => src.Status.ToString()))
+            .ForMember(dest => dest.ItemsCount, opt => opt.MapFrom(src => src.Items.Count));
+
+        CreateMap<SalesOrderItem, SalesOrderItemDto>()
+            .ForMember(dest => dest.ArticleCode, opt => opt.MapFrom(src => src.Article != null ? src.Article.Code : string.Empty))
+            .ForMember(dest => dest.ArticleDescription, opt => opt.MapFrom(src => src.Article != null ? src.Article.Description : string.Empty));
     }
 }
 

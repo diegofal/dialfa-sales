@@ -20,7 +20,7 @@ const navigation = [
   { name: 'Clientes', href: '/dashboard/clients', icon: Users },
   { name: 'Categorías', href: '/dashboard/categories', icon: FolderTree },
   { name: 'Artículos', href: '/dashboard/articles', icon: Package },
-  { name: 'Pedidos', href: '/dashboard/orders', icon: ShoppingCart },
+  { name: 'Pedidos', href: '/dashboard/sales-orders', icon: ShoppingCart },
   { name: 'Facturas', href: '/dashboard/invoices', icon: FileText },
   { name: 'Remitos', href: '/dashboard/delivery-notes', icon: Truck },
   { name: 'Reportes', href: '/dashboard/reports', icon: TrendingUp },

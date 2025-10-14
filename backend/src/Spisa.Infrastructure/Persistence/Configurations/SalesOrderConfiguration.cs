@@ -14,8 +14,9 @@ public class SalesOrderConfiguration : IEntityTypeConfiguration<SalesOrder>
             .IsRequired()
             .HasMaxLength(20);
 
-        builder.Property(s => s.TotalAmount)
-            .HasPrecision(18, 2);
+        builder.Property(s => s.Total)
+            .HasColumnName("total")
+            .HasPrecision(18, 4);
 
         builder.Property(s => s.Status)
             .IsRequired()
