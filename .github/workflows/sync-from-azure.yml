@@ -1,0 +1,72 @@
+name: Sync from Azure SQL to Railway PostgreSQL
+
+on:
+  schedule:
+    # Run daily at 2 AM UTC (adjust for your timezone)
+    - cron: '0 2 * * *'
+  
+  # Allow manual trigger
+  workflow_dispatch:
+
+jobs:
+  sync-database:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      
+      - name: Restore dependencies
+        working-directory: backend/tools/Spisa.DataMigration
+        run: dotnet restore
+      
+      - name: Build migration tool
+        working-directory: backend/tools/Spisa.DataMigration
+        run: dotnet build --configuration Release --no-restore
+      
+      - name: Run data migration
+        working-directory: backend/tools/Spisa.DataMigration
+        env:
+          ConnectionStrings__SqlServer: ${{ secrets.AZURE_SQL_CONNECTION }}
+          ConnectionStrings__PostgreSQL: ${{ secrets.RAILWAY_DB_URL }}
+        run: |
+          dotnet run --configuration Release --no-build
+      
+      - name: Upload migration report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-report-${{ github.run_number }}
+          path: backend/tools/Spisa.DataMigration/migration-reports/
+          retention-days: 30
+      
+      - name: Upload migration logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: migration-logs-${{ github.run_number }}
+          path: backend/tools/Spisa.DataMigration/migration-logs/
+          retention-days: 30
+      
+      - name: Notify on success
+        if: success()
+        run: |
+          echo "✅ Database sync completed successfully!"
+          echo "Records synced from Azure SQL to Railway PostgreSQL"
+      
+      - name: Notify on failure
+        if: failure()
+        run: |
+          echo "❌ Database sync failed!"
+          echo "Check the uploaded logs for details"
+          exit 1
+
+# Required Secrets (set in repository Settings → Secrets):
+# - AZURE_SQL_CONNECTION: Azure SQL Server connection string
+# - RAILWAY_DB_URL: Railway PostgreSQL connection string
+
