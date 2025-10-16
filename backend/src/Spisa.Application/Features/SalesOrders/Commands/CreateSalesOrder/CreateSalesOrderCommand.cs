@@ -19,3 +19,4 @@ public class CreateSalesOrderItemCommand
     public decimal DiscountPercent { get; set; } = 0;
 }
 
+

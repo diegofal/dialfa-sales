@@ -8,3 +8,4 @@ public class GetSalesOrderByIdQuery : IRequest<SalesOrderDto?>
     public long Id { get; set; }
 }
 
+

@@ -20,3 +20,4 @@ public class UpdateSalesOrderItemCommand
     public decimal DiscountPercent { get; set; } = 0;
 }
 
+

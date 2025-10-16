@@ -7,3 +7,4 @@ public class DeleteSalesOrderCommand : IRequest<Unit>
     public long Id { get; set; }
 }
 
+

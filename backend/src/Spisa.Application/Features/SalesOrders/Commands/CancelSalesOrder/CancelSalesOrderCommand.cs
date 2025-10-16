@@ -7,3 +7,4 @@ public class CancelSalesOrderCommand : IRequest<Unit>
     public long Id { get; set; }
 }
 
+
