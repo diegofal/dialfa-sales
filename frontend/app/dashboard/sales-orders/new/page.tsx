@@ -1,5 +1,6 @@
 'use client';
 
+import { Suspense } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { SalesOrderWizard } from '@/components/salesOrders/SalesOrderWizard';
@@ -20,7 +21,9 @@ export default function NewSalesOrderPage() {
         </div>
       </div>
 
-      <SalesOrderWizard />
+      <Suspense fallback={<div className="text-center py-12">Cargando...</div>}>
+        <SalesOrderWizard />
+      </Suspense>
     </div>
   );
 }

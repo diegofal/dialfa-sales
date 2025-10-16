@@ -21,7 +21,13 @@ export default function RootLayout({
       <body className={inter.className}>
         <QueryProvider>
           {children}
-          <Toaster />
+          <Toaster 
+            position="top-center"
+            expand={true}
+            richColors
+            closeButton
+            duration={2000}
+          />
         </QueryProvider>
       </body>
     </html>

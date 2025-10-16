@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Steps } from '@/components/ui/steps';
@@ -9,18 +9,48 @@ import { ItemsSelectionStep } from './ItemsSelectionStep';
 import { OrderSummaryStep } from './OrderSummaryStep';
 import type { SalesOrderFormData } from '@/types/salesOrder';
 import { useCreateSalesOrder } from '@/lib/hooks/useSalesOrders';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
+import { useQuickCart } from '@/lib/hooks/useQuickCart';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { ShoppingCart, Info } from 'lucide-react';
 
 export function SalesOrderWizard() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const fromQuickCart = searchParams.get('fromQuickCart') === 'true';
+  const { items: quickCartItems, clearCart } = useQuickCart();
+  
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<SalesOrderFormData>({
     orderDate: new Date().toISOString().split('T')[0],
     items: [],
   });
+  const [loadedFromCart, setLoadedFromCart] = useState(false);
 
   const createOrderMutation = useCreateSalesOrder();
+
+  // Load items from quick cart if coming from there
+  useEffect(() => {
+    if (fromQuickCart && quickCartItems.length > 0 && !loadedFromCart) {
+      const cartItems = quickCartItems.map((item) => ({
+        articleId: item.article.id,
+        articleCode: item.article.code,
+        articleDescription: item.article.description,
+        quantity: item.quantity,
+        unitPrice: item.article.unitPrice,
+        discountPercent: 0,
+      }));
+      
+      setFormData((prev) => ({
+        ...prev,
+        items: cartItems,
+      }));
+      
+      setLoadedFromCart(true);
+      toast.success(`${quickCartItems.length} artículo(s) cargados desde la consulta rápida`);
+    }
+  }, [fromQuickCart, quickCartItems, loadedFromCart]);
 
   const steps = [
     { title: 'Cliente y Fechas', description: 'Selecciona el cliente y las fechas' },
@@ -76,6 +106,13 @@ export function SalesOrderWizard() {
       };
 
       await createOrderMutation.mutateAsync(request);
+      
+      // Clear quick cart if loaded from there
+      if (fromQuickCart && loadedFromCart) {
+        clearCart();
+        toast.success('Pedido creado y lista de consulta limpiada');
+      }
+      
       router.push('/dashboard/sales-orders');
     } catch (error) {
       console.error('Error creating order:', error);
@@ -84,6 +121,16 @@ export function SalesOrderWizard() {
 
   return (
     <div className="space-y-6">
+      {fromQuickCart && loadedFromCart && (
+        <Alert>
+          <ShoppingCart className="h-4 w-4" />
+          <AlertDescription>
+            Se han cargado {formData.items.length} artículo(s) desde tu lista de consulta rápida. 
+            Selecciona el cliente para continuar con el pedido.
+          </AlertDescription>
+        </Alert>
+      )}
+
       <Card>
         <CardHeader>
           <CardTitle>Nuevo Pedido</CardTitle>
