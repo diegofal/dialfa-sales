@@ -215,3 +215,4 @@ Botón Flotante:
 **Versión**: 2.0.0  
 **Breaking Changes**: No (backward compatible con datos guardados)
 
+
