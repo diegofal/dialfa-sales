@@ -98,15 +98,17 @@ try
     var app = builder.Build();
 
     // Configure the HTTP request pipeline
-    if (app.Environment.IsDevelopment())
-    {
-        app.UseSwagger();
-        app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "SPISA API v1"));
-    }
+    // Enable Swagger in all environments for Railway deployment
+    app.UseSwagger();
+    app.UseSwaggerUI(c => c.SwaggerEndpoint("/swagger/v1/swagger.json", "SPISA API v1"));
 
     app.UseSerilogRequestLogging();
 
-    app.UseHttpsRedirection();
+    // Only use HTTPS redirection in Development (Railway handles HTTPS at proxy level)
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseHttpsRedirection();
+    }
 
     app.UseCors("AllowFrontend");
 
@@ -114,6 +116,15 @@ try
     app.UseAuthorization();
 
     app.MapControllers();
+
+    // Root endpoint
+    app.MapGet("/", () => Results.Ok(new { 
+        message = "SPISA API is running", 
+        version = "v1", 
+        swagger = "/swagger",
+        health = "/health",
+        timestamp = DateTime.UtcNow 
+    }));
 
     // Health check endpoint
     app.MapGet("/health", () => Results.Ok(new { status = "healthy", timestamp = DateTime.UtcNow }));
