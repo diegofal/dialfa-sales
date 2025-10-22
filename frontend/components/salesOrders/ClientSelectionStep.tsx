@@ -13,7 +13,8 @@ interface ClientSelectionStepProps {
 }
 
 export function ClientSelectionStep({ formData, setFormData }: ClientSelectionStepProps) {
-  const { data: clients = [], isLoading } = useClients(true); // activeOnly = true
+  const { data: clientsResult, isLoading } = useClients({ activeOnly: true }); // activeOnly = true
+  const clients = clientsResult?.items || [];
 
   return (
     <div className="space-y-6">

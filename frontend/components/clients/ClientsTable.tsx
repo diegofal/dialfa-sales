@@ -7,6 +7,7 @@ import {
   Table,
   TableBody,
   TableCell,
+  TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
@@ -111,7 +112,7 @@ export default function ClientsTable({
                 Saldo
               </SortableTableHead>
               <SortableTableHead>Estado</SortableTableHead>
-              <SortableTableHead className="w-[70px]"></SortableTableHead>
+              <TableHead className="w-[70px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>

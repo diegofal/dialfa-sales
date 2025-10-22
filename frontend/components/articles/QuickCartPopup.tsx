@@ -1,6 +1,6 @@
 'use client';
 
-import { ShoppingCart, X, Trash2, Plus, User, Pencil, Check } from 'lucide-react';
+import { ShoppingCart, X, Trash2, Plus, User, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -12,6 +12,7 @@ import { QuickArticleLookup } from './QuickArticleLookup';
 import { ClientLookup } from './ClientLookup';
 import { useState, useRef, useEffect } from 'react';
 import { useArticles } from '@/lib/hooks/useArticles';
+import type { Article } from '@/types/article';
 
 interface QuickCartPopupProps {
   isOpen: boolean;
@@ -37,7 +38,6 @@ export function QuickCartPopup({ isOpen, onClose }: QuickCartPopupProps) {
     setActiveTab,
     setClient,
     clearClient,
-    addItem,
     updateQuantity,
     removeItem,
     replaceItem,
@@ -149,7 +149,7 @@ export function QuickCartPopup({ isOpen, onClose }: QuickCartPopupProps) {
     setShowEditResults(false);
   };
 
-  const handleSelectEditArticle = (article: any) => {
+  const handleSelectEditArticle = (article: Article) => {
     if (!editingItemId) return;
 
     // Replace the article atomically

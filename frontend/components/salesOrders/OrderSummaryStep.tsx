@@ -11,7 +11,8 @@ interface OrderSummaryStepProps {
 }
 
 export function OrderSummaryStep({ formData }: OrderSummaryStepProps) {
-  const { data: clients = [] } = useClients(true);
+  const { data: clientsResult } = useClients({ activeOnly: true });
+  const clients = clientsResult?.items || [];
   const selectedClient = clients.find((c) => c.id === formData.clientId);
 
   const calculateLineTotal = (item: SalesOrderItemFormData) => {

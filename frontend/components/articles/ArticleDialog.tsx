@@ -50,7 +50,7 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
   const isEditing = !!article;
   const createMutation = useCreateArticle();
   const updateMutation = useUpdateArticle();
-  const { data: categories, isLoading: categoriesLoading } = useCategories(true);
+  const { data: categories, isLoading: categoriesLoading } = useCategories({ activeOnly: true });
 
   const {
     register,
@@ -166,7 +166,7 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
                       Cargando...
                     </SelectItem>
                   ) : (
-                    categories?.map((cat) => (
+                    categories?.items?.map((cat) => (
                       <SelectItem key={cat.id} value={cat.id.toString()}>
                         {cat.name}
                       </SelectItem>

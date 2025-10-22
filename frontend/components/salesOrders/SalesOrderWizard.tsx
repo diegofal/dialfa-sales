@@ -13,7 +13,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { useQuickCart } from '@/lib/hooks/useQuickCart';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ShoppingCart, Info } from 'lucide-react';
+import { ShoppingCart } from 'lucide-react';
 
 export function SalesOrderWizard() {
   const router = useRouter();

@@ -8,6 +8,7 @@ import { Card } from '@/components/ui/card';
 import { useArticles } from '@/lib/hooks/useArticles';
 import { useQuickCartTabs } from '@/lib/hooks/useQuickCartTabs';
 import { toast } from 'sonner';
+import type { Article } from '@/types/article';
 
 interface QuickArticleLookupProps {
   autoFocus?: boolean;
@@ -17,7 +18,7 @@ interface QuickArticleLookupProps {
 export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArticleLookupProps) {
   const [articleCode, setArticleCode] = useState('');
   const [quantity, setQuantity] = useState('1');
-  const [selectedArticle, setSelectedArticle] = useState<any>(null);
+  const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [showCodeResults, setShowCodeResults] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   
@@ -146,7 +147,7 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
     codeInputRef.current?.focus();
   };
 
-  const handleSelectArticle = (article: any, index: number) => {
+  const handleSelectArticle = (article: Article, index: number) => {
     setSelectedArticle(article);
     setArticleCode(article.code);
     setSelectedIndex(index);

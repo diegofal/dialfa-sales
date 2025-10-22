@@ -5,6 +5,7 @@ import { Search, User } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { useClients } from '@/lib/hooks/useClients';
+import type { ClientDto } from '@/types/api';
 
 interface ClientLookupProps {
   onSelectClient: (clientId: number, clientName: string) => void;
@@ -56,7 +57,7 @@ export function ClientLookup({ onSelectClient }: ClientLookupProps) {
     }
   };
 
-  const handleSelectClient = (client: any) => {
+  const handleSelectClient = (client: ClientDto) => {
     onSelectClient(client.id, client.businessName);
     setSearchTerm('');
     setShowResults(false);
@@ -100,14 +101,14 @@ export function ClientLookup({ onSelectClient }: ClientLookupProps) {
                     <div className={`font-semibold text-sm ${index === selectedIndex ? 'text-primary-foreground' : ''}`}>
                       {client.businessName}
                     </div>
-                    {client.contactName && (
+                    {client.code && (
                       <div className={`text-xs mt-0.5 ${index === selectedIndex ? 'text-primary-foreground/90' : 'text-muted-foreground'}`}>
-                        Contacto: {client.contactName}
+                        Código: {client.code}
                       </div>
                     )}
-                    {client.taxId && (
+                    {client.cuit && (
                       <div className={`text-xs ${index === selectedIndex ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
-                        CUIT: {client.taxId}
+                        CUIT: {client.cuit}
                       </div>
                     )}
                   </div>
