@@ -21,8 +21,10 @@ if not exist "Spisa.DataMigration.csproj" (
 
 echo [2/3] Starting data migration...
 echo This will migrate data from Azure SQL Server to Railway PostgreSQL.
+echo Using Development environment configuration.
 echo.
-dotnet run
+set DOTNET_ENVIRONMENT=Development
+dotnet run -- --yes
 
 if %errorlevel% neq 0 (
     echo.

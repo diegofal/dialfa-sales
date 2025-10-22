@@ -88,7 +88,20 @@ try
     {
         options.AddPolicy("AllowFrontend", policy =>
         {
-            policy.WithOrigins("http://localhost:3000")
+            var allowedOrigins = new List<string>
+            {
+                "http://localhost:3000",  // Local development
+                "https://dialfa-sales-production.up.railway.app" // Railway production
+            };
+
+            // Add any additional origins from environment variable
+            var additionalOrigin = builder.Configuration["CORS:AdditionalOrigin"];
+            if (!string.IsNullOrEmpty(additionalOrigin))
+            {
+                allowedOrigins.Add(additionalOrigin);
+            }
+
+            policy.WithOrigins(allowedOrigins.ToArray())
                   .AllowAnyHeader()
                   .AllowAnyMethod()
                   .AllowCredentials();
