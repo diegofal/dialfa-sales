@@ -16,9 +16,14 @@ AnsiConsole.MarkupLine("[grey]Migrating from SQL Server to PostgreSQL[/]");
 AnsiConsole.WriteLine();
 
 // Build configuration
+var environment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT") 
+    ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT") 
+    ?? "Production";
+
 var configuration = new ConfigurationBuilder()
     .SetBasePath(Directory.GetCurrentDirectory())
     .AddJsonFile("appsettings.json", optional: false)
+    .AddJsonFile($"appsettings.{environment}.json", optional: true)
     .AddEnvironmentVariables()
     .Build();
 

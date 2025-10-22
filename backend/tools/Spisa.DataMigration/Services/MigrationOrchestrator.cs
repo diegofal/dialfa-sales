@@ -62,32 +62,33 @@ public class MigrationOrchestrator
             await _modernWriter.TestConnectionAsync();
             connTask.Value = 100;
 
-            // Step 3: Migrate lookup tables
+            // Step 3: Clear ALL tables in PostgreSQL (once, at the beginning)
+            var clearTask = ctx.AddTask("[red]Clearing target database[/]");
+            await _modernWriter.TruncateAllTablesAsync();
+            clearTask.Value = 100;
+
+            // Step 4: Migrate lookup tables
             await MigrateLookupTables(ctx, result);
 
-            // Step 4: Migrate categories
+            // Step 5: Migrate categories
             await MigrateCategories(ctx, result);
 
-            // Step 5: Migrate articles
+            // Step 6: Migrate articles
             await MigrateArticles(ctx, result);
 
-            // Step 6: Migrate clients
+            // Step 7: Migrate clients
             await MigrateClients(ctx, result);
 
-            // Step 7: Migrate sales orders
+            // Step 8: Migrate sales orders
             await MigrateSalesOrders(ctx, result);
 
-            // Step 8: Migrate invoices
+            // Step 9: Migrate invoices
             await MigrateInvoices(ctx, result);
 
-            // Step 9: Migrate delivery notes
+            // Step 10: Migrate delivery notes
             await MigrateDeliveryNotes(ctx, result);
 
-            // Step 10: Refresh materialized views
-            var refreshTask = ctx.AddTask("[yellow]Refreshing materialized views[/]");
-            await _modernWriter.ExecuteRawSqlAsync("REFRESH MATERIALIZED VIEW client_balances");
-            await _modernWriter.ExecuteRawSqlAsync("REFRESH MATERIALIZED VIEW article_stock_levels");
-            refreshTask.Value = 100;
+            // Note: Materialized views not created by EF migrations, skipping refresh
 
             // Step 11: Post-migration validation
             var postValidTask = ctx.AddTask("[yellow]Validating migrated data[/]");
@@ -122,8 +123,75 @@ public class MigrationOrchestrator
 
     private async Task MigrateLookupTables(ProgressContext ctx, MigrationResult result)
     {
-        // Provinces already seeded, skip
-        _logger.LogInformation("Lookup tables (provinces, tax_conditions, etc.) already seeded via seed.sql");
+        var stopwatch = Stopwatch.StartNew();
+        
+        try
+        {
+            // Migrate Provinces
+            var provincesTask = ctx.AddTask("[blue]Migrating provinces[/]");
+            var legacyProvinces = await _legacyReader.ReadDataAsync<LegacyProvincia>("Provincias");
+            var modernProvinces = legacyProvinces.Select(ProvinceMapper.Map).ToList();
+            provincesTask.MaxValue = modernProvinces.Count;
+            var provinceMigrated = await _modernWriter.WriteDataAsync("provinces", modernProvinces);
+            provincesTask.Value = provinceMigrated;
+            await _modernWriter.ResetSequenceAsync("provinces", "provinces_id_seq");
+            
+            // Migrate Tax Conditions
+            var taxTask = ctx.AddTask("[blue]Migrating tax conditions[/]");
+            var legacyTaxConditions = await _legacyReader.ReadDataAsync<LegacyCondicionIVA>("CondicionesIVA");
+            var modernTaxConditions = legacyTaxConditions.Select(TaxConditionMapper.Map).ToList();
+            taxTask.MaxValue = modernTaxConditions.Count;
+            var taxMigrated = await _modernWriter.WriteDataAsync("tax_conditions", modernTaxConditions);
+            taxTask.Value = taxMigrated;
+            await _modernWriter.ResetSequenceAsync("tax_conditions", "tax_conditions_id_seq");
+            
+            // Migrate Operation Types
+            var operationTask = ctx.AddTask("[blue]Migrating operation types[/]");
+            var legacyOperations = await _legacyReader.ReadDataAsync<LegacyOperatoria>("Operatorias");
+            var modernOperations = legacyOperations.Select(OperationTypeMapper.Map).ToList();
+            operationTask.MaxValue = modernOperations.Count;
+            var operationMigrated = await _modernWriter.WriteDataAsync("operation_types", modernOperations);
+            operationTask.Value = operationMigrated;
+            await _modernWriter.ResetSequenceAsync("operation_types", "operation_types_id_seq");
+            
+            // Migrate Payment Methods
+            var paymentTask = ctx.AddTask("[blue]Migrating payment methods[/]");
+            var legacyPaymentMethods = await _legacyReader.ReadDataAsync<LegacyFormaDePago>("FormasDePago");
+            var modernPaymentMethods = legacyPaymentMethods.Select(PaymentMethodMapper.Map).ToList();
+            paymentTask.MaxValue = modernPaymentMethods.Count;
+            var paymentMigrated = await _modernWriter.WriteDataAsync("payment_methods", modernPaymentMethods);
+            paymentTask.Value = paymentMigrated;
+            await _modernWriter.ResetSequenceAsync("payment_methods", "payment_methods_id_seq");
+            
+            // Migrate Transporters
+            var transporterTask = ctx.AddTask("[blue]Migrating transporters[/]");
+            var legacyTransporters = await _legacyReader.ReadDataAsync<LegacyTransportista>("Transportistas");
+            var modernTransporters = legacyTransporters.Select(TransporterMapper.Map).ToList();
+            transporterTask.MaxValue = modernTransporters.Count;
+            var transporterMigrated = await _modernWriter.WriteDataAsync("transporters", modernTransporters);
+            transporterTask.Value = transporterMigrated;
+            await _modernWriter.ResetSequenceAsync("transporters", "transporters_id_seq");
+            
+            result.EntityResults.Add(new EntityMigrationResult
+            {
+                EntityName = "Lookup Tables",
+                MigratedCount = provinceMigrated + taxMigrated + operationMigrated + paymentMigrated + transporterMigrated,
+                Duration = stopwatch.Elapsed
+            });
+            
+            _logger.LogInformation("Migrated all lookup tables: {Provinces} provinces, {Tax} tax conditions, {Operations} operations, {Payments} payment methods, {Transporters} transporters",
+                provinceMigrated, taxMigrated, operationMigrated, paymentMigrated, transporterMigrated);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to migrate lookup tables");
+            result.EntityResults.Add(new EntityMigrationResult
+            {
+                EntityName = "Lookup Tables",
+                FailedCount = 1,
+                Errors = new List<string> { ex.Message }
+            });
+        }
     }
 
     private async Task MigrateCategories(ProgressContext ctx, MigrationResult result)
@@ -133,6 +201,9 @@ public class MigrationOrchestrator
         
         try
         {
+            // Reset category code cache to ensure unique codes
+            CategoryMapper.ResetCodeCache();
+            
             // Check if categories already exist (manually migrated)
             var existingCount = await _modernWriter.GetRecordCountAsync("categories");
             if (existingCount > 0)

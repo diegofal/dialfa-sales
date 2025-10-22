@@ -34,6 +34,9 @@ public class PostgresDataWriter : IModernDataWriter
         var count = 0;
         using var transaction = await connection.BeginTransactionAsync();
         
+        // Set longer command timeout for large inserts (10 minutes)
+        var commandTimeout = 600;
+        
         try
         {
             foreach (var item in data)
@@ -43,27 +46,19 @@ public class PostgresDataWriter : IModernDataWriter
                 
                 var columns = string.Join(", ", properties.Select(p => ToSnakeCase(p.Name)));
                 
-                // Special handling for ENUMs
-                var parametersList = new List<string>();
-                foreach (var prop in properties)
-                {
-                    var paramName = "@" + prop.Name;
-                    // Cast status to order_status ENUM for sales_orders table
-                    if (tableName == "sales_orders" && prop.Name == "Status")
-                    {
-                        parametersList.Add($"{paramName}::order_status");
-                    }
-                    else
-                    {
-                        parametersList.Add(paramName);
-                    }
-                }
-                var parameters = string.Join(", ", parametersList);
+                // Note: EF Core stores enums as strings, not PostgreSQL ENUMs
+                var parameters = string.Join(", ", properties.Select(p => "@" + p.Name));
                 
                 var sql = $"INSERT INTO {tableName} ({columns}) VALUES ({parameters})";
                 
-                await connection.ExecuteAsync(sql, item, transaction);
+                await connection.ExecuteAsync(sql, item, transaction, commandTimeout: commandTimeout);
                 count++;
+                
+                // Log progress every 100 records
+                if (count % 100 == 0)
+                {
+                    _logger.LogDebug("Inserted {Count} records into {Table}", count, tableName);
+                }
             }
             
             await transaction.CommitAsync();
@@ -90,8 +85,50 @@ public class PostgresDataWriter : IModernDataWriter
         using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync();
         
-        await connection.ExecuteAsync($"TRUNCATE TABLE {tableName} CASCADE");
+        await connection.ExecuteAsync($"TRUNCATE TABLE {tableName} RESTART IDENTITY CASCADE");
         _logger.LogInformation("Truncated table {Table}", tableName);
+    }
+
+    public async Task TruncateAllTablesAsync()
+    {
+        if (_dryRun)
+        {
+            _logger.LogInformation("[DRY RUN] Would truncate all tables");
+            return;
+        }
+
+        using var connection = new NpgsqlConnection(_connectionString);
+        await connection.OpenAsync();
+        
+        try
+        {
+            // Truncate all tables in reverse dependency order (children first)
+            var sql = @"
+                TRUNCATE TABLE 
+                    delivery_notes,
+                    invoices,
+                    sales_order_items,
+                    sales_orders,
+                    client_discounts,
+                    clients,
+                    articles,
+                    categories,
+                    transporters,
+                    payment_methods,
+                    operation_types,
+                    tax_conditions,
+                    provinces
+                RESTART IDENTITY CASCADE";
+            
+            // Set long timeout for TRUNCATE (10 minutes)
+            await connection.ExecuteAsync(sql, commandTimeout: 600);
+            _logger.LogInformation("Truncated all tables");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error truncating all tables");
+            throw;
+        }
     }
 
     public async Task ResetSequenceAsync(string tableName, string sequenceName)

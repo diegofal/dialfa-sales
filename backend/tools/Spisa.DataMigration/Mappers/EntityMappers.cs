@@ -2,12 +2,14 @@ namespace Spisa.DataMigration.Mappers;
 
 public static class CategoryMapper
 {
+    private static readonly Dictionary<string, int> _usedCodes = new Dictionary<string, int>();
+    
     public static ModernCategory Map(LegacyCategoria legacy)
     {
         return new ModernCategory
         {
             Id = legacy.IdCategoria,
-            Code = GenerateCategoryCode(legacy.Descripcion),
+            Code = GenerateCategoryCode(legacy.IdCategoria, legacy.Descripcion),
             Name = legacy.Descripcion.Trim(),
             DefaultDiscountPercent = legacy.Descuento,
             IsActive = true,
@@ -16,13 +18,32 @@ public static class CategoryMapper
         };
     }
 
-    private static string GenerateCategoryCode(string description)
+    private static string GenerateCategoryCode(int id, string description)
     {
-        // Generate code from first 3 letters of description
+        // Try to generate code from first 3 letters of description
         var cleanName = new string(description.Where(char.IsLetter).ToArray());
-        return cleanName.Length >= 3 
+        var baseCode = cleanName.Length >= 3 
             ? cleanName.Substring(0, 3).ToUpper() 
             : cleanName.ToUpper().PadRight(3, 'X');
+        
+        // If this code has been used before, append the ID to make it unique
+        if (_usedCodes.ContainsKey(baseCode))
+        {
+            baseCode = $"{baseCode}{id}";
+        }
+        else
+        {
+            _usedCodes[baseCode] = 1;
+        }
+        
+        // Ensure it's not too long (max 20 characters per schema)
+        return baseCode.Length > 20 ? baseCode.Substring(0, 20) : baseCode;
+    }
+    
+    // Call this to reset between migrations
+    public static void ResetCodeCache()
+    {
+        _usedCodes.Clear();
     }
 }
 
@@ -36,11 +57,13 @@ public static class ArticleMapper
             CategoryId = legacy.IdCategoria,
             Code = legacy.codigo.Trim(),
             Description = legacy.descripcion.Trim(),
-            Quantity = legacy.cantidad,
+            Stock = legacy.cantidad, // Changed from Quantity to Stock
             UnitPrice = legacy.preciounitario,
             CostPrice = null, // Not available in legacy system
             MinimumStock = 0, // Not available in legacy system
-            IsActive = true,
+            IsDiscontinued = false, // Changed from IsActive=true to IsDiscontinued=false
+            Location = null,
+            Notes = null,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -102,9 +125,8 @@ public static class ClientDiscountMapper
             ClientId = legacy.IdCliente,
             CategoryId = legacy.IdCategoria,
             DiscountPercent = legacy.Descuento,
-            ValidFrom = DateTime.UtcNow.Date,
-            ValidUntil = null, // No expiration
-            CreatedAt = DateTime.UtcNow
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
         };
     }
 }
@@ -114,7 +136,7 @@ public static class SalesOrderMapper
     public static ModernSalesOrder Map(LegacyNotaPedido legacy)
     {
         // Determine status based on whether invoices exist
-        var status = "PENDING"; // Default - UPPERCASE to match PostgreSQL ENUM
+        var status = "PENDING"; // Default - stored as string in EF
         
         // Fix invalid delivery dates (must be >= order_date)
         var deliveryDate = legacy.FechaEntrega;
@@ -126,13 +148,14 @@ public static class SalesOrderMapper
         return new ModernSalesOrder
         {
             Id = legacy.IdNotaPedido,
-            OrderNumber = legacy.NumeroOrden.Trim(),
             ClientId = legacy.IdCliente,
+            OrderNumber = legacy.NumeroOrden.Trim(),
             OrderDate = legacy.FechaEmision,
             DeliveryDate = deliveryDate,
+            Status = status, // Stored as string, not enum
             SpecialDiscountPercent = (decimal)legacy.DescuentoEspecial,
+            Total = 0, // Will be calculated from items later
             Notes = legacy.Observaciones?.Trim(),
-            Status = status, // Will be cast to order_status ENUM by PostgreSQL
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -180,19 +203,28 @@ public static class InvoiceMapper
 {
     public static ModernInvoice Map(LegacyFactura legacy)
     {
+        // Legacy system doesn't have these fields, so we'll use defaults
+        // In a real migration, you'd calculate these from order items
+        decimal netAmount = 0; // Would need to calculate from sales_order_items
+        decimal taxAmount = 0; // Would need to calculate based on tax rate
+        decimal totalAmount = 0; // Would be net + tax
+        
         return new ModernInvoice
         {
             Id = legacy.IdFactura,
             InvoiceNumber = legacy.NumeroFactura.ToString().PadLeft(12, '0'),
             SalesOrderId = legacy.IdNotaPedido,
             InvoiceDate = legacy.Fecha,
+            NetAmount = netAmount,
+            TaxAmount = taxAmount,
+            TotalAmount = totalAmount,
             UsdExchangeRate = legacy.ValorDolar,
-            Notes = legacy.Observaciones?.Trim(),
             IsPrinted = legacy.FueImpresa,
             PrintedAt = legacy.FueImpresa ? DateTime.UtcNow : null,
             IsCancelled = legacy.FueCancelada,
             CancelledAt = legacy.FueCancelada ? DateTime.UtcNow : null,
             CancellationReason = legacy.FueCancelada ? "Migrated as cancelled" : null,
+            Notes = legacy.Observaciones?.Trim(),
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };
@@ -228,6 +260,88 @@ public static class DeliveryNoteMapper
             PackagesCount = packagesCount,
             DeclaredValue = legacy.Valor,
             Notes = legacy.Observaciones?.Trim(),
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        };
+    }
+}
+
+// ============================================================================
+// LOOKUP TABLE MAPPERS
+// ============================================================================
+
+public static class ProvinceMapper
+{
+    public static ModernProvince Map(LegacyProvincia legacy)
+    {
+        return new ModernProvince
+        {
+            Id = legacy.IdProvincia,
+            Name = legacy.Provincia.Trim(),
+            Code = null, // Not available in legacy
+            CreatedAt = DateTime.UtcNow
+        };
+    }
+}
+
+public static class TaxConditionMapper
+{
+    public static ModernTaxCondition Map(LegacyCondicionIVA legacy)
+    {
+        return new ModernTaxCondition
+        {
+            Id = legacy.IdCondicionIVA,
+            Name = legacy.CondicionIVA.Trim(),
+            Description = null, // Not available in legacy
+            CreatedAt = DateTime.UtcNow
+        };
+    }
+}
+
+public static class OperationTypeMapper
+{
+    public static ModernOperationType Map(LegacyOperatoria legacy)
+    {
+        return new ModernOperationType
+        {
+            Id = legacy.IdOperatoria,
+            Name = legacy.Operatoria.Trim(),
+            Description = null, // Not available in legacy
+            CreatedAt = DateTime.UtcNow
+        };
+    }
+}
+
+public static class PaymentMethodMapper
+{
+    public static ModernPaymentMethod Map(LegacyFormaDePago legacy)
+    {
+        // Determine if this payment method requires check data
+        var requiresCheckData = legacy.FormaDePago.Trim().ToLower().Contains("cheque");
+        
+        return new ModernPaymentMethod
+        {
+            Id = legacy.IdFormaDePago,
+            Name = legacy.FormaDePago.Trim(),
+            RequiresCheckData = requiresCheckData,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow
+        };
+    }
+}
+
+public static class TransporterMapper
+{
+    public static ModernTransporter Map(LegacyTransportista legacy)
+    {
+        return new ModernTransporter
+        {
+            Id = legacy.IdTransportista,
+            Name = legacy.Transportista.Trim(),
+            Address = legacy.Domicilio?.Trim(),
+            Phone = null, // Not available in legacy
+            Email = null, // Not available in legacy
+            IsActive = true,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };

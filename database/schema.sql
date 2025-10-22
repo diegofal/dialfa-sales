@@ -6,6 +6,39 @@
 -- with modern PostgreSQL features, proper normalization, and audit trails.
 
 -- ==============================================================================
+-- DROP EXISTING OBJECTS (for idempotent execution)
+-- ==============================================================================
+
+-- Drop materialized views
+DROP MATERIALIZED VIEW IF EXISTS article_stock_levels CASCADE;
+DROP MATERIALIZED VIEW IF EXISTS client_balances CASCADE;
+
+-- Drop tables in reverse dependency order
+DROP TABLE IF EXISTS schema_version CASCADE;
+DROP TABLE IF EXISTS account_movements CASCADE;
+DROP TABLE IF EXISTS stock_movements CASCADE;
+DROP TABLE IF EXISTS delivery_notes CASCADE;
+DROP TABLE IF EXISTS invoices CASCADE;
+DROP TABLE IF EXISTS sales_order_items CASCADE;
+DROP TABLE IF EXISTS sales_orders CASCADE;
+DROP TABLE IF EXISTS client_discounts CASCADE;
+DROP TABLE IF EXISTS clients CASCADE;
+DROP TABLE IF EXISTS articles CASCADE;
+DROP TABLE IF EXISTS categories CASCADE;
+DROP TABLE IF EXISTS transporters CASCADE;
+DROP TABLE IF EXISTS payment_methods CASCADE;
+DROP TABLE IF EXISTS operation_types CASCADE;
+DROP TABLE IF EXISTS tax_conditions CASCADE;
+DROP TABLE IF EXISTS provinces CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+
+-- Drop types
+DROP TYPE IF EXISTS stock_movement_type CASCADE;
+DROP TYPE IF EXISTS movement_type CASCADE;
+DROP TYPE IF EXISTS order_status CASCADE;
+DROP TYPE IF EXISTS user_role CASCADE;
+
+-- ==============================================================================
 -- EXTENSIONS
 -- ==============================================================================
 
@@ -510,11 +543,10 @@ CREATE TRIGGER update_transporters_updated_at BEFORE UPDATE ON transporters
 -- INITIAL GRANTS (adjust for your security model)
 -- ==============================================================================
 
--- Grant usage on all sequences to spisa_user
-GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO spisa_user;
-
--- Grant necessary permissions
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO spisa_user;
+-- Note: Railway uses 'postgres' user by default, so no additional grants needed
+-- For local development with spisa_user, uncomment these lines:
+-- GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO spisa_user;
+-- GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO spisa_user;
 
 -- ==============================================================================
 -- SCHEMA VERSION TRACKING

@@ -7,6 +7,7 @@ public interface IModernDataWriter
 {
     Task<int> WriteDataAsync<T>(string tableName, IEnumerable<T> data);
     Task TruncateTableAsync(string tableName);
+    Task TruncateAllTablesAsync();
     Task ResetSequenceAsync(string tableName, string sequenceName);
     Task TestConnectionAsync();
     Task ExecuteRawSqlAsync(string sql);

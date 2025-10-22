@@ -8,6 +8,7 @@ public class Article : BaseEntity
     public string Description { get; set; } = string.Empty;
     public long CategoryId { get; set; }
     public decimal UnitPrice { get; set; }
+    public decimal? CostPrice { get; set; }
     public decimal Stock { get; set; } = 0;
     public decimal MinimumStock { get; set; } = 0;
     public string? Location { get; set; }

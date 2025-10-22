@@ -8,6 +8,7 @@ public class Category : BaseEntity
     public string Name { get; set; } = string.Empty;
     public string? Description { get; set; }
     public decimal DefaultDiscountPercent { get; set; } = 0;
+    public bool IsActive { get; set; } = true;
 
     // Navigation properties
     public ICollection<Article> Articles { get; set; } = new List<Article>();

@@ -10,6 +10,12 @@ public class Invoice : BaseEntity
     public decimal NetAmount { get; set; }
     public decimal TaxAmount { get; set; }
     public decimal TotalAmount { get; set; }
+    public decimal? UsdExchangeRate { get; set; }
+    public bool IsPrinted { get; set; } = false;
+    public DateTime? PrintedAt { get; set; }
+    public bool IsCancelled { get; set; } = false;
+    public DateTime? CancelledAt { get; set; }
+    public string? CancellationReason { get; set; }
     public string? Notes { get; set; }
 
     // Navigation properties
