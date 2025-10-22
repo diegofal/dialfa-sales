@@ -6,15 +6,15 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
 # Copy csproj files and restore dependencies
-COPY ["backend/src/Spisa.WebApi/Spisa.WebApi.csproj", "Spisa.WebApi/"]
-COPY ["backend/src/Spisa.Application/Spisa.Application.csproj", "Spisa.Application/"]
-COPY ["backend/src/Spisa.Domain/Spisa.Domain.csproj", "Spisa.Domain/"]
-COPY ["backend/src/Spisa.Infrastructure/Spisa.Infrastructure.csproj", "Spisa.Infrastructure/"]
+COPY ["src/Spisa.WebApi/Spisa.WebApi.csproj", "Spisa.WebApi/"]
+COPY ["src/Spisa.Application/Spisa.Application.csproj", "Spisa.Application/"]
+COPY ["src/Spisa.Domain/Spisa.Domain.csproj", "Spisa.Domain/"]
+COPY ["src/Spisa.Infrastructure/Spisa.Infrastructure.csproj", "Spisa.Infrastructure/"]
 
 RUN dotnet restore "Spisa.WebApi/Spisa.WebApi.csproj"
 
 # Copy source code
-COPY backend/src/ .
+COPY src/ .
 
 # Build
 WORKDIR "/src/Spisa.WebApi"
