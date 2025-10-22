@@ -36,6 +36,9 @@ public class ClientConfiguration : IEntityTypeConfiguration<Client>
         builder.Property(c => c.Email)
             .HasMaxLength(100);
 
+        builder.Property(c => c.SellerId)
+            .HasColumnName("seller_id");
+
         builder.Property(c => c.CreditLimit)
             .HasPrecision(18, 2);
 

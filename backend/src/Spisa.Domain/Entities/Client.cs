@@ -16,6 +16,7 @@ public class Client : BaseEntity
     public string? Email { get; set; }
     public int OperationTypeId { get; set; }  // Required field
     public int? TransporterId { get; set; }
+    public int? SellerId { get; set; }
     public decimal? CreditLimit { get; set; }
     public decimal CurrentBalance { get; set; } = 0;
     public bool IsActive { get; set; } = true;

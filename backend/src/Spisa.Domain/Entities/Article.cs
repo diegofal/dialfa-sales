@@ -11,8 +11,17 @@ public class Article : BaseEntity
     public decimal? CostPrice { get; set; }
     public decimal Stock { get; set; } = 0;
     public decimal MinimumStock { get; set; } = 0;
-    public string? Location { get; set; }
+    public string? DisplayOrder { get; set; }
     public bool IsDiscontinued { get; set; } = false;
+    public bool IsActive { get; set; } = true;
+    public string? Type { get; set; }
+    public int? Series { get; set; }
+    public string? Thickness { get; set; }
+    public string? Size { get; set; }
+    public int? SupplierId { get; set; }
+    public decimal? WeightKg { get; set; }
+    public decimal? HistoricalPrice1 { get; set; }
+    public string? Location { get; set; }
     public string? Notes { get; set; }
 
     // Navigation properties

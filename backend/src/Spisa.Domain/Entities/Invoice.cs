@@ -16,6 +16,8 @@ public class Invoice : BaseEntity
     public bool IsCancelled { get; set; } = false;
     public DateTime? CancelledAt { get; set; }
     public string? CancellationReason { get; set; }
+    public bool IsCreditNote { get; set; } = false;
+    public bool IsQuotation { get; set; } = false;
     public string? Notes { get; set; }
 
     // Navigation properties

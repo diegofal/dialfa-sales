@@ -172,19 +172,20 @@ $tables = @(
         Columns = @(
             @{Source="IdArticulo"; Target="id"; Type="number"}
             @{Source="IdCategoria"; Target="category_id"; Type="number"}
-            @{Source="Descripcion"; Target="description"; Type="string"}
+            @{Source="codigo"; Target="code"; Type="string"}
+            @{Source="descripcion"; Target="description"; Type="string"}
+            @{Source="orden"; Target="display_order"; Type="string"}
+            @{Source="tipo"; Target="type"; Type="string"}
+            @{Source="serie"; Target="series"; Type="number"}
+            @{Source="espesor"; Target="thickness"; Type="string"}
+            @{Source="size"; Target="size"; Type="string"}
+            @{Source="proveedor"; Target="supplier_id"; Type="number"}
+            @{Source="peso"; Target="weight_kg"; Type="number"}
+            @{Source="precio_unitario_historico_1"; Target="historical_price1"; Type="number"}
         )
         ComputedColumns = @(
-            @{Target="code"; Expression={ param($reader) 
-                $code = $reader['CodArticulo']
-                if ($code -is [DBNull] -or [string]::IsNullOrWhiteSpace($code)) {
-                    "ART$($reader['IdArticulo'])"
-                } else {
-                    $code.ToString()
-                }
-            }}
             @{Target="unit_price"; Expression={ param($reader) 
-                $price = $reader['PrecioLista']
+                $price = $reader['preciounitario']
                 if ($price -is [DBNull] -or $null -eq $price) {
                     "0"
                 } else {
@@ -192,11 +193,19 @@ $tables = @(
                 }
             }; NoQuote=$true}
             @{Target="stock"; Expression={ param($reader) 
-                $stock = $reader['Stock']
+                $stock = $reader['cantidad']
                 if ($stock -is [DBNull] -or $null -eq $stock) {
                     "0"
                 } else {
                     $stock.ToString()
+                }
+            }; NoQuote=$true}
+            @{Target="is_discontinued"; Expression={ param($reader) 
+                $disc = $reader['discontinuado']
+                if ($disc -is [DBNull] -or $null -eq $disc) {
+                    "FALSE"
+                } else {
+                    if ($disc) { "TRUE" } else { "FALSE" }
                 }
             }; NoQuote=$true}
         )
@@ -204,8 +213,8 @@ $tables = @(
             @{Target="cost_price"; Value="NULL"}
             @{Target="minimum_stock"; Value="0"}
             @{Target="location"; Value="NULL"}
-            @{Target="is_discontinued"; Value="FALSE"}
             @{Target="notes"; Value="NULL"}
+            @{Target="is_active"; Value="TRUE"}
             @{Target="created_at"; Value="CURRENT_TIMESTAMP"}
             @{Target="updated_at"; Value="CURRENT_TIMESTAMP"}
         )
@@ -215,18 +224,22 @@ $tables = @(
         Target = "clients"
         Columns = @(
             @{Source="IdCliente"; Target="id"; Type="number"}
+            @{Source="Codigo"; Target="code"; Type="string"}
             @{Source="IdProvincia"; Target="province_id"; Type="number"}
             @{Source="IdCondicionIVA"; Target="tax_condition_id"; Type="number"}
             @{Source="IdOperatoria"; Target="operation_type_id"; Type="number"}
             @{Source="Domicilio"; Target="address"; Type="string"}
+            @{Source="Localidad"; Target="city"; Type="string"}
             @{Source="Telefono"; Target="phone"; Type="string"}
             @{Source="Email"; Target="email"; Type="string"}
             @{Source="CUIT"; Target="cuit"; Type="string"}
+            @{Source="IdTransportista"; Target="transporter_id"; Type="number"}
+            @{Source="IdVendedor"; Target="seller_id"; Type="number"}
+            @{Source="Saldo"; Target="current_balance"; Type="number"}
         )
         ComputedColumns = @(
-            @{Target="code"; Expression={ param($reader) "CLI$($reader['IdCliente'])" }}
             @{Target="business_name"; Expression={ param($reader) 
-                $name = $reader['Nombre']
+                $name = $reader['RazonSocial']
                 if ($name -is [DBNull] -or [string]::IsNullOrWhiteSpace($name)) {
                     "Cliente $($reader['IdCliente'])"
                 } else {
@@ -243,11 +256,8 @@ $tables = @(
             }; NoQuote=$true}
         )
         ExtraColumns = @(
-            @{Target="city"; Value="NULL"}
             @{Target="postal_code"; Value="NULL"}
-            @{Target="transporter_id"; Value="NULL"}
             @{Target="credit_limit"; Value="NULL"}
-            @{Target="current_balance"; Value="0"}
             @{Target="created_at"; Value="CURRENT_TIMESTAMP"}
             @{Target="updated_at"; Value="CURRENT_TIMESTAMP"}
         )
@@ -271,32 +281,16 @@ $tables = @(
         Target = "sales_orders"
         Columns = @(
             @{Source="IdNotaPedido"; Target="id"; Type="number"}
+            @{Source="NumeroOrden"; Target="order_number"; Type="number"}
             @{Source="IdCliente"; Target="client_id"; Type="number"}
+            @{Source="FechaEmision"; Target="order_date"; Type="datetime"}
             @{Source="FechaEntrega"; Target="delivery_date"; Type="datetime"}
             @{Source="DescuentoEspecial"; Target="special_discount_percent"; Type="number"}
             @{Source="Observaciones"; Target="notes"; Type="string"}
         )
-        ComputedColumns = @(
-            @{Target="order_number"; Expression={ param($reader) $reader['IdNotaPedido'].ToString().PadLeft(8, '0') }}
-            @{Target="order_date"; Expression={ param($reader) 
-                $date = $reader['Fecha']
-                if ($date -is [DBNull] -or $null -eq $date) {
-                    "'$((Get-Date).ToString("yyyy-MM-dd HH:mm:ss"))'"
-                } else {
-                    "'$($date.ToString("yyyy-MM-dd HH:mm:ss"))'"
-                }
-            }; NoQuote=$true}
-            @{Target="total"; Expression={ param($reader) 
-                $total = $reader['Total']
-                if ($total -is [DBNull] -or $null -eq $total) {
-                    "0"
-                } else {
-                    $total.ToString()
-                }
-            }; NoQuote=$true}
-        )
         ExtraColumns = @(
             @{Target="status"; Value="'PENDING'"}
+            @{Target="total"; Value="0"}
             @{Target="created_at"; Value="CURRENT_TIMESTAMP"}
             @{Target="updated_at"; Value="CURRENT_TIMESTAMP"}
         )
@@ -346,15 +340,12 @@ $tables = @(
         Columns = @(
             @{Source="IdFactura"; Target="id"; Type="number"}
             @{Source="IdNotaPedido"; Target="sales_order_id"; Type="number"}
-            @{Source="CotizacionDolar"; Target="usd_exchange_rate"; Type="number"}
-            @{Source="FechaImpresion"; Target="printed_at"; Type="datetime"}
-            @{Source="FechaAnulacion"; Target="cancelled_at"; Type="datetime"}
-            @{Source="MotivoAnulacion"; Target="cancellation_reason"; Type="string"}
+            @{Source="ValorDolar"; Target="usd_exchange_rate"; Type="number"}
             @{Source="Observaciones"; Target="notes"; Type="string"}
         )
         ComputedColumns = @(
             @{Target="invoice_number"; Expression={ param($reader) 
-                $num = $reader['NroFactura']
+                $num = $reader['NumeroFactura']
                 if ($num -is [DBNull] -or [string]::IsNullOrWhiteSpace($num)) {
                     "INV$($reader['IdFactura'])"
                 } else {
@@ -370,7 +361,7 @@ $tables = @(
                 }
             }; NoQuote=$true}
             @{Target="is_printed"; Expression={ param($reader) 
-                $printed = $reader['Impreso']
+                $printed = $reader['FueImpresa']
                 if ($printed -is [DBNull] -or $null -eq $printed) {
                     "FALSE"
                 } else {
@@ -378,15 +369,34 @@ $tables = @(
                 }
             }; NoQuote=$true}
             @{Target="is_cancelled"; Expression={ param($reader) 
-                $cancelled = $reader['Anulada']
+                $cancelled = $reader['FueCancelada']
                 if ($cancelled -is [DBNull] -or $null -eq $cancelled) {
                     "FALSE"
                 } else {
                     if ($cancelled) { "TRUE" } else { "FALSE" }
                 }
             }; NoQuote=$true}
+            @{Target="is_credit_note"; Expression={ param($reader) 
+                $creditNote = $reader['EsNotaDeCredito']
+                if ($creditNote -is [DBNull] -or $null -eq $creditNote) {
+                    "FALSE"
+                } else {
+                    if ($creditNote) { "TRUE" } else { "FALSE" }
+                }
+            }; NoQuote=$true}
+            @{Target="is_quotation"; Expression={ param($reader) 
+                $quotation = $reader['Cotizacion']
+                if ($quotation -is [DBNull] -or $null -eq $quotation) {
+                    "FALSE"
+                } else {
+                    if ($quotation) { "TRUE" } else { "FALSE" }
+                }
+            }; NoQuote=$true}
         )
         ExtraColumns = @(
+            @{Target="printed_at"; Value="NULL"}
+            @{Target="cancelled_at"; Value="NULL"}
+            @{Target="cancellation_reason"; Value="NULL"}
             @{Target="net_amount"; Value="0"}
             @{Target="tax_amount"; Value="0"}
             @{Target="total_amount"; Value="0"}
@@ -399,32 +409,16 @@ $tables = @(
         Target = "delivery_notes"
         Columns = @(
             @{Source="IdRemito"; Target="id"; Type="number"}
+            @{Source="NumeroRemito"; Target="delivery_number"; Type="number"}
             @{Source="IdNotaPedido"; Target="sales_order_id"; Type="number"}
+            @{Source="Fecha"; Target="delivery_date"; Type="datetime"}
             @{Source="IdTransportista"; Target="transporter_id"; Type="number"}
+            @{Source="Peso"; Target="weight_kg"; Type="number"}
+            @{Source="Bultos"; Target="packages_count"; Type="number"}
+            @{Source="Valor"; Target="declared_value"; Type="number"}
             @{Source="Observaciones"; Target="notes"; Type="string"}
         )
-        ComputedColumns = @(
-            @{Target="delivery_number"; Expression={ param($reader) 
-                $num = $reader['NroRemito']
-                if ($num -is [DBNull] -or [string]::IsNullOrWhiteSpace($num)) {
-                    "DN$($reader['IdRemito'])"
-                } else {
-                    $num.ToString()
-                }
-            }}
-            @{Target="delivery_date"; Expression={ param($reader) 
-                $date = $reader['Fecha']
-                if ($date -is [DBNull] -or $null -eq $date) {
-                    "'$((Get-Date).ToString("yyyy-MM-dd HH:mm:ss"))'"
-                } else {
-                    "'$($date.ToString("yyyy-MM-dd HH:mm:ss"))'"
-                }
-            }; NoQuote=$true}
-        )
         ExtraColumns = @(
-            @{Target="weight_kg"; Value="NULL"}
-            @{Target="packages_count"; Value="NULL"}
-            @{Target="declared_value"; Value="NULL"}
             @{Target="created_at"; Value="CURRENT_TIMESTAMP"}
             @{Target="updated_at"; Value="CURRENT_TIMESTAMP"}
         )

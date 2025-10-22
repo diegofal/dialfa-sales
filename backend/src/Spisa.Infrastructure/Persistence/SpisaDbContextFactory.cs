@@ -12,11 +12,11 @@ public class SpisaDbContextFactory : IDesignTimeDbContextFactory<SpisaDbContext>
     {
         var optionsBuilder = new DbContextOptionsBuilder<SpisaDbContext>();
 
-        // Default to a connection string for local development
+        // Default to Railway connection string
         // This can be overridden with --connection parameter in dotnet ef commands
         var connectionString = args.Length > 0 && args[0].StartsWith("Host=")
             ? args[0]
-            : "Host=localhost;Port=5432;Database=spisa;Username=spisa_user;Password=spisa_dev_password";
+            : "Host=shinkansen.proxy.rlwy.net;Port=36395;Database=railway;Username=postgres;Password=diHwuLPimwutIwcvMUyvTnAqimEzKFZR;SSL Mode=Require;";
 
         optionsBuilder.UseNpgsql(connectionString, options =>
         {

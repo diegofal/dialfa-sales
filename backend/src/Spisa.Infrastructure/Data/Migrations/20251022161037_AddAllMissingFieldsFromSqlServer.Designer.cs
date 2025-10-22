@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Spisa.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using Spisa.Infrastructure.Persistence;
 namespace Spisa.Infrastructure.Data.Migrations
 {
     [DbContext(typeof(SpisaDbContext))]
-    partial class SpisaDbContextModelSnapshot : ModelSnapshot
+    [Migration("20251022161037_AddAllMissingFieldsFromSqlServer")]
+    partial class AddAllMissingFieldsFromSqlServer
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -151,12 +154,6 @@ namespace Spisa.Infrastructure.Data.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)")
                         .HasColumnName("historical_price1");
-
-                    b.Property<bool>("IsActive")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true)
-                        .HasColumnName("is_active");
 
                     b.Property<bool>("IsDiscontinued")
                         .ValueGeneratedOnAdd()
@@ -642,6 +639,7 @@ namespace Spisa.Infrastructure.Data.Migrations
                         .HasFilter("deleted_at IS NULL");
 
                     b.HasIndex("InvoiceNumber")
+                        .IsUnique()
                         .HasFilter("deleted_at IS NULL");
 
                     b.HasIndex("SalesOrderId")

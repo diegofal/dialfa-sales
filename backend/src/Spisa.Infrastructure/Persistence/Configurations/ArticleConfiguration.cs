@@ -21,6 +21,9 @@ public class ArticleConfiguration : IEntityTypeConfiguration<Article>
         builder.Property(a => a.UnitPrice)
             .HasPrecision(18, 4);
 
+        builder.Property(a => a.CostPrice)
+            .HasPrecision(18, 4);
+
         builder.Property(a => a.Stock)
             .HasColumnName("stock")
             .HasPrecision(12, 3);
@@ -29,12 +32,46 @@ public class ArticleConfiguration : IEntityTypeConfiguration<Article>
             .HasColumnName("minimum_stock")
             .HasPrecision(12, 3);
 
-        builder.Property(a => a.Location)
-            .HasMaxLength(100);
+        builder.Property(a => a.DisplayOrder)
+            .HasColumnName("display_order")
+            .HasMaxLength(20);
 
         builder.Property(a => a.IsDiscontinued)
             .HasColumnName("is_discontinued")
             .HasDefaultValue(false);
+
+        builder.Property(a => a.IsActive)
+            .HasColumnName("is_active")
+            .HasDefaultValue(true);
+
+        builder.Property(a => a.Type)
+            .HasColumnName("type")
+            .HasMaxLength(500);
+
+        builder.Property(a => a.Series)
+            .HasColumnName("series");
+
+        builder.Property(a => a.Thickness)
+            .HasColumnName("thickness")
+            .HasMaxLength(100);
+
+        builder.Property(a => a.Size)
+            .HasColumnName("size")
+            .HasMaxLength(100);
+
+        builder.Property(a => a.SupplierId)
+            .HasColumnName("supplier_id");
+
+        builder.Property(a => a.WeightKg)
+            .HasColumnName("weight_kg")
+            .HasPrecision(18, 2);
+
+        builder.Property(a => a.HistoricalPrice1)
+            .HasColumnName("historical_price1")
+            .HasPrecision(18, 2);
+
+        builder.Property(a => a.Location)
+            .HasMaxLength(200);
 
         builder.Property(a => a.Notes)
             .HasColumnType("text");
