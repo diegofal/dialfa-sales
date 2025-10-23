@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { useLogout } from '@/lib/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -22,8 +23,17 @@ export default function Navbar() {
   const logout = useLogout();
   const [cartOpen, setCartOpen] = useState(false);
   const { getTotalItems } = useQuickCartTabs();
+  const pathname = usePathname();
   
   const totalCartItems = getTotalItems();
+  
+  // Check if we're on a page with fixed bottom buttons
+  const hasFixedBottomButtons = pathname === '/dashboard/sales-orders/new' || pathname === '/dashboard/invoices/new';
+  
+  // Adjust cart button position based on page
+  const cartButtonClass = hasFixedBottomButtons 
+    ? "fixed bottom-24 right-6 h-14 w-14 rounded-full shadow-2xl z-40" 
+    : "fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl z-40";
 
   return (
     <>
@@ -65,7 +75,7 @@ export default function Navbar() {
       {/* Floating Cart Button - Always Visible */}
       <Button
         size="lg"
-        className="fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl z-40"
+        className={cartButtonClass}
         onClick={() => setCartOpen(!cartOpen)}
       >
         <div className="relative">

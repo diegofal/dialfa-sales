@@ -12,7 +12,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { useQuickCartTabs, QuickCartItem } from '@/lib/hooks/useQuickCartTabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ShoppingCart, User, X, Trash2, Pencil, Search, Plus } from 'lucide-react';
+import { ShoppingCart, User, X, Trash2, Pencil, Search, Plus, Maximize2, Minimize2 } from 'lucide-react';
 import { useArticles } from '@/lib/hooks/useArticles';
 import type { Article } from '@/types/article';
 
@@ -40,6 +40,9 @@ export function SingleStepOrderForm() {
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<OrderItemFormData[]>([]);
   const [loadedFromCart, setLoadedFromCart] = useState(false);
+
+  // Article section expanded state
+  const [isArticlesSectionExpanded, setIsArticlesSectionExpanded] = useState(false);
 
   // Article search state
   const [articleCode, setArticleCode] = useState('');
@@ -470,7 +473,7 @@ export function SingleStepOrderForm() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       {fromQuickCart && loadedFromCart && (
         <Alert>
           <ShoppingCart className="h-4 w-4" />
@@ -480,87 +483,99 @@ export function SingleStepOrderForm() {
         </Alert>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-2">
-        {/* Left Column - General Data */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Datos Generales</h3>
+      {/* Client and General Info Section */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              {clientId && clientName ? (
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 flex items-center gap-2 p-3 bg-primary/10 border border-primary/20 rounded">
+                    <User className="h-4 w-4 text-primary" />
+                    <div className="flex-1 min-w-0">
+                      <div className="text-sm font-medium truncate">{clientName}</div>
+                      <div className="text-xs text-muted-foreground">Cliente seleccionado</div>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleClearClient}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <ClientLookup onSelectClient={handleSelectClient} />
+              )}
+              <p className="text-sm text-muted-foreground">
+                Selecciona el cliente para el pedido
+              </p>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-3">
+              <div className="space-y-2">
+                <Label htmlFor="orderDate">Fecha de Pedido *</Label>
+                <Input
+                  id="orderDate"
+                  type="date"
+                  value={orderDate}
+                  onChange={(e) => setOrderDate(e.target.value)}
+                  required
+                />
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="client">Cliente *</Label>
-                {clientId && clientName ? (
-                  <div className="flex items-center gap-2">
-                    <div className="flex-1 flex items-center gap-2 p-3 bg-primary/10 border border-primary/20 rounded">
-                      <User className="h-4 w-4 text-primary" />
-                      <div className="flex-1 min-w-0">
-                        <div className="text-sm font-medium truncate">{clientName}</div>
-                        <div className="text-xs text-muted-foreground">Cliente seleccionado</div>
-                      </div>
-                    </div>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={handleClearClient}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                ) : (
-                  <ClientLookup onSelectClient={handleSelectClient} />
-                )}
-                <p className="text-sm text-muted-foreground">
-                  Selecciona el cliente para el pedido
-                </p>
-              </div>
-
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2">
-                  <Label htmlFor="orderDate">Fecha de Pedido *</Label>
-                  <Input
-                    id="orderDate"
-                    type="date"
-                    value={orderDate}
-                    onChange={(e) => setOrderDate(e.target.value)}
-                    required
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="deliveryDate">Fecha de Entrega</Label>
-                  <Input
-                    id="deliveryDate"
-                    type="date"
-                    value={deliveryDate}
-                    onChange={(e) => setDeliveryDate(e.target.value)}
-                    min={orderDate}
-                  />
-                </div>
+                <Label htmlFor="deliveryDate">Fecha de Entrega</Label>
+                <Input
+                  id="deliveryDate"
+                  type="date"
+                  value={deliveryDate}
+                  onChange={(e) => setDeliveryDate(e.target.value)}
+                  min={orderDate}
+                />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="notes">Notas</Label>
                 <Textarea
                   id="notes"
-                  placeholder="Observaciones adicionales..."
+                  placeholder="Observaciones..."
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  rows={4}
+                  rows={1}
+                  className="resize-none"
                 />
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Right Column - Articles */}
-        <Card>
-          <CardContent className="pt-6">
-            <div className="space-y-4">
-              <div>
-                <h3 className="text-lg font-semibold mb-4">Artículos</h3>
+      {/* Articles Section */}
+      <Card className="flex-1">
+        <CardContent className="pt-6">
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShoppingCart className="h-5 w-5 text-primary" />
+                <span className="text-xs text-muted-foreground">
+                  {items.length} item{items.length !== 1 ? 's' : ''}
+                </span>
               </div>
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={() => setIsArticlesSectionExpanded(!isArticlesSectionExpanded)}
+                title={isArticlesSectionExpanded ? 'Contraer' : 'Expandir'}
+              >
+                {isArticlesSectionExpanded ? (
+                  <Minimize2 className="h-4 w-4" />
+                ) : (
+                  <Maximize2 className="h-4 w-4" />
+                )}
+              </Button>
+            </div>
 
               {/* Quick Article Lookup */}
               <div className="p-4 border rounded-lg bg-muted/30">
@@ -658,7 +673,9 @@ export function SingleStepOrderForm() {
               </div>
 
               {/* Items List */}
-              <div className="space-y-2 max-h-[400px] overflow-y-auto">
+              <div className={`space-y-2 overflow-y-auto ${
+                isArticlesSectionExpanded ? 'max-h-[600px]' : 'max-h-[400px]'
+              }`}>
                 {items.length === 0 ? (
                   <div className="border border-dashed rounded-lg p-8 text-center text-muted-foreground">
                     <ShoppingCart className="h-8 w-8 mx-auto mb-2 opacity-30" />
@@ -669,7 +686,9 @@ export function SingleStepOrderForm() {
                   items.map((item) => (
                     <div
                       key={item.articleId}
-                      className="border rounded-lg p-3 space-y-2 bg-card hover:bg-accent/5 transition-colors"
+                      className={`border rounded-lg p-3 space-y-2 bg-card hover:bg-accent/5 transition-colors ${
+                        isArticlesSectionExpanded ? 'min-h-[100px]' : ''
+                      }`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
@@ -737,7 +756,9 @@ export function SingleStepOrderForm() {
                             </div>
                           ) : (
                             <div className="flex items-center gap-2">
-                              <div className="font-medium text-sm font-mono">
+                              <div className={`font-medium font-mono ${
+                                isArticlesSectionExpanded ? 'text-base' : 'text-sm'
+                              }`}>
                                 {item.articleCode}
                               </div>
                               <Button
@@ -750,11 +771,20 @@ export function SingleStepOrderForm() {
                               </Button>
                             </div>
                           )}
-                          <div className="text-xs text-muted-foreground truncate">
+                          <div className={`text-muted-foreground truncate ${
+                            isArticlesSectionExpanded ? 'text-sm' : 'text-xs'
+                          }`}>
                             {item.articleDescription}
                           </div>
-                          <div className="text-xs text-muted-foreground mt-0.5">
-                            Stock: <span className={getStockStatusClass(item.stock)}>{item.stock}</span>
+                          <div className={`text-muted-foreground mt-0.5 flex items-center gap-2 ${
+                            isArticlesSectionExpanded ? 'text-sm' : 'text-xs'
+                          }`}>
+                            <span>Stock: <span className={getStockStatusClass(item.stock)}>{item.stock}</span></span>
+                            {isArticlesSectionExpanded && (
+                              <span className="font-semibold text-primary">
+                                Subtotal: {formatCurrency(calculateLineTotal(item))}
+                              </span>
+                            )}
                           </div>
                         </div>
                         <Button
@@ -769,30 +799,36 @@ export function SingleStepOrderForm() {
 
                       <div className="grid grid-cols-3 gap-2">
                         <div>
-                          <Label className="text-xs text-muted-foreground">Cantidad</Label>
+                          <Label className={`text-muted-foreground ${
+                            isArticlesSectionExpanded ? 'text-sm' : 'text-xs'
+                          }`}>Cantidad</Label>
                           <Input
                             type="number"
                             min="1"
                             value={item.quantity}
                             onChange={(e) => handleUpdateQuantity(item.articleId, parseInt(e.target.value) || 1)}
-                            className="h-8 text-sm"
+                            className={`text-sm ${isArticlesSectionExpanded ? 'h-9' : 'h-8'}`}
                             onFocus={(e) => e.target.select()}
                           />
                         </div>
                         <div>
-                          <Label className="text-xs text-muted-foreground">Precio</Label>
+                          <Label className={`text-muted-foreground ${
+                            isArticlesSectionExpanded ? 'text-sm' : 'text-xs'
+                          }`}>Precio</Label>
                           <Input
                             type="number"
                             min="0"
                             step="0.01"
                             value={item.unitPrice}
                             onChange={(e) => handleUpdateUnitPrice(item.articleId, parseFloat(e.target.value) || 0)}
-                            className="h-8 text-sm"
+                            className={`text-sm ${isArticlesSectionExpanded ? 'h-9' : 'h-8'}`}
                             onFocus={(e) => e.target.select()}
                           />
                         </div>
                         <div>
-                          <Label className="text-xs text-muted-foreground">Desc %</Label>
+                          <Label className={`text-muted-foreground ${
+                            isArticlesSectionExpanded ? 'text-sm' : 'text-xs'
+                          }`}>Desc %</Label>
                           <Input
                             type="number"
                             min="0"
@@ -800,15 +836,19 @@ export function SingleStepOrderForm() {
                             step="0.01"
                             value={item.discountPercent}
                             onChange={(e) => handleUpdateDiscount(item.articleId, parseFloat(e.target.value) || 0)}
-                            className="h-8 text-sm"
+                            className={`text-sm ${isArticlesSectionExpanded ? 'h-9' : 'h-8'}`}
                             onFocus={(e) => e.target.select()}
                           />
                         </div>
                       </div>
 
-                      <div className="text-right pt-1 border-t">
+                      <div className={`text-right pt-1 border-t ${
+                        isArticlesSectionExpanded ? 'text-base' : 'text-sm'
+                      }`}>
                         <span className="text-xs text-muted-foreground">Subtotal: </span>
-                        <span className="text-sm font-semibold">{formatCurrency(calculateLineTotal(item))}</span>
+                        <span className={`font-semibold ${
+                          isArticlesSectionExpanded ? 'text-base' : 'text-sm'
+                        }`}>{formatCurrency(calculateLineTotal(item))}</span>
                       </div>
                     </div>
                   ))
@@ -833,11 +873,10 @@ export function SingleStepOrderForm() {
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      {/* Actions */}
-      <Card>
-        <CardContent className="pt-6">
+      {/* Fixed Action Buttons */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t z-50">
+        <div className="container max-w-7xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
             <Button
               variant="outline"
@@ -853,8 +892,8 @@ export function SingleStepOrderForm() {
               {createOrderMutation.isPending ? 'Creando...' : 'Crear Pedido'}
             </Button>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   );
 }
