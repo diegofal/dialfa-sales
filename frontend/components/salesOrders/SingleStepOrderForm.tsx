@@ -12,7 +12,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { useQuickCartTabs, QuickCartItem } from '@/lib/hooks/useQuickCartTabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ShoppingCart, User, X, Trash2, Pencil, Search, Plus, Maximize2, Minimize2 } from 'lucide-react';
+import { ShoppingCart, User, X, Trash2, Pencil, Search, Plus } from 'lucide-react';
 import { useArticles } from '@/lib/hooks/useArticles';
 import type { Article } from '@/types/article';
 
@@ -40,9 +40,6 @@ export function SingleStepOrderForm() {
   const [notes, setNotes] = useState('');
   const [items, setItems] = useState<OrderItemFormData[]>([]);
   const [loadedFromCart, setLoadedFromCart] = useState(false);
-
-  // Article section expanded state
-  const [isArticlesSectionExpanded, setIsArticlesSectionExpanded] = useState(false);
 
   // Article search state
   const [articleCode, setArticleCode] = useState('');
@@ -556,26 +553,6 @@ export function SingleStepOrderForm() {
       <Card className="flex-1">
         <CardContent className="pt-6">
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <ShoppingCart className="h-5 w-5 text-primary" />
-                <span className="text-xs text-muted-foreground">
-                  {items.length} item{items.length !== 1 ? 's' : ''}
-                </span>
-              </div>
-              <Button 
-                variant="ghost" 
-                size="icon"
-                onClick={() => setIsArticlesSectionExpanded(!isArticlesSectionExpanded)}
-                title={isArticlesSectionExpanded ? 'Contraer' : 'Expandir'}
-              >
-                {isArticlesSectionExpanded ? (
-                  <Minimize2 className="h-4 w-4" />
-                ) : (
-                  <Maximize2 className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
 
               {/* Quick Article Lookup */}
               <div className="p-4 border rounded-lg bg-muted/30">
@@ -673,9 +650,7 @@ export function SingleStepOrderForm() {
               </div>
 
               {/* Items List */}
-              <div className={`space-y-2 overflow-y-auto ${
-                isArticlesSectionExpanded ? 'max-h-[600px]' : 'max-h-[400px]'
-              }`}>
+              <div className="space-y-2 max-h-[600px] overflow-y-auto">
                 {items.length === 0 ? (
                   <div className="border border-dashed rounded-lg p-8 text-center text-muted-foreground">
                     <ShoppingCart className="h-8 w-8 mx-auto mb-2 opacity-30" />
@@ -686,9 +661,7 @@ export function SingleStepOrderForm() {
                   items.map((item) => (
                     <div
                       key={item.articleId}
-                      className={`border rounded-lg p-3 space-y-2 bg-card hover:bg-accent/5 transition-colors ${
-                        isArticlesSectionExpanded ? 'min-h-[100px]' : ''
-                      }`}
+                      className="border rounded-lg p-3 space-y-2 bg-card hover:bg-accent/5 transition-colors"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
@@ -756,9 +729,7 @@ export function SingleStepOrderForm() {
                             </div>
                           ) : (
                             <div className="flex items-center gap-2">
-                              <div className={`font-medium font-mono ${
-                                isArticlesSectionExpanded ? 'text-base' : 'text-sm'
-                              }`}>
+                              <div className="font-medium text-sm font-mono">
                                 {item.articleCode}
                               </div>
                               <Button
@@ -771,20 +742,11 @@ export function SingleStepOrderForm() {
                               </Button>
                             </div>
                           )}
-                          <div className={`text-muted-foreground truncate ${
-                            isArticlesSectionExpanded ? 'text-sm' : 'text-xs'
-                          }`}>
+                          <div className="text-xs text-muted-foreground truncate">
                             {item.articleDescription}
                           </div>
-                          <div className={`text-muted-foreground mt-0.5 flex items-center gap-2 ${
-                            isArticlesSectionExpanded ? 'text-sm' : 'text-xs'
-                          }`}>
+                          <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
                             <span>Stock: <span className={getStockStatusClass(item.stock)}>{item.stock}</span></span>
-                            {isArticlesSectionExpanded && (
-                              <span className="font-semibold text-primary">
-                                Subtotal: {formatCurrency(calculateLineTotal(item))}
-                              </span>
-                            )}
                           </div>
                         </div>
                         <Button
@@ -799,36 +761,30 @@ export function SingleStepOrderForm() {
 
                       <div className="grid grid-cols-3 gap-2">
                         <div>
-                          <Label className={`text-muted-foreground ${
-                            isArticlesSectionExpanded ? 'text-sm' : 'text-xs'
-                          }`}>Cantidad</Label>
+                          <Label className="text-xs text-muted-foreground">Cantidad</Label>
                           <Input
                             type="number"
                             min="1"
                             value={item.quantity}
                             onChange={(e) => handleUpdateQuantity(item.articleId, parseInt(e.target.value) || 1)}
-                            className={`text-sm ${isArticlesSectionExpanded ? 'h-9' : 'h-8'}`}
+                            className="h-8 text-sm"
                             onFocus={(e) => e.target.select()}
                           />
                         </div>
                         <div>
-                          <Label className={`text-muted-foreground ${
-                            isArticlesSectionExpanded ? 'text-sm' : 'text-xs'
-                          }`}>Precio</Label>
+                          <Label className="text-xs text-muted-foreground">Precio</Label>
                           <Input
                             type="number"
                             min="0"
                             step="0.01"
                             value={item.unitPrice}
                             onChange={(e) => handleUpdateUnitPrice(item.articleId, parseFloat(e.target.value) || 0)}
-                            className={`text-sm ${isArticlesSectionExpanded ? 'h-9' : 'h-8'}`}
+                            className="h-8 text-sm"
                             onFocus={(e) => e.target.select()}
                           />
                         </div>
                         <div>
-                          <Label className={`text-muted-foreground ${
-                            isArticlesSectionExpanded ? 'text-sm' : 'text-xs'
-                          }`}>Desc %</Label>
+                          <Label className="text-xs text-muted-foreground">Desc %</Label>
                           <Input
                             type="number"
                             min="0"
@@ -836,19 +792,15 @@ export function SingleStepOrderForm() {
                             step="0.01"
                             value={item.discountPercent}
                             onChange={(e) => handleUpdateDiscount(item.articleId, parseFloat(e.target.value) || 0)}
-                            className={`text-sm ${isArticlesSectionExpanded ? 'h-9' : 'h-8'}`}
+                            className="h-8 text-sm"
                             onFocus={(e) => e.target.select()}
                           />
                         </div>
                       </div>
 
-                      <div className={`text-right pt-1 border-t ${
-                        isArticlesSectionExpanded ? 'text-base' : 'text-sm'
-                      }`}>
+                      <div className="text-right pt-1 border-t">
                         <span className="text-xs text-muted-foreground">Subtotal: </span>
-                        <span className={`font-semibold ${
-                          isArticlesSectionExpanded ? 'text-base' : 'text-sm'
-                        }`}>{formatCurrency(calculateLineTotal(item))}</span>
+                        <span className="text-sm font-semibold">{formatCurrency(calculateLineTotal(item))}</span>
                       </div>
                     </div>
                   ))
