@@ -54,6 +54,12 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
+# Copy startup script with logging
+COPY server-with-logs.js ./
+
+# Copy instrumentation file if it exists
+COPY --from=builder /app/instrumentation.ts ./instrumentation.ts* || true
+
 # Set ownership
 RUN chown -R nextjs:nodejs /app
 
@@ -72,6 +78,6 @@ ENV PORT=3000
 ENV HOSTNAME="0.0.0.0"
 
 # Start the application
-CMD ["node", "server.js"]
+CMD ["node", "server-with-logs.js"]
 
 
