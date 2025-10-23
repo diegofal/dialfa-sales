@@ -26,8 +26,14 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid - redirect to login
-      window.location.href = '/login';
+      // Don't redirect if we're already on the login page or if this is a login attempt
+      const isLoginRequest = error.config?.url?.includes('/auth/login');
+      const isOnLoginPage = typeof window !== 'undefined' && window.location.pathname === '/login';
+      
+      if (!isLoginRequest && !isOnLoginPage) {
+        // Token expired or invalid - redirect to login
+        window.location.href = '/login';
+      }
     }
     return Promise.reject(error);
   }
