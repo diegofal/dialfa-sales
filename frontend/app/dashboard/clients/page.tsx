@@ -13,7 +13,7 @@ import ClientDialog from '@/components/clients/ClientDialog';
 import type { ClientDto } from '@/types/api';
 
 export default function ClientsPage() {
-  const [showActiveOnly] = useState(false);
+  const [showActiveOnly] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<ClientDto | null>(null);

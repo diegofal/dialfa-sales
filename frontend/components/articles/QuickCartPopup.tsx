@@ -1,6 +1,6 @@
 'use client';
 
-import { ShoppingCart, X, Trash2, Plus, User, Pencil } from 'lucide-react';
+import { ShoppingCart, X, Trash2, Plus, User, Pencil, Maximize2, Minimize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
@@ -10,7 +10,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { QuickArticleLookup } from './QuickArticleLookup';
 import { ClientLookup } from './ClientLookup';
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { useArticles } from '@/lib/hooks/useArticles';
 import type { Article } from '@/types/article';
 
@@ -18,6 +18,12 @@ interface QuickCartPopupProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+// Constants for cart sizing
+const NORMAL_SIZE = { width: 520, height: 750 };
+const MIN_SIZE = { width: 400, height: 400 };
+const STORAGE_KEY_EXPANDED = 'spisa_quick_cart_expanded';
+const STORAGE_KEY_CUSTOM_SIZE = 'spisa_quick_cart_custom_size';
 
 export function QuickCartPopup({ isOpen, onClose }: QuickCartPopupProps) {
   const router = useRouter();
@@ -28,6 +34,15 @@ export function QuickCartPopup({ isOpen, onClose }: QuickCartPopupProps) {
   const [selectedEditIndex, setSelectedEditIndex] = useState(0);
   const editInputRef = useRef<HTMLInputElement>(null);
   const selectedEditItemRef = useRef<HTMLButtonElement>(null);
+  
+  // Expansion and resize states
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [customWidth, setCustomWidth] = useState<number | null>(null);
+  const [customHeight, setCustomHeight] = useState<number | null>(null);
+  const [isResizing, setIsResizing] = useState(false);
+  const [resizeEdge, setResizeEdge] = useState<'left' | 'top' | 'corner' | null>(null);
+  const resizeStartRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
   
   const {
     tabs,
@@ -54,6 +69,142 @@ export function QuickCartPopup({ isOpen, onClose }: QuickCartPopupProps) {
   });
 
   const editArticles = editArticlesResult?.data || [];
+
+  // Load preferences from localStorage on mount
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedExpanded = localStorage.getItem(STORAGE_KEY_EXPANDED);
+      const savedSize = localStorage.getItem(STORAGE_KEY_CUSTOM_SIZE);
+      
+      if (savedExpanded) {
+        setIsExpanded(savedExpanded === 'true');
+      }
+      
+      if (savedSize) {
+        try {
+          const size = JSON.parse(savedSize);
+          setCustomWidth(size.width);
+          setCustomHeight(size.height);
+        } catch (e) {
+          console.error('Error loading cart size:', e);
+        }
+      }
+    }
+  }, []);
+
+  // Save preferences to localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem(STORAGE_KEY_EXPANDED, isExpanded.toString());
+    }
+  }, [isExpanded]);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && (customWidth || customHeight)) {
+      localStorage.setItem(STORAGE_KEY_CUSTOM_SIZE, JSON.stringify({
+        width: customWidth,
+        height: customHeight,
+      }));
+    }
+  }, [customWidth, customHeight]);
+
+  // Calculate current dimensions
+  const getCurrentDimensions = () => {
+    if (isExpanded) {
+      return {
+        width: typeof window !== 'undefined' ? window.innerWidth * 0.95 : 1200,
+        height: typeof window !== 'undefined' ? window.innerHeight * 0.90 : 800,
+      };
+    }
+    
+    if (customWidth || customHeight) {
+      return {
+        width: customWidth || NORMAL_SIZE.width,
+        height: customHeight || NORMAL_SIZE.height,
+      };
+    }
+    
+    return NORMAL_SIZE;
+  };
+
+  const currentDimensions = getCurrentDimensions();
+
+  // Resize handlers
+  const handleResizeStart = useCallback((e: React.MouseEvent, edge: 'left' | 'top' | 'corner') => {
+    if (isExpanded) return; // Don't allow resize in expanded mode
+    
+    e.preventDefault();
+    e.stopPropagation();
+    
+    const currentDims = getCurrentDimensions();
+    resizeStartRef.current = {
+      x: e.clientX,
+      y: e.clientY,
+      width: currentDims.width,
+      height: currentDims.height,
+    };
+    
+    setIsResizing(true);
+    setResizeEdge(edge);
+  }, [isExpanded]);
+
+  const handleResizeMove = useCallback((e: MouseEvent) => {
+    if (!isResizing || !resizeStartRef.current || !resizeEdge) return;
+    
+    // For left and top edges, we need to subtract the delta because we're resizing from the opposite side
+    const deltaX = resizeStartRef.current.x - e.clientX; // Inverted for left edge
+    const deltaY = resizeStartRef.current.y - e.clientY; // Inverted for top edge
+    
+    let newWidth = resizeStartRef.current.width;
+    let newHeight = resizeStartRef.current.height;
+    
+    if (resizeEdge === 'left' || resizeEdge === 'corner') {
+      newWidth = Math.max(MIN_SIZE.width, resizeStartRef.current.width + deltaX);
+    }
+    
+    if (resizeEdge === 'top' || resizeEdge === 'corner') {
+      newHeight = Math.max(MIN_SIZE.height, resizeStartRef.current.height + deltaY);
+    }
+    
+    // Limit to viewport size
+    if (typeof window !== 'undefined') {
+      newWidth = Math.min(newWidth, window.innerWidth - 100);
+      newHeight = Math.min(newHeight, window.innerHeight - 100);
+    }
+    
+    setCustomWidth(newWidth);
+    setCustomHeight(newHeight);
+  }, [isResizing, resizeEdge]);
+
+  const handleResizeEnd = useCallback(() => {
+    setIsResizing(false);
+    setResizeEdge(null);
+    resizeStartRef.current = null;
+  }, []);
+
+  // Add/remove resize event listeners
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleResizeMove);
+      document.addEventListener('mouseup', handleResizeEnd);
+      document.body.style.cursor = resizeEdge === 'left' ? 'ew-resize' : 
+                                     resizeEdge === 'top' ? 'ns-resize' : 
+                                     'nwse-resize';
+      document.body.style.userSelect = 'none';
+      
+      return () => {
+        document.removeEventListener('mousemove', handleResizeMove);
+        document.removeEventListener('mouseup', handleResizeEnd);
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+      };
+    }
+  }, [isResizing, resizeEdge, handleResizeMove, handleResizeEnd]);
+
+  // Toggle expanded mode
+  const toggleExpanded = () => {
+    setIsExpanded(!isExpanded);
+  };
 
   // Reset selected index when edit articles change
   useEffect(() => {
@@ -185,17 +336,47 @@ export function QuickCartPopup({ isOpen, onClose }: QuickCartPopupProps) {
 
   return (
     <>
-      <Card className="fixed bottom-24 right-6 w-[520px] max-h-[750px] shadow-2xl z-50 flex flex-col">
+      <Card 
+        ref={cardRef}
+        className={`fixed shadow-2xl z-50 flex flex-col ${
+          isExpanded ? 'inset-4' : 'bottom-24 right-6'
+        }`}
+        style={{
+          width: isExpanded ? `${currentDimensions.width}px` : `${currentDimensions.width}px`,
+          height: `${currentDimensions.height}px`,
+          maxWidth: isExpanded ? '95vw' : undefined,
+          maxHeight: isExpanded ? '90vh' : undefined,
+          transition: isResizing ? 'none' : 'width 0.3s ease, height 0.3s ease, inset 0.3s ease',
+          resize: 'none',
+        }}
+      >
       {/* Header with Tabs */}
       <div className="border-b bg-muted/30">
         <div className="flex items-center justify-between p-3">
           <div className="flex items-center gap-2">
             <ShoppingCart className="h-5 w-5 text-primary" />
             <h3 className="font-semibold">Pedidos</h3>
+            <span className="text-xs text-muted-foreground">
+              ({items.length} item{items.length !== 1 ? 's' : ''})
+            </span>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="h-4 w-4" />
-          </Button>
+          <div className="flex items-center gap-1">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={toggleExpanded}
+              title={isExpanded ? 'Contraer' : 'Expandir'}
+            >
+              {isExpanded ? (
+                <Minimize2 className="h-4 w-4" />
+              ) : (
+                <Maximize2 className="h-4 w-4" />
+              )}
+            </Button>
+            <Button variant="ghost" size="icon" onClick={onClose}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
         
         {/* Tabs */}
@@ -285,7 +466,9 @@ export function QuickCartPopup({ isOpen, onClose }: QuickCartPopupProps) {
             {items.map((item) => (
               <div
                 key={item.article.id}
-                className="flex items-center gap-2 p-2 rounded border hover:bg-accent/50 transition-colors"
+                className={`flex items-center gap-3 p-3 rounded border hover:bg-accent/50 transition-colors ${
+                  isExpanded ? 'min-h-[80px]' : ''
+                }`}
               >
                 <div className="flex-1 min-w-0">
                   {editingItemId === item.article.id ? (
@@ -319,7 +502,7 @@ export function QuickCartPopup({ isOpen, onClose }: QuickCartPopupProps) {
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <div className="font-medium text-sm font-mono">
+                      <div className={`font-medium font-mono ${isExpanded ? 'text-base' : 'text-sm'}`}>
                         {item.article.code}
                       </div>
                       <Button
@@ -332,15 +515,25 @@ export function QuickCartPopup({ isOpen, onClose }: QuickCartPopupProps) {
                       </Button>
                     </div>
                   )}
-                  <div className="text-xs text-muted-foreground truncate">
+                  <div className={`text-muted-foreground truncate ${isExpanded ? 'text-sm' : 'text-xs'}`}>
                     {item.article.description}
                   </div>
-                  <div className="text-xs text-muted-foreground mt-0.5">
-                    {formatCurrency(item.article.unitPrice)} c/u | Stock: {item.article.stock}
+                  <div className={`flex items-center gap-3 mt-1 ${isExpanded ? 'text-sm' : 'text-xs'}`}>
+                    <span className="text-muted-foreground">
+                      {formatCurrency(item.article.unitPrice)} c/u
+                    </span>
+                    <span className={`${getStockStatusClass(item.article.stock)}`}>
+                      Stock: {item.article.stock}
+                    </span>
+                    {isExpanded && (
+                      <span className="font-semibold text-primary">
+                        Subtotal: {formatCurrency(item.article.unitPrice * item.quantity)}
+                      </span>
+                    )}
                   </div>
                 </div>
 
-                <div className="flex items-center gap-1">
+                <div className="flex items-center gap-2">
                   <Input
                     type="number"
                     min="1"
@@ -349,16 +542,16 @@ export function QuickCartPopup({ isOpen, onClose }: QuickCartPopupProps) {
                       const newQty = parseInt(e.target.value) || 1;
                       updateQuantity(item.article.id, newQty);
                     }}
-                    className="w-16 h-8 text-center text-sm"
+                    className={`text-center ${isExpanded ? 'w-20 h-9 text-base' : 'w-16 h-8 text-sm'}`}
                     onFocus={(e) => e.target.select()}
                   />
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 flex-shrink-0"
+                    className={`flex-shrink-0 ${isExpanded ? 'h-9 w-9' : 'h-8 w-8'}`}
                     onClick={() => removeItem(item.article.id)}
                   >
-                    <Trash2 className="h-4 w-4 text-red-600" />
+                    <Trash2 className={`text-red-600 ${isExpanded ? 'h-5 w-5' : 'h-4 w-4'}`} />
                   </Button>
                 </div>
               </div>
@@ -401,6 +594,40 @@ export function QuickCartPopup({ isOpen, onClose }: QuickCartPopupProps) {
                 Crear Pedido
               </Button>
             </div>
+          </div>
+        </>
+      )}
+
+      {/* Resize Handles - Only show when not expanded */}
+      {!isExpanded && (
+        <>
+          {/* Left edge handle */}
+          <div
+            className="absolute top-0 left-0 w-2 h-full cursor-ew-resize hover:bg-primary/20 transition-colors"
+            onMouseDown={(e) => handleResizeStart(e, 'left')}
+            style={{ zIndex: 60 }}
+          />
+          
+          {/* Top edge handle */}
+          <div
+            className="absolute top-0 left-0 w-full h-2 cursor-ns-resize hover:bg-primary/20 transition-colors"
+            onMouseDown={(e) => handleResizeStart(e, 'top')}
+            style={{ zIndex: 60 }}
+          />
+          
+          {/* Top-left corner handle */}
+          <div
+            className="absolute top-0 left-0 w-4 h-4 cursor-nwse-resize hover:bg-primary/30 transition-colors"
+            onMouseDown={(e) => handleResizeStart(e, 'corner')}
+            style={{ zIndex: 61 }}
+          >
+            <svg
+              className="w-full h-full text-muted-foreground/40"
+              viewBox="0 0 16 16"
+              fill="currentColor"
+            >
+              <path d="M1 6V5h1v1H1zm0-3V2h1v1H1zm3 0V2h1v1H4zm3 0V2h1v1H7z" />
+            </svg>
           </div>
         </>
       )}
