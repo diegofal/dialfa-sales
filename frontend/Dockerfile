@@ -57,9 +57,6 @@ COPY --from=builder /app/.next/static ./.next/static
 # Copy startup script with logging
 COPY server-with-logs.js ./
 
-# Copy instrumentation file if it exists
-COPY --from=builder /app/instrumentation.ts ./instrumentation.ts* || true
-
 # Set ownership
 RUN chown -R nextjs:nodejs /app
 
