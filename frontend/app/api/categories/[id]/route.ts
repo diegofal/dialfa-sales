@@ -33,7 +33,7 @@ export async function GET(
     const serializedCategory = {
       ...category,
       id: category.id.toString(),
-      articles: category.articles.map(article => ({
+      articles: category.articles.map((article: typeof category.articles[number]) => ({
         ...article,
         id: article.id.toString(),
         category_id: article.category_id.toString(),
