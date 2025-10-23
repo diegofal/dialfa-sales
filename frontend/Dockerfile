@@ -20,6 +20,10 @@ COPY --from=deps /app/node_modules ./node_modules
 # Copy source code
 COPY . .
 
+# Set placeholder DATABASE_URL for Prisma generate
+# Railway will provide the real DATABASE_URL at runtime
+ENV DATABASE_URL="postgresql://placeholder:placeholder@localhost:5432/placeholder?schema=public"
+
 # Generate Prisma Client
 RUN npx prisma generate
 
