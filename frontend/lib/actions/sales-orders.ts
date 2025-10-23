@@ -52,7 +52,7 @@ export async function createSalesOrder(data: CreateSalesOrderInput) {
     }
 
     // Verify all articles exist and get prices
-    const articleIds = validated.data.map(item => item.articleId);
+    const articleIds = validated.items.map(item => item.articleId);
     const articles = await prisma.articles.findMany({
       where: {
         id: { in: articleIds },
@@ -76,7 +76,7 @@ export async function createSalesOrder(data: CreateSalesOrderInput) {
 
     // Calculate totals
     let total = 0;
-    const items = validated.data.map(item => {
+    const items = validated.items.map(item => {
       const unitPrice = item.unitPrice;
       const lineTotal = unitPrice * item.quantity * (1 - item.discountPercent / 100);
       total += lineTotal;
@@ -191,7 +191,7 @@ export async function updateSalesOrder(id: string, data: UpdateSalesOrderInput) 
 
       // Calculate new totals
       let total = 0;
-      const items = validated.data.map(item => {
+      const items = validated.items.map(item => {
         const lineTotal = item.unitPrice * item.quantity * (1 - item.discountPercent / 100);
         total += lineTotal;
 

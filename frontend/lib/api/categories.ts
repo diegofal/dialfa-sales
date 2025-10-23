@@ -4,7 +4,7 @@ import apiClient from './client';
 
 export const categoriesApi = {
   getAll: async (params: PaginationParams & { activeOnly?: boolean } = {}): Promise<PagedResult<Category>> => {
-    const apiParams: Record<string, any> = {
+    const apiParams: Record<string, string | number | boolean | undefined> = {
       page: params.pageNumber || 1,
       limit: params.pageSize || 10,
       search: params.searchTerm,

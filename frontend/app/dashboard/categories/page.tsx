@@ -63,7 +63,7 @@ export default function CategoriesPage() {
             <div>
               <CardTitle>Lista de Categorías</CardTitle>
               <CardDescription>
-                {data?.totalCount || 0} categorías registradas
+                {data?.pagination.total || 0} categorías registradas
               </CardDescription>
             </div>
             <div className="relative w-64">

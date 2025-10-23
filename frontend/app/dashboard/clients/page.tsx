@@ -70,7 +70,7 @@ export default function ClientsPage() {
             <div>
               <CardTitle>Lista de Clientes</CardTitle>
               <CardDescription>
-                {data?.totalCount || 0} clientes registrados
+                {data?.pagination.total || 0} clientes registrados
               </CardDescription>
             </div>
             <div className="relative w-64">

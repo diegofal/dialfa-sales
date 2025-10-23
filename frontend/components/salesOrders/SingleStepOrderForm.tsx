@@ -31,7 +31,7 @@ export function SingleStepOrderForm() {
   const searchParams = useSearchParams();
   const fromQuickCart = searchParams.get('fromQuickCart') === 'true';
   const tabId = searchParams.get('tabId');
-  const { tabs, activeTab, getTabItems, clearSpecificCart } = useQuickCartTabs();
+  const { tabs, activeTab, clearSpecificCart } = useQuickCartTabs();
   
   const [clientId, setClientId] = useState<number | undefined>();
   const [clientName, setClientName] = useState<string>('');

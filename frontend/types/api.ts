@@ -5,10 +5,14 @@ export interface LoginRequest {
 }
 
 export interface LoginResponse {
+  user: {
+    id: number;
+    username: string;
+    email: string;
+    fullName: string;
+    role: string;
+  };
   token: string;
-  expiration: string;
-  username: string;
-  role: string;
 }
 
 export interface ClientDto {

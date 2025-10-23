@@ -128,7 +128,7 @@ export function OrderSummaryStep({ formData }: OrderSummaryStepProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {formData.data.map((item, index) => (
+              {formData.items.map((item, index) => (
                 <TableRow key={index}>
                   <TableCell className="font-medium">{item.articleCode}</TableCell>
                   <TableCell>{item.articleDescription}</TableCell>

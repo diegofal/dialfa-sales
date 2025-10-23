@@ -1,138 +1,164 @@
 /**
  * Maps article data from Prisma (snake_case) to frontend format (camelCase)
  */
-export function mapArticleToDTO(article: any) {
+export function mapArticleToDTO(article: unknown) {
+  const a = article as Record<string, unknown>;
+  const categories = a.categories as { name?: string } | undefined;
+  
   return {
-    id: parseInt(article.id.toString()),
-    code: article.code,
-    description: article.description,
-    categoryId: parseInt(article.category_id.toString()),
-    categoryName: article.categories?.name || '',
-    unitPrice: parseFloat(article.unit_price.toString()),
-    stock: parseFloat(article.stock.toString()),
-    minimumStock: parseFloat(article.minimum_stock.toString()),
-    location: article.location,
-    isDiscontinued: article.is_discontinued,
-    notes: article.notes,
-    costPrice: article.cost_price ? parseFloat(article.cost_price.toString()) : null,
-    displayOrder: article.display_order,
-    historicalPrice1: article.historical_price1 ? parseFloat(article.historical_price1.toString()) : null,
-    series: article.series,
-    size: article.size,
-    supplierId: article.supplier_id,
-    thickness: article.thickness,
-    type: article.type,
-    weightKg: article.weight_kg ? parseFloat(article.weight_kg.toString()) : null,
-    isActive: article.is_active,
-    createdAt: article.created_at,
-    updatedAt: article.updated_at,
+    id: parseInt(String((a.id as bigint | number))),
+    code: a.code as string,
+    description: a.description as string,
+    categoryId: parseInt(String((a.category_id as bigint | number))),
+    categoryName: categories?.name || '',
+    unitPrice: parseFloat(String(a.unit_price)),
+    stock: parseFloat(String(a.stock)),
+    minimumStock: parseFloat(String(a.minimum_stock)),
+    location: a.location as string | null,
+    isDiscontinued: a.is_discontinued as boolean,
+    notes: a.notes as string | null,
+    costPrice: a.cost_price ? parseFloat(String(a.cost_price)) : null,
+    displayOrder: a.display_order as number | null,
+    historicalPrice1: a.historical_price1 ? parseFloat(String(a.historical_price1)) : null,
+    series: a.series as string | null,
+    size: a.size as string | null,
+    supplierId: a.supplier_id as bigint | null,
+    thickness: a.thickness as string | null,
+    type: a.type as string | null,
+    weightKg: a.weight_kg ? parseFloat(String(a.weight_kg)) : null,
+    isActive: a.is_active as boolean,
+    createdAt: a.created_at as Date,
+    updatedAt: a.updated_at as Date,
   };
 }
 
 /**
  * Maps category data from Prisma (snake_case) to frontend format (camelCase)
  */
-export function mapCategoryToDTO(category: any) {
+export function mapCategoryToDTO(category: unknown) {
+  const c = category as Record<string, unknown>;
+  
   return {
-    id: parseInt(category.id.toString()),
-    code: category.code,
-    name: category.name,
-    description: category.description,
-    defaultDiscountPercent: parseFloat(category.default_discount_percent.toString()),
-    isActive: category.is_active,
-    createdAt: category.created_at,
-    updatedAt: category.updated_at,
+    id: parseInt(String((c.id as bigint | number))),
+    code: c.code as string,
+    name: c.name as string,
+    description: c.description as string | null,
+    defaultDiscountPercent: parseFloat(String(c.default_discount_percent)),
+    isActive: c.is_active as boolean,
+    createdAt: c.created_at as Date,
+    updatedAt: c.updated_at as Date,
   };
 }
 
 /**
  * Maps client data from Prisma (snake_case) to frontend format (camelCase)
  */
-export function mapClientToDTO(client: any) {
+export function mapClientToDTO(client: unknown) {
+  const c = client as Record<string, unknown>;
+  const taxConditions = c.tax_conditions as { name?: string } | undefined;
+  const provinces = c.provinces as { name?: string } | undefined;
+  const operationTypes = c.operation_types as { name?: string } | undefined;
+  const transporters = c.transporters as { name?: string } | undefined;
+  
   return {
-    id: parseInt(client.id.toString()),
-    code: client.code,
-    businessName: client.business_name,
-    cuit: client.cuit,
-    taxConditionId: client.tax_condition_id,
-    taxConditionName: client.tax_conditions?.name || '',
-    address: client.address,
-    city: client.city,
-    postalCode: client.postal_code,
-    provinceId: client.province_id,
-    provinceName: client.provinces?.name || '',
-    phone: client.phone,
-    email: client.email,
-    operationTypeId: client.operation_type_id,
-    operationTypeName: client.operation_types?.name || '',
-    transporterId: client.transporter_id,
-    transporterName: client.transporters?.name || '',
-    creditLimit: client.credit_limit ? parseFloat(client.credit_limit.toString()) : null,
-    currentBalance: parseFloat(client.current_balance.toString()),
-    isActive: client.is_active,
-    sellerId: client.seller_id,
-    createdAt: client.created_at,
-    updatedAt: client.updated_at,
+    id: parseInt(String((c.id as bigint | number))),
+    code: c.code as string,
+    businessName: c.business_name as string,
+    cuit: c.cuit as string | null,
+    taxConditionId: c.tax_condition_id as bigint,
+    taxConditionName: taxConditions?.name || '',
+    address: c.address as string | null,
+    city: c.city as string | null,
+    postalCode: c.postal_code as string | null,
+    provinceId: c.province_id as bigint | null,
+    provinceName: provinces?.name || '',
+    phone: c.phone as string | null,
+    email: c.email as string | null,
+    operationTypeId: c.operation_type_id as bigint,
+    operationTypeName: operationTypes?.name || '',
+    transporterId: c.transporter_id as bigint | null,
+    transporterName: transporters?.name || '',
+    creditLimit: c.credit_limit ? parseFloat(String(c.credit_limit)) : null,
+    currentBalance: parseFloat(String(c.current_balance)),
+    isActive: c.is_active as boolean,
+    sellerId: c.seller_id as bigint | null,
+    createdAt: c.created_at as Date,
+    updatedAt: c.updated_at as Date,
   };
 }
 
 /**
  * Maps sales order data from Prisma (snake_case) to frontend format (camelCase)
  */
-export function mapSalesOrderToDTO(order: any) {
+export function mapSalesOrderToDTO(order: unknown) {
+  const o = order as Record<string, unknown>;
+  const clients = o.clients as { business_name?: string } | undefined;
+  const salesOrderItems = (o.sales_order_items as Array<Record<string, unknown>>) || [];
+  
   return {
-    id: parseInt(order.id.toString()),
-    clientId: parseInt(order.client_id.toString()),
-    clientBusinessName: order.clients?.business_name || '',
-    orderNumber: order.order_number,
-    orderDate: order.order_date,
-    deliveryDate: order.delivery_date,
-    status: order.status,
-    total: parseFloat(order.total.toString()),
-    notes: order.notes,
-    specialDiscountPercent: parseFloat(order.special_discount_percent.toString()),
-    itemsCount: order.sales_order_items?.length || 0,
-    items: order.sales_order_items?.map((item: any) => ({
-      id: parseInt(item.id.toString()),
-      articleId: parseInt(item.article_id.toString()),
-      articleCode: item.articles?.code || '',
-      articleDescription: item.articles?.description || '',
-      quantity: item.quantity,
-      unitPrice: parseFloat(item.unit_price.toString()),
-      discountPercent: parseFloat(item.discount_percent.toString()),
-      lineTotal: parseFloat(item.line_total.toString()),
-    })) || [],
-    createdAt: order.created_at,
-    updatedAt: order.updated_at,
+    id: parseInt(String((o.id as bigint | number))),
+    clientId: parseInt(String((o.client_id as bigint | number))),
+    clientBusinessName: clients?.business_name || '',
+    orderNumber: o.order_number as string,
+    orderDate: o.order_date as Date,
+    deliveryDate: o.delivery_date as Date | null,
+    status: o.status as string,
+    total: parseFloat(String(o.total)),
+    notes: o.notes as string | null,
+    specialDiscountPercent: parseFloat(String(o.special_discount_percent)),
+    itemsCount: salesOrderItems.length,
+    items: salesOrderItems.map((item) => {
+      const articles = item.articles as { code?: string; description?: string } | undefined;
+      
+      return {
+        id: parseInt(String((item.id as bigint | number))),
+        articleId: parseInt(String((item.article_id as bigint | number))),
+        articleCode: articles?.code || '',
+        articleDescription: articles?.description || '',
+        quantity: item.quantity as number,
+        unitPrice: parseFloat(String(item.unit_price)),
+        discountPercent: parseFloat(String(item.discount_percent)),
+        lineTotal: parseFloat(String(item.line_total)),
+      };
+    }),
+    createdAt: o.created_at as Date,
+    updatedAt: o.updated_at as Date,
   };
 }
 
 /**
  * Maps invoice data from Prisma (snake_case) to frontend format (camelCase)
  */
-export function mapInvoiceToDTO(invoice: any) {
+export function mapInvoiceToDTO(invoice: unknown) {
+  const i = invoice as Record<string, unknown>;
+  const salesOrders = i.sales_orders as {
+    order_number?: string;
+    clients?: { business_name?: string };
+    sales_order_items?: Array<unknown>;
+  } | undefined;
+  
   return {
-    id: parseInt(invoice.id.toString()),
-    invoiceNumber: invoice.invoice_number,
-    salesOrderId: parseInt(invoice.sales_order_id.toString()),
-    salesOrderNumber: invoice.sales_orders?.order_number || '',
-    clientBusinessName: invoice.sales_orders?.clients?.business_name || '',
-    invoiceDate: invoice.invoice_date,
-    netAmount: parseFloat(invoice.net_amount.toString()),
-    taxAmount: parseFloat(invoice.tax_amount.toString()),
-    totalAmount: parseFloat(invoice.total_amount.toString()),
-    notes: invoice.notes,
-    isCancelled: invoice.is_cancelled,
-    cancelledAt: invoice.cancelled_at,
-    cancellationReason: invoice.cancellation_reason,
-    isPrinted: invoice.is_printed,
-    printedAt: invoice.printed_at,
-    usdExchangeRate: invoice.usd_exchange_rate ? parseFloat(invoice.usd_exchange_rate.toString()) : null,
-    isCreditNote: invoice.is_credit_note,
-    isQuotation: invoice.is_quotation,
-    itemsCount: invoice.sales_orders?.sales_order_items?.length || 0,
-    createdAt: invoice.created_at,
-    updatedAt: invoice.updated_at,
+    id: parseInt(String((i.id as bigint | number))),
+    invoiceNumber: i.invoice_number as string,
+    salesOrderId: parseInt(String((i.sales_order_id as bigint | number))),
+    salesOrderNumber: salesOrders?.order_number || '',
+    clientBusinessName: salesOrders?.clients?.business_name || '',
+    invoiceDate: i.invoice_date as Date,
+    netAmount: parseFloat(String(i.net_amount)),
+    taxAmount: parseFloat(String(i.tax_amount)),
+    totalAmount: parseFloat(String(i.total_amount)),
+    notes: i.notes as string | null,
+    isCancelled: i.is_cancelled as boolean,
+    cancelledAt: i.cancelled_at as Date | null,
+    cancellationReason: i.cancellation_reason as string | null,
+    isPrinted: i.is_printed as boolean,
+    printedAt: i.printed_at as Date | null,
+    usdExchangeRate: i.usd_exchange_rate ? parseFloat(String(i.usd_exchange_rate)) : null,
+    isCreditNote: i.is_credit_note as boolean,
+    isQuotation: i.is_quotation as boolean,
+    itemsCount: salesOrders?.sales_order_items?.length || 0,
+    createdAt: i.created_at as Date,
+    updatedAt: i.updated_at as Date,
   };
 }
 
