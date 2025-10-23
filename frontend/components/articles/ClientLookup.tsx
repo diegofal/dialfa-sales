@@ -26,7 +26,7 @@ export function ClientLookup({ onSelectClient }: ClientLookupProps) {
     pageSize: 10,
   });
   
-  const clients = clientsResult?.items || [];
+  const clients = clientsResult?.data || [];
 
   // Reset selected index when clients change
   useEffect(() => {
@@ -131,4 +131,5 @@ export function ClientLookup({ onSelectClient }: ClientLookupProps) {
     </div>
   );
 }
+
 

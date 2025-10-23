@@ -1,0 +1,302 @@
+generator client {
+  provider = "prisma-client-js"
+  previewFeatures = ["fieldReference"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model EFMigrationsHistory {
+  MigrationId    String @id(map: "PK___EFMigrationsHistory") @db.VarChar(150)
+  ProductVersion String @db.VarChar(32)
+
+  @@map("__EFMigrationsHistory")
+}
+
+model account_movements {
+  id                 BigInt           @id(map: "PK_account_movements") @default(autoincrement())
+  client_id          BigInt
+  movement_type      Int
+  amount             Decimal          @db.Decimal
+  payment_method_id  Int?
+  movement_date      DateTime         @db.Timestamptz(6)
+  reference_document String?
+  check_number       String?
+  check_due_date     DateTime?        @db.Timestamptz(6)
+  bank_name          String?
+  notes              String?
+  created_at         DateTime         @db.Timestamptz(6)
+  updated_at         DateTime         @db.Timestamptz(6)
+  deleted_at         DateTime?        @db.Timestamptz(6)
+  created_by         Int?
+  updated_by         Int?
+  clients            clients          @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "f_k_account_movements__clients_client_id")
+  payment_methods    payment_methods? @relation(fields: [payment_method_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "f_k_account_movements__payment_methods_payment_method_id")
+
+  @@index([client_id], map: "IX_account_movements_client_id")
+  @@index([payment_method_id], map: "IX_account_movements_payment_method_id")
+}
+
+model articles {
+  id                BigInt              @id(map: "PK_articles") @default(autoincrement())
+  code              String              @db.VarChar(50)
+  description       String              @db.VarChar(500)
+  category_id       BigInt
+  unit_price        Decimal             @db.Decimal(18, 4)
+  stock             Decimal             @db.Decimal(12, 3)
+  minimum_stock     Decimal             @db.Decimal(12, 3)
+  location          String?             @db.VarChar(200)
+  is_discontinued   Boolean             @default(false)
+  notes             String?
+  created_at        DateTime            @db.Timestamptz(6)
+  updated_at        DateTime            @db.Timestamptz(6)
+  deleted_at        DateTime?           @db.Timestamptz(6)
+  created_by        Int?
+  updated_by        Int?
+  cost_price        Decimal?            @db.Decimal(18, 4)
+  display_order     String?             @db.VarChar(20)
+  historical_price1 Decimal?            @db.Decimal(18, 2)
+  series            Int?
+  size              String?             @db.VarChar(100)
+  supplier_id       Int?
+  thickness         String?             @db.VarChar(100)
+  type              String?             @db.VarChar(500)
+  weight_kg         Decimal?            @db.Decimal(18, 2)
+  is_active         Boolean             @default(true)
+  categories        categories          @relation(fields: [category_id], references: [id], onUpdate: NoAction, map: "f_k_articles__categories_category_id")
+  sales_order_items sales_order_items[]
+  stock_movements   stock_movements[]
+}
+
+model categories {
+  id                       BigInt             @id(map: "PK_categories") @default(autoincrement())
+  code                     String             @db.VarChar(20)
+  name                     String             @db.VarChar(100)
+  description              String?            @db.VarChar(500)
+  default_discount_percent Decimal            @db.Decimal(5, 2)
+  created_at               DateTime           @db.Timestamptz(6)
+  updated_at               DateTime           @db.Timestamptz(6)
+  deleted_at               DateTime?          @db.Timestamptz(6)
+  created_by               Int?
+  updated_by               Int?
+  is_active                Boolean            @default(false)
+  articles                 articles[]
+  client_discounts         client_discounts[]
+}
+
+model client_discounts {
+  id               BigInt     @id(map: "PK_client_discounts") @default(autoincrement())
+  client_id        BigInt
+  category_id      BigInt
+  discount_percent Decimal    @db.Decimal
+  created_at       DateTime   @db.Timestamptz(6)
+  updated_at       DateTime   @db.Timestamptz(6)
+  categories       categories @relation(fields: [category_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "f_k_client_discounts_categories_category_id")
+  clients          clients    @relation(fields: [client_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "f_k_client_discounts_clients_client_id")
+
+  @@index([category_id], map: "IX_client_discounts_category_id")
+  @@index([client_id], map: "IX_client_discounts_client_id")
+}
+
+model clients {
+  id                BigInt              @id(map: "PK_clients") @default(autoincrement())
+  code              String              @db.VarChar(20)
+  business_name     String              @db.VarChar(200)
+  cuit              String?             @db.VarChar(11)
+  tax_condition_id  Int
+  address           String?             @db.VarChar(200)
+  city              String?             @db.VarChar(100)
+  postal_code       String?             @db.VarChar(10)
+  province_id       Int?
+  phone             String?             @db.VarChar(50)
+  email             String?             @db.VarChar(100)
+  operation_type_id Int
+  transporter_id    Int?
+  credit_limit      Decimal?            @db.Decimal(18, 2)
+  current_balance   Decimal             @db.Decimal(18, 2)
+  is_active         Boolean
+  created_at        DateTime            @db.Timestamptz(6)
+  updated_at        DateTime            @db.Timestamptz(6)
+  deleted_at        DateTime?           @db.Timestamptz(6)
+  created_by        Int?
+  updated_by        Int?
+  seller_id         Int?
+  account_movements account_movements[]
+  client_discounts  client_discounts[]
+  operation_types   operation_types     @relation(fields: [operation_type_id], references: [id], onUpdate: NoAction, map: "f_k_clients__operation_types_operation_type_id")
+  provinces         provinces?          @relation(fields: [province_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "f_k_clients__provinces_province_id")
+  tax_conditions    tax_conditions      @relation(fields: [tax_condition_id], references: [id], onUpdate: NoAction, map: "f_k_clients__tax_conditions_tax_condition_id")
+  transporters      transporters?       @relation(fields: [transporter_id], references: [id], onUpdate: NoAction, map: "f_k_clients__transporters_transporter_id")
+  sales_orders      sales_orders[]
+
+  @@index([operation_type_id], map: "IX_clients_operation_type_id")
+  @@index([province_id], map: "IX_clients_province_id")
+  @@index([tax_condition_id], map: "IX_clients_tax_condition_id")
+  @@index([transporter_id], map: "IX_clients_transporter_id")
+}
+
+model delivery_notes {
+  id              BigInt        @id(map: "PK_delivery_notes") @default(autoincrement())
+  delivery_number String
+  sales_order_id  BigInt
+  delivery_date   DateTime      @db.Timestamptz(6)
+  transporter_id  Int?
+  weight_kg       Decimal?      @db.Decimal
+  packages_count  Int?
+  declared_value  Decimal?      @db.Decimal
+  notes           String?
+  created_at      DateTime      @db.Timestamptz(6)
+  updated_at      DateTime      @db.Timestamptz(6)
+  deleted_at      DateTime?     @db.Timestamptz(6)
+  created_by      Int?
+  updated_by      Int?
+  sales_orders    sales_orders  @relation(fields: [sales_order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "f_k_delivery_notes__sales_orders_sales_order_id")
+  transporters    transporters? @relation(fields: [transporter_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "f_k_delivery_notes__transporters_transporter_id")
+
+  @@index([sales_order_id], map: "IX_delivery_notes_sales_order_id")
+  @@index([transporter_id], map: "IX_delivery_notes_transporter_id")
+}
+
+model invoices {
+  id                  BigInt       @id(map: "PK_invoices") @default(autoincrement())
+  invoice_number      String       @db.VarChar(20)
+  sales_order_id      BigInt
+  invoice_date        DateTime     @db.Timestamptz(6)
+  net_amount          Decimal      @db.Decimal(18, 4)
+  tax_amount          Decimal      @db.Decimal(18, 4)
+  total_amount        Decimal      @db.Decimal(18, 4)
+  notes               String?
+  created_at          DateTime     @db.Timestamptz(6)
+  updated_at          DateTime     @db.Timestamptz(6)
+  deleted_at          DateTime?    @db.Timestamptz(6)
+  created_by          Int?
+  updated_by          Int?
+  cancellation_reason String?
+  cancelled_at        DateTime?    @db.Timestamptz(6)
+  is_cancelled        Boolean      @default(false)
+  is_printed          Boolean      @default(false)
+  printed_at          DateTime?    @db.Timestamptz(6)
+  usd_exchange_rate   Decimal?     @db.Decimal(10, 4)
+  is_credit_note      Boolean      @default(false)
+  is_quotation        Boolean      @default(false)
+  sales_orders        sales_orders @relation(fields: [sales_order_id], references: [id], onUpdate: NoAction, map: "f_k_invoices__sales_orders_sales_order_id")
+}
+
+model operation_types {
+  id          Int       @id(map: "PK_operation_types") @default(autoincrement())
+  name        String
+  description String?
+  created_at  DateTime  @db.Timestamptz(6)
+  clients     clients[]
+}
+
+model payment_methods {
+  id                  Int                 @id(map: "PK_payment_methods") @default(autoincrement())
+  name                String
+  requires_check_data Boolean
+  is_active           Boolean
+  created_at          DateTime            @db.Timestamptz(6)
+  account_movements   account_movements[]
+}
+
+model provinces {
+  id         Int       @id(map: "PK_provinces") @default(autoincrement())
+  name       String
+  code       String?
+  created_at DateTime  @db.Timestamptz(6)
+  clients    clients[]
+}
+
+model sales_order_items {
+  id               BigInt       @id(map: "PK_sales_order_items") @default(autoincrement())
+  sales_order_id   BigInt
+  article_id       BigInt
+  quantity         Int
+  unit_price       Decimal      @db.Decimal(18, 4)
+  discount_percent Decimal      @db.Decimal(5, 2)
+  line_total       Decimal      @db.Decimal(18, 2)
+  created_at       DateTime     @db.Timestamptz(6)
+  articles         articles     @relation(fields: [article_id], references: [id], onUpdate: NoAction, map: "f_k_sales_order_items_articles_article_id")
+  sales_orders     sales_orders @relation(fields: [sales_order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "f_k_sales_order_items_sales_orders_sales_order_id")
+
+  @@index([article_id], map: "IX_sales_order_items_article_id")
+  @@index([sales_order_id, article_id], map: "IX_sales_order_items_sales_order_id_article_id")
+}
+
+model sales_orders {
+  id                       BigInt              @id(map: "PK_sales_orders") @default(autoincrement())
+  client_id                BigInt
+  order_number             String              @unique(map: "IX_sales_orders_order_number") @db.VarChar(20)
+  order_date               DateTime            @db.Timestamptz(6)
+  delivery_date            DateTime?           @db.Timestamptz(6)
+  status                   String
+  total                    Decimal             @db.Decimal(18, 4)
+  notes                    String?
+  created_at               DateTime            @db.Timestamptz(6)
+  updated_at               DateTime            @db.Timestamptz(6)
+  deleted_at               DateTime?           @db.Timestamptz(6)
+  created_by               Int?
+  updated_by               Int?
+  special_discount_percent Decimal             @default(0.0) @db.Decimal
+  delivery_notes           delivery_notes[]
+  invoices                 invoices[]
+  sales_order_items        sales_order_items[]
+  clients                  clients             @relation(fields: [client_id], references: [id], onUpdate: NoAction, map: "f_k_sales_orders_clients_client_id")
+
+  @@index([client_id], map: "IX_sales_orders_client_id")
+}
+
+model stock_movements {
+  id                 BigInt    @id(map: "PK_stock_movements") @default(autoincrement())
+  article_id         BigInt
+  movement_type      Int
+  quantity           Int
+  reference_document String?
+  movement_date      DateTime  @db.Timestamptz(6)
+  notes              String?
+  created_at         DateTime  @db.Timestamptz(6)
+  updated_at         DateTime  @db.Timestamptz(6)
+  deleted_at         DateTime? @db.Timestamptz(6)
+  created_by         Int?
+  updated_by         Int?
+  articles           articles  @relation(fields: [article_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "f_k_stock_movements_articles_article_id")
+
+  @@index([article_id], map: "IX_stock_movements_article_id")
+}
+
+model tax_conditions {
+  id          Int       @id(map: "PK_tax_conditions") @default(autoincrement())
+  name        String
+  description String?
+  created_at  DateTime  @db.Timestamptz(6)
+  clients     clients[]
+}
+
+model transporters {
+  id             Int              @id(map: "PK_transporters") @default(autoincrement())
+  name           String
+  address        String?
+  phone          String?
+  email          String?
+  is_active      Boolean
+  created_at     DateTime         @db.Timestamptz(6)
+  updated_at     DateTime         @db.Timestamptz(6)
+  deleted_at     DateTime?        @db.Timestamptz(6)
+  clients        clients[]
+  delivery_notes delivery_notes[]
+}
+
+model users {
+  id            Int       @id(map: "PK_users") @default(autoincrement())
+  username      String    @unique(map: "IX_users_username") @db.VarChar(50)
+  email         String    @unique(map: "IX_users_email") @db.VarChar(100)
+  password_hash String    @db.VarChar(255)
+  full_name     String    @db.VarChar(150)
+  role          String
+  is_active     Boolean
+  last_login_at DateTime? @db.Timestamptz(6)
+  created_at    DateTime  @db.Timestamptz(6)
+  updated_at    DateTime  @db.Timestamptz(6)
+}

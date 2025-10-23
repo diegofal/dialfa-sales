@@ -1,22 +1,19 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios';
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5021';
-
-// Create axios instance
+// For Next.js API routes, we use relative paths
 const apiClient: AxiosInstance = axios.create({
-  baseURL: `${API_URL}/api`,
+  baseURL: '/api',
   headers: {
     'Content-Type': 'application/json',
   },
+  // Credentials are handled automatically by cookies
+  withCredentials: true,
 });
 
-// Request interceptor to add JWT token
+// Request interceptor - no longer need to manually add JWT (handled by cookies)
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('token');
-    if (token && config.headers) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
+    // JWT is now in HTTP-only cookies, no need to add manually
     return config;
   },
   (error) => {
@@ -29,9 +26,7 @@ apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Token expired or invalid
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      // Token expired or invalid - redirect to login
       window.location.href = '/login';
     }
     return Promise.reject(error);

@@ -100,10 +100,10 @@ export default function ClientsPage() {
             </div>
           )}
 
-          {data && data.items.length > 0 && (
+          {data && data.data.length > 0 && (
             <>
               <ClientsTable
-                clients={data.items}
+                clients={data.data}
                 onEdit={handleEdit}
                 currentSortBy={pagination.sortBy}
                 currentSortDescending={pagination.sortDescending}
@@ -111,9 +111,9 @@ export default function ClientsPage() {
               />
               <div className="mt-4">
                 <Pagination
-                  totalCount={data.totalCount}
-                  currentPage={data.pageNumber}
-                  pageSize={data.pageSize}
+                  totalCount={data.pagination.total}
+                  currentPage={data.pagination.page}
+                  pageSize={data.pagination.limit}
                   onPageChange={setPage}
                   onPageSizeChange={setPageSize}
                 />
@@ -121,7 +121,7 @@ export default function ClientsPage() {
             </>
           )}
 
-          {data && data.items.length === 0 && !isLoading && (
+          {data && data.data.length === 0 && !isLoading && (
             <div className="text-center py-8 text-muted-foreground">
               No se encontraron clientes
             </div>
@@ -137,4 +137,5 @@ export default function ClientsPage() {
     </div>
   );
 }
+
 

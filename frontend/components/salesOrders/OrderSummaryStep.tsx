@@ -12,7 +12,7 @@ interface OrderSummaryStepProps {
 
 export function OrderSummaryStep({ formData }: OrderSummaryStepProps) {
   const { data: clientsResult } = useClients({ activeOnly: true });
-  const clients = clientsResult?.items || [];
+  const clients = clientsResult?.data || [];
   const selectedClient = clients.find((c) => c.id === formData.clientId);
 
   const calculateLineTotal = (item: SalesOrderItemFormData) => {
@@ -128,7 +128,7 @@ export function OrderSummaryStep({ formData }: OrderSummaryStepProps) {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {formData.items.map((item, index) => (
+              {formData.data.map((item, index) => (
                 <TableRow key={index}>
                   <TableCell className="font-medium">{item.articleCode}</TableCell>
                   <TableCell>{item.articleDescription}</TableCell>
@@ -174,5 +174,6 @@ export function OrderSummaryStep({ formData }: OrderSummaryStepProps) {
     </div>
   );
 }
+
 
 

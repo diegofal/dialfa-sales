@@ -4,9 +4,22 @@ import apiClient from './client';
 
 export const categoriesApi = {
   getAll: async (params: PaginationParams & { activeOnly?: boolean } = {}): Promise<PagedResult<Category>> => {
+    const apiParams: Record<string, any> = {
+      page: params.pageNumber || 1,
+      limit: params.pageSize || 10,
+      search: params.searchTerm,
+    };
+
+    // Solo incluir isActive si activeOnly es true
+    // Si es false o undefined, no aplicar filtro y traer todas
+    if (params.activeOnly === true) {
+      apiParams.isActive = true;
+    }
+
     const { data } = await apiClient.get<PagedResult<Category>>('/categories', {
-      params,
+      params: apiParams,
     });
+    
     return data;
   },
 
@@ -32,4 +45,5 @@ export const categoriesApi = {
     await apiClient.delete(`/categories/${id}`);
   },
 };
+
 

@@ -15,9 +15,17 @@ export const salesOrdersApi = {
     toDate?: string;
     activeOnly?: boolean;
   } = {}): Promise<PagedResult<SalesOrderListDto>> => {
+    const apiParams = {
+      page: params.pageNumber || 1,
+      limit: params.pageSize || 50,
+      clientId: params.clientId,
+      status: params.status,
+    };
+    
     const { data } = await apiClient.get<PagedResult<SalesOrderListDto>>('/sales-orders', {
-      params,
+      params: apiParams,
     });
+    
     return data;
   },
 
@@ -43,4 +51,5 @@ export const salesOrdersApi = {
     await apiClient.delete(`/sales-orders/${id}`);
   },
 };
+
 

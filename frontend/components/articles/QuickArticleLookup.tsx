@@ -34,7 +34,7 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
     pageSize: 5,
   });
   
-  const articles = articlesResult?.items || [];
+  const articles = articlesResult?.data || [];
 
   useEffect(() => {
     if (autoFocus && codeInputRef.current) {
@@ -255,4 +255,5 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
     </div>
   );
 }
+
 

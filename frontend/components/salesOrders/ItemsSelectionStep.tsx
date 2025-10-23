@@ -17,7 +17,7 @@ interface ItemsSelectionStepProps {
 
 export function ItemsSelectionStep({ formData, setFormData }: ItemsSelectionStepProps) {
   const { data: articlesResult, isLoading } = useArticles({ activeOnly: true });
-  const articles = articlesResult?.items || [];
+  const articles = articlesResult?.data || [];
   const [newItem, setNewItem] = useState<Partial<SalesOrderItemFormData>>({
     quantity: 1,
     discountPercent: 0,
@@ -220,5 +220,6 @@ export function ItemsSelectionStep({ formData, setFormData }: ItemsSelectionStep
     </div>
   );
 }
+
 
 

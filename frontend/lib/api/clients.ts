@@ -3,10 +3,18 @@ import type { ClientDto, CreateClientRequest, UpdateClientRequest } from '@/type
 import type { PagedResult, PaginationParams } from '@/types/pagination';
 
 export const clientsApi = {
-  getAll: async (params: PaginationParams & { activeOnly?: boolean } = {}): Promise<PagedResult<ClientDto>> => {
+  getAll: async (params: PaginationParams & { activeOnly?: boolean; searchTerm?: string } = {}): Promise<PagedResult<ClientDto>> => {
+    const apiParams = {
+      page: params.pageNumber || 1,
+      limit: params.pageSize || 50,
+      search: params.searchTerm,
+      isActive: params.activeOnly,
+    };
+    
     const { data } = await apiClient.get<PagedResult<ClientDto>>('/clients', {
-      params,
+      params: apiParams,
     });
+    
     return data;
   },
 
@@ -32,3 +40,4 @@ export const clientsApi = {
     await apiClient.delete(`/clients/${id}`);
   },
 };
+

@@ -119,7 +119,7 @@ export default function ArticlesPage() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todas</SelectItem>
-              {categories?.items?.map((cat) => (
+              {categories?.data?.map((cat) => (
                 <SelectItem key={cat.id} value={cat.id.toString()}>
                   {cat.name}
                 </SelectItem>
@@ -163,11 +163,11 @@ export default function ArticlesPage() {
       {data && (
         <div className="flex gap-4 flex-wrap">
           <Badge variant="secondary" className="text-sm py-1.5 px-3">
-            Total: {data.totalCount} artículos
+            Total: {data.pagination.total} artículos
           </Badge>
           {stockFilter === 'low' && (
             <Badge variant="destructive" className="text-sm py-1.5 px-3">
-              {data.items.filter((a) => a.isLowStock).length} con stock bajo
+              {data.data.filter((a) => a.isLowStock).length} con stock bajo
             </Badge>
           )}
         </div>
@@ -178,10 +178,10 @@ export default function ArticlesPage() {
         <div className="flex justify-center items-center py-12">
           <p className="text-muted-foreground">Cargando artículos...</p>
         </div>
-      ) : data && data.items.length > 0 ? (
+      ) : data && data.data.length > 0 ? (
         <>
           <ArticlesTable
-            articles={data.items}
+            articles={data.data}
             onEdit={handleEditArticle}
             onDelete={handleDeleteArticle}
             currentSortBy={pagination.sortBy}
@@ -190,9 +190,9 @@ export default function ArticlesPage() {
           />
           <div className="mt-4">
             <Pagination
-              totalCount={data.totalCount}
-              currentPage={data.pageNumber}
-              pageSize={data.pageSize}
+              totalCount={data.pagination.total}
+              currentPage={data.pagination.page}
+              pageSize={data.pagination.limit}
               onPageChange={setPage}
               onPageSizeChange={setPageSize}
             />
@@ -213,4 +213,5 @@ export default function ArticlesPage() {
     </div>
   );
 }
+
 

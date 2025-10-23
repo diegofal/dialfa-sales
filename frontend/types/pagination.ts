@@ -1,11 +1,11 @@
 export interface PagedResult<T> {
-  items: T[];
-  totalCount: number;
-  pageNumber: number;
-  pageSize: number;
-  totalPages: number;
-  hasPreviousPage: boolean;
-  hasNextPage: boolean;
+  data: T[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 }
 
 export interface PaginationParams {
@@ -22,5 +22,6 @@ export interface PaginationState {
   sortBy?: string;
   sortDescending: boolean;
 }
+
 
 

@@ -229,7 +229,7 @@ export function useQuickCartTabs() {
       if (tab.id !== state.activeTabId) return tab;
       return {
         ...tab,
-        items: tab.items.map(item =>
+        items: tab.data.map(item =>
           item.article.id === articleId ? { ...item, quantity } : item
         ),
       };
@@ -251,7 +251,7 @@ export function useQuickCartTabs() {
       
       return {
         ...tab,
-        items: tab.items.map(item =>
+        items: tab.data.map(item =>
           item.article.id === oldArticleId 
             ? { article: newArticle, quantity: item.quantity }
             : item
@@ -350,4 +350,5 @@ export function useQuickCartTabs() {
     getTotalValue,
   };
 }
+
 

@@ -10,7 +10,7 @@ import { ClientLookup } from '@/components/articles/ClientLookup';
 import { useCreateSalesOrder } from '@/lib/hooks/useSalesOrders';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
-import { useQuickCartTabs } from '@/lib/hooks/useQuickCartTabs';
+import { useQuickCartTabs, QuickCartItem } from '@/lib/hooks/useQuickCartTabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { ShoppingCart, User, X, Trash2, Pencil, Search, Plus } from 'lucide-react';
 import { useArticles } from '@/lib/hooks/useArticles';
@@ -68,7 +68,7 @@ export function SingleStepOrderForm() {
     activeOnly: true,
     pageSize: 5,
   });
-  const articles = articlesResult?.items || [];
+  const articles = articlesResult?.data || [];
 
   // Search articles for editing
   const { data: editArticlesResult } = useArticles({
@@ -76,12 +76,12 @@ export function SingleStepOrderForm() {
     activeOnly: true,
     pageSize: 5,
   });
-  const editArticles = editArticlesResult?.items || [];
+  const editArticles = editArticlesResult?.data || [];
 
   // Load data from quick cart if coming from there
   useEffect(() => {
     if (fromQuickCart && !loadedFromCart) {
-      let cartItems: any[] = [];
+      let cartItems: QuickCartItem[] = [];
       let cartClientId: number | undefined;
       let cartClientName: string = '';
       
@@ -858,4 +858,5 @@ export function SingleStepOrderForm() {
     </div>
   );
 }
+
 

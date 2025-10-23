@@ -88,7 +88,7 @@ export default function SalesOrdersPage() {
             <CardTitle className="text-sm font-medium">Total Pedidos</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{data?.totalCount || 0}</div>
+            <div className="text-2xl font-bold">{data?.pagination.total || 0}</div>
           </CardContent>
         </Card>
         <Card>
@@ -97,7 +97,7 @@ export default function SalesOrdersPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {data?.items.filter((o) => o.status === 'PENDING').length || 0}
+              {data?.data.filter((o) => o.status === 'PENDING').length || 0}
             </div>
           </CardContent>
         </Card>
@@ -107,7 +107,7 @@ export default function SalesOrdersPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {data?.items.filter((o) => o.status === 'INVOICED').length || 0}
+              {data?.data.filter((o) => o.status === 'INVOICED').length || 0}
             </div>
           </CardContent>
         </Card>
@@ -121,7 +121,7 @@ export default function SalesOrdersPage() {
                 style: 'currency',
                 currency: 'ARS',
                 minimumFractionDigits: 0,
-              }).format(data?.items.reduce((sum, o) => sum + o.total, 0) || 0)}
+              }).format(data?.data.reduce((sum, o) => sum + o.total, 0) || 0)}
             </div>
           </CardContent>
         </Card>
@@ -206,16 +206,16 @@ export default function SalesOrdersPage() {
         <CardHeader>
           <CardTitle>Lista de Pedidos</CardTitle>
           <CardDescription>
-            {data?.totalCount || 0} pedido{(data?.totalCount || 0) !== 1 ? 's' : ''} encontrado{(data?.totalCount || 0) !== 1 ? 's' : ''}
+            {data?.pagination.total || 0} pedido{(data?.pagination.total || 0) !== 1 ? 's' : ''} encontrado{(data?.pagination.total || 0) !== 1 ? 's' : ''}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
             <div className="text-center py-8 text-muted-foreground">Cargando pedidos...</div>
-          ) : data && data.items.length > 0 ? (
+          ) : data && data.data.length > 0 ? (
             <>
               <SalesOrdersTable
-                orders={data.items}
+                orders={data.data}
                 onViewOrder={handleViewOrder}
                 onCancelOrder={handleCancelOrder}
                 onDeleteOrder={handleDeleteOrder}
@@ -225,9 +225,9 @@ export default function SalesOrdersPage() {
               />
               <div className="mt-4">
                 <Pagination
-                  totalCount={data.totalCount}
-                  currentPage={data.pageNumber}
-                  pageSize={data.pageSize}
+                  totalCount={data.pagination.total}
+                  currentPage={data.pagination.page}
+                  pageSize={data.pagination.limit}
                   onPageChange={setPage}
                   onPageSizeChange={setPageSize}
                 />
@@ -243,4 +243,5 @@ export default function SalesOrdersPage() {
     </div>
   );
 }
+
 

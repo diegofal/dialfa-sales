@@ -97,7 +97,7 @@ export function SalesOrderWizard() {
         orderDate: formData.orderDate,
         deliveryDate: formData.deliveryDate,
         notes: formData.notes,
-        items: formData.items.map((item) => ({
+        items: formData.data.map((item) => ({
           articleId: item.articleId,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
@@ -186,5 +186,6 @@ export function SalesOrderWizard() {
     </div>
   );
 }
+
 
 

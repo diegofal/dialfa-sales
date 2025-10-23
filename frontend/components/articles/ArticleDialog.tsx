@@ -166,7 +166,7 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
                       Cargando...
                     </SelectItem>
                   ) : (
-                    categories?.items?.map((cat) => (
+                    categories?.data?.map((cat) => (
                       <SelectItem key={cat.id} value={cat.id.toString()}>
                         {cat.name}
                       </SelectItem>
@@ -277,4 +277,5 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
     </Dialog>
   );
 }
+
 

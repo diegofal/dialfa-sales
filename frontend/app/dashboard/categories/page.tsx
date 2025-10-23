@@ -87,10 +87,10 @@ export default function CategoriesPage() {
             </div>
           )}
 
-          {data && data.items.length > 0 && (
+          {data && data.data.length > 0 && (
             <>
               <CategoriesTable
-                categories={data.items}
+                categories={data.data}
                 onEdit={handleEdit}
                 currentSortBy={pagination.sortBy}
                 currentSortDescending={pagination.sortDescending}
@@ -98,9 +98,9 @@ export default function CategoriesPage() {
               />
               <div className="mt-4">
                 <Pagination
-                  totalCount={data.totalCount}
-                  currentPage={data.pageNumber}
-                  pageSize={data.pageSize}
+                  totalCount={data.pagination.total}
+                  currentPage={data.pagination.page}
+                  pageSize={data.pagination.limit}
                   onPageChange={setPage}
                   onPageSizeChange={setPageSize}
                 />
@@ -108,7 +108,7 @@ export default function CategoriesPage() {
             </>
           )}
 
-          {data && data.items.length === 0 && !isLoading && (
+          {data && data.data.length === 0 && !isLoading && (
             <div className="text-center py-8 text-muted-foreground">
               No se encontraron categorías
             </div>
@@ -124,6 +124,7 @@ export default function CategoriesPage() {
     </div>
   );
 }
+
 
 
 

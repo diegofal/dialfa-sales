@@ -6,13 +6,11 @@ import { useAuthStore } from '@/store/authStore';
 
 export default function HomePage() {
   const router = useRouter();
-  const { isAuthenticated, initAuth } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
 
   useEffect(() => {
-    initAuth();
-  }, [initAuth]);
-
-  useEffect(() => {
+    // Auth state will be managed by middleware and cookies
+    // No need to initialize from localStorage
     if (isAuthenticated) {
       router.push('/dashboard');
     } else {
@@ -26,6 +24,8 @@ export default function HomePage() {
     </div>
   );
 }
+
+
 
 
 

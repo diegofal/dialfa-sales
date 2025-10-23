@@ -12,13 +12,10 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { isAuthenticated, initAuth } = useAuthStore();
+  const { isAuthenticated } = useAuthStore();
 
   useEffect(() => {
-    initAuth();
-  }, [initAuth]);
-
-  useEffect(() => {
+    // Auth is handled by middleware with HTTP-only cookies
     if (!isAuthenticated) {
       router.push('/login');
     }
@@ -42,4 +39,6 @@ export default function DashboardLayout({
     </div>
   );
 }
+
+
 

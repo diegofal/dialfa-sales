@@ -169,3 +169,4 @@ export function CategoriesTable({ categories, onEdit, currentSortBy, currentSort
 
 
 
+

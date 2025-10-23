@@ -9,7 +9,17 @@ export const articlesApi = {
     categoryId?: number;
     searchTerm?: string;
   } = {}): Promise<PagedResult<Article>> => {
-    const { data } = await apiClient.get<PagedResult<Article>>('/articles', { params });
+    const apiParams = {
+      page: params.pageNumber || 1,
+      limit: params.pageSize || 50,
+      search: params.searchTerm,
+      categoryId: params.categoryId,
+      isActive: params.activeOnly,
+    };
+    
+    const { data } = await apiClient.get<PagedResult<Article>>('/articles', { 
+      params: apiParams 
+    });
     return data;
   },
 
@@ -35,7 +45,3 @@ export const articlesApi = {
     await apiClient.delete(`/articles/${id}`);
   },
 };
-
-
-
-

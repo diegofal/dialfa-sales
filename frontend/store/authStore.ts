@@ -1,49 +1,34 @@
 import { create } from 'zustand';
 
 interface User {
+  id: number;
   username: string;
+  email: string;
+  fullName: string;
   role: string;
 }
 
 interface AuthState {
   user: User | null;
-  token: string | null;
   isAuthenticated: boolean;
-  setAuth: (user: User, token: string) => void;
+  setAuth: (user: User) => void;
   clearAuth: () => void;
-  initAuth: () => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  token: null,
   isAuthenticated: false,
 
-  setAuth: (user, token) => {
-    localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify(user));
-    set({ user, token, isAuthenticated: true });
+  setAuth: (user) => {
+    // Token is now in HTTP-only cookie, we just store user info
+    set({ user, isAuthenticated: true });
   },
 
   clearAuth: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    set({ user: null, token: null, isAuthenticated: false });
-  },
-
-  initAuth: () => {
-    const token = localStorage.getItem('token');
-    const userStr = localStorage.getItem('user');
-    if (token && userStr) {
-      try {
-        const user = JSON.parse(userStr);
-        set({ user, token, isAuthenticated: true });
-      } catch {
-        set({ user: null, token: null, isAuthenticated: false });
-      }
-    }
+    set({ user: null, isAuthenticated: false });
   },
 }));
+
 
 
 

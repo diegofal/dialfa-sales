@@ -12,16 +12,14 @@ export const useLogin = () => {
   return useMutation({
     mutationFn: (credentials: LoginRequest) => authApi.login(credentials),
     onSuccess: (data) => {
-      setAuth(
-        { username: data.username, role: data.role },
-        data.token
-      );
-      toast.success('¡Bienvenido!');
+      // Token is in HTTP-only cookie, we just need user info
+      setAuth(data.user);
+      toast.success(`¡Bienvenido, ${data.user.fullName}!`);
       router.push('/dashboard');
     },
     onError: (error: unknown) => {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || 'Error al iniciar sesión');
+      const err = error as { response?: { data?: { error?: string } } };
+      toast.error(err.response?.data?.error || 'Error al iniciar sesión');
     },
   });
 };
@@ -30,11 +28,13 @@ export const useLogout = () => {
   const router = useRouter();
   const clearAuth = useAuthStore((state) => state.clearAuth);
 
-  return () => {
-    authApi.logout();
+  return async () => {
+    await authApi.logout();
     clearAuth();
     router.push('/login');
     toast.success('Sesión cerrada');
   };
 };
+
+
 

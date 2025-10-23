@@ -53,7 +53,7 @@ export function QuickCartPopup({ isOpen, onClose }: QuickCartPopupProps) {
     pageSize: 5,
   });
 
-  const editArticles = editArticlesResult?.items || [];
+  const editArticles = editArticlesResult?.data || [];
 
   // Reset selected index when edit articles change
   useEffect(() => {
@@ -452,4 +452,5 @@ export function QuickCartPopup({ isOpen, onClose }: QuickCartPopupProps) {
     </>
   );
 }
+
 
