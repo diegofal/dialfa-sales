@@ -35,7 +35,7 @@ export async function GET(
     const serializedClient = {
       ...client,
       id: client.id.toString(),
-      client_discounts: client.client_discounts.map(discount => ({
+      client_discounts: client.client_discounts.map((discount: typeof client.client_discounts[number]) => ({
         ...discount,
         id: discount.id.toString(),
         client_id: discount.client_id.toString(),

@@ -2,7 +2,6 @@
 
 import { getErrorMessage } from '@/lib/utils/errors';
 
-import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { createSalesOrderSchema, updateSalesOrderSchema, type CreateSalesOrderInput, type UpdateSalesOrderInput } from '@/lib/validations/schemas';
 import { revalidatePath } from 'next/cache';
@@ -174,7 +173,25 @@ export async function updateSalesOrder(id: string, data: UpdateSalesOrderInput) 
     }
 
     // If items are being updated, recalculate
-    const updateData: Prisma.sales_ordersUpdateInput = {
+    const updateData: {
+      order_date?: Date;
+      delivery_date?: Date | null;
+      status?: string;
+      special_discount_percent?: number;
+      notes?: string | null;
+      updated_at: Date;
+      total?: number;
+      sales_order_items?: {
+        create: Array<{
+          article_id: bigint;
+          quantity: number;
+          unit_price: number;
+          discount_percent: number;
+          line_total: number;
+          created_at: Date;
+        }>;
+      };
+    } = {
       order_date: validated.orderDate,
       delivery_date: validated.deliveryDate,
       status: validated.status,

@@ -55,7 +55,7 @@ export async function GET(
       clients: {
         ...salesOrder.clients,
         id: salesOrder.clients.id.toString(),
-        client_discounts: salesOrder.clients.client_discounts.map(discount => ({
+        client_discounts: salesOrder.clients.client_discounts.map((discount: typeof salesOrder.clients.client_discounts[number]) => ({
           ...discount,
           id: discount.id.toString(),
           client_id: discount.client_id.toString(),
@@ -66,7 +66,7 @@ export async function GET(
           },
         })),
       },
-      sales_order_items: salesOrder.sales_order_items.map(item => ({
+      sales_order_items: salesOrder.sales_order_items.map((item: typeof salesOrder.sales_order_items[number]) => ({
         ...item,
         id: item.id.toString(),
         sales_order_id: item.sales_order_id.toString(),
@@ -81,12 +81,12 @@ export async function GET(
           },
         },
       })),
-      invoices: salesOrder.invoices.map(invoice => ({
+      invoices: salesOrder.invoices.map((invoice: typeof salesOrder.invoices[number]) => ({
         ...invoice,
         id: invoice.id.toString(),
         sales_order_id: invoice.sales_order_id.toString(),
       })),
-      delivery_notes: salesOrder.delivery_notes.map(note => ({
+      delivery_notes: salesOrder.delivery_notes.map((note: typeof salesOrder.delivery_notes[number]) => ({
         ...note,
         id: note.id.toString(),
         sales_order_id: note.sales_order_id.toString(),

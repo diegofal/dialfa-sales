@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { ArticleWhereInput } from '@/lib/types';
 import { mapArticleToDTO } from '@/lib/utils/mapper';
 
 export async function GET(request: NextRequest) {
@@ -15,7 +14,8 @@ export async function GET(request: NextRequest) {
     const skip = (page - 1) * limit;
 
     // Build where clause
-    const where: ArticleWhereInput = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const where: Record<string, any> = {
       deleted_at: null,
     };
 

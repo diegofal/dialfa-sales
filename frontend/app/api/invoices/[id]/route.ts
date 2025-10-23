@@ -54,7 +54,7 @@ export async function GET(
           ...invoice.sales_orders.clients,
           id: invoice.sales_orders.clients.id.toString(),
         },
-        sales_order_items: invoice.sales_orders.sales_order_items.map(item => ({
+        sales_order_items: invoice.sales_orders.sales_order_items.map((item: typeof invoice.sales_orders.sales_order_items[number]) => ({
           ...item,
           id: item.id.toString(),
           sales_order_id: item.sales_order_id.toString(),

@@ -1,5 +1,3 @@
-version: '3.8'
-
 # SPISA Development Environment
 # This docker-compose file sets up the complete development stack
 
@@ -81,28 +79,78 @@ services:
   #     - spisa-network
 
   # ==============================================================================
-  # FRONTEND (Next.js)
+  # FRONTEND (Next.js) - Development Mode
   # ==============================================================================
-  # Uncomment when frontend is implemented
-  # frontend:
-  #   build:
-  #     context: ./frontend
-  #     dockerfile: Dockerfile.dev
-  #   container_name: spisa-frontend
-  #   environment:
-  #     - NEXT_PUBLIC_API_URL=http://localhost:5000
-  #     - NODE_ENV=development
-  #   volumes:
-  #     - ./frontend:/app
-  #     - /app/node_modules
-  #     - /app/.next
-  #   ports:
-  #     - "3000:3000"
-  #   depends_on:
-  #     - api
-  #   restart: unless-stopped
-  #   networks:
-  #     - spisa-network
+  frontend-dev:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+      target: development
+    container_name: spisa-frontend-dev
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql://spisa_user:spisa_dev_password@postgres:5432/spisa}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-your-super-secret-nextauth-key-change-in-production}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - NODE_ENV=development
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - spisa-network
+    profiles:
+      - dev
+
+  # ==============================================================================
+  # FRONTEND (Next.js) - Build Test (Reproduces Railway Build)
+  # ==============================================================================
+  frontend-build-test:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+      target: builder
+      args:
+        - DATABASE_URL=${DATABASE_URL:-postgresql://spisa_user:spisa_dev_password@postgres:5432/spisa}
+        - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-your-super-secret-nextauth-key-change-in-production}
+        - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+    container_name: spisa-frontend-build-test
+    profiles:
+      - build-test
+
+  # ==============================================================================
+  # FRONTEND (Next.js) - Production Mode
+  # ==============================================================================
+  frontend-prod:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile.dev
+      target: production
+      args:
+        - DATABASE_URL=${DATABASE_URL:-postgresql://spisa_user:spisa_dev_password@postgres:5432/spisa}
+        - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-your-super-secret-nextauth-key-change-in-production}
+        - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+    container_name: spisa-frontend-prod
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-postgresql://spisa_user:spisa_dev_password@postgres:5432/spisa}
+      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET:-your-super-secret-nextauth-key-change-in-production}
+      - NEXTAUTH_URL=${NEXTAUTH_URL:-http://localhost:3000}
+      - NODE_ENV=production
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - spisa-network
+    profiles:
+      - prod
 
   # ==============================================================================
   # NGINX (Reverse Proxy) - Optional for production-like setup
