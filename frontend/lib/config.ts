@@ -29,7 +29,9 @@ export interface AppConfig {
 
 /**
  * Masks sensitive data in strings (passwords, tokens, etc.)
+ * Note: Currently unused but kept for future use
  */
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 function maskSensitiveData(value: string, visibleChars: number = 4): string {
   if (!value || value.length <= visibleChars * 2) {
     return '***';
@@ -114,7 +116,7 @@ export function validateConfig(config: AppConfig): string[] {
 /**
  * Formats configuration for logging
  */
-export function formatConfigForLogging(config: AppConfig): Record<string, any> {
+export function formatConfigForLogging(config: AppConfig): Record<string, unknown> {
   return {
     environment: {
       NODE_ENV: config.nodeEnv,
