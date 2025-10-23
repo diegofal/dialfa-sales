@@ -3,7 +3,7 @@
 import { Suspense } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { SalesOrderWizard } from '@/components/salesOrders/SalesOrderWizard';
+import { SingleStepOrderForm } from '@/components/salesOrders/SingleStepOrderForm';
 import Link from 'next/link';
 
 export default function NewSalesOrderPage() {
@@ -22,7 +22,7 @@ export default function NewSalesOrderPage() {
       </div>
 
       <Suspense fallback={<div className="text-center py-12">Cargando...</div>}>
-        <SalesOrderWizard />
+        <SingleStepOrderForm />
       </Suspense>
     </div>
   );
