@@ -24,6 +24,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import type { InvoiceListDto } from '@/types/invoice';
+import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
 
 interface InvoicesTableProps {
   invoices: InvoiceListDto[];
@@ -144,29 +145,29 @@ export function InvoicesTable({
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button
-                        variant="ghost"
-                        size="icon"
+                        variant={ACTION_BUTTON_CONFIG.view.variant}
+                        size={ACTION_BUTTON_CONFIG.view.size}
                         onClick={() => onViewInvoice(invoice.id)}
-                        title="Ver detalle"
+                        title={ACTION_BUTTON_CONFIG.view.title}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
                       {!invoice.isCancelled && !invoice.isPrinted && onPrintInvoice && (
                         <Button
-                          variant="ghost"
-                          size="icon"
+                          variant={ACTION_BUTTON_CONFIG.print.variant}
+                          size={ACTION_BUTTON_CONFIG.print.size}
                           onClick={() => onPrintInvoice(invoice.id)}
-                          title="Imprimir factura"
+                          title={ACTION_BUTTON_CONFIG.print.title}
                         >
                           <Printer className="h-4 w-4 text-blue-600" />
                         </Button>
                       )}
                       {!invoice.isCancelled && !invoice.isPrinted && onCancelInvoice && (
                         <Button
-                          variant="ghost"
-                          size="icon"
+                          variant={ACTION_BUTTON_CONFIG.cancel.variant}
+                          size={ACTION_BUTTON_CONFIG.cancel.size}
                           onClick={() => setInvoiceToCancel(invoice.id)}
-                          title="Cancelar factura"
+                          title={ACTION_BUTTON_CONFIG.cancel.title}
                         >
                           <XCircle className="h-4 w-4 text-orange-600" />
                         </Button>

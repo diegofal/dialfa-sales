@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 import QueryProvider from "@/lib/providers/QueryProvider";
 import { Toaster } from "@/components/ui/sonner";
+import { AuthInitializer } from "@/components/auth/AuthInitializer";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -20,6 +21,7 @@ export default function RootLayout({
     <html lang="es">
       <body className={inter.className}>
         <QueryProvider>
+          <AuthInitializer />
           {children}
           <Toaster 
             position="top-center"

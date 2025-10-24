@@ -23,6 +23,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
+import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
 
 interface ArticlesTableProps {
   articles: Article[];
@@ -120,17 +121,21 @@ export function ArticlesTable({ articles, onEdit, onDelete, currentSortBy, curre
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
                     <Button
-                      variant="ghost"
-                      size="icon"
+                      variant={ACTION_BUTTON_CONFIG.edit.variant}
+                      size={ACTION_BUTTON_CONFIG.edit.size}
                       onClick={() => onEdit(article)}
-                      title="Editar"
+                      title={ACTION_BUTTON_CONFIG.edit.title}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
 
                     <AlertDialog>
                       <AlertDialogTrigger asChild>
-                        <Button variant="ghost" size="icon" title="Eliminar">
+                        <Button
+                          variant={ACTION_BUTTON_CONFIG.delete.variant}
+                          size={ACTION_BUTTON_CONFIG.delete.size}
+                          title={ACTION_BUTTON_CONFIG.delete.title}
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
                       </AlertDialogTrigger>

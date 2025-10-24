@@ -29,8 +29,16 @@ export const useLogout = () => {
   const clearAuth = useAuthStore((state) => state.clearAuth);
 
   return async () => {
-    await authApi.logout();
+    try {
+      await authApi.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
+    
+    // Clear auth state (this will also clear localStorage due to persistence)
     clearAuth();
+    
+    // Redirect to login
     router.push('/login');
     toast.success('Sesión cerrada');
   };

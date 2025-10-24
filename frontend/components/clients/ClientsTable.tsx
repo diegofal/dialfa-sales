@@ -15,12 +15,6 @@ import { SortableTableHead } from '@/components/ui/sortable-table-head';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -30,7 +24,8 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { MoreHorizontal, Pencil, Trash2 } from 'lucide-react';
+import { Edit, Trash2 } from 'lucide-react';
+import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
 
 interface ClientsTableProps {
   clients: ClientDto[];
@@ -112,7 +107,7 @@ export default function ClientsTable({
                 Saldo
               </SortableTableHead>
               <SortableTableHead>Estado</SortableTableHead>
-              <TableHead className="w-[70px]"></TableHead>
+              <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -139,27 +134,25 @@ export default function ClientsTable({
                       {client.isActive ? 'Activo' : 'Inactivo'}
                     </Badge>
                   </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuItem onClick={() => onEdit(client)}>
-                          <Pencil className="mr-2 h-4 w-4" />
-                          Editar
-                        </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => setClientToDelete(client)}
-                          className="text-red-600"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" />
-                          Eliminar
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                  <TableCell className="text-right">
+                    <div className="flex justify-end gap-2">
+                      <Button
+                        variant={ACTION_BUTTON_CONFIG.edit.variant}
+                        size={ACTION_BUTTON_CONFIG.edit.size}
+                        onClick={() => onEdit(client)}
+                        title={ACTION_BUTTON_CONFIG.edit.title}
+                      >
+                        <Edit className="h-4 w-4" />
+                      </Button>
+                      <Button
+                        variant={ACTION_BUTTON_CONFIG.delete.variant}
+                        size={ACTION_BUTTON_CONFIG.delete.size}
+                        onClick={() => setClientToDelete(client)}
+                        title={ACTION_BUTTON_CONFIG.delete.title}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

@@ -24,6 +24,7 @@ import { Edit, Trash2, Package } from 'lucide-react';
 import { useDeleteCategory } from '@/lib/hooks/useCategories';
 import type { Category } from '@/types/category';
 import { Badge } from '@/components/ui/badge';
+import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
 
 interface CategoriesTableProps {
   categories: Category[];
@@ -117,18 +118,20 @@ export function CategoriesTable({ categories, onEdit, currentSortBy, currentSort
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button
-                        variant="outline"
-                        size="sm"
+                        variant={ACTION_BUTTON_CONFIG.edit.variant}
+                        size={ACTION_BUTTON_CONFIG.edit.size}
                         onClick={() => onEdit(category.id)}
                         disabled={category.isDeleted}
+                        title={ACTION_BUTTON_CONFIG.edit.title}
                       >
                         <Edit className="h-4 w-4" />
                       </Button>
                       <Button
-                        variant="destructive"
-                        size="sm"
+                        variant={ACTION_BUTTON_CONFIG.delete.variant}
+                        size={ACTION_BUTTON_CONFIG.delete.size}
                         onClick={() => setDeleteId(category.id)}
                         disabled={category.isDeleted}
+                        title={ACTION_BUTTON_CONFIG.delete.title}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>

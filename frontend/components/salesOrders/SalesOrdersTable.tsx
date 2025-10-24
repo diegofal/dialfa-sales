@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
 import type { SalesOrderListDto } from '@/types/salesOrder';
+import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
 
 interface SalesOrdersTableProps {
   orders: SalesOrderListDto[];
@@ -119,28 +120,28 @@ export function SalesOrdersTable({
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button
-                        variant="ghost"
-                        size="icon"
+                        variant={ACTION_BUTTON_CONFIG.view.variant}
+                        size={ACTION_BUTTON_CONFIG.view.size}
                         onClick={() => onViewOrder(order.id)}
-                        title="Ver detalle"
+                        title={ACTION_BUTTON_CONFIG.view.title}
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
                       {order.status === 'PENDING' && (
                         <>
                           <Button
-                            variant="ghost"
-                            size="icon"
+                            variant={ACTION_BUTTON_CONFIG.cancel.variant}
+                            size={ACTION_BUTTON_CONFIG.cancel.size}
                             onClick={() => setOrderToCancel(order.id)}
-                            title="Cancelar pedido"
+                            title={ACTION_BUTTON_CONFIG.cancel.title}
                           >
                             <XCircle className="h-4 w-4 text-orange-600" />
                           </Button>
                           <Button
-                            variant="ghost"
-                            size="icon"
+                            variant={ACTION_BUTTON_CONFIG.delete.variant}
+                            size={ACTION_BUTTON_CONFIG.delete.size}
                             onClick={() => setOrderToDelete(order.id)}
-                            title="Eliminar pedido"
+                            title={ACTION_BUTTON_CONFIG.delete.title}
                           >
                             <Trash2 className="h-4 w-4 text-red-600" />
                           </Button>
