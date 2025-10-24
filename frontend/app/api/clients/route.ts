@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { mapClientToDTO } from '@/lib/utils/mapper';
+import { createClientSchema } from '@/lib/validations/schemas';
+import { z } from 'zod';
 
 export async function GET(request: NextRequest) {
   try {
@@ -70,4 +72,61 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+
+    // Validate input
+    const validatedData = createClientSchema.parse(body);
+
+    // Convert camelCase to snake_case for Prisma
+    const client = await prisma.clients.create({
+      data: {
+        code: validatedData.code,
+        business_name: validatedData.businessName,
+        cuit: validatedData.cuit,
+        tax_condition_id: validatedData.taxConditionId,
+        address: validatedData.address,
+        city: validatedData.city,
+        postal_code: validatedData.postalCode,
+        province_id: validatedData.provinceId,
+        phone: validatedData.phone,
+        email: validatedData.email || null,
+        operation_type_id: validatedData.operationTypeId,
+        transporter_id: validatedData.transporterId,
+        seller_id: validatedData.sellerId,
+        credit_limit: validatedData.creditLimit,
+        current_balance: validatedData.currentBalance ?? 0,
+        is_active: validatedData.isActive ?? true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      include: {
+        tax_conditions: true,
+        provinces: true,
+        operation_types: true,
+        transporters: true,
+      },
+    });
+
+    // Map to DTO format
+    const mappedClient = mapClientToDTO(client);
+
+    return NextResponse.json(mappedClient, { status: 201 });
+  } catch (error) {
+    console.error('Error creating client:', error);
+
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Validation error', details: error.issues },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: 'Failed to create client' },
+      { status: 500 }
+    );
+  }
+}
 

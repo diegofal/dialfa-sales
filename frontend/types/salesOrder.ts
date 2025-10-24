@@ -5,14 +5,15 @@ export interface SalesOrder {
   orderNumber: string;
   orderDate: string;
   deliveryDate?: string;
-  status: 'PENDING' | 'INVOICED' | 'CANCELLED';
+  status: 'PENDING' | 'INVOICED' | 'CANCELLED' | 'COMPLETED';
   total: number;
+  specialDiscountPercent: number;
   notes?: string;
   itemsCount: number;
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
-  items: SalesOrderItem[];
+  items?: SalesOrderItem[];
 }
 
 export interface SalesOrderItem {

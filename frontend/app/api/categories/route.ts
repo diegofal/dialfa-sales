@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { mapCategoryToDTO } from '@/lib/utils/mapper';
+import { createCategorySchema } from '@/lib/validations/schemas';
+import { z } from 'zod';
 
 export async function GET(request: NextRequest) {
   try {
@@ -56,6 +58,47 @@ export async function GET(request: NextRequest) {
     console.error('Error fetching categories:', error);
     return NextResponse.json(
       { error: 'Failed to fetch categories' },
+      { status: 500 }
+    );
+  }
+}
+
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+
+    // Validate input
+    const validatedData = createCategorySchema.parse(body);
+
+    // Convert camelCase to snake_case for Prisma
+    const category = await prisma.categories.create({
+      data: {
+        code: validatedData.code,
+        name: validatedData.name,
+        description: validatedData.description,
+        default_discount_percent: validatedData.defaultDiscountPercent,
+        is_active: validatedData.isActive ?? true,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+    });
+
+    // Map to DTO format
+    const mappedCategory = mapCategoryToDTO(category);
+
+    return NextResponse.json(mappedCategory, { status: 201 });
+  } catch (error) {
+    console.error('Error creating category:', error);
+
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Validation error', details: error.issues },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: 'Failed to create category' },
       { status: 500 }
     );
   }

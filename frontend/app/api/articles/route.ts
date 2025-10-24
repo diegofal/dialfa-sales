@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { mapArticleToDTO } from '@/lib/utils/mapper';
+import { createArticleSchema } from '@/lib/validations/schemas';
+import { z } from 'zod';
 
 export async function GET(request: NextRequest) {
   try {
@@ -72,4 +74,61 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export async function POST(request: NextRequest) {
+  try {
+    const body = await request.json();
+
+    // Validate input
+    const validatedData = createArticleSchema.parse(body);
+
+    // Convert camelCase to snake_case for Prisma
+    const article = await prisma.articles.create({
+      data: {
+        code: validatedData.code,
+        description: validatedData.description,
+        category_id: validatedData.categoryId,
+        unit_price: validatedData.unitPrice,
+        cost_price: validatedData.costPrice,
+        stock: validatedData.stock ?? 0,
+        minimum_stock: validatedData.minimumStock ?? 0,
+        display_order: validatedData.displayOrder,
+        is_discontinued: validatedData.isDiscontinued ?? false,
+        is_active: validatedData.isActive ?? true,
+        type: validatedData.type,
+        series: validatedData.series,
+        thickness: validatedData.thickness,
+        size: validatedData.size,
+        supplier_id: validatedData.supplierId,
+        weight_kg: validatedData.weightKg,
+        historical_price1: validatedData.historicalPrice1,
+        location: validatedData.location,
+        notes: validatedData.notes,
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+      include: {
+        categories: true,
+      },
+    });
+
+    // Map to DTO format
+    const mappedArticle = mapArticleToDTO(article);
+
+    return NextResponse.json(mappedArticle, { status: 201 });
+  } catch (error) {
+    console.error('Error creating article:', error);
+
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: 'Validation error', details: error.issues },
+        { status: 400 }
+      );
+    }
+
+    return NextResponse.json(
+      { error: 'Failed to create article' },
+      { status: 500 }
+    );
+  }
+}
 
