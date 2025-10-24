@@ -135,7 +135,7 @@ export function SalesOrdersTable({
                             onClick={() => setOrderToCancel(order.id)}
                             title={ACTION_BUTTON_CONFIG.cancel.title}
                           >
-                            <XCircle className="h-4 w-4 text-orange-600" />
+                            <XCircle className="h-4 w-4" />
                           </Button>
                           <Button
                             variant={ACTION_BUTTON_CONFIG.delete.variant}
@@ -143,7 +143,7 @@ export function SalesOrdersTable({
                             onClick={() => setOrderToDelete(order.id)}
                             title={ACTION_BUTTON_CONFIG.delete.title}
                           >
-                            <Trash2 className="h-4 w-4 text-red-600" />
+                            <Trash2 className="h-4 w-4" />
                           </Button>
                         </>
                       )}

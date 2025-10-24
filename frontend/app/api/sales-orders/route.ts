@@ -143,7 +143,6 @@ export async function POST(request: NextRequest) {
         ...item,
         sales_order_id: salesOrder.id,
         created_at: now,
-        updated_at: now,
       }));
 
       await tx.sales_order_items.createMany({

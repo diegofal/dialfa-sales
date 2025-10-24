@@ -24,7 +24,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Edit, Trash2 } from 'lucide-react';
+import { Pencil, Trash2 } from 'lucide-react';
 import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
 
 interface ClientsTableProps {
@@ -142,7 +142,7 @@ export default function ClientsTable({
                         onClick={() => onEdit(client)}
                         title={ACTION_BUTTON_CONFIG.edit.title}
                       >
-                        <Edit className="h-4 w-4" />
+                        <Pencil className="h-4 w-4" />
                       </Button>
                       <Button
                         variant={ACTION_BUTTON_CONFIG.delete.variant}

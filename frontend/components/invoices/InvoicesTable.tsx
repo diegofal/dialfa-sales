@@ -159,7 +159,7 @@ export function InvoicesTable({
                           onClick={() => onPrintInvoice(invoice.id)}
                           title={ACTION_BUTTON_CONFIG.print.title}
                         >
-                          <Printer className="h-4 w-4 text-blue-600" />
+                          <Printer className="h-4 w-4" />
                         </Button>
                       )}
                       {!invoice.isCancelled && !invoice.isPrinted && onCancelInvoice && (
@@ -169,7 +169,7 @@ export function InvoicesTable({
                           onClick={() => setInvoiceToCancel(invoice.id)}
                           title={ACTION_BUTTON_CONFIG.cancel.title}
                         >
-                          <XCircle className="h-4 w-4 text-orange-600" />
+                          <XCircle className="h-4 w-4" />
                         </Button>
                       )}
                     </div>

@@ -20,7 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Edit, Trash2, Package } from 'lucide-react';
+import { Pencil, Trash2, Package } from 'lucide-react';
 import { useDeleteCategory } from '@/lib/hooks/useCategories';
 import type { Category } from '@/types/category';
 import { Badge } from '@/components/ui/badge';
@@ -124,7 +124,7 @@ export function CategoriesTable({ categories, onEdit, currentSortBy, currentSort
                         disabled={category.isDeleted}
                         title={ACTION_BUTTON_CONFIG.edit.title}
                       >
-                        <Edit className="h-4 w-4" />
+                        <Pencil className="h-4 w-4" />
                       </Button>
                       <Button
                         variant={ACTION_BUTTON_CONFIG.delete.variant}
