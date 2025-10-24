@@ -133,33 +133,58 @@ export function mapInvoiceToDTO(invoice: unknown) {
   const i = invoice as Record<string, unknown>;
   const salesOrders = i.sales_orders as {
     order_number?: string;
-    clients?: { business_name?: string };
-    sales_order_items?: Array<unknown>;
+    clients?: { 
+      business_name?: string;
+      cuit?: string;
+      tax_conditions?: { name?: string };
+    };
+    sales_order_items?: Array<Record<string, unknown>>;
+    special_discount_percent?: number;
   } | undefined;
+  
+  const salesOrderItems = (salesOrders?.sales_order_items || []) as Array<Record<string, unknown>>;
   
   return {
     id: parseInt(String((i.id as bigint | number))),
     invoiceNumber: i.invoice_number as string,
     salesOrderId: parseInt(String((i.sales_order_id as bigint | number))),
     salesOrderNumber: salesOrders?.order_number || '',
+    clientId: parseInt(String((salesOrders?.clients as Record<string, unknown>)?.id || 0)),
     clientBusinessName: salesOrders?.clients?.business_name || '',
+    clientCuit: salesOrders?.clients?.cuit || '',
+    clientTaxCondition: salesOrders?.clients?.tax_conditions?.name || '',
     invoiceDate: i.invoice_date as Date,
+    usdExchangeRate: i.usd_exchange_rate ? parseFloat(String(i.usd_exchange_rate)) : null,
+    specialDiscountPercent: salesOrders?.special_discount_percent ? parseFloat(String(salesOrders.special_discount_percent)) : 0,
     netAmount: parseFloat(String(i.net_amount)),
     taxAmount: parseFloat(String(i.tax_amount)),
     totalAmount: parseFloat(String(i.total_amount)),
-    notes: i.notes as string | null,
+    isPrinted: i.is_printed as boolean,
+    printedAt: i.printed_at as Date | null,
     isCancelled: i.is_cancelled as boolean,
     cancelledAt: i.cancelled_at as Date | null,
     cancellationReason: i.cancellation_reason as string | null,
-    isPrinted: i.is_printed as boolean,
-    printedAt: i.printed_at as Date | null,
-    usdExchangeRate: i.usd_exchange_rate ? parseFloat(String(i.usd_exchange_rate)) : null,
     isCreditNote: i.is_credit_note as boolean,
     isQuotation: i.is_quotation as boolean,
-    itemsCount: salesOrders?.sales_order_items?.length || 0,
+    notes: i.notes as string | null,
     createdAt: i.created_at as Date,
     updatedAt: i.updated_at as Date,
+    items: salesOrderItems.map((item) => {
+      const articles = item.articles as { code?: string; description?: string } | undefined;
+      
+      return {
+        id: parseInt(String((item.id as bigint | number))),
+        articleId: parseInt(String((item.article_id as bigint | number))),
+        articleCode: articles?.code || '',
+        articleDescription: articles?.description || '',
+        quantity: item.quantity as number,
+        unitPrice: parseFloat(String(item.unit_price)),
+        discountPercent: parseFloat(String(item.discount_percent)),
+        lineTotal: parseFloat(String(item.line_total)),
+      };
+    }),
   };
 }
+
 
 
