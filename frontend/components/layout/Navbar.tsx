@@ -26,9 +26,19 @@ export default function Navbar() {
   const { getTotalItems } = useQuickCartTabs();
   
   // Automatically detect bottom bar and calculate positions
-  const { bottomBarHeight } = useFixedBottomBar();
+  const { bottomBarHeight, isDetecting } = useFixedBottomBar();
   const { width: windowWidth } = useWindowSize();
   const cartPositions = calculateCartPositions(bottomBarHeight, windowWidth);
+  
+  // Debug logging
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+    console.log('🎯 Navbar cart positions:', {
+      bottomBarHeight,
+      windowWidth,
+      isDetecting,
+      cartPositions,
+    });
+  }
   
   const totalCartItems = getTotalItems();
   

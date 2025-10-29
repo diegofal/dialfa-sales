@@ -44,12 +44,16 @@ export const CART_CONSTANTS = {
  * @param windowWidth - Current window width for responsive calculations
  */
 export function calculateCartPositions(bottomBarHeight: number, windowWidth?: number) {
-  const isMobile = windowWidth ? windowWidth < CART_CONSTANTS.POPUP.MOBILE_MAX_WIDTH : false;
-  const isTablet = windowWidth ? windowWidth < CART_CONSTANTS.POPUP.TABLET_MAX_WIDTH : false;
+  // Ensure we have valid numbers
+  const safeBottomBarHeight = typeof bottomBarHeight === 'number' && !isNaN(bottomBarHeight) ? bottomBarHeight : 0;
+  const safeWindowWidth = typeof windowWidth === 'number' && !isNaN(windowWidth) ? windowWidth : 1024;
+  
+  const isMobile = safeWindowWidth < CART_CONSTANTS.POPUP.MOBILE_MAX_WIDTH;
+  const isTablet = safeWindowWidth < CART_CONSTANTS.POPUP.TABLET_MAX_WIDTH;
 
   // Calculate button position
-  const buttonBottom = bottomBarHeight > 0
-    ? bottomBarHeight + CART_CONSTANTS.BUTTON.MARGIN_NORMAL
+  const buttonBottom = safeBottomBarHeight > 0
+    ? safeBottomBarHeight + CART_CONSTANTS.BUTTON.MARGIN_NORMAL
     : CART_CONSTANTS.BUTTON.MARGIN_NORMAL;
 
   // Calculate popup position (above button with gap)
@@ -61,10 +65,10 @@ export function calculateCartPositions(bottomBarHeight: number, windowWidth?: nu
   // Responsive adjustments
   const buttonRight = isMobile ? 16 : CART_CONSTANTS.BUTTON.MARGIN_RIGHT; // Closer to edge on mobile
   const popupRight = isMobile ? 8 : CART_CONSTANTS.BUTTON.MARGIN_RIGHT;
-  const popupWidth = isMobile ? windowWidth! - 16 : CART_CONSTANTS.POPUP.WIDTH_NORMAL;
+  const popupWidth = isMobile ? safeWindowWidth - 16 : CART_CONSTANTS.POPUP.WIDTH_NORMAL;
   const popupHeight = isMobile ? 500 : CART_CONSTANTS.POPUP.HEIGHT_NORMAL;
 
-  return {
+  const result = {
     button: {
       bottom: buttonBottom,
       right: buttonRight,
@@ -84,9 +88,19 @@ export function calculateCartPositions(bottomBarHeight: number, windowWidth?: nu
       right: popupRight + 24, // Slightly offset from popup
       bottomClass: `bottom-[${editDropdownBottom}px]`,
     },
-    hasBottomBar: bottomBarHeight > 0,
+    hasBottomBar: safeBottomBarHeight > 0,
     isMobile,
     isTablet,
   };
+  
+  // Debug logging in development
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+    console.log('📐 calculateCartPositions:', {
+      input: { bottomBarHeight: safeBottomBarHeight, windowWidth: safeWindowWidth },
+      output: result,
+    });
+  }
+  
+  return result;
 }
 

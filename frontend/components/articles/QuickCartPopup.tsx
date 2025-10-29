@@ -398,17 +398,37 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
   const popupPosition = positions.popup.bottom;
   const popupRight = positions.popup.right;
   
+  // Debug logging in development
+  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+    console.log('🎨 Cart Popup positions:', {
+      popupBottom: popupPosition,
+      popupRight: popupRight,
+      isExpanded,
+      dimensions: currentDimensions,
+      hasBottomBar: positions.hasBottomBar,
+    });
+  }
+  
   return (
     <>
       <Card 
         ref={cardRef}
         className={`fixed shadow-2xl flex flex-col ${
-          isExpanded ? 'inset-4' : ''
+          isExpanded ? '' : ''
         }`}
         style={{
-          bottom: isExpanded ? undefined : `${popupPosition}px`,
-          right: isExpanded ? undefined : `${popupRight}px`,
-          inset: isExpanded ? '1rem' : undefined,
+          // When expanded: use inset, when normal: use bottom/right
+          ...(isExpanded ? {
+            top: '1rem',
+            left: '1rem',
+            right: '1rem',
+            bottom: '1rem',
+          } : {
+            top: 'auto',
+            left: 'auto',
+            bottom: `${popupPosition}px`,
+            right: `${popupRight}px`,
+          }),
           width: `${currentDimensions.width}px`,
           height: `${currentDimensions.height}px`,
           maxWidth: isExpanded ? '95vw' : undefined,
