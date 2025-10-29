@@ -170,3 +170,4 @@ export function canGenerateInvoice(salesOrder: SalesOrder | null | undefined): {
   return { canGenerate: true };
 }
 
+
