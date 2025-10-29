@@ -31,15 +31,30 @@ export function SingleStepOrderForm() {
   const searchParams = useSearchParams();
   const fromQuickCart = searchParams.get('fromQuickCart') === 'true';
   const tabId = searchParams.get('tabId');
-  const { tabs, activeTab, clearSpecificTabCompletely, removeTab } = useQuickCartTabs();
+  const { 
+    tabs, 
+    activeTab,
+    removeTab,
+    setActiveTab,
+    addItem,
+    removeItem,
+    updateQuantity,
+    setClient: setTabClient,
+    clearClient: clearTabClient,
+    ensureTabExists,
+    getTabItems,
+    replaceItem,
+  } = useQuickCartTabs();
   
-  const [clientId, setClientId] = useState<number | undefined>();
-  const [clientName, setClientName] = useState<string>('');
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
   const [deliveryDate, setDeliveryDate] = useState('');
   const [notes, setNotes] = useState('');
-  const [items, setItems] = useState<OrderItemFormData[]>([]);
   const [loadedFromCart, setLoadedFromCart] = useState(false);
+  const [currentTabId, setCurrentTabId] = useState<string | null>(null);
+  
+  // Store discounts and custom prices separately as they don't exist in QuickCart
+  const [discounts, setDiscounts] = useState<Record<number, number>>({});
+  const [prices, setPrices] = useState<Record<number, number>>({});
 
   // Article search state
   const [articleCode, setArticleCode] = useState('');
@@ -78,71 +93,32 @@ export function SingleStepOrderForm() {
   });
   const editArticles = editArticlesResult?.data || [];
 
+  // Get current tab
+  const currentTab = currentTabId ? tabs.find(t => t.id === currentTabId) : null;
+  const items = currentTab ? currentTab.items : [];
+  const clientId = currentTab?.clientId;
+  const clientName = currentTab?.clientName || '';
+
   // Load data from quick cart if coming from there
   useEffect(() => {
-    if (fromQuickCart && !loadedFromCart) {
-      let cartItems: QuickCartItem[] = [];
-      let cartClientId: number | undefined;
-      let cartClientName: string = '';
-      let cartTabId: string = '';
-      
+    if (fromQuickCart && !loadedFromCart && tabs.length > 0) {
+      // Set the active tab
       if (tabId) {
-        // Load specific tab
         const tab = tabs.find(t => t.id === tabId);
         if (tab) {
-          cartItems = tab.items;
-          cartClientId = tab.clientId;
-          cartClientName = tab.clientName || '';
-          cartTabId = tab.id;
+          setActiveTab(tabId);
+          setCurrentTabId(tabId);
         }
       } else {
-        // Load active tab
-        cartItems = activeTab.items;
-        cartClientId = activeTab.clientId;
-        cartClientName = activeTab.clientName || '';
-        cartTabId = activeTab.id;
-      }
-      
-      if (cartItems.length > 0) {
-        const orderItems = cartItems.map((item) => ({
-          articleId: item.article.id,
-          articleCode: item.article.code,
-          articleDescription: item.article.description,
-          quantity: item.quantity,
-          unitPrice: item.article.unitPrice,
-          discountPercent: 0,
-          stock: item.article.stock,
-        }));
-        
-        setItems(orderItems);
-        
-        // Clear the cart immediately after loading items into the form
-        // If there are multiple tabs, remove this tab completely
-        // If it's the only tab, just clear it
-        if (cartTabId) {
-          setTimeout(() => {
-            if (tabs.length > 1) {
-              // Remove the tab if there are multiple tabs
-              removeTab(cartTabId);
-              toast.success(`${cartItems.length} artículo(s) cargados y pestaña eliminada`);
-            } else {
-              // Just clear the tab if it's the only one
-              clearSpecificTabCompletely(cartTabId);
-              toast.success(`${cartItems.length} artículo(s) cargados y carrito limpiado`);
-            }
-          }, 0);
-        }
-      }
-      
-      // Load client if set
-      if (cartClientId && cartClientName) {
-        setClientId(cartClientId);
-        setClientName(cartClientName);
+        setCurrentTabId(activeTab.id);
       }
       
       setLoadedFromCart(true);
+    } else if (fromQuickCart && !loadedFromCart && tabs.length === 0) {
+      // Ensure a tab exists
+      ensureTabExists();
     }
-  }, [fromQuickCart, tabId, tabs, activeTab, loadedFromCart, clearSpecificTabCompletely, removeTab]);
+  }, [fromQuickCart, tabId, tabs, activeTab, loadedFromCart, ensureTabExists, setActiveTab]);
 
   // Reset selected index when articles change
   useEffect(() => {
@@ -190,17 +166,19 @@ export function SingleStepOrderForm() {
   };
 
   const handleSelectClient = (id: number, name: string) => {
-    setClientId(id);
-    setClientName(name);
-    toast.success(`Cliente ${name} seleccionado`, {
-      duration: 2000,
-      position: 'top-center'
-    });
+    if (currentTabId) {
+      setTabClient(id, name);
+      toast.success(`Cliente ${name} seleccionado`, {
+        duration: 2000,
+        position: 'top-center'
+      });
+    }
   };
 
   const handleClearClient = () => {
-    setClientId(undefined);
-    setClientName('');
+    if (currentTabId) {
+      clearTabClient();
+    }
   };
 
   // Article search keyboard navigation
@@ -236,6 +214,8 @@ export function SingleStepOrderForm() {
   };
 
   const handleAddArticle = () => {
+    if (!currentTabId) return;
+    
     let articleToAdd = selectedArticle;
     
     if (!articleToAdd && articleCode && articles.length > 0) {
@@ -262,34 +242,13 @@ export function SingleStepOrderForm() {
       return;
     }
 
-    // Check if article already exists
-    const existingIndex = items.findIndex(item => item.articleId === articleToAdd!.id);
-    if (existingIndex >= 0) {
-      // Update quantity
-      const updatedItems = [...items];
-      updatedItems[existingIndex].quantity += qty;
-      setItems(updatedItems);
-      toast.success(`Cantidad actualizada para ${articleToAdd.code}`, {
-        duration: 2000,
-        position: 'top-center'
-      });
-    } else {
-      // Add new item
-      const newItem: OrderItemFormData = {
-        articleId: articleToAdd.id,
-        articleCode: articleToAdd.code,
-        articleDescription: articleToAdd.description,
-        quantity: qty,
-        unitPrice: articleToAdd.unitPrice,
-        discountPercent: 0,
-        stock: articleToAdd.stock,
-      };
-      setItems([...items, newItem]);
-      toast.success(`${articleToAdd.code} agregado`, {
-        duration: 2000,
-        position: 'top-center'
-      });
-    }
+    // Use hook's addItem function
+    addItem(articleToAdd, qty);
+    
+    toast.success(`${articleToAdd.code} agregado`, {
+      duration: 2000,
+      position: 'top-center'
+    });
     
     // Reset form
     setArticleCode('');
@@ -322,22 +281,11 @@ export function SingleStepOrderForm() {
   };
 
   const handleSelectEditArticle = (article: Article) => {
-    if (!editingItemId) return;
+    if (!editingItemId || !currentTabId) return;
 
-    const itemIndex = items.findIndex(item => item.articleId === editingItemId);
-    if (itemIndex === -1) return;
-
-    const updatedItems = [...items];
-    updatedItems[itemIndex] = {
-      ...updatedItems[itemIndex],
-      articleId: article.id,
-      articleCode: article.code,
-      articleDescription: article.description,
-      unitPrice: article.unitPrice,
-      stock: article.stock,
-    };
+    // Use hook's replaceItem function
+    replaceItem(editingItemId, article);
     
-    setItems(updatedItems);
     toast.success(`Artículo actualizado a ${article.code}`, {
       duration: 2000,
       position: 'top-center'
@@ -367,7 +315,9 @@ export function SingleStepOrderForm() {
   };
 
   const handleRemoveItem = (articleId: number) => {
-    setItems(items.filter(item => item.articleId !== articleId));
+    if (!currentTabId) return;
+    
+    removeItem(articleId);
     toast.success('Artículo eliminado', {
       duration: 2000,
       position: 'top-center'
@@ -375,32 +325,30 @@ export function SingleStepOrderForm() {
   };
 
   const handleUpdateQuantity = (articleId: number, newQuantity: number) => {
-    if (newQuantity <= 0) return;
-    const updatedItems = items.map(item =>
-      item.articleId === articleId ? { ...item, quantity: newQuantity } : item
-    );
-    setItems(updatedItems);
+    if (!currentTabId || newQuantity <= 0) return;
+    updateQuantity(articleId, newQuantity);
   };
 
   const handleUpdateUnitPrice = (articleId: number, newPrice: number) => {
+    // Unit price changes are stored separately as they don't exist in QuickCart
     if (newPrice < 0) return;
-    const updatedItems = items.map(item =>
-      item.articleId === articleId ? { ...item, unitPrice: newPrice } : item
-    );
-    setItems(updatedItems);
+    setPrices(prev => ({ ...prev, [articleId]: newPrice }));
   };
 
   const handleUpdateDiscount = (articleId: number, newDiscount: number) => {
+    // Discounts are stored separately as they don't exist in QuickCart
     if (newDiscount < 0 || newDiscount > 100) return;
-    const updatedItems = items.map(item =>
-      item.articleId === articleId ? { ...item, discountPercent: newDiscount } : item
-    );
-    setItems(updatedItems);
+    setDiscounts(prev => ({ ...prev, [articleId]: newDiscount }));
   };
 
-  const calculateLineTotal = (item: OrderItemFormData) => {
-    const subtotal = item.quantity * item.unitPrice;
-    const discount = subtotal * (item.discountPercent / 100);
+  const calculateLineTotal = (item: QuickCartItem) => {
+    const articleId = item.article.id;
+    const quantity = item.quantity;
+    const unitPrice = prices[articleId] ?? item.article.unitPrice;
+    const discountPercent = discounts[articleId] ?? 0;
+    
+    const subtotal = quantity * unitPrice;
+    const discount = subtotal * (discountPercent / 100);
     return subtotal - discount;
   };
 
@@ -437,21 +385,23 @@ export function SingleStepOrderForm() {
     // Validate items
     for (const item of items) {
       if (item.quantity <= 0) {
-        toast.error(`La cantidad de ${item.articleCode} debe ser mayor a 0`, {
+        toast.error(`La cantidad de ${item.article.code} debe ser mayor a 0`, {
           duration: 3000,
           position: 'top-center'
         });
         return;
       }
-      if (item.unitPrice < 0) {
-        toast.error(`El precio de ${item.articleCode} no puede ser negativo`, {
+      const unitPrice = prices[item.article.id] ?? item.article.unitPrice;
+      if (unitPrice < 0) {
+        toast.error(`El precio de ${item.article.code} no puede ser negativo`, {
           duration: 3000,
           position: 'top-center'
         });
         return;
       }
-      if (item.discountPercent < 0 || item.discountPercent > 100) {
-        toast.error(`El descuento de ${item.articleCode} debe estar entre 0 y 100%`, {
+      const discountPercent = discounts[item.article.id] ?? 0;
+      if (discountPercent < 0 || discountPercent > 100) {
+        toast.error(`El descuento de ${item.article.code} debe estar entre 0 y 100%`, {
           duration: 3000,
           position: 'top-center'
         });
@@ -466,14 +416,21 @@ export function SingleStepOrderForm() {
         deliveryDate: deliveryDate || undefined,
         notes: notes || undefined,
         items: items.map((item) => ({
-          articleId: item.articleId,
+          articleId: item.article.id,
           quantity: item.quantity,
-          unitPrice: item.unitPrice,
-          discountPercent: item.discountPercent,
+          unitPrice: prices[item.article.id] ?? item.article.unitPrice,
+          discountPercent: discounts[item.article.id] ?? 0,
         })),
       };
 
       await createOrderMutation.mutateAsync(request);
+      
+      // Remove or clear the tab after successful order creation
+      if (currentTabId) {
+        if (tabs.length > 1) {
+          removeTab(currentTabId);
+        }
+      }
       
       toast.success('Pedido creado exitosamente');
       router.push('/dashboard/sales-orders');
@@ -673,12 +630,12 @@ export function SingleStepOrderForm() {
                 ) : (
                   items.map((item) => (
                     <div
-                      key={item.articleId}
+                      key={item.article.id}
                       className="border rounded-lg p-3 space-y-2 bg-card hover:bg-accent/5 transition-colors"
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
-                          {editingItemId === item.articleId ? (
+                          {editingItemId === item.article.id ? (
                             <div className="relative">
                               <div className="flex items-center gap-2 mb-2">
                                 <Input
@@ -743,30 +700,30 @@ export function SingleStepOrderForm() {
                           ) : (
                             <div className="flex items-center gap-2">
                               <div className="font-medium text-sm font-mono">
-                                {item.articleCode}
+                                {item.article.code}
                               </div>
                               <Button
                                 variant="ghost"
                                 size="icon"
                                 className="h-5 w-5"
-                                onClick={() => handleEditItem(item.articleId, item.articleCode)}
+                                onClick={() => handleEditItem(item.article.id, item.article.code)}
                               >
                                 <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
                               </Button>
                             </div>
                           )}
                           <div className="text-xs text-muted-foreground truncate">
-                            {item.articleDescription}
+                            {item.article.description}
                           </div>
                           <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
-                            <span>Stock: <span className={getStockStatusClass(item.stock)}>{item.stock}</span></span>
+                            <span>Stock: <span className={getStockStatusClass(item.article.stock)}>{item.article.stock}</span></span>
                           </div>
                         </div>
                         <Button
                           variant="ghost"
                           size="icon"
                           className="h-8 w-8"
-                          onClick={() => handleRemoveItem(item.articleId)}
+                          onClick={() => handleRemoveItem(item.article.id)}
                         >
                           <Trash2 className="h-4 w-4 text-red-600" />
                         </Button>
@@ -779,7 +736,7 @@ export function SingleStepOrderForm() {
                             type="number"
                             min="1"
                             value={item.quantity}
-                            onChange={(e) => handleUpdateQuantity(item.articleId, parseInt(e.target.value) || 1)}
+                            onChange={(e) => handleUpdateQuantity(item.article.id, parseInt(e.target.value) || 1)}
                             className="h-8 text-sm"
                             onFocus={(e) => e.target.select()}
                           />
@@ -790,8 +747,8 @@ export function SingleStepOrderForm() {
                             type="number"
                             min="0"
                             step="0.01"
-                            value={item.unitPrice}
-                            onChange={(e) => handleUpdateUnitPrice(item.articleId, parseFloat(e.target.value) || 0)}
+                            value={prices[item.article.id] ?? item.article.unitPrice}
+                            onChange={(e) => handleUpdateUnitPrice(item.article.id, parseFloat(e.target.value) || 0)}
                             className="h-8 text-sm"
                             onFocus={(e) => e.target.select()}
                           />
@@ -803,8 +760,8 @@ export function SingleStepOrderForm() {
                             min="0"
                             max="100"
                             step="0.01"
-                            value={item.discountPercent}
-                            onChange={(e) => handleUpdateDiscount(item.articleId, parseFloat(e.target.value) || 0)}
+                            value={discounts[item.article.id] ?? 0}
+                            onChange={(e) => handleUpdateDiscount(item.article.id, parseFloat(e.target.value) || 0)}
                             className="h-8 text-sm"
                             onFocus={(e) => e.target.select()}
                           />

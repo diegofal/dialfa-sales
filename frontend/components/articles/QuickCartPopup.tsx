@@ -218,15 +218,26 @@ export function QuickCartPopup({ isOpen, onClose }: QuickCartPopupProps) {
     }
   }, [selectedEditIndex]);
 
-  // Focus article search when cart opens
+  // Refresh data and focus article search when cart opens
   useEffect(() => {
     if (isOpen) {
+      // Force refresh from localStorage to get latest data
+      // This ensures we see any changes made in the main form
+      window.dispatchEvent(new Event('quick-cart-tabs-updated'));
+      
       // Small delay to ensure DOM is ready
       setTimeout(() => {
         setArticleFocusTrigger(prev => prev + 1);
       }, 100);
     }
   }, [isOpen]);
+
+  // Auto-create a tab if none exist when cart opens
+  useEffect(() => {
+    if (isOpen && tabs.length === 0) {
+      addTab();
+    }
+  }, [isOpen, tabs.length, addTab]);
 
   // Handle ESC key to close the cart
   useEffect(() => {

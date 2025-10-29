@@ -8,19 +8,21 @@ import {
   Users, 
   FolderTree,
   Package, 
-  ShoppingCart,
   FileText,
   Truck,
   TrendingUp,
   Settings,
 } from 'lucide-react';
+import PedidosMenuItem from './PedidosMenuItem';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Clientes', href: '/dashboard/clients', icon: Users },
   { name: 'Categorías', href: '/dashboard/categories', icon: FolderTree },
   { name: 'Artículos', href: '/dashboard/articles', icon: Package },
-  { name: 'Pedidos', href: '/dashboard/sales-orders', icon: ShoppingCart },
+];
+
+const navigationAfterPedidos = [
   { name: 'Facturas', href: '/dashboard/invoices', icon: FileText },
   { name: 'Remitos', href: '/dashboard/delivery-notes', icon: Truck },
   { name: 'Reportes', href: '/dashboard/reports', icon: TrendingUp },
@@ -37,6 +39,28 @@ export default function Sidebar() {
       </div>
       <nav className="flex-1 space-y-1 px-3 py-4">
         {navigation.map((item) => {
+          const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={cn(
+                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                isActive
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+              )}
+            >
+              <item.icon className="h-5 w-5" />
+              {item.name}
+            </Link>
+          );
+        })}
+        
+        {/* Pedidos with expandable sub-items */}
+        <PedidosMenuItem />
+        
+        {navigationAfterPedidos.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
             <Link

@@ -39,17 +39,10 @@ const getStateFromStorage = (): QuickCartState => {
     console.error('Error loading quick cart:', error);
   }
   
-  // Default state with one tab
-  const defaultTab: QuickCartTab = {
-    id: `tab-${Date.now()}`,
-    name: 'Pedido 1',
-    items: [],
-    createdAt: Date.now(),
-  };
-  
+  // Default state with no tabs initially
   return {
-    tabs: [defaultTab],
-    activeTabId: defaultTab.id,
+    tabs: [],
+    activeTabId: '',
   };
 };
 
@@ -86,7 +79,19 @@ export function useQuickCartTabs() {
   }, []);
 
   // Get active tab
-  const activeTab = state.tabs.find(tab => tab.id === state.activeTabId) || state.tabs[0];
+  const activeTab = state.tabs.find(tab => tab.id === state.activeTabId) || state.tabs[0] || {
+    id: '',
+    name: '',
+    items: [],
+    createdAt: Date.now(),
+  };
+
+  // Ensure at least one tab exists when needed
+  const ensureTabExists = () => {
+    if (state.tabs.length === 0) {
+      addTab();
+    }
+  };
 
   // Add new tab
   const addTab = () => {
@@ -108,11 +113,9 @@ export function useQuickCartTabs() {
 
   // Remove tab
   const removeTab = (tabId: string) => {
-    if (state.tabs.length === 1) return; // Keep at least one tab
-    
     const filteredTabs = state.tabs.filter(tab => tab.id !== tabId);
     const newActiveTabId = tabId === state.activeTabId 
-      ? filteredTabs[0].id 
+      ? (filteredTabs.length > 0 ? filteredTabs[0].id : '')
       : state.activeTabId;
     
     const newState: QuickCartState = {
@@ -368,6 +371,40 @@ export function useQuickCartTabs() {
     setState(newState);
   };
 
+  // Set items for a specific tab
+  const setTabItems = (tabId: string, items: QuickCartItem[]) => {
+    const updatedTabs = state.tabs.map(tab =>
+      tab.id === tabId
+        ? { ...tab, items }
+        : tab
+    );
+    
+    const newState: QuickCartState = {
+      ...state,
+      tabs: updatedTabs,
+    };
+    
+    saveStateToStorage(newState);
+    setState(newState);
+  };
+
+  // Set client for a specific tab
+  const setTabClient = (tabId: string, clientId: number, clientName: string) => {
+    const updatedTabs = state.tabs.map(tab =>
+      tab.id === tabId
+        ? { ...tab, clientId, clientName, name: clientName }
+        : tab
+    );
+    
+    const newState: QuickCartState = {
+      ...state,
+      tabs: updatedTabs,
+    };
+    
+    saveStateToStorage(newState);
+    setState(newState);
+  };
+
   return {
     tabs: state.tabs,
     activeTab,
@@ -388,9 +425,12 @@ export function useQuickCartTabs() {
     getTabItems,
     clearSpecificCart,
     clearSpecificTabCompletely,
+    setTabItems,
+    setTabClient,
     getTotalItems,
     getActiveTabTotalItems,
     getTotalValue,
+    ensureTabExists,
   };
 }
 
