@@ -98,7 +98,7 @@ export default function PedidosMenuItem() {
           Pedidos
         </Link>
 
-        {/* Sub-items (Quick Cart Tabs) */}
+        {/* Sub-items (Quick Cart Tabs - All tabs shown in sidebar) */}
         {isExpanded && (
           <div className="ml-6 space-y-1">
             {tabs.length === 0 ? (

@@ -113,9 +113,12 @@ export function useQuickCartTabs() {
 
   // Add new tab
   const addTab = () => {
+    // Count only draft tabs (without orderId) for numbering
+    const draftCount = state.tabs.filter(tab => !tab.orderId).length;
+    
     const newTab: QuickCartTab = {
       id: `tab-${Date.now()}`,
-      name: `Pedido ${state.tabs.length + 1}`,
+      name: `Pedido ${draftCount + 1}`,
       items: [],
       createdAt: Date.now(),
     };
@@ -175,9 +178,14 @@ export function useQuickCartTabs() {
 
   // Clear client for active tab
   const clearClient = () => {
+    // Calculate the draft index for naming
+    const draftTabs = state.tabs.filter(tab => !tab.orderId);
+    const draftIndex = draftTabs.findIndex(tab => tab.id === state.activeTabId);
+    const tabName = draftIndex >= 0 ? `Pedido ${draftIndex + 1}` : 'Pedido';
+    
     const updatedTabs = state.tabs.map(tab =>
       tab.id === state.activeTabId
-        ? { ...tab, clientId: undefined, clientName: undefined, name: `Pedido ${state.tabs.indexOf(tab) + 1}` }
+        ? { ...tab, clientId: undefined, clientName: undefined, name: tabName }
         : tab
     );
     
@@ -192,9 +200,14 @@ export function useQuickCartTabs() {
 
   // Clear client for a specific tab
   const clearSpecificClient = (tabId: string) => {
+    // Calculate the draft index for naming
+    const draftTabs = state.tabs.filter(tab => !tab.orderId);
+    const draftIndex = draftTabs.findIndex(tab => tab.id === tabId);
+    const tabName = draftIndex >= 0 ? `Pedido ${draftIndex + 1}` : 'Pedido';
+    
     const updatedTabs = state.tabs.map(tab =>
       tab.id === tabId
-        ? { ...tab, clientId: undefined, clientName: undefined, name: `Pedido ${state.tabs.indexOf(tab) + 1}` }
+        ? { ...tab, clientId: undefined, clientName: undefined, name: tabName }
         : tab
     );
     
@@ -367,7 +380,11 @@ export function useQuickCartTabs() {
 
   // Clear both items and client from a specific tab
   const clearSpecificTabCompletely = (tabId: string) => {
-    const tabIndex = state.tabs.findIndex(t => t.id === tabId);
+    // Calculate the draft index for naming
+    const draftTabs = state.tabs.filter(tab => !tab.orderId);
+    const draftIndex = draftTabs.findIndex(tab => tab.id === tabId);
+    const tabName = draftIndex >= 0 ? `Pedido ${draftIndex + 1}` : 'Pedido';
+    
     const updatedTabs = state.tabs.map(tab =>
       tab.id === tabId
         ? { 
@@ -375,7 +392,7 @@ export function useQuickCartTabs() {
             items: [], 
             clientId: undefined, 
             clientName: undefined, 
-            name: `Pedido ${tabIndex + 1}` 
+            name: tabName 
           }
         : tab
     );

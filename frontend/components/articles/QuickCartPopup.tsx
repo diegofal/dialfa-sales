@@ -61,6 +61,9 @@ export function QuickCartPopup({ isOpen, onClose }: QuickCartPopupProps) {
     getActiveTabTotalItems,
   } = useQuickCartTabs();
 
+  // Filter out saved orders (only show drafts without orderId)
+  const draftTabs = tabs.filter(tab => !tab.orderId);
+
   // Search articles for editing
   const { data: editArticlesResult } = useArticles({
     searchTerm: editCode,
@@ -234,10 +237,10 @@ export function QuickCartPopup({ isOpen, onClose }: QuickCartPopupProps) {
 
   // Auto-create a tab if none exist when cart opens
   useEffect(() => {
-    if (isOpen && tabs.length === 0) {
+    if (isOpen && draftTabs.length === 0) {
       addTab();
     }
-  }, [isOpen, tabs.length, addTab]);
+  }, [isOpen, draftTabs.length, addTab]);
 
   // Handle ESC key to close the cart
   useEffect(() => {
@@ -315,7 +318,7 @@ export function QuickCartPopup({ isOpen, onClose }: QuickCartPopupProps) {
 
   const handleRemoveTab = (tabId: string, e: React.MouseEvent) => {
     e.stopPropagation();
-    if (tabs.length === 1) {
+    if (draftTabs.length === 1) {
       toast.error('Debe mantener al menos un pedido', {
         duration: 2000,
         position: 'top-center'
@@ -419,7 +422,7 @@ export function QuickCartPopup({ isOpen, onClose }: QuickCartPopupProps) {
         
         {/* Tabs */}
         <div className="flex items-center gap-1 px-2 pb-2 overflow-x-auto">
-          {tabs.map((tab) => (
+          {draftTabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
@@ -440,7 +443,7 @@ export function QuickCartPopup({ isOpen, onClose }: QuickCartPopupProps) {
               {tab.items.length > 0 && (
                 <span className="text-[10px] opacity-70">({tab.items.length})</span>
               )}
-              {tabs.length > 1 && (
+              {draftTabs.length > 1 && (
                 <X
                   className="h-3 w-3 ml-1 hover:bg-destructive/20 rounded"
                   onClick={(e) => handleRemoveTab(tab.id, e)}
