@@ -564,7 +564,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       if (isEditMode && orderId) {
         // Update existing order
         await updateOrderMutation.mutateAsync({ id: orderId, data: requestData });
-        toast.success('Pedido actualizado exitosamente');
+        // Toast is shown by the mutation's onSuccess handler
         router.push('/dashboard/sales-orders');
       } else {
         // Create new order
@@ -572,8 +572,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
         
         // Keep the tab open - don't remove it after creating order
         // This allows user to continue working with the same tab
-        
-        toast.success('Pedido creado exitosamente');
+        // Toast is shown by the mutation's onSuccess handler
         
         // If the order was created, navigate to the edit view to allow further modifications
         if (createdOrder && createdOrder.id) {
@@ -592,7 +591,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       cancelOrderMutation.mutate(orderId, {
         onSuccess: () => {
           setShowCancelDialog(false);
-          toast.success('Pedido cancelado exitosamente');
+          // Toast is shown by the mutation's onSuccess handler
           router.push('/dashboard/sales-orders');
         },
       });
@@ -603,7 +602,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     if (orderId) {
       deleteOrderMutation.mutate(orderId, {
         onSuccess: () => {
-          toast.success('Pedido eliminado exitosamente');
+          // Toast is shown by the mutation's onSuccess handler
           router.push('/dashboard/sales-orders');
         },
       });
