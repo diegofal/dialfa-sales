@@ -218,6 +218,33 @@ export function QuickCartPopup({ isOpen, onClose }: QuickCartPopupProps) {
     }
   }, [selectedEditIndex]);
 
+  // Focus article search when cart opens
+  useEffect(() => {
+    if (isOpen) {
+      // Small delay to ensure DOM is ready
+      setTimeout(() => {
+        setArticleFocusTrigger(prev => prev + 1);
+      }, 100);
+    }
+  }, [isOpen]);
+
+  // Handle ESC key to close the cart
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen && !editingItemId) {
+        // Only close if not editing an item
+        onClose();
+      }
+    };
+
+    if (isOpen) {
+      document.addEventListener('keydown', handleKeyDown);
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown);
+      };
+    }
+  }, [isOpen, onClose, editingItemId]);
+
   if (!isOpen) return null;
 
   const formatCurrency = (amount: number) => {

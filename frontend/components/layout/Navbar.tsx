@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { useLogout } from '@/lib/hooks/useAuth';
@@ -26,6 +26,30 @@ export default function Navbar() {
   const pathname = usePathname();
   
   const totalCartItems = getTotalItems();
+  
+  // Handle SPACE key to toggle cart
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Only toggle cart with SPACE if:
+      // 1. Not focused on an input, textarea, or contenteditable element
+      // 2. SPACE key is pressed
+      const target = e.target as HTMLElement;
+      const isInputFocused = 
+        target.tagName === 'INPUT' || 
+        target.tagName === 'TEXTAREA' || 
+        target.isContentEditable;
+
+      if (e.code === 'Space' && !isInputFocused) {
+        e.preventDefault(); // Prevent page scroll
+        setCartOpen(prev => !prev);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, []);
   
   // Check if we're on a page with fixed bottom buttons
   const hasFixedBottomButtons = pathname === '/dashboard/sales-orders/new' || pathname === '/dashboard/invoices/new';

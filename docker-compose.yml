@@ -15,7 +15,8 @@ services:
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=es_AR.UTF-8"
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
+      # Schema is now managed by Prisma migrations, not by init scripts
+      # - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
       - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
     ports:
       - "5432:5432"

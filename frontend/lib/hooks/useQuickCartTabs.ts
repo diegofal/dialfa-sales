@@ -169,6 +169,23 @@ export function useQuickCartTabs() {
     setState(newState);
   };
 
+  // Clear client for a specific tab
+  const clearSpecificClient = (tabId: string) => {
+    const updatedTabs = state.tabs.map(tab =>
+      tab.id === tabId
+        ? { ...tab, clientId: undefined, clientName: undefined, name: `Pedido ${state.tabs.indexOf(tab) + 1}` }
+        : tab
+    );
+    
+    const newState: QuickCartState = {
+      ...state,
+      tabs: updatedTabs,
+    };
+    
+    saveStateToStorage(newState);
+    setState(newState);
+  };
+
   // Add item to active tab
   const addItem = (article: Article, quantity: number = 1) => {
     const updatedTabs = state.tabs.map(tab => {
@@ -327,6 +344,30 @@ export function useQuickCartTabs() {
     setState(newState);
   };
 
+  // Clear both items and client from a specific tab
+  const clearSpecificTabCompletely = (tabId: string) => {
+    const tabIndex = state.tabs.findIndex(t => t.id === tabId);
+    const updatedTabs = state.tabs.map(tab =>
+      tab.id === tabId
+        ? { 
+            ...tab, 
+            items: [], 
+            clientId: undefined, 
+            clientName: undefined, 
+            name: `Pedido ${tabIndex + 1}` 
+          }
+        : tab
+    );
+    
+    const newState: QuickCartState = {
+      ...state,
+      tabs: updatedTabs,
+    };
+    
+    saveStateToStorage(newState);
+    setState(newState);
+  };
+
   return {
     tabs: state.tabs,
     activeTab,
@@ -338,6 +379,7 @@ export function useQuickCartTabs() {
     setActiveTab,
     setClient,
     clearClient,
+    clearSpecificClient,
     addItem,
     removeItem,
     updateQuantity,
@@ -345,6 +387,7 @@ export function useQuickCartTabs() {
     clearCart,
     getTabItems,
     clearSpecificCart,
+    clearSpecificTabCompletely,
     getTotalItems,
     getActiveTabTotalItems,
     getTotalValue,

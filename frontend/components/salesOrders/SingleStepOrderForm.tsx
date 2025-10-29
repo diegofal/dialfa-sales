@@ -31,7 +31,7 @@ export function SingleStepOrderForm() {
   const searchParams = useSearchParams();
   const fromQuickCart = searchParams.get('fromQuickCart') === 'true';
   const tabId = searchParams.get('tabId');
-  const { tabs, activeTab, clearSpecificCart } = useQuickCartTabs();
+  const { tabs, activeTab, clearSpecificTabCompletely, removeTab } = useQuickCartTabs();
   
   const [clientId, setClientId] = useState<number | undefined>();
   const [clientName, setClientName] = useState<string>('');
@@ -84,6 +84,7 @@ export function SingleStepOrderForm() {
       let cartItems: QuickCartItem[] = [];
       let cartClientId: number | undefined;
       let cartClientName: string = '';
+      let cartTabId: string = '';
       
       if (tabId) {
         // Load specific tab
@@ -92,12 +93,14 @@ export function SingleStepOrderForm() {
           cartItems = tab.items;
           cartClientId = tab.clientId;
           cartClientName = tab.clientName || '';
+          cartTabId = tab.id;
         }
       } else {
         // Load active tab
         cartItems = activeTab.items;
         cartClientId = activeTab.clientId;
         cartClientName = activeTab.clientName || '';
+        cartTabId = activeTab.id;
       }
       
       if (cartItems.length > 0) {
@@ -112,19 +115,34 @@ export function SingleStepOrderForm() {
         }));
         
         setItems(orderItems);
-        toast.success(`${cartItems.length} artículo(s) cargados desde la consulta rápida`);
+        
+        // Clear the cart immediately after loading items into the form
+        // If there are multiple tabs, remove this tab completely
+        // If it's the only tab, just clear it
+        if (cartTabId) {
+          setTimeout(() => {
+            if (tabs.length > 1) {
+              // Remove the tab if there are multiple tabs
+              removeTab(cartTabId);
+              toast.success(`${cartItems.length} artículo(s) cargados y pestaña eliminada`);
+            } else {
+              // Just clear the tab if it's the only one
+              clearSpecificTabCompletely(cartTabId);
+              toast.success(`${cartItems.length} artículo(s) cargados y carrito limpiado`);
+            }
+          }, 0);
+        }
       }
       
       // Load client if set
       if (cartClientId && cartClientName) {
         setClientId(cartClientId);
         setClientName(cartClientName);
-        toast.success(`Cliente ${cartClientName} seleccionado`);
       }
       
       setLoadedFromCart(true);
     }
-  }, [fromQuickCart, tabId, tabs, activeTab, loadedFromCart]);
+  }, [fromQuickCart, tabId, tabs, activeTab, loadedFromCart, clearSpecificTabCompletely, removeTab]);
 
   // Reset selected index when articles change
   useEffect(() => {
@@ -457,12 +475,7 @@ export function SingleStepOrderForm() {
 
       await createOrderMutation.mutateAsync(request);
       
-      // Clear quick cart if loaded from there
-      if (fromQuickCart && loadedFromCart && tabId) {
-        clearSpecificCart(tabId);
-        toast.success('Pedido creado y lista de consulta limpiada');
-      }
-      
+      toast.success('Pedido creado exitosamente');
       router.push('/dashboard/sales-orders');
     } catch (error) {
       console.error('Error creating order:', error);
