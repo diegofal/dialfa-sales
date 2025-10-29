@@ -54,7 +54,7 @@ export interface CreateSalesOrderItemRequest {
 }
 
 export interface UpdateSalesOrderRequest {
-  id: number;
+  clientId: number;
   orderDate: string;
   deliveryDate?: string;
   notes?: string;

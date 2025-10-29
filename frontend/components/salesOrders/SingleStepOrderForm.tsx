@@ -12,9 +12,21 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { useQuickCartTabs, QuickCartItem } from '@/lib/hooks/useQuickCartTabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ShoppingCart, User, X, Trash2, Pencil, Search, Plus } from 'lucide-react';
+import { ShoppingCart, User, X, Trash2, Pencil, Search, Plus, XCircle, FileText } from 'lucide-react';
 import { useArticles } from '@/lib/hooks/useArticles';
 import type { Article } from '@/types/article';
+import { useSalesOrder, useUpdateSalesOrder, useCancelSalesOrder, useDeleteSalesOrder } from '@/lib/hooks/useSalesOrders';
+import { Badge } from '@/components/ui/badge';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface OrderItemFormData {
   articleId: number;
@@ -26,11 +38,23 @@ interface OrderItemFormData {
   stock: number;
 }
 
-export function SingleStepOrderForm() {
+interface SingleStepOrderFormProps {
+  orderId?: number;
+}
+
+export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const fromQuickCart = searchParams.get('fromQuickCart') === 'true';
   const tabId = searchParams.get('tabId');
+  
+  // Determine if we're in edit mode
+  const isEditMode = !!orderId;
+  
+  // Load existing order if in edit mode
+  const { data: existingOrder, isLoading: isLoadingOrder } = useSalesOrder(orderId || 0);
+  const isReadOnly = isEditMode && existingOrder && existingOrder.status !== 'PENDING';
+  
   const { 
     tabs, 
     activeTab,
@@ -44,12 +68,15 @@ export function SingleStepOrderForm() {
     ensureTabExists,
     getTabItems,
     replaceItem,
+    setTabItems,
+    addOrUpdateOrderTab,
   } = useQuickCartTabs();
   
   const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
   const [deliveryDate, setDeliveryDate] = useState('');
   const [notes, setNotes] = useState('');
   const [loadedFromCart, setLoadedFromCart] = useState(false);
+  const [loadedOrderId, setLoadedOrderId] = useState<number | null>(null);
   const [currentTabId, setCurrentTabId] = useState<string | null>(null);
   
   // Store discounts and custom prices separately as they don't exist in QuickCart
@@ -76,6 +103,13 @@ export function SingleStepOrderForm() {
   const selectedEditItemRef = useRef<HTMLButtonElement>(null);
 
   const createOrderMutation = useCreateSalesOrder();
+  const updateOrderMutation = useUpdateSalesOrder();
+  const cancelOrderMutation = useCancelSalesOrder();
+  const deleteOrderMutation = useDeleteSalesOrder();
+
+  // Dialog states for edit mode
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   // Search articles for adding
   const { data: articlesResult } = useArticles({ 
@@ -98,6 +132,60 @@ export function SingleStepOrderForm() {
   const items = currentTab ? currentTab.items : [];
   const clientId = currentTab?.clientId;
   const clientName = currentTab?.clientName || '';
+
+  // Load existing order data into form when in edit mode
+  useEffect(() => {
+    // Only load if we're in edit mode, have the order data, and haven't loaded this specific order yet
+    if (isEditMode && existingOrder && loadedOrderId !== existingOrder.id) {
+      console.log('Loading existing order:', existingOrder.id, existingOrder.orderNumber);
+      
+      // Prepare items first
+      const orderItems: QuickCartItem[] = [];
+      if (existingOrder.items && existingOrder.items.length > 0) {
+        existingOrder.items.forEach(item => {
+          // Set prices and discounts
+          setPrices(prev => ({ ...prev, [item.articleId]: item.unitPrice }));
+          setDiscounts(prev => ({ ...prev, [item.articleId]: item.discountPercent }));
+          
+          // Add to items array
+          orderItems.push({
+            article: {
+              id: item.articleId,
+              code: item.articleCode,
+              description: item.articleDescription,
+              unitPrice: item.unitPrice,
+              stock: 0,
+            } as Article,
+            quantity: item.quantity,
+          });
+        });
+      }
+      
+      // Create or update tab for this order WITH items
+      const tabId = addOrUpdateOrderTab(
+        existingOrder.id,
+        existingOrder.orderNumber,
+        existingOrder.clientId,
+        existingOrder.clientBusinessName
+      );
+      
+      console.log('Created tab with ID:', tabId);
+      
+      // Set items immediately after creating tab
+      if (orderItems.length > 0) {
+        console.log('Setting items for tab:', tabId, orderItems.length);
+        setTabItems(tabId, orderItems);
+      }
+      
+      setCurrentTabId(tabId);
+      setOrderDate(existingOrder.orderDate.split('T')[0]);
+      setDeliveryDate(existingOrder.deliveryDate ? existingOrder.deliveryDate.split('T')[0] : '');
+      setNotes(existingOrder.notes || '');
+      
+      setLoadedFromCart(true);
+      setLoadedOrderId(existingOrder.id); // Mark this order as loaded
+    }
+  }, [isEditMode, existingOrder, loadedOrderId, addOrUpdateOrderTab, setTabItems]);
 
   // Update currentTabId when activeTab changes (from sidebar clicks)
   useEffect(() => {
@@ -171,6 +259,49 @@ export function SingleStepOrderForm() {
     if (stock < 10) return 'text-orange-600 font-semibold';
     return 'text-green-600';
   };
+
+  const getStatusBadge = () => {
+    if (!existingOrder) return null;
+    
+    switch (existingOrder.status) {
+      case 'PENDING':
+        return <Badge variant="secondary">Pendiente</Badge>;
+      case 'INVOICED':
+        return <Badge variant="default" className="bg-green-600">Facturado</Badge>;
+      case 'CANCELLED':
+        return <Badge variant="destructive">Cancelado</Badge>;
+      case 'COMPLETED':
+        return <Badge variant="default" className="bg-blue-600">Completado</Badge>;
+      default:
+        return <Badge variant="outline">{existingOrder.status}</Badge>;
+    }
+  };
+
+  const canEdit = !isEditMode || (existingOrder && existingOrder.status === 'PENDING');
+  const canCancel = isEditMode && existingOrder && existingOrder.status === 'PENDING';
+  const canDelete = isEditMode && existingOrder && existingOrder.status === 'PENDING';
+  const canCreateInvoice = isEditMode && existingOrder && existingOrder.status === 'PENDING';
+
+  // Show loading state when loading existing order
+  if (isEditMode && isLoadingOrder) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <p className="text-muted-foreground">Cargando pedido...</p>
+      </div>
+    );
+  }
+
+  // Show error state if order not found
+  if (isEditMode && !isLoadingOrder && !existingOrder) {
+    return (
+      <div className="flex flex-col items-center justify-center h-96 gap-4">
+        <p className="text-muted-foreground">Pedido no encontrado</p>
+        <Button onClick={() => router.push('/dashboard/sales-orders')}>
+          Volver al listado
+        </Button>
+      </div>
+    );
+  }
 
   const handleSelectClient = (id: number, name: string) => {
     if (currentTabId) {
@@ -417,7 +548,7 @@ export function SingleStepOrderForm() {
     }
 
     try {
-      const request = {
+      const requestData = {
         clientId,
         orderDate,
         deliveryDate: deliveryDate || undefined,
@@ -430,25 +561,82 @@ export function SingleStepOrderForm() {
         })),
       };
 
-      await createOrderMutation.mutateAsync(request);
-      
-      // Remove or clear the tab after successful order creation
-      if (currentTabId) {
-        if (tabs.length > 1) {
-          removeTab(currentTabId);
+      if (isEditMode && orderId) {
+        // Update existing order
+        await updateOrderMutation.mutateAsync({ id: orderId, data: requestData });
+        toast.success('Pedido actualizado exitosamente');
+        router.push('/dashboard/sales-orders');
+      } else {
+        // Create new order
+        const createdOrder = await createOrderMutation.mutateAsync(requestData);
+        
+        // Keep the tab open - don't remove it after creating order
+        // This allows user to continue working with the same tab
+        
+        toast.success('Pedido creado exitosamente');
+        
+        // If the order was created, navigate to the edit view to allow further modifications
+        if (createdOrder && createdOrder.id) {
+          router.push(`/dashboard/sales-orders/${createdOrder.id}/edit`);
+        } else {
+          router.push('/dashboard/sales-orders');
         }
       }
-      
-      toast.success('Pedido creado exitosamente');
-      router.push('/dashboard/sales-orders');
     } catch (error) {
-      console.error('Error creating order:', error);
+      console.error('Error saving order:', error);
+    }
+  };
+
+  const handleCancel = () => {
+    if (orderId) {
+      cancelOrderMutation.mutate(orderId, {
+        onSuccess: () => {
+          setShowCancelDialog(false);
+          toast.success('Pedido cancelado exitosamente');
+          router.push('/dashboard/sales-orders');
+        },
+      });
+    }
+  };
+
+  const handleDelete = () => {
+    if (orderId) {
+      deleteOrderMutation.mutate(orderId, {
+        onSuccess: () => {
+          toast.success('Pedido eliminado exitosamente');
+          router.push('/dashboard/sales-orders');
+        },
+      });
     }
   };
 
   return (
     <div className="space-y-6 pb-24">
-      {fromQuickCart && loadedFromCart && (
+      {/* Order Status Badge for Edit Mode */}
+      {isEditMode && existingOrder && (
+        <Alert>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div>
+                <div className="font-semibold">Pedido #{existingOrder.orderNumber}</div>
+                <div className="text-sm text-muted-foreground">
+                  Fecha: {new Date(existingOrder.orderDate).toLocaleDateString('es-AR')}
+                </div>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              {getStatusBadge()}
+              {isReadOnly && (
+                <Badge variant="outline" className="ml-2">
+                  Solo lectura
+                </Badge>
+              )}
+            </div>
+          </div>
+        </Alert>
+      )}
+
+      {fromQuickCart && loadedFromCart && !isEditMode && (
         <Alert>
           <ShoppingCart className="h-4 w-4" />
           <AlertDescription>
@@ -495,6 +683,7 @@ export function SingleStepOrderForm() {
                   type="date"
                   value={orderDate}
                   onChange={(e) => setOrderDate(e.target.value)}
+                  disabled={isReadOnly}
                   required
                 />
               </div>
@@ -507,6 +696,7 @@ export function SingleStepOrderForm() {
                   value={deliveryDate}
                   onChange={(e) => setDeliveryDate(e.target.value)}
                   min={orderDate}
+                  disabled={isReadOnly}
                 />
               </div>
 
@@ -519,6 +709,7 @@ export function SingleStepOrderForm() {
                   onChange={(e) => setNotes(e.target.value)}
                   rows={1}
                   className="resize-none"
+                  disabled={isReadOnly}
                 />
               </div>
             </div>
@@ -532,7 +723,8 @@ export function SingleStepOrderForm() {
           <div className="space-y-4">
 
               {/* Quick Article Lookup */}
-              <div className="p-4 border rounded-lg bg-muted/30">
+              {!isReadOnly && (
+                <div className="p-4 border rounded-lg bg-muted/30">
                 <div className="flex items-start gap-2">
                   <div className="flex-1 relative">
                     <Label className="text-xs mb-1 block text-muted-foreground">Código de Artículo</Label>
@@ -625,6 +817,7 @@ export function SingleStepOrderForm() {
                   </div>
                 </div>
               </div>
+              )}
 
               {/* Items List */}
               <div className="space-y-2 max-h-[600px] overflow-y-auto">
@@ -709,14 +902,16 @@ export function SingleStepOrderForm() {
                               <div className="font-medium text-sm font-mono">
                                 {item.article.code}
                               </div>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-5 w-5"
-                                onClick={() => handleEditItem(item.article.id, item.article.code)}
-                              >
-                                <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                              </Button>
+                              {!isReadOnly && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-5 w-5"
+                                  onClick={() => handleEditItem(item.article.id, item.article.code)}
+                                >
+                                  <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                                </Button>
+                              )}
                             </div>
                           )}
                           <div className="text-xs text-muted-foreground truncate">
@@ -726,14 +921,16 @@ export function SingleStepOrderForm() {
                             <span>Stock: <span className={getStockStatusClass(item.article.stock)}>{item.article.stock}</span></span>
                           </div>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => handleRemoveItem(item.article.id)}
-                        >
-                          <Trash2 className="h-4 w-4 text-red-600" />
-                        </Button>
+                        {!isReadOnly && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => handleRemoveItem(item.article.id)}
+                          >
+                            <Trash2 className="h-4 w-4 text-red-600" />
+                          </Button>
+                        )}
                       </div>
 
                       <div className="grid grid-cols-3 gap-2">
@@ -746,6 +943,7 @@ export function SingleStepOrderForm() {
                             onChange={(e) => handleUpdateQuantity(item.article.id, parseInt(e.target.value) || 1)}
                             className="h-8 text-sm"
                             onFocus={(e) => e.target.select()}
+                            disabled={isReadOnly}
                           />
                         </div>
                         <div>
@@ -758,6 +956,7 @@ export function SingleStepOrderForm() {
                             onChange={(e) => handleUpdateUnitPrice(item.article.id, parseFloat(e.target.value) || 0)}
                             className="h-8 text-sm"
                             onFocus={(e) => e.target.select()}
+                            disabled={isReadOnly}
                           />
                         </div>
                         <div>
@@ -771,6 +970,7 @@ export function SingleStepOrderForm() {
                             onChange={(e) => handleUpdateDiscount(item.article.id, parseFloat(e.target.value) || 0)}
                             className="h-8 text-sm"
                             onFocus={(e) => e.target.select()}
+                            disabled={isReadOnly}
                           />
                         </div>
                       </div>
@@ -807,22 +1007,101 @@ export function SingleStepOrderForm() {
       <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t z-50">
         <div className="container max-w-7xl mx-auto px-6 py-4">
           <div className="flex justify-between items-center">
-            <Button
-              variant="outline"
-              onClick={() => router.push('/dashboard/sales-orders')}
-            >
-              Cancelar
-            </Button>
-            <Button
-              onClick={handleSubmit}
-              disabled={!clientId || items.length === 0 || createOrderMutation.isPending}
-              size="lg"
-            >
-              {createOrderMutation.isPending ? 'Creando...' : 'Crear Pedido'}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => router.push('/dashboard/sales-orders')}
+              >
+                {isEditMode ? 'Volver' : 'Cancelar'}
+              </Button>
+              {canCancel && (
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCancelDialog(true)}
+                >
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Cancelar Pedido
+                </Button>
+              )}
+              {canDelete && (
+                <Button
+                  variant="outline"
+                  onClick={() => setShowDeleteDialog(true)}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" />
+                  Eliminar
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              {canCreateInvoice && (
+                <Button
+                  variant="outline"
+                  onClick={() => router.push(`/dashboard/invoices/new?orderId=${orderId}`)}
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  Crear Factura
+                </Button>
+              )}
+              {canEdit && (
+                <Button
+                  onClick={handleSubmit}
+                  disabled={!clientId || items.length === 0 || (isEditMode ? updateOrderMutation.isPending : createOrderMutation.isPending)}
+                  size="lg"
+                >
+                  {isEditMode 
+                    ? (updateOrderMutation.isPending ? 'Guardando...' : 'Guardar Cambios')
+                    : (createOrderMutation.isPending ? 'Creando...' : 'Crear Pedido')
+                  }
+                </Button>
+              )}
+            </div>
           </div>
         </div>
       </div>
+
+      {/* Cancel Order Dialog */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Cancelar pedido?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción marcará el pedido como CANCELADO. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Volver</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancel}
+              disabled={cancelOrderMutation.isPending}
+            >
+              {cancelOrderMutation.isPending ? 'Cancelando...' : 'Confirmar Cancelación'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Order Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar pedido?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción eliminará el pedido permanentemente. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Volver</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleteOrderMutation.isPending}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {deleteOrderMutation.isPending ? 'Eliminando...' : 'Confirmar Eliminación'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

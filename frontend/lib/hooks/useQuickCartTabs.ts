@@ -13,6 +13,8 @@ export interface QuickCartTab {
   clientName?: string;
   items: QuickCartItem[];
   createdAt: number;
+  orderId?: number; // If set, this tab represents a saved order being edited
+  orderNumber?: string; // The order number for display
 }
 
 interface QuickCartState {
@@ -49,7 +51,13 @@ const getStateFromStorage = (): QuickCartState => {
 // Helper to save cart to localStorage
 const saveStateToStorage = (state: QuickCartState) => {
   try {
+    console.log('Saving state to localStorage:', state);
+    if (state.tabs.length === 0) {
+      console.warn('WARNING: Saving empty tabs array!');
+      console.trace('Stack trace for empty save:');
+    }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    console.log('State saved successfully');
     dispatchCartUpdate();
   } catch (error) {
     console.error('Error saving quick cart:', error);
@@ -57,19 +65,29 @@ const saveStateToStorage = (state: QuickCartState) => {
 };
 
 export function useQuickCartTabs() {
-  const [state, setState] = useState<QuickCartState>(getStateFromStorage);
+  const [state, setState] = useState<QuickCartState>(() => {
+    // Use function form to ensure this only runs once
+    if (typeof window === 'undefined') {
+      return { tabs: [], activeTabId: '' };
+    }
+    return getStateFromStorage();
+  });
   const [isLoaded, setIsLoaded] = useState(false);
 
   // Load cart from localStorage on mount
   useEffect(() => {
-    setState(getStateFromStorage());
+    const loadedState = getStateFromStorage();
+    console.log('Loading state from localStorage on mount:', loadedState);
+    setState(loadedState);
     setIsLoaded(true);
   }, []);
 
   // Listen for cart updates from other components
   useEffect(() => {
     const handleCartUpdate = () => {
-      setState(getStateFromStorage());
+      const updatedState = getStateFromStorage();
+      console.log('Cart update event received, loading from localStorage:', updatedState);
+      setState(updatedState);
     };
 
     window.addEventListener(CART_UPDATE_EVENT, handleCartUpdate);
@@ -373,14 +391,17 @@ export function useQuickCartTabs() {
 
   // Set items for a specific tab
   const setTabItems = (tabId: string, items: QuickCartItem[]) => {
-    const updatedTabs = state.tabs.map(tab =>
+    // Read latest state from localStorage to avoid stale closure issues
+    const currentState = getStateFromStorage();
+    
+    const updatedTabs = currentState.tabs.map(tab =>
       tab.id === tabId
         ? { ...tab, items }
         : tab
     );
     
     const newState: QuickCartState = {
-      ...state,
+      ...currentState,
       tabs: updatedTabs,
     };
     
@@ -405,6 +426,61 @@ export function useQuickCartTabs() {
     setState(newState);
   };
 
+  // Add or update a tab for editing a saved order
+  const addOrUpdateOrderTab = (orderId: number, orderNumber: string, clientId: number, clientName: string) => {
+    console.log('addOrUpdateOrderTab called:', { orderId, orderNumber, clientId, clientName });
+    console.log('Current tabs:', state.tabs);
+    
+    // Check if a tab for this order already exists
+    const existingTabIndex = state.tabs.findIndex(tab => tab.orderId === orderId);
+    
+    if (existingTabIndex >= 0) {
+      console.log('Updating existing tab at index:', existingTabIndex);
+      // Update existing tab and set as active
+      const updatedTabs = [...state.tabs];
+      updatedTabs[existingTabIndex] = {
+        ...updatedTabs[existingTabIndex],
+        clientId,
+        clientName,
+        name: clientName,
+        orderNumber,
+      };
+      
+      const newState: QuickCartState = {
+        tabs: updatedTabs,
+        activeTabId: updatedTabs[existingTabIndex].id,
+      };
+      
+      saveStateToStorage(newState);
+      setState(newState);
+      console.log('Tab updated, returning ID:', updatedTabs[existingTabIndex].id);
+      return updatedTabs[existingTabIndex].id;
+    } else {
+      console.log('Creating new tab for order');
+      // Create new tab for this order
+      const newTab: QuickCartTab = {
+        id: `order-${orderId}-${Date.now()}`,
+        name: clientName,
+        clientId,
+        clientName,
+        items: [], // Items will be loaded separately
+        createdAt: Date.now(),
+        orderId,
+        orderNumber,
+      };
+      
+      const newState: QuickCartState = {
+        tabs: [...state.tabs, newTab],
+        activeTabId: newTab.id,
+      };
+      
+      saveStateToStorage(newState);
+      setState(newState);
+      console.log('Tab created, returning ID:', newTab.id);
+      return newTab.id;
+    }
+  };
+
   return {
     tabs: state.tabs,
     activeTab,
@@ -427,6 +503,7 @@ export function useQuickCartTabs() {
     clearSpecificTabCompletely,
     setTabItems,
     setTabClient,
+    addOrUpdateOrderTab,
     getTotalItems,
     getActiveTabTotalItems,
     getTotalValue,

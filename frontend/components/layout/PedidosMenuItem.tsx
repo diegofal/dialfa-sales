@@ -25,12 +25,24 @@ export default function PedidosMenuItem() {
   const [isExpanded, setIsExpanded] = useState(true);
   const [tabToRemove, setTabToRemove] = useState<string | null>(null);
 
+  console.log('PedidosMenuItem tabs:', tabs);
+
   const isActive = pathname === '/dashboard/sales-orders' || pathname.startsWith('/dashboard/sales-orders/');
   const isNewOrderPage = pathname === '/dashboard/sales-orders/new';
 
   const handleTabClick = (tabId: string) => {
+    const tab = tabs.find(t => t.id === tabId);
+    if (!tab) return;
+    
     setActiveTab(tabId);
-    router.push(`/dashboard/sales-orders/new?fromQuickCart=true&tabId=${tabId}`);
+    
+    // If it's a saved order, navigate to edit page
+    if (tab.orderId) {
+      router.push(`/dashboard/sales-orders/${tab.orderId}/edit`);
+    } else {
+      // If it's a draft, navigate to new order page with QuickCart
+      router.push(`/dashboard/sales-orders/new?fromQuickCart=true&tabId=${tabId}`);
+    }
   };
 
   const handleRemoveTab = (e: React.MouseEvent, tabId: string) => {
@@ -98,7 +110,12 @@ export default function PedidosMenuItem() {
                 const isTabActive = isNewOrderPage && (
                   pathname.includes(`tabId=${tab.id}`) || 
                   (tab.id === activeTabId && !pathname.includes('tabId='))
+                ) || (
+                  // Also mark as active if we're on the edit page for this order
+                  tab.orderId && pathname.includes(`/sales-orders/${tab.orderId}/edit`)
                 );
+                
+                const isDraft = !tab.orderId; // It's a draft if no orderId
                 
                 return (
                   <div
@@ -111,8 +128,11 @@ export default function PedidosMenuItem() {
                     )}
                     onClick={() => handleTabClick(tab.id)}
                   >
-                    <div className="flex-1 min-w-0 truncate">
-                      {tab.clientName || tab.name}
+                    <div className={cn(
+                      "flex-1 min-w-0 truncate",
+                      isDraft && "italic"
+                    )}>
+                      {tab.orderNumber ? `#${tab.orderNumber} - ` : ''}{tab.clientName || tab.name}
                       {tab.items.length > 0 && (
                         <span className="ml-1 text-xs opacity-70">
                           ({tab.items.length})
