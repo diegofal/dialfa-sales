@@ -93,11 +93,18 @@ export function SingleStepOrderForm() {
   });
   const editArticles = editArticlesResult?.data || [];
 
-  // Get current tab
-  const currentTab = currentTabId ? tabs.find(t => t.id === currentTabId) : null;
+  // Get current tab - use activeTab when not from QuickCart or when currentTabId changes
+  const currentTab = currentTabId ? tabs.find(t => t.id === currentTabId) : activeTab;
   const items = currentTab ? currentTab.items : [];
   const clientId = currentTab?.clientId;
   const clientName = currentTab?.clientName || '';
+
+  // Update currentTabId when activeTab changes (from sidebar clicks)
+  useEffect(() => {
+    if (fromQuickCart && activeTab && activeTab.id && (!currentTabId || activeTab.id !== currentTabId)) {
+      setCurrentTabId(activeTab.id);
+    }
+  }, [activeTab, fromQuickCart, currentTabId]);
 
   // Load data from quick cart if coming from there
   useEffect(() => {
