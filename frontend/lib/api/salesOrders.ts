@@ -6,6 +6,9 @@ import type {
   CreateSalesOrderRequest, 
   UpdateSalesOrderRequest 
 } from '@/types/salesOrder';
+import type { Invoice } from '@/types/invoice';
+import type { DeliveryNote } from '@/types/deliveryNote';
+import type { SalesOrderStatus, SalesOrderPermissions } from '@/types/permissions';
 
 export const salesOrdersApi = {
   getAll: async (params: PaginationParams & {
@@ -49,6 +52,33 @@ export const salesOrdersApi = {
 
   delete: async (id: number): Promise<void> => {
     await apiClient.delete(`/sales-orders/${id}`);
+  },
+
+  getPermissions: async (id: number): Promise<{ 
+    status: SalesOrderStatus; 
+    permissions: SalesOrderPermissions 
+  }> => {
+    const { data } = await apiClient.get(`/sales-orders/${id}/permissions`);
+    return data;
+  },
+
+  generateInvoice: async (id: number, usdExchangeRate?: number): Promise<Invoice> => {
+    const { data } = await apiClient.post<Invoice>(`/sales-orders/${id}/generate-invoice`, {
+      usdExchangeRate,
+    });
+    return data;
+  },
+
+  generateDeliveryNote: async (id: number, deliveryData?: {
+    deliveryDate?: string;
+    transporterId?: number;
+    weightKg?: number;
+    packagesCount?: number;
+    declaredValue?: number;
+    notes?: string;
+  }): Promise<DeliveryNote> => {
+    const { data } = await apiClient.post<DeliveryNote>(`/sales-orders/${id}/generate-delivery-note`, deliveryData);
+    return data;
   },
 };
 

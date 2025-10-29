@@ -14,6 +14,18 @@ export interface SalesOrder {
   createdAt: string;
   updatedAt: string;
   items?: SalesOrderItem[];
+  // Related documents for permission calculations
+  invoice?: {
+    id: number;
+    invoiceNumber: string;
+    isPrinted: boolean;
+    isCancelled: boolean;
+  } | null;
+  deliveryNote?: {
+    id: number;
+    deliveryNumber: string;
+    deliveryDate: string;
+  } | null;
 }
 
 export interface SalesOrderItem {
@@ -25,6 +37,7 @@ export interface SalesOrderItem {
   unitPrice: number;
   discountPercent: number;
   lineTotal: number;
+  stock?: number; // Current stock of the article
 }
 
 export interface SalesOrderListDto {

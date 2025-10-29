@@ -17,6 +17,7 @@ import type { Article } from '@/types/article';
 interface QuickCartPopupProps {
   isOpen: boolean;
   onClose: () => void;
+  hasFixedBottomButtons?: boolean;
 }
 
 // Constants for cart sizing
@@ -25,7 +26,7 @@ const MIN_SIZE = { width: 400, height: 400 };
 const STORAGE_KEY_EXPANDED = 'spisa_quick_cart_expanded';
 const STORAGE_KEY_CUSTOM_SIZE = 'spisa_quick_cart_custom_size';
 
-export function QuickCartPopup({ isOpen, onClose }: QuickCartPopupProps) {
+export function QuickCartPopup({ isOpen, onClose, hasFixedBottomButtons = false }: QuickCartPopupProps) {
   const router = useRouter();
   const [articleFocusTrigger, setArticleFocusTrigger] = useState(0);
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
@@ -375,12 +376,17 @@ export function QuickCartPopup({ isOpen, onClose }: QuickCartPopupProps) {
     }
   };
 
+  // Calculate popup position based on whether there are fixed bottom buttons
+  // When no fixed buttons: button is at bottom-6, so popup goes to bottom-24
+  // When fixed buttons exist: button is at bottom-24, so popup needs more clearance
+  const popupPosition = hasFixedBottomButtons ? 'bottom-[120px]' : 'bottom-24';
+  
   return (
     <>
       <Card 
         ref={cardRef}
         className={`fixed shadow-2xl z-50 flex flex-col ${
-          isExpanded ? 'inset-4' : 'bottom-24 right-6'
+          isExpanded ? 'inset-4' : `${popupPosition} right-6`
         }`}
         style={{
           width: isExpanded ? `${currentDimensions.width}px` : `${currentDimensions.width}px`,
@@ -676,7 +682,9 @@ export function QuickCartPopup({ isOpen, onClose }: QuickCartPopupProps) {
 
     {/* Edit Search Results Dropdown - Floating */}
     {showEditResults && editCode && editArticles.length > 0 && editingItemId && (
-      <Card className="fixed bottom-32 right-12 w-[380px] max-h-[280px] overflow-auto shadow-2xl z-[60]">
+      <Card 
+        className={`fixed ${hasFixedBottomButtons ? 'bottom-[140px]' : 'bottom-32'} right-12 w-[380px] max-h-[280px] overflow-auto shadow-2xl z-[60]`}
+      >
         <div className="p-1">
           {editArticles.map((article, index) => (
             <button

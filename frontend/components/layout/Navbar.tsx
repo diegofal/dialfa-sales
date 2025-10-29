@@ -52,7 +52,10 @@ export default function Navbar() {
   }, []);
   
   // Check if we're on a page with fixed bottom buttons
-  const hasFixedBottomButtons = pathname === '/dashboard/sales-orders/new' || pathname === '/dashboard/invoices/new';
+  const hasFixedBottomButtons = 
+    pathname === '/dashboard/sales-orders/new' || 
+    pathname === '/dashboard/invoices/new' ||
+    pathname?.includes('/dashboard/sales-orders/') && pathname?.includes('/edit');
   
   // Adjust cart button position based on page
   const cartButtonClass = hasFixedBottomButtons 
@@ -116,7 +119,11 @@ export default function Navbar() {
       </Button>
 
       {/* Quick Cart Popup */}
-      <QuickCartPopup isOpen={cartOpen} onClose={() => setCartOpen(false)} />
+      <QuickCartPopup 
+        isOpen={cartOpen} 
+        onClose={() => setCartOpen(false)} 
+        hasFixedBottomButtons={hasFixedBottomButtons}
+      />
     </>
   );
 }

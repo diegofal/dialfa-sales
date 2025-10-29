@@ -1,15 +1,104 @@
 'use client';
 
 import { Suspense } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { SingleStepOrderForm } from '@/components/salesOrders/SingleStepOrderForm';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
+import { useSalesOrder } from '@/lib/hooks/useSalesOrders';
+import { useSalesOrderPermissions } from '@/lib/hooks/useSalesOrderPermissions';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 export default function EditSalesOrderPage() {
   const params = useParams();
   const orderId = params.id ? Number(params.id) : undefined;
+  const { data: existingOrder } = useSalesOrder(orderId || 0);
+  const permissions = useSalesOrderPermissions(existingOrder, false);
+
+  const getStatusBadge = () => {
+    if (!existingOrder) return null;
+    
+    if (existingOrder.invoice) {
+      if (existingOrder.invoice.isPrinted) {
+        return (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="default" className="bg-red-600 hover:bg-red-700 cursor-help">
+                  <AlertTriangle className="h-3 w-3 mr-1" />
+                  Factura Impresa
+                </Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="max-w-xs">Este pedido tiene una factura impresa. No se pueden realizar modificaciones. El stock ya fue debitado y el movimiento contable fue registrado.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        );
+      } else if (existingOrder.invoice.isCancelled) {
+        return (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="destructive" className="cursor-help">Factura Cancelada</Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>La factura asociada fue cancelada. Puede crear una nueva factura.</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        );
+      } else {
+        return (
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Badge variant="default" className="bg-blue-600 cursor-help">Con Factura</Badge>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Este pedido tiene una factura asociada (no impresa).</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        );
+      }
+    }
+    
+    if (existingOrder.deliveryNote) {
+      return (
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Badge variant="default" className="bg-purple-600 cursor-help">Con Remito</Badge>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Este pedido tiene un remito asociado.</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      );
+    }
+    
+    return (
+      <TooltipProvider>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Badge variant="secondary" className="cursor-help">Pendiente</Badge>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>Pedido pendiente sin factura ni remito.</p>
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -19,10 +108,27 @@ export default function EditSalesOrderPage() {
             <ArrowLeft className="h-5 w-5" />
           </Button>
         </Link>
-        <div>
+        <div className="flex items-center gap-3">
           <h1 className="text-3xl font-bold tracking-tight">
             {orderId ? 'Editar Pedido' : 'Nuevo Pedido'}
           </h1>
+          {orderId && existingOrder && (
+            <>
+              {getStatusBadge()}
+              {!permissions.canEdit && (
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Badge variant="outline" className="cursor-help">Solo lectura</Badge>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Este pedido no puede ser modificado.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              )}
+            </>
+          )}
         </div>
       </div>
 

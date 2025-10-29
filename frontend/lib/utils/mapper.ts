@@ -94,6 +94,12 @@ export function mapSalesOrderToDTO(order: unknown) {
   const o = order as Record<string, unknown>;
   const clients = o.clients as { business_name?: string } | undefined;
   const salesOrderItems = (o.sales_order_items as Array<Record<string, unknown>>) || [];
+  const invoices = (o.invoices as Array<Record<string, unknown>>) || [];
+  const deliveryNotes = (o.delivery_notes as Array<Record<string, unknown>>) || [];
+  
+  // Get the first (most recent) invoice and delivery note
+  const invoice = invoices[0];
+  const deliveryNote = deliveryNotes[0];
   
   return {
     id: parseInt(String((o.id as bigint | number))),
@@ -107,8 +113,13 @@ export function mapSalesOrderToDTO(order: unknown) {
     notes: o.notes as string | null,
     specialDiscountPercent: parseFloat(String(o.special_discount_percent)),
     itemsCount: salesOrderItems.length,
+    isDeleted: !!o.deleted_at,
     items: salesOrderItems.map((item) => {
-      const articles = item.articles as { code?: string; description?: string } | undefined;
+      const articles = item.articles as { 
+        code?: string; 
+        description?: string;
+        stock?: number;
+      } | undefined;
       
       return {
         id: parseInt(String((item.id as bigint | number))),
@@ -119,8 +130,21 @@ export function mapSalesOrderToDTO(order: unknown) {
         unitPrice: parseFloat(String(item.unit_price)),
         discountPercent: parseFloat(String(item.discount_percent)),
         lineTotal: parseFloat(String(item.line_total)),
+        stock: articles?.stock !== undefined ? parseFloat(String(articles.stock)) : undefined,
       };
     }),
+    // Related documents for permission calculations
+    invoice: invoice ? {
+      id: parseInt(String((invoice.id as bigint | number))),
+      invoiceNumber: invoice.invoice_number as string,
+      isPrinted: invoice.is_printed as boolean,
+      isCancelled: invoice.is_cancelled as boolean,
+    } : null,
+    deliveryNote: deliveryNote ? {
+      id: parseInt(String((deliveryNote.id as bigint | number))),
+      deliveryNumber: deliveryNote.delivery_number as string,
+      deliveryDate: (deliveryNote.delivery_date as Date).toISOString(),
+    } : null,
     createdAt: o.created_at as Date,
     updatedAt: o.updated_at as Date,
   };

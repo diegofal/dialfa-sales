@@ -24,6 +24,35 @@ export async function GET(
             id: 'asc',
           },
         },
+        invoices: {
+          select: {
+            id: true,
+            invoice_number: true,
+            is_printed: true,
+            is_cancelled: true,
+          },
+          where: {
+            deleted_at: null,
+          },
+          orderBy: {
+            created_at: 'desc',
+          },
+          take: 1,
+        },
+        delivery_notes: {
+          select: {
+            id: true,
+            delivery_number: true,
+            delivery_date: true,
+          },
+          where: {
+            deleted_at: null,
+          },
+          orderBy: {
+            created_at: 'desc',
+          },
+          take: 1,
+        },
       },
     });
 
@@ -59,6 +88,13 @@ export async function PUT(
     // Check if sales order exists and is not deleted
     const existingSalesOrder = await prisma.sales_orders.findUnique({
       where: { id },
+      include: {
+        invoices: {
+          where: { deleted_at: null },
+          orderBy: { created_at: 'desc' },
+          take: 1,
+        },
+      },
     });
 
     if (!existingSalesOrder || existingSalesOrder.deleted_at) {
@@ -68,11 +104,12 @@ export async function PUT(
       );
     }
 
-    // Check if status allows editing
-    if (existingSalesOrder.status === 'COMPLETED' || existingSalesOrder.status === 'CANCELLED') {
+    // Check permissions: cannot edit if invoice is printed
+    const activeInvoice = existingSalesOrder.invoices[0];
+    if (activeInvoice && activeInvoice.is_printed) {
       return NextResponse.json(
-        { error: 'Cannot edit completed or cancelled sales orders' },
-        { status: 400 }
+        { error: 'No se puede modificar un pedido con factura impresa' },
+        { status: 403 }
       );
     }
 
@@ -248,6 +285,13 @@ export async function DELETE(
     // Check if sales order exists and is not already deleted
     const existingSalesOrder = await prisma.sales_orders.findUnique({
       where: { id },
+      include: {
+        invoices: {
+          where: { deleted_at: null },
+          orderBy: { created_at: 'desc' },
+          take: 1,
+        },
+      },
     });
 
     if (!existingSalesOrder || existingSalesOrder.deleted_at) {
@@ -257,11 +301,12 @@ export async function DELETE(
       );
     }
 
-    // Only allow deletion if status is PENDING
-    if (existingSalesOrder.status !== 'PENDING') {
+    // Check permissions: cannot delete if has non-cancelled invoice
+    const activeInvoice = existingSalesOrder.invoices[0];
+    if (activeInvoice && !activeInvoice.is_cancelled) {
       return NextResponse.json(
-        { error: 'Can only delete pending sales orders' },
-        { status: 400 }
+        { error: 'No se puede eliminar un pedido con factura asociada' },
+        { status: 403 }
       );
     }
 
