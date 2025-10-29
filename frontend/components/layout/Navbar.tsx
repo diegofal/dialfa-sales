@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { useLogout } from '@/lib/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -16,6 +15,8 @@ import {
 import { LogOut, User, ShoppingCart } from 'lucide-react';
 import { QuickCartPopup } from '@/components/articles/QuickCartPopup';
 import { useQuickCartTabs } from '@/lib/hooks/useQuickCartTabs';
+import { useFixedBottomBar, useWindowSize } from '@/lib/hooks/useFixedBottomBar';
+import { calculateCartPositions, CART_CONSTANTS } from '@/lib/constants/cart';
 import { Badge } from '@/components/ui/badge';
 
 export default function Navbar() {
@@ -23,7 +24,11 @@ export default function Navbar() {
   const logout = useLogout();
   const [cartOpen, setCartOpen] = useState(false);
   const { getTotalItems } = useQuickCartTabs();
-  const pathname = usePathname();
+  
+  // Automatically detect bottom bar and calculate positions
+  const { bottomBarHeight } = useFixedBottomBar();
+  const { width: windowWidth } = useWindowSize();
+  const cartPositions = calculateCartPositions(bottomBarHeight, windowWidth);
   
   const totalCartItems = getTotalItems();
   
@@ -50,17 +55,6 @@ export default function Navbar() {
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, []);
-  
-  // Check if we're on a page with fixed bottom buttons
-  const hasFixedBottomButtons = 
-    pathname === '/dashboard/sales-orders/new' || 
-    pathname === '/dashboard/invoices/new' ||
-    pathname?.includes('/dashboard/sales-orders/') && pathname?.includes('/edit');
-  
-  // Adjust cart button position based on page
-  const cartButtonClass = hasFixedBottomButtons 
-    ? "fixed bottom-24 right-6 h-14 w-14 rounded-full shadow-2xl z-40" 
-    : "fixed bottom-6 right-6 h-14 w-14 rounded-full shadow-2xl z-40";
 
   return (
     <>
@@ -99,10 +93,18 @@ export default function Navbar() {
         </div>
       </header>
 
-      {/* Floating Cart Button - Always Visible */}
+      {/* Floating Cart Button - Always Visible with Dynamic Position */}
       <Button
         size="lg"
-        className={cartButtonClass}
+        className="fixed rounded-full shadow-2xl"
+        style={{
+          bottom: `${cartPositions.button.bottom}px`,
+          right: `${cartPositions.button.right}px`,
+          height: `${CART_CONSTANTS.BUTTON.SIZE}px`,
+          width: `${CART_CONSTANTS.BUTTON.SIZE}px`,
+          zIndex: CART_CONSTANTS.BUTTON.Z_INDEX,
+          transition: 'bottom 0.3s ease, right 0.3s ease',
+        }}
         onClick={() => setCartOpen(!cartOpen)}
       >
         <div className="relative">
@@ -118,11 +120,11 @@ export default function Navbar() {
         </div>
       </Button>
 
-      {/* Quick Cart Popup */}
+      {/* Quick Cart Popup with Dynamic Position */}
       <QuickCartPopup 
         isOpen={cartOpen} 
         onClose={() => setCartOpen(false)} 
-        hasFixedBottomButtons={hasFixedBottomButtons}
+        positions={cartPositions}
       />
     </>
   );

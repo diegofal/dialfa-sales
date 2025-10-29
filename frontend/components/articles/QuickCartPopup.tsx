@@ -1,5 +1,3 @@
-'use client';
-
 import { ShoppingCart, X, Trash2, Plus, User, Pencil, Maximize2, Minimize2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -13,20 +11,27 @@ import { ClientLookup } from './ClientLookup';
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useArticles } from '@/lib/hooks/useArticles';
 import type { Article } from '@/types/article';
+import { CART_CONSTANTS } from '@/lib/constants/cart';
 
 interface QuickCartPopupProps {
   isOpen: boolean;
   onClose: () => void;
-  hasFixedBottomButtons?: boolean;
+  positions: ReturnType<typeof import('@/lib/constants/cart').calculateCartPositions>;
 }
 
-// Constants for cart sizing
-const NORMAL_SIZE = { width: 520, height: 750 };
-const MIN_SIZE = { width: 400, height: 400 };
+// Constants for cart sizing - use values from shared constants but allow overrides
+const NORMAL_SIZE = { 
+  width: CART_CONSTANTS.POPUP.WIDTH_NORMAL, 
+  height: CART_CONSTANTS.POPUP.HEIGHT_NORMAL 
+};
+const MIN_SIZE = { 
+  width: CART_CONSTANTS.POPUP.MIN_WIDTH, 
+  height: CART_CONSTANTS.POPUP.MIN_HEIGHT 
+};
 const STORAGE_KEY_EXPANDED = 'spisa_quick_cart_expanded';
 const STORAGE_KEY_CUSTOM_SIZE = 'spisa_quick_cart_custom_size';
 
-export function QuickCartPopup({ isOpen, onClose, hasFixedBottomButtons = false }: QuickCartPopupProps) {
+export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupProps) {
   const router = useRouter();
   const [articleFocusTrigger, setArticleFocusTrigger] = useState(0);
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
@@ -112,12 +117,20 @@ export function QuickCartPopup({ isOpen, onClose, hasFixedBottomButtons = false 
     }
   }, [customWidth, customHeight]);
 
-  // Calculate current dimensions
+  // Calculate current dimensions (responsive)
   const getCurrentDimensions = () => {
     if (isExpanded) {
       return {
         width: typeof window !== 'undefined' ? window.innerWidth * 0.95 : 1200,
         height: typeof window !== 'undefined' ? window.innerHeight * 0.90 : 800,
+      };
+    }
+    
+    // Use responsive dimensions from positions if available
+    if (positions.isMobile) {
+      return {
+        width: positions.popup.width,
+        height: positions.popup.height,
       };
     }
     
@@ -128,7 +141,10 @@ export function QuickCartPopup({ isOpen, onClose, hasFixedBottomButtons = false 
       };
     }
     
-    return NORMAL_SIZE;
+    return {
+      width: positions.popup.width,
+      height: positions.popup.height,
+    };
   };
 
   const currentDimensions = getCurrentDimensions();
@@ -379,22 +395,27 @@ export function QuickCartPopup({ isOpen, onClose, hasFixedBottomButtons = false 
   // Calculate popup position based on whether there are fixed bottom buttons
   // When no fixed buttons: button is at bottom-6, so popup goes to bottom-24
   // When fixed buttons exist: button is at bottom-24, so popup needs more clearance
-  const popupPosition = hasFixedBottomButtons ? 'bottom-[120px]' : 'bottom-24';
+  const popupPosition = positions.popup.bottom;
+  const popupRight = positions.popup.right;
   
   return (
     <>
       <Card 
         ref={cardRef}
-        className={`fixed shadow-2xl z-50 flex flex-col ${
-          isExpanded ? 'inset-4' : `${popupPosition} right-6`
+        className={`fixed shadow-2xl flex flex-col ${
+          isExpanded ? 'inset-4' : ''
         }`}
         style={{
-          width: isExpanded ? `${currentDimensions.width}px` : `${currentDimensions.width}px`,
+          bottom: isExpanded ? undefined : `${popupPosition}px`,
+          right: isExpanded ? undefined : `${popupRight}px`,
+          inset: isExpanded ? '1rem' : undefined,
+          width: `${currentDimensions.width}px`,
           height: `${currentDimensions.height}px`,
           maxWidth: isExpanded ? '95vw' : undefined,
           maxHeight: isExpanded ? '90vh' : undefined,
-          transition: isResizing ? 'none' : 'width 0.3s ease, height 0.3s ease, inset 0.3s ease',
+          transition: isResizing ? 'none' : 'all 0.3s ease',
           resize: 'none',
+          zIndex: CART_CONSTANTS.POPUP.Z_INDEX,
         }}
       >
       {/* Header with Tabs */}
@@ -683,7 +704,13 @@ export function QuickCartPopup({ isOpen, onClose, hasFixedBottomButtons = false 
     {/* Edit Search Results Dropdown - Floating */}
     {showEditResults && editCode && editArticles.length > 0 && editingItemId && (
       <Card 
-        className={`fixed ${hasFixedBottomButtons ? 'bottom-[140px]' : 'bottom-32'} right-12 w-[380px] max-h-[280px] overflow-auto shadow-2xl z-[60]`}
+        className="fixed w-[380px] max-h-[280px] overflow-auto shadow-2xl"
+        style={{
+          bottom: `${positions.editDropdown.bottom}px`,
+          right: `${positions.editDropdown.right}px`,
+          zIndex: CART_CONSTANTS.EDIT_DROPDOWN.Z_INDEX,
+          transition: 'all 0.3s ease',
+        }}
       >
         <div className="p-1">
           {editArticles.map((article, index) => (
