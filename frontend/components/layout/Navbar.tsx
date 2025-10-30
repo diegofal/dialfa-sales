@@ -18,6 +18,7 @@ import { useQuickCartTabs } from '@/lib/hooks/useQuickCartTabs';
 import { useFixedBottomBar, useWindowSize } from '@/lib/hooks/useFixedBottomBar';
 import { calculateCartPositions, CART_CONSTANTS } from '@/lib/constants/cart';
 import { Badge } from '@/components/ui/badge';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 export default function Navbar() {
   const user = useAuthStore((state) => state.user);
@@ -68,13 +69,16 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="flex h-16 items-center justify-between gap-4 border-b bg-white px-6">
+      <header className="flex h-16 items-center justify-between gap-4 border-b bg-card px-6">
         <div className="flex items-center gap-4">
           <h2 className="text-lg font-semibold whitespace-nowrap">SPISA</h2>
           <p className="text-sm text-muted-foreground">Sistema de Gestión de Inventario y Ventas</p>
         </div>
 
         <div className="flex items-center gap-2">
+          {/* Theme Toggle */}
+          <ThemeToggle />
+          
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

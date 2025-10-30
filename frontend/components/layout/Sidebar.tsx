@@ -32,7 +32,7 @@ export default function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <div className="flex h-full w-64 flex-col border-r bg-white">
+    <div className="flex h-full w-64 flex-col border-r bg-card">
       <div className="flex h-16 items-center border-b px-6">
         <h1 className="text-2xl font-bold text-primary">SPISA</h1>
       </div>

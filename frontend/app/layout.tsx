@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import QueryProvider from "@/lib/providers/QueryProvider";
+import { ThemeProvider } from "@/lib/providers/ThemeProvider";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthInitializer } from "@/components/auth/AuthInitializer";
 
@@ -18,19 +19,21 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="es">
+    <html lang="es" suppressHydrationWarning>
       <body className={inter.className}>
-        <QueryProvider>
-          <AuthInitializer />
-          {children}
-          <Toaster 
-            position="top-center"
-            expand={true}
-            richColors
-            closeButton
-            duration={2000}
-          />
-        </QueryProvider>
+        <ThemeProvider>
+          <QueryProvider>
+            <AuthInitializer />
+            {children}
+            <Toaster 
+              position="top-center"
+              expand={true}
+              richColors
+              closeButton
+              duration={2000}
+            />
+          </QueryProvider>
+        </ThemeProvider>
       </body>
     </html>
   );
