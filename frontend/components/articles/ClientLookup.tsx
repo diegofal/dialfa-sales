@@ -92,13 +92,13 @@ export function ClientLookup({ onSelectClient }: ClientLookupProps) {
                 ref={index === selectedIndex ? selectedItemRef : null}
                 onClick={() => handleSelectClient(client)}
                 className={`w-full text-left p-2.5 rounded transition-colors ${
-                  index === selectedIndex ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'
+                  index === selectedIndex ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'
                 }`}
               >
                 <div className="flex items-start gap-3">
                   <User className="h-4 w-4 mt-0.5 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <div className={`font-semibold text-sm ${index === selectedIndex ? 'text-primary-foreground' : ''}`}>
+                    <div className="font-semibold text-sm">
                       {client.businessName}
                     </div>
                     {client.code && (

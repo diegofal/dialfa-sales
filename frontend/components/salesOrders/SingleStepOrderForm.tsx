@@ -822,12 +822,12 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                               ref={index === selectedIndex ? selectedItemRef : null}
                               onClick={() => handleSelectArticle(article, index)}
                               className={`w-full text-left p-2.5 rounded transition-colors ${
-                                index === selectedIndex ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'
+                                index === selectedIndex ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'
                               }`}
                             >
                               <div className="flex justify-between items-start gap-3">
                                 <div className="flex-1 min-w-0">
-                                  <div className={`font-semibold text-sm font-mono ${index === selectedIndex ? 'text-primary-foreground' : ''}`}>
+                                  <div className="font-semibold text-sm font-mono">
                                     {article.code}
                                   </div>
                                   <div className={`text-xs truncate mt-0.5 ${index === selectedIndex ? 'text-primary-foreground/90' : 'text-muted-foreground'}`}>
@@ -835,7 +835,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                                   </div>
                                 </div>
                                 <div className="text-right flex-shrink-0">
-                                  <div className={`text-sm font-bold ${index === selectedIndex ? 'text-primary-foreground' : 'text-foreground'}`}>
+                                  <div className="text-sm font-bold">
                                     {formatCurrency(article.unitPrice)}
                                   </div>
                                   <div className={`text-xs font-medium mt-0.5 ${
@@ -944,19 +944,19 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                                         ref={index === selectedEditIndex ? selectedEditItemRef : null}
                                         onClick={() => handleSelectEditArticle(article)}
                                         className={`w-full text-left p-2 rounded transition-colors ${
-                                          index === selectedEditIndex ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'
+                                          index === selectedEditIndex ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'
                                         }`}
                                       >
                                         <div className="flex justify-between items-start gap-2">
                                           <div className="flex-1 min-w-0">
-                                            <div className={`font-semibold text-xs font-mono ${index === selectedEditIndex ? 'text-primary-foreground' : ''}`}>
+                                            <div className="font-semibold text-xs font-mono">
                                               {article.code}
                                             </div>
                                             <div className={`text-xs truncate ${index === selectedEditIndex ? 'text-primary-foreground/90' : 'text-muted-foreground'}`}>
                                               {article.description}
                                             </div>
                                           </div>
-                                          <div className={`text-xs ${index === selectedEditIndex ? 'text-primary-foreground' : ''}`}>
+                                          <div className="text-xs">
                                             {formatCurrency(article.unitPrice)}
                                           </div>
                                         </div>

@@ -203,12 +203,12 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
                   ref={index === selectedIndex ? selectedItemRef : null}
                   onClick={() => handleSelectArticle(article, index)}
                   className={`w-full text-left p-2.5 rounded transition-colors ${
-                    index === selectedIndex ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'
+                    index === selectedIndex ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'
                   }`}
                 >
                   <div className="flex justify-between items-start gap-3">
                     <div className="flex-1 min-w-0">
-                      <div className={`font-semibold text-sm font-mono ${index === selectedIndex ? 'text-primary-foreground' : ''}`}>
+                      <div className="font-semibold text-sm font-mono">
                         {article.code}
                       </div>
                       <div className={`text-xs truncate mt-0.5 ${index === selectedIndex ? 'text-primary-foreground/90' : 'text-muted-foreground'}`}>
@@ -216,7 +216,7 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
                       </div>
                     </div>
                     <div className="text-right flex-shrink-0">
-                      <div className={`text-sm font-bold ${index === selectedIndex ? 'text-primary-foreground' : 'text-foreground'}`}>
+                      <div className="text-sm font-bold">
                         {formatCurrency(article.unitPrice)}
                       </div>
                       <div className={`text-xs font-medium mt-0.5 ${
