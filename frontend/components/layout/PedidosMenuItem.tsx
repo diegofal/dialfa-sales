@@ -29,6 +29,7 @@ export default function PedidosMenuItem() {
 
   const isActive = pathname === '/dashboard/sales-orders' || pathname.startsWith('/dashboard/sales-orders/');
   const isNewOrderPage = pathname === '/dashboard/sales-orders/new';
+  const isOrderDetailPage = pathname.match(/^\/dashboard\/sales-orders\/\d+(\/edit)?$/);
 
   const handleTabClick = (tabId: string) => {
     const tab = tabs.find(t => t.id === tabId);
@@ -89,7 +90,7 @@ export default function PedidosMenuItem() {
           href="/dashboard/sales-orders"
           className={cn(
             'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-            isActive && !isNewOrderPage
+            isActive && !isNewOrderPage && !isOrderDetailPage
               ? 'bg-primary text-primary-foreground'
               : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
           )}

@@ -110,7 +110,7 @@ export default function InvoiceDetailPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -124,27 +124,6 @@ export default function InvoiceDetailPage() {
             </p>
           </div>
           {getStatusBadge()}
-        </div>
-        <div className="flex gap-2">
-          {!invoice.isCancelled && !invoice.isPrinted && (
-            <>
-              <Button variant="outline" onClick={() => router.push(`/dashboard/invoices/${invoiceId}/edit`)}>
-                <Edit className="mr-2 h-4 w-4" />
-                Editar
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => setShowCancelDialog(true)}
-              >
-                <XCircle className="mr-2 h-4 w-4" />
-                Cancelar
-              </Button>
-              <Button onClick={handlePrint} disabled={printInvoiceMutation.isPending}>
-                <Printer className="mr-2 h-4 w-4" />
-                {printInvoiceMutation.isPending ? 'Imprimiendo...' : 'Imprimir'}
-              </Button>
-            </>
-          )}
         </div>
       </div>
 
@@ -177,18 +156,8 @@ export default function InvoiceDetailPage() {
           </CardHeader>
           <CardContent className="space-y-2">
             <div>
-              <p className="text-sm text-muted-foreground">Pedido</p>
-              <div className="flex items-center gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => router.push(`/dashboard/sales-orders/${invoice.salesOrderId}`)}
-                  className="h-auto py-1 px-2"
-                >
-                  <Eye className="mr-2 h-3 w-3" />
-                  {invoice.salesOrderNumber}
-                </Button>
-              </div>
+              <p className="text-sm text-muted-foreground">Pedido N°</p>
+              <p className="font-medium">{invoice.salesOrderNumber}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Tipo de Cambio USD</p>
@@ -285,6 +254,46 @@ export default function InvoiceDetailPage() {
           </CardContent>
         </Card>
       )}
+
+      {/* Fixed Action Buttons */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t z-50">
+        <div className="container max-w-7xl mx-auto px-6 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => router.push('/dashboard/invoices')}
+              >
+                Volver
+              </Button>
+              {!invoice.isCancelled && !invoice.isPrinted && (
+                <Button
+                  variant="outline"
+                  onClick={() => setShowCancelDialog(true)}
+                >
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Cancelar Factura
+                </Button>
+              )}
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/dashboard/sales-orders/${invoice.salesOrderId}`)}
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                Ver Pedido
+              </Button>
+              {!invoice.isCancelled && !invoice.isPrinted && (
+                <Button onClick={handlePrint} disabled={printInvoiceMutation.isPending}>
+                  <Printer className="mr-2 h-4 w-4" />
+                  {printInvoiceMutation.isPending ? 'Imprimiendo...' : 'Imprimir'}
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Cancel Dialog */}
       <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
