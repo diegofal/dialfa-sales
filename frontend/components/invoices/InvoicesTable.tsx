@@ -29,6 +29,7 @@ import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
 interface InvoicesTableProps {
   invoices: InvoiceListDto[];
   onViewInvoice: (id: number) => void;
+  onViewSalesOrder?: (id: number) => void;
   onCancelInvoice?: (id: number, reason: string) => void;
   onPrintInvoice?: (id: number) => void;
   currentSortBy?: string;
@@ -39,6 +40,7 @@ interface InvoicesTableProps {
 export function InvoicesTable({
   invoices,
   onViewInvoice,
+  onViewSalesOrder,
   onCancelInvoice,
   onPrintInvoice,
   currentSortBy,
@@ -152,6 +154,16 @@ export function InvoicesTable({
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
+                      {onViewSalesOrder && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onViewSalesOrder(invoice.salesOrderId)}
+                          title="Ver Pedido"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      )}
                       {!invoice.isCancelled && !invoice.isPrinted && onPrintInvoice && (
                         <Button
                           variant={ACTION_BUTTON_CONFIG.print.variant}

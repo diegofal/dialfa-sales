@@ -8,12 +8,12 @@ import {
   Users, 
   FolderTree,
   Package, 
-  FileText,
   Truck,
   TrendingUp,
   Settings,
 } from 'lucide-react';
 import PedidosMenuItem from './PedidosMenuItem';
+import FacturasMenuItem from './FacturasMenuItem';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -22,8 +22,7 @@ const navigation = [
   { name: 'Artículos', href: '/dashboard/articles', icon: Package },
 ];
 
-const navigationAfterPedidos = [
-  { name: 'Facturas', href: '/dashboard/invoices', icon: FileText },
+const navigationAfterFacturas = [
   { name: 'Remitos', href: '/dashboard/delivery-notes', icon: Truck },
   { name: 'Reportes', href: '/dashboard/reports', icon: TrendingUp },
   { name: 'Configuración', href: '/dashboard/settings', icon: Settings },
@@ -60,7 +59,10 @@ export default function Sidebar() {
         {/* Pedidos with expandable sub-items */}
         <PedidosMenuItem />
         
-        {navigationAfterPedidos.map((item) => {
+        {/* Facturas with expandable sub-items */}
+        <FacturasMenuItem />
+        
+        {navigationAfterFacturas.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
             <Link

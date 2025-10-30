@@ -55,6 +55,10 @@ export default function InvoicesPage() {
     router.push(`/dashboard/invoices/${id}`);
   };
 
+  const handleViewSalesOrder = (id: number) => {
+    router.push(`/dashboard/sales-orders/${id}`);
+  };
+
   const handleCancelInvoice = (id: number, reason: string) => {
     cancelInvoiceMutation.mutate({ id, data: { cancellationReason: reason } });
   };
@@ -222,6 +226,7 @@ export default function InvoicesPage() {
               <InvoicesTable
                 invoices={data.data}
                 onViewInvoice={handleViewInvoice}
+                onViewSalesOrder={handleViewSalesOrder}
                 onCancelInvoice={handleCancelInvoice}
                 onPrintInvoice={handlePrintInvoice}
                 currentSortBy={pagination.sortBy}

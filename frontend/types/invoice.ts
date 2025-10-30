@@ -42,6 +42,7 @@ export interface InvoiceListDto {
   invoiceNumber: string;
   invoiceDate: string;
   clientBusinessName: string;
+  salesOrderId: number;
   salesOrderNumber: string;
   totalAmount: number;
   isPrinted: boolean;

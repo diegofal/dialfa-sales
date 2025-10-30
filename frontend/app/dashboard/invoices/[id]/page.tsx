@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Printer, XCircle, Edit } from 'lucide-react';
+import { ArrowLeft, Printer, XCircle, Edit, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -14,7 +14,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useInvoice, useCancelInvoice, usePrintInvoice } from '@/lib/hooks/useInvoices';
-import { useState } from 'react';
+import { useQuickInvoiceTabs } from '@/lib/hooks/useQuickInvoiceTabs';
+import { useState, useEffect } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,9 +36,18 @@ export default function InvoiceDetailPage() {
   const { data: invoice, isLoading } = useInvoice(invoiceId);
   const cancelInvoiceMutation = useCancelInvoice();
   const printInvoiceMutation = usePrintInvoice();
+  const { addInvoiceTab } = useQuickInvoiceTabs();
 
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [cancellationReason, setCancellationReason] = useState('');
+
+  // Add invoice to tabs when loaded
+  useEffect(() => {
+    if (invoice) {
+      addInvoiceTab(invoice.id, invoice.invoiceNumber, invoice.clientBusinessName);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [invoice?.id]); // Only depend on invoice.id to avoid infinite loop
 
   if (isLoading) {
     return (
@@ -167,16 +177,18 @@ export default function InvoiceDetailPage() {
           </CardHeader>
           <CardContent className="space-y-2">
             <div>
-              <p className="text-sm text-muted-foreground">Pedido N°</p>
-              <p className="font-medium">
+              <p className="text-sm text-muted-foreground">Pedido</p>
+              <div className="flex items-center gap-2">
                 <Button
-                  variant="link"
-                  className="p-0 h-auto"
+                  variant="outline"
+                  size="sm"
                   onClick={() => router.push(`/dashboard/sales-orders/${invoice.salesOrderId}`)}
+                  className="h-auto py-1 px-2"
                 >
+                  <Eye className="mr-2 h-3 w-3" />
                   {invoice.salesOrderNumber}
                 </Button>
-              </p>
+              </div>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Tipo de Cambio USD</p>
