@@ -2,8 +2,8 @@ import type { SalesOrder } from '@/types/salesOrder';
 import type { 
   SalesOrderStatus, 
   SalesOrderPermissions,
-  calculateSalesOrderPermissions as calculatePermissions 
 } from '@/types/permissions';
+import { calculateSalesOrderPermissions as calculatePermissions } from '@/types/permissions';
 
 /**
  * Extract status information from a SalesOrder entity
@@ -44,10 +44,7 @@ export function calculateSalesOrderPermissions(
 ): SalesOrderPermissions {
   const status = extractSalesOrderStatus(salesOrder, hasUnsavedChanges);
   
-  // Import the calculation function from types
-  const { calculateSalesOrderPermissions: calculate } = require('@/types/permissions');
-  
-  return calculate(status);
+  return calculatePermissions(status);
 }
 
 /**
