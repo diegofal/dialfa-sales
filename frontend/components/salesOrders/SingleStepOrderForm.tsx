@@ -557,6 +557,12 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     }
 
     try {
+      // Validate clientId is present
+      if (!clientId) {
+        toast.error('Please select a client');
+        return;
+      }
+
       const requestData = {
         clientId,
         orderDate,
@@ -669,16 +675,17 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   };
 
   const handleUnsavedChangesResponse = async (action: 'save' | 'discard' | 'cancel') => {
-    setUnsavedChangesAction(action);
-    
     if (action === 'save') {
+      setUnsavedChangesAction(action);
       await handleSubmit();
       setShowUnsavedChangesDialog(false);
       router.push('/dashboard/sales-orders');
     } else if (action === 'discard') {
+      setUnsavedChangesAction(action);
       setShowUnsavedChangesDialog(false);
       router.push('/dashboard/sales-orders');
     } else {
+      // action === 'cancel' - just close the dialog without setting state
       setShowUnsavedChangesDialog(false);
     }
   };
@@ -969,10 +976,11 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                                   {item.article.code}
                                 </div>
                                 {item.quantity > item.article.stock && (
-                                  <AlertTriangle 
-                                    className="h-3.5 w-3.5 text-red-600 flex-shrink-0" 
-                                    title={`Stock insuficiente: solicitado ${item.quantity}, disponible ${item.article.stock}`}
-                                  />
+                                  <div title={`Stock insuficiente: solicitado ${item.quantity}, disponible ${item.article.stock}`}>
+                                    <AlertTriangle 
+                                      className="h-3.5 w-3.5 text-red-600 flex-shrink-0"
+                                    />
+                                  </div>
                                 )}
                               </div>
                               {!isReadOnly && (
