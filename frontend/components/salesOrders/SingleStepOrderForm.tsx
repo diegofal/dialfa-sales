@@ -12,7 +12,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { useQuickCartTabs, QuickCartItem } from '@/lib/hooks/useQuickCartTabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ShoppingCart, User, X, Trash2, Pencil, Search, Plus, XCircle, FileText, AlertTriangle, Truck } from 'lucide-react';
+import { ShoppingCart, User, X, Trash2, Pencil, Search, Plus, XCircle, FileText, AlertTriangle, Truck, Eye } from 'lucide-react';
 import { useArticles } from '@/lib/hooks/useArticles';
 import type { Article } from '@/types/article';
 import { useSalesOrder, useUpdateSalesOrder, useCancelSalesOrder, useDeleteSalesOrder } from '@/lib/hooks/useSalesOrders';
@@ -1120,7 +1120,16 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                   {generateDeliveryNoteMutation.isPending ? 'Generando...' : 'Generar Remito'}
                 </Button>
               )}
-              {permissions.canCreateInvoice && (
+              {existingOrder?.deliveryNote && (
+                <Button
+                  variant="outline"
+                  onClick={() => router.push(`/dashboard/delivery-notes/${existingOrder.deliveryNote?.id}`)}
+                >
+                  <Eye className="mr-2 h-4 w-4" />
+                  Ver Remito
+                </Button>
+              )}
+              {permissions.canCreateInvoice && !existingOrder?.invoice && (
                 <Button
                   variant="outline"
                   onClick={handleGenerateInvoice}
@@ -1128,6 +1137,15 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                 >
                   <FileText className="mr-2 h-4 w-4" />
                   {generateInvoiceMutation.isPending ? 'Generando...' : 'Generar Factura'}
+                </Button>
+              )}
+              {existingOrder?.invoice && (
+                <Button
+                  variant="outline"
+                  onClick={() => router.push(`/dashboard/invoices/${existingOrder.invoice?.id}`)}
+                >
+                  <Eye className="mr-2 h-4 w-4" />
+                  Ver Factura
                 </Button>
               )}
               {permissions.canSave && (
