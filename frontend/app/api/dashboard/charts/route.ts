@@ -4,14 +4,12 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { executeXerpQuery, executeSpisaQuery } from '@/lib/db/xerp';
+import { executeXerpQuery } from '@/lib/db/xerp';
 import {
   XERP_TOP_CUSTOMERS,
   XERP_MONTHLY_SALES_TREND,
-  SPISA_CASH_FLOW_HISTORY,
   TopCustomer,
   MonthlySalesTrend,
-  CashFlowData,
 } from '@/lib/db/xerpQueries';
 
 /**
@@ -24,10 +22,9 @@ export async function GET(request: NextRequest) {
     const months = parseInt(searchParams.get('months') || '12', 10);
 
     // Execute all queries in parallel
-    const [topCustomers, salesTrend, cashFlow] = await Promise.all([
+    const [topCustomers, salesTrend] = await Promise.all([
       executeXerpQuery<TopCustomer>(XERP_TOP_CUSTOMERS),
       executeXerpQuery<MonthlySalesTrend>(XERP_MONTHLY_SALES_TREND),
-      executeSpisaQuery<CashFlowData>(SPISA_CASH_FLOW_HISTORY),
     ]);
 
     return NextResponse.json({
@@ -35,7 +32,6 @@ export async function GET(request: NextRequest) {
       data: {
         topCustomers: topCustomers || [],
         salesTrend: salesTrend || [],
-        cashFlow: cashFlow || [],
       },
       timestamp: new Date().toISOString(),
     });
