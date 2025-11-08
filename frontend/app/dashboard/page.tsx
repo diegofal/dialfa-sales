@@ -2,75 +2,32 @@
 
 import { useAuthStore } from '@/store/authStore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Users, Package, ShoppingCart, FileText, Keyboard } from 'lucide-react';
+import { Keyboard, TrendingUp } from 'lucide-react';
+import { DashboardMetrics } from '@/components/dashboard/DashboardMetrics';
 
 export default function DashboardPage() {
   const user = useAuthStore((state) => state.user);
 
-  const stats = [
-    {
-      title: 'Clientes',
-      value: '397',
-      description: 'Total de clientes activos',
-      icon: Users,
-      color: 'text-blue-600',
-      bgColor: 'bg-blue-100',
-    },
-    {
-      title: 'Artículos',
-      value: '1,797',
-      description: 'Productos en inventario',
-      icon: Package,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100',
-    },
-    {
-      title: 'Pedidos',
-      value: '39,065',
-      description: 'Órdenes procesadas',
-      icon: ShoppingCart,
-      color: 'text-orange-600',
-      bgColor: 'bg-orange-100',
-    },
-    {
-      title: 'Facturas',
-      value: '32,575',
-      description: 'Facturas emitidas',
-      icon: FileText,
-      color: 'text-purple-600',
-      bgColor: 'bg-purple-100',
-    },
-  ];
-
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold">¡Bienvenido, {user?.fullName || user?.username || 'Usuario'}!</h1>
-        <p className="text-muted-foreground mt-2">
-          Sistema de Gestión de Inventario y Ventas
-        </p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <TrendingUp className="h-8 w-8 text-primary" />
+            Business Intelligence Dashboard
+          </h1>
+          <p className="text-muted-foreground mt-2">
+            Información en tiempo real sobre el rendimiento de tu negocio
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-sm text-muted-foreground">Bienvenido,</p>
+          <p className="font-semibold">{user?.fullName || user?.username || 'Usuario'}</p>
+        </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        {stats.map((stat) => (
-          <Card key={stat.title}>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                {stat.title}
-              </CardTitle>
-              <div className={`rounded-full p-2 ${stat.bgColor}`}>
-                <stat.icon className={`h-4 w-4 ${stat.color}`} />
-              </div>
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold">{stat.value}</div>
-              <p className="text-xs text-muted-foreground mt-1">
-                {stat.description}
-              </p>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+      {/* BI Metrics Cards */}
+      <DashboardMetrics />
 
       <Card>
         <CardHeader>
