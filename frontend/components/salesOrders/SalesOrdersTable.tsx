@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { ClickableTableRow } from '@/components/ui/clickable-table-row';
 import { SortableTableHead } from '@/components/ui/sortable-table-head';
 import {
   AlertDialog,
@@ -108,7 +109,11 @@ export function SalesOrdersTable({
               </TableRow>
             ) : (
               orders.map((order) => (
-                <TableRow key={order.id}>
+                <ClickableTableRow
+                  key={order.id}
+                  onRowClick={() => onViewOrder(order.id)}
+                  aria-label={`Ver detalles del pedido ${order.orderNumber}`}
+                >
                   <TableCell className="font-medium">{order.orderNumber}</TableCell>
                   <TableCell>{formatDate(order.orderDate)}</TableCell>
                   <TableCell>{order.clientBusinessName}</TableCell>
@@ -149,7 +154,7 @@ export function SalesOrdersTable({
                       )}
                     </div>
                   </TableCell>
-                </TableRow>
+                </ClickableTableRow>
               ))
             )}
           </TableBody>

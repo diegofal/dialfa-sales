@@ -46,14 +46,14 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
   const [customWidth, setCustomWidth] = useState<number | null>(null);
   const [customHeight, setCustomHeight] = useState<number | null>(null);
   const [isResizing, setIsResizing] = useState(false);
-  const [resizeEdge, setResizeEdge] = useState<'left' | 'top' | 'corner' | null>(null);
-  const resizeStartRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null);
+  const [resizeEdge, setResizeEdge] = useState<'left' | 'top' | 'right' | 'bottom' | 'corner-tl' | 'corner-tr' | 'corner-bl' | 'corner-br' | null>(null);
+  const resizeStartRef = useRef<{ x: number; y: number; width: number; height: number; bottom: number; right: number } | null>(null);
   const cardRef = useRef<HTMLDivElement>(null);
+  const [tempPosition, setTempPosition] = useState<{ bottom: number; right: number } | null>(null);
   
   const {
     tabs,
     activeTab,
-    items,
     addTab,
     removeTab,
     setActiveTab,
@@ -64,11 +64,19 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
     replaceItem,
     clearCart,
     getTotalValue,
-    getActiveTabTotalItems,
   } = useQuickCartTabs();
 
-  // Filter out saved orders (only show drafts without orderId)
+  // Filter out saved orders (only show drafts without orderId in the popup)
   const draftTabs = tabs.filter(tab => !tab.orderId);
+  
+  // Get the active draft tab (for QuickCart operations)
+  // If activeTab is a saved order, use the first draft tab instead
+  const activeDraftTab = activeTab.orderId 
+    ? draftTabs[0] || { id: '', name: '', items: [], createdAt: Date.now() }
+    : activeTab;
+  
+  // Use items from the active draft tab only (not from saved orders)
+  const items = activeDraftTab.items;
 
   // Search articles for editing
   const { data: editArticlesResult } = useArticles({
@@ -122,7 +130,7 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
     if (isExpanded) {
       return {
         width: typeof window !== 'undefined' ? window.innerWidth * 0.95 : 1200,
-        height: typeof window !== 'undefined' ? window.innerHeight * 0.90 : 800,
+        height: typeof window !== 'undefined' ? window.innerHeight * 0.85 : 700, // Reduced from 0.90 to 0.85
       };
     }
     
@@ -150,39 +158,58 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
   const currentDimensions = getCurrentDimensions();
 
   // Resize handlers
-  const handleResizeStart = useCallback((e: React.MouseEvent, edge: 'left' | 'top' | 'corner') => {
-    if (isExpanded) return; // Don't allow resize in expanded mode
+  const handleResizeStart = useCallback((e: React.MouseEvent, edge: 'left' | 'top' | 'right' | 'bottom' | 'corner-tl' | 'corner-tr' | 'corner-bl' | 'corner-br') => {
+    if (isExpanded) return;
     
     e.preventDefault();
     e.stopPropagation();
     
     const currentDims = getCurrentDimensions();
+    
     resizeStartRef.current = {
       x: e.clientX,
       y: e.clientY,
       width: currentDims.width,
       height: currentDims.height,
+      bottom: positions.popup.bottom,
+      right: positions.popup.right,
     };
     
+    setTempPosition(null);
     setIsResizing(true);
     setResizeEdge(edge);
-  }, [isExpanded]);
+  }, [isExpanded, getCurrentDimensions, positions.popup.bottom, positions.popup.right]);
 
   const handleResizeMove = useCallback((e: MouseEvent) => {
     if (!isResizing || !resizeStartRef.current || !resizeEdge) return;
     
-    // For left and top edges, we need to subtract the delta because we're resizing from the opposite side
-    const deltaX = resizeStartRef.current.x - e.clientX; // Inverted for left edge
-    const deltaY = resizeStartRef.current.y - e.clientY; // Inverted for top edge
+    const deltaX = e.clientX - resizeStartRef.current.x;
+    const deltaY = e.clientY - resizeStartRef.current.y;
     
     let newWidth = resizeStartRef.current.width;
     let newHeight = resizeStartRef.current.height;
+    let newRight = resizeStartRef.current.right;
+    let newBottom = resizeStartRef.current.bottom;
     
-    if (resizeEdge === 'left' || resizeEdge === 'corner') {
+    const edge = resizeEdge;
+    
+    // Handle horizontal resizing
+    if (edge.includes('left')) {
+      // Drag LEFT (negative deltaX) = increase width, window expands left
+      // Since we're anchored right, just increase width - no position change needed
+      newWidth = Math.max(MIN_SIZE.width, resizeStartRef.current.width - deltaX);
+    } else if (edge.includes('right') || edge === 'right') {
+      // Drag RIGHT (positive deltaX) = increase width, window expands right
       newWidth = Math.max(MIN_SIZE.width, resizeStartRef.current.width + deltaX);
     }
     
-    if (resizeEdge === 'top' || resizeEdge === 'corner') {
+    // Handle vertical resizing
+    if (edge.includes('top')) {
+      // Drag UP (negative deltaY) = increase height, window expands up
+      // Since we're anchored bottom, just increase height - no position change needed
+      newHeight = Math.max(MIN_SIZE.height, resizeStartRef.current.height - deltaY);
+    } else if (edge.includes('bottom') || edge === 'bottom') {
+      // Drag DOWN (positive deltaY) = increase height, window expands down
       newHeight = Math.max(MIN_SIZE.height, resizeStartRef.current.height + deltaY);
     }
     
@@ -194,22 +221,44 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
     
     setCustomWidth(newWidth);
     setCustomHeight(newHeight);
+    // Position stays the same - no adjustment needed!
+    setTempPosition(null);
   }, [isResizing, resizeEdge]);
 
   const handleResizeEnd = useCallback(() => {
     setIsResizing(false);
     setResizeEdge(null);
     resizeStartRef.current = null;
-  }, []);
+    setTempPosition(null);
+    
+    // Show confirmation that size was saved
+    if (customWidth || customHeight) {
+      toast.success('Tamaño guardado', {
+        duration: 1500,
+        position: 'bottom-center'
+      });
+    }
+  }, [customWidth, customHeight]);
 
   // Add/remove resize event listeners
   useEffect(() => {
     if (isResizing) {
       document.addEventListener('mousemove', handleResizeMove);
       document.addEventListener('mouseup', handleResizeEnd);
-      document.body.style.cursor = resizeEdge === 'left' ? 'ew-resize' : 
-                                     resizeEdge === 'top' ? 'ns-resize' : 
-                                     'nwse-resize';
+      
+      // Set cursor based on resize edge
+      let cursor = 'default';
+      if (resizeEdge === 'left' || resizeEdge === 'right') {
+        cursor = 'ew-resize';
+      } else if (resizeEdge === 'top' || resizeEdge === 'bottom') {
+        cursor = 'ns-resize';
+      } else if (resizeEdge === 'corner-tl' || resizeEdge === 'corner-br') {
+        cursor = 'nwse-resize';
+      } else if (resizeEdge === 'corner-tr' || resizeEdge === 'corner-bl') {
+        cursor = 'nesw-resize';
+      }
+      
+      document.body.style.cursor = cursor;
       document.body.style.userSelect = 'none';
       
       return () => {
@@ -224,6 +273,19 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
   // Toggle expanded mode
   const toggleExpanded = () => {
     setIsExpanded(!isExpanded);
+  };
+
+  // Reset to default size
+  const resetToDefaultSize = () => {
+    setCustomWidth(null);
+    setCustomHeight(null);
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem(STORAGE_KEY_CUSTOM_SIZE);
+    }
+    toast.success('Tamaño restablecido', {
+      duration: 1500,
+      position: 'bottom-center'
+    });
   };
 
   // Reset selected index when edit articles change
@@ -301,7 +363,7 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
       return;
     }
 
-    if (!activeTab.clientId) {
+    if (!activeDraftTab.clientId) {
       toast.error('Selecciona un cliente antes de crear el pedido', {
         duration: 2000,
         position: 'top-center'
@@ -310,7 +372,7 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
     }
     
     onClose();
-    router.push(`/dashboard/sales-orders/new?fromQuickCart=true&tabId=${activeTab.id}`);
+    router.push(`/dashboard/sales-orders/new?fromQuickCart=true&tabId=${activeDraftTab.id}`);
   };
 
   const handleClearAll = () => {
@@ -417,7 +479,7 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
           isExpanded ? '' : ''
         }`}
         style={{
-          // When expanded: use inset, when normal: use bottom/right
+          // When expanded: use inset, otherwise: use bottom/right anchor (with temp position during resize)
           ...(isExpanded ? {
             top: '1rem',
             left: '1rem',
@@ -426,13 +488,13 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
           } : {
             top: 'auto',
             left: 'auto',
-            bottom: `${popupPosition}px`,
-            right: `${popupRight}px`,
+            bottom: `${tempPosition?.bottom ?? popupPosition}px`,
+            right: `${tempPosition?.right ?? popupRight}px`,
           }),
           width: `${currentDimensions.width}px`,
           height: `${currentDimensions.height}px`,
           maxWidth: isExpanded ? '95vw' : undefined,
-          maxHeight: isExpanded ? '90vh' : undefined,
+          maxHeight: isExpanded ? '85vh' : undefined,
           transition: isResizing ? 'none' : 'all 0.3s ease',
           resize: 'none',
           zIndex: CART_CONSTANTS.POPUP.Z_INDEX,
@@ -440,83 +502,105 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
       >
       {/* Header with Tabs */}
       <div className="border-b bg-muted/30">
-        <div className="flex items-center justify-between p-3">
-          <div className="flex items-center gap-2">
-            <ShoppingCart className="h-5 w-5 text-primary" />
-            <h3 className="font-semibold">Pedidos</h3>
-            <span className="text-xs text-muted-foreground">
-              ({items.length} item{items.length !== 1 ? 's' : ''})
-            </span>
+        <div className="flex items-center justify-between gap-2 p-2">
+          {/* Left: Title and Tabs */}
+          <div className="flex items-center gap-2 flex-1 min-w-0">
+            <ShoppingCart className="h-4 w-4 text-primary flex-shrink-0" />
+            <div className="flex items-center gap-1 overflow-x-auto">
+              {draftTabs.map((tab) => (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`flex items-center gap-1 px-2 py-1 rounded text-xs transition-colors flex-shrink-0 ${
+                    tab.id === activeDraftTab.id
+                      ? 'bg-primary text-primary-foreground'
+                      : 'bg-background hover:bg-accent'
+                  }`}
+                >
+                  {tab.clientName ? (
+                    <User className="h-3 w-3" />
+                  ) : (
+                    <ShoppingCart className="h-3 w-3" />
+                  )}
+                  <span className="font-medium truncate max-w-[100px]">
+                    {tab.clientName || tab.name}
+                  </span>
+                  {tab.items.length > 0 && (
+                    <span className="text-[10px] opacity-70">({tab.items.length})</span>
+                  )}
+                  {draftTabs.length > 1 && (
+                    <X
+                      className="h-3 w-3 hover:bg-destructive/20 rounded"
+                      onClick={(e) => handleRemoveTab(tab.id, e)}
+                    />
+                  )}
+                </button>
+              ))}
+              <Button
+                variant="ghost"
+                size="icon"
+                className="h-6 w-6 flex-shrink-0"
+                onClick={addTab}
+              >
+                <Plus className="h-3 w-3" />
+              </Button>
+            </div>
           </div>
-          <div className="flex items-center gap-1">
+          
+          {/* Right: Action Buttons */}
+          <div className="flex items-center gap-1 flex-shrink-0">
+            {/* Reset Size Button - only show if custom size is set */}
+            {(customWidth || customHeight) && !isExpanded && (
+              <Button 
+                variant="ghost" 
+                size="icon"
+                className="h-7 w-7"
+                onClick={resetToDefaultSize}
+                title="Restablecer tamaño"
+              >
+                <svg 
+                  className="h-3.5 w-3.5" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  viewBox="0 0 24 24"
+                >
+                  <path 
+                    strokeLinecap="round" 
+                    strokeLinejoin="round" 
+                    strokeWidth={2} 
+                    d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" 
+                  />
+                </svg>
+              </Button>
+            )}
             <Button 
               variant="ghost" 
-              size="icon" 
+              size="icon"
+              className="h-7 w-7"
               onClick={toggleExpanded}
               title={isExpanded ? 'Contraer' : 'Expandir'}
             >
               {isExpanded ? (
-                <Minimize2 className="h-4 w-4" />
+                <Minimize2 className="h-3.5 w-3.5" />
               ) : (
-                <Maximize2 className="h-4 w-4" />
+                <Maximize2 className="h-3.5 w-3.5" />
               )}
             </Button>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="h-4 w-4" />
+            <Button variant="ghost" size="icon" className="h-7 w-7" onClick={onClose}>
+              <X className="h-3.5 w-3.5" />
             </Button>
           </div>
-        </div>
-        
-        {/* Tabs */}
-        <div className="flex items-center gap-1 px-2 pb-2 overflow-x-auto">
-          {draftTabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded text-xs transition-colors flex-shrink-0 ${
-                tab.id === activeTab.id
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-background hover:bg-accent'
-              }`}
-            >
-              {tab.clientName ? (
-                <User className="h-3 w-3" />
-              ) : (
-                <ShoppingCart className="h-3 w-3" />
-              )}
-              <span className="font-medium truncate max-w-[120px]">
-                {tab.clientName || tab.name}
-              </span>
-              {tab.items.length > 0 && (
-                <span className="text-[10px] opacity-70">({tab.items.length})</span>
-              )}
-              {draftTabs.length > 1 && (
-                <X
-                  className="h-3 w-3 ml-1 hover:bg-destructive/20 rounded"
-                  onClick={(e) => handleRemoveTab(tab.id, e)}
-                />
-              )}
-            </button>
-          ))}
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-7 w-7 flex-shrink-0"
-            onClick={addTab}
-          >
-            <Plus className="h-3.5 w-3.5" />
-          </Button>
         </div>
       </div>
 
       {/* Client Selection */}
-      <div className="p-3 border-b bg-background">
-        {activeTab.clientId ? (
+      <div className="p-2 border-b bg-background">
+        {activeDraftTab.clientId ? (
           <div className="flex items-center gap-2">
             <div className="flex-1 flex items-center gap-2 p-2 bg-primary/10 border border-primary/20 rounded">
               <User className="h-4 w-4 text-primary" />
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-medium truncate">{activeTab.clientName}</div>
+                <div className="text-sm font-medium truncate">{activeDraftTab.clientName}</div>
                 <div className="text-xs text-muted-foreground">Cliente seleccionado</div>
               </div>
             </div>
@@ -534,13 +618,13 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
       </div>
 
       {/* Quick Article Lookup */}
-      <div className="p-3 border-b bg-muted/5">
+      <div className="p-2 border-b bg-muted/5">
         <QuickArticleLookup autoFocus={false} focusTrigger={articleFocusTrigger} />
       </div>
 
       {items.length === 0 ? (
         /* Empty State */
-        <div className="flex-1 flex items-center justify-center py-12 px-4">
+        <div className="flex-1 flex items-center justify-center py-8 px-4">
           <div className="text-center text-muted-foreground">
             <ShoppingCart className="h-12 w-12 mx-auto mb-3 opacity-30" />
             <p className="text-sm">No hay artículos</p>
@@ -550,98 +634,95 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
       ) : (
         <>
           {/* Items List */}
-          <div className="flex-1 overflow-y-auto overflow-x-visible p-4 space-y-2">
+          <div className="flex-1 overflow-y-auto overflow-x-visible p-3 space-y-2">
             {items.map((item) => (
               <div
                 key={item.article.id}
-                className={`flex items-center gap-3 p-3 rounded border hover:bg-accent/50 transition-colors ${
-                  isExpanded ? 'min-h-[80px]' : ''
-                }`}
+                className="border rounded p-2 hover:bg-accent/50 transition-colors"
               >
-                <div className="flex-1 min-w-0">
-                  {editingItemId === item.article.id ? (
-                    <div className="mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="relative flex-1">
-                          <Input
-                            ref={editInputRef}
-                            value={editCode}
-                            onChange={(e) => {
-                              setEditCode(e.target.value.toUpperCase());
-                              setShowEditResults(true);
-                            }}
-                            onKeyDown={handleEditKeyDown}
-                            onFocus={() => editCode && setShowEditResults(true)}
-                            onBlur={() => setTimeout(() => setShowEditResults(false), 200)}
-                            className="h-7 text-sm font-mono uppercase"
-                            placeholder="Buscar código..."
-                            autoFocus
-                          />
-                        </div>
+                {editingItemId === item.article.id ? (
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="relative flex-1">
+                      <Input
+                        ref={editInputRef}
+                        value={editCode}
+                        onChange={(e) => {
+                          setEditCode(e.target.value.toUpperCase());
+                          setShowEditResults(true);
+                        }}
+                        onKeyDown={handleEditKeyDown}
+                        onFocus={() => editCode && setShowEditResults(true)}
+                        onBlur={() => setTimeout(() => setShowEditResults(false), 200)}
+                        className="h-7 text-sm font-mono uppercase"
+                        placeholder="Buscar código..."
+                        autoFocus
+                      />
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-7 w-7"
+                      onClick={handleCancelEdit}
+                    >
+                      <X className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-[2fr_3fr_1fr_1.5fr_auto] gap-2 items-center">
+                    {/* Column 1: Code with Stock */}
+                    <div className="flex flex-col gap-0.5">
+                      <div className="flex items-center gap-1">
+                        <span className="font-medium font-mono text-sm">
+                          {item.article.code}
+                        </span>
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-7 w-7"
-                          onClick={handleCancelEdit}
+                          className="h-4 w-4 p-0"
+                          onClick={() => handleEditItem(item.article.id, item.article.code)}
                         >
-                          <X className="h-3.5 w-3.5" />
+                          <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
                         </Button>
                       </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      <div className={`font-medium font-mono ${isExpanded ? 'text-base' : 'text-sm'}`}>
-                        {item.article.code}
+                      <div className="text-xs text-muted-foreground">
+                        (Stock: <span className={getStockStatusClass(item.article.stock)}>{item.article.stock}</span>)
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-5 w-5"
-                        onClick={() => handleEditItem(item.article.id, item.article.code)}
-                      >
-                        <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                      </Button>
                     </div>
-                  )}
-                  <div className={`text-muted-foreground truncate ${isExpanded ? 'text-sm' : 'text-xs'}`}>
-                    {item.article.description}
+                    
+                    {/* Column 2: Description */}
+                    <div className="text-xs text-muted-foreground truncate">
+                      {item.article.description}
+                    </div>
+                    
+                    {/* Column 3: Quantity */}
+                    <Input
+                      type="number"
+                      min="1"
+                      value={item.quantity}
+                      onChange={(e) => {
+                        const newQty = parseInt(e.target.value) || 1;
+                        updateQuantity(item.article.id, newQty);
+                      }}
+                      className="w-full h-8 text-sm text-center"
+                      onFocus={(e) => e.target.select()}
+                    />
+                    
+                    {/* Column 4: Price */}
+                    <div className="text-sm font-medium text-right">
+                      {formatCurrency(item.article.unitPrice)}
+                    </div>
+                    
+                    {/* Delete Button */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 flex-shrink-0"
+                      onClick={() => removeItem(item.article.id)}
+                    >
+                      <Trash2 className="h-4 w-4 text-red-600" />
+                    </Button>
                   </div>
-                  <div className={`flex items-center gap-3 mt-1 ${isExpanded ? 'text-sm' : 'text-xs'}`}>
-                    <span className="text-muted-foreground">
-                      {formatCurrency(item.article.unitPrice)} c/u
-                    </span>
-                    <span className={`${getStockStatusClass(item.article.stock)}`}>
-                      Stock: {item.article.stock}
-                    </span>
-                    {isExpanded && (
-                      <span className="font-semibold text-primary">
-                        Subtotal: {formatCurrency(item.article.unitPrice * item.quantity)}
-                      </span>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    min="1"
-                    value={item.quantity}
-                    onChange={(e) => {
-                      const newQty = parseInt(e.target.value) || 1;
-                      updateQuantity(item.article.id, newQty);
-                    }}
-                    className={`text-center ${isExpanded ? 'w-20 h-9 text-base' : 'w-16 h-8 text-sm'}`}
-                    onFocus={(e) => e.target.select()}
-                  />
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className={`flex-shrink-0 ${isExpanded ? 'h-9 w-9' : 'h-8 w-8'}`}
-                    onClick={() => removeItem(item.article.id)}
-                  >
-                    <Trash2 className={`text-red-600 ${isExpanded ? 'h-5 w-5' : 'h-4 w-4'}`} />
-                  </Button>
-                </div>
+                )}
               </div>
             ))}
           </div>
@@ -649,16 +730,10 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
           <Separator />
 
           {/* Footer */}
-          <div className="p-3 space-y-3">
-            <div className="grid grid-cols-2 gap-4 p-3 bg-muted/50 rounded">
-              <div>
-                <div className="text-xs text-muted-foreground mb-1">Items</div>
-                <div className="text-base font-semibold">{getActiveTabTotalItems()}</div>
-              </div>
-              <div className="text-right">
-                <div className="text-xs text-muted-foreground mb-1">Total Estimado</div>
-                <div className="text-lg font-bold">{formatCurrency(getTotalValue())}</div>
-              </div>
+          <div className="p-2 space-y-2">
+            <div className="flex justify-between items-center p-2 bg-muted/50 rounded">
+              <span className="text-sm text-muted-foreground">Total Estimado</span>
+              <span className="text-xl font-bold">{formatCurrency(getTotalValue())}</span>
             </div>
 
             <div className="grid grid-cols-2 gap-2">
@@ -675,7 +750,7 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
               <Button
                 size="sm"
                 onClick={handleCreateOrder}
-                disabled={items.length === 0 || !activeTab.clientId}
+                disabled={items.length === 0 || !activeDraftTab.clientId}
                 className="w-full"
               >
                 <ShoppingCart className="h-4 w-4 mr-2" />
@@ -696,6 +771,13 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
             style={{ zIndex: 60 }}
           />
           
+          {/* Right edge handle */}
+          <div
+            className="absolute top-0 right-0 w-2 h-full cursor-ew-resize hover:bg-primary/20 transition-colors"
+            onMouseDown={(e) => handleResizeStart(e, 'right')}
+            style={{ zIndex: 60 }}
+          />
+          
           {/* Top edge handle */}
           <div
             className="absolute top-0 left-0 w-full h-2 cursor-ns-resize hover:bg-primary/20 transition-colors"
@@ -703,21 +785,68 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
             style={{ zIndex: 60 }}
           />
           
+          {/* Bottom edge handle */}
+          <div
+            className="absolute bottom-0 left-0 w-full h-2 cursor-ns-resize hover:bg-primary/20 transition-colors"
+            onMouseDown={(e) => handleResizeStart(e, 'bottom')}
+            style={{ zIndex: 60 }}
+          />
+          
           {/* Top-left corner handle */}
           <div
             className="absolute top-0 left-0 w-4 h-4 cursor-nwse-resize hover:bg-primary/30 transition-colors"
-            onMouseDown={(e) => handleResizeStart(e, 'corner')}
+            onMouseDown={(e) => handleResizeStart(e, 'corner-tl')}
             style={{ zIndex: 61 }}
           >
-            <svg
-              className="w-full h-full text-muted-foreground/40"
-              viewBox="0 0 16 16"
-              fill="currentColor"
-            >
+            <svg className="w-full h-full text-muted-foreground/40" viewBox="0 0 16 16" fill="currentColor">
               <path d="M1 6V5h1v1H1zm0-3V2h1v1H1zm3 0V2h1v1H4zm3 0V2h1v1H7z" />
             </svg>
           </div>
+          
+          {/* Top-right corner handle */}
+          <div
+            className="absolute top-0 right-0 w-4 h-4 cursor-nesw-resize hover:bg-primary/30 transition-colors"
+            onMouseDown={(e) => handleResizeStart(e, 'corner-tr')}
+            style={{ zIndex: 61 }}
+          >
+            <svg className="w-full h-full text-muted-foreground/40" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M15 2v1h-1V2h1zm0 3v1h-1V5h1zM9 2v1H8V2h1zm3 0v1h-1V2h1z" />
+            </svg>
+          </div>
+          
+          {/* Bottom-left corner handle */}
+          <div
+            className="absolute bottom-0 left-0 w-4 h-4 cursor-nesw-resize hover:bg-primary/30 transition-colors"
+            onMouseDown={(e) => handleResizeStart(e, 'corner-bl')}
+            style={{ zIndex: 61 }}
+          >
+            <svg className="w-full h-full text-muted-foreground/40" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M1 10v1h1v-1H1zm0 3v1h1v-1H1zm3 0v1h1v-1H4zm3 0v1H7v-1h1z" />
+            </svg>
+          </div>
+          
+          {/* Bottom-right corner handle */}
+          <div
+            className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize hover:bg-primary/30 transition-colors"
+            onMouseDown={(e) => handleResizeStart(e, 'corner-br')}
+            style={{ zIndex: 61 }}
+          >
+            <svg className="w-full h-full text-muted-foreground/40" viewBox="0 0 16 16" fill="currentColor">
+              <path d="M15 10v1h-1v-1h1zm0 3v1h-1v-1h1zm-3 0v1h-1v-1h1zm-3 0v1H8v-1h1z" />
+            </svg>
+          </div>
         </>
+      )}
+
+      {/* Size Indicator Overlay - Show while resizing */}
+      {isResizing && (
+        <div className="absolute inset-0 flex items-center justify-center bg-background/80 backdrop-blur-sm pointer-events-none" style={{ zIndex: 70 }}>
+          <div className="bg-primary text-primary-foreground px-4 py-2 rounded-lg shadow-lg">
+            <div className="text-sm font-medium">
+              {currentDimensions.width} × {currentDimensions.height}
+            </div>
+          </div>
+        </div>
       )}
     </Card>
 

@@ -10,6 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { ClickableTableRow } from '@/components/ui/clickable-table-row';
 import { SortableTableHead } from '@/components/ui/sortable-table-head';
 import {
   AlertDialog,
@@ -134,7 +135,11 @@ export function InvoicesTable({
               </TableRow>
             ) : (
               invoices.map((invoice) => (
-                <TableRow key={invoice.id}>
+                <ClickableTableRow
+                  key={invoice.id}
+                  onRowClick={() => onViewInvoice(invoice.id)}
+                  aria-label={`Ver detalles de la factura ${invoice.invoiceNumber}`}
+                >
                   <TableCell className="font-medium">{invoice.invoiceNumber}</TableCell>
                   <TableCell>{formatDate(invoice.invoiceDate)}</TableCell>
                   <TableCell>{invoice.clientBusinessName}</TableCell>
@@ -186,7 +191,7 @@ export function InvoicesTable({
                       )}
                     </div>
                   </TableCell>
-                </TableRow>
+                </ClickableTableRow>
               ))
             )}
           </TableBody>

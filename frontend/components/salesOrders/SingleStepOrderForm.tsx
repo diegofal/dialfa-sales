@@ -3,15 +3,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { ClientLookup } from '@/components/articles/ClientLookup';
 import { useCreateSalesOrder, useGenerateInvoice, useGenerateDeliveryNote } from '@/lib/hooks/useSalesOrders';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { useQuickCartTabs, QuickCartItem } from '@/lib/hooks/useQuickCartTabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Alert } from '@/components/ui/alert';
 import { ShoppingCart, User, X, Trash2, Pencil, Search, Plus, XCircle, FileText, AlertTriangle, Truck, Eye } from 'lucide-react';
 import { useArticles } from '@/lib/hooks/useArticles';
 import type { Article } from '@/types/article';
@@ -36,7 +34,6 @@ interface OrderItemFormData {
   articleDescription: string;
   quantity: number;
   unitPrice: number;
-  discountPercent: number;
   stock: number;
 }
 
@@ -73,25 +70,26 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     addItem,
     removeItem,
     updateQuantity,
-    setClient: setTabClient,
-    clearClient: clearTabClient,
+    setClient,
+    clearClient,
     ensureTabExists,
     getTabItems,
     replaceItem,
-    setTabItems,
     addOrUpdateOrderTab,
   } = useQuickCartTabs();
   
-  const [orderDate, setOrderDate] = useState(new Date().toISOString().split('T')[0]);
-  const [deliveryDate, setDeliveryDate] = useState('');
   const [notes, setNotes] = useState('');
   const [loadedFromCart, setLoadedFromCart] = useState(false);
   const [loadedOrderId, setLoadedOrderId] = useState<number | null>(null);
   const [currentTabId, setCurrentTabId] = useState<string | null>(null);
   
-  // Store discounts and custom prices separately as they don't exist in QuickCart
-  const [discounts, setDiscounts] = useState<Record<number, number>>({});
+  // Store custom prices separately as they don't exist in QuickCart
   const [prices, setPrices] = useState<Record<number, number>>({});
+  
+  // Local state for edit mode (saved orders should NOT use Quick Cart Tabs)
+  const [localItems, setLocalItems] = useState<QuickCartItem[]>([]);
+  const [localClientId, setLocalClientId] = useState<number | undefined>(undefined);
+  const [localClientName, setLocalClientName] = useState<string>('');
 
   // Article search state
   const [articleCode, setArticleCode] = useState('');
@@ -142,10 +140,11 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   const editArticles = editArticlesResult?.data || [];
 
   // Get current tab - use activeTab when not from QuickCart or when currentTabId changes
+  // BUT: In edit mode, use local state instead of Quick Cart tabs
   const currentTab = currentTabId ? tabs.find(t => t.id === currentTabId) : activeTab;
-  const items = currentTab ? currentTab.items : [];
-  const clientId = currentTab?.clientId;
-  const clientName = currentTab?.clientName || '';
+  const items = isEditMode ? localItems : (currentTab ? currentTab.items : []);
+  const clientId = isEditMode ? localClientId : currentTab?.clientId;
+  const clientName = isEditMode ? localClientName : (currentTab?.clientName || '');
 
   // Track changes for unsaved changes detection
   useEffect(() => {
@@ -153,14 +152,12 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       // Check if anything changed
       const itemsChanged = items.length !== (existingOrder.items?.length || 0);
       const clientChanged = clientId !== existingOrder.clientId;
-      const orderDateChanged = orderDate !== existingOrder.orderDate.split('T')[0];
-      const deliveryDateChanged = (deliveryDate || '') !== (existingOrder.deliveryDate?.split('T')[0] || '');
       const notesChanged = (notes || '') !== (existingOrder.notes || '');
       
-      const hasChanges = itemsChanged || clientChanged || orderDateChanged || deliveryDateChanged || notesChanged;
+      const hasChanges = itemsChanged || clientChanged || notesChanged;
       setHasUnsavedChanges(hasChanges);
     }
-  }, [isEditMode, existingOrder, loadedOrderId, items, clientId, orderDate, deliveryDate, notes]);
+  }, [isEditMode, existingOrder, loadedOrderId, items, clientId, notes]);
 
   // Load existing order data into form when in edit mode
   useEffect(() => {
@@ -168,15 +165,12 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     if (isEditMode && existingOrder && loadedOrderId !== existingOrder.id) {
       console.log('Loading existing order:', existingOrder.id, existingOrder.orderNumber);
       
-      // Prepare items first - we'll load them with stock info from the API
+      // For edit mode, create a tab for sidebar navigation but use local state for the form
       const orderItems: QuickCartItem[] = [];
       if (existingOrder.items && existingOrder.items.length > 0) {
-        // For each item, we need to fetch the current article data to get the real stock
-        // For now, we'll use a placeholder and update it when the article search resolves
         existingOrder.items.forEach(item => {
-          // Set prices and discounts
+          // Set prices
           setPrices(prev => ({ ...prev, [item.articleId]: item.unitPrice }));
-          setDiscounts(prev => ({ ...prev, [item.articleId]: item.discountPercent }));
           
           // Add to items array with real stock from backend
           orderItems.push({
@@ -185,38 +179,33 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
               code: item.articleCode,
               description: item.articleDescription,
               unitPrice: item.unitPrice,
-              stock: item.stock || 0, // Use the stock from the backend
+              stock: item.stock || 0,
             } as Article,
             quantity: item.quantity,
           });
         });
       }
       
-      // Create or update tab for this order WITH items
+      // Create tab for sidebar navigation (with orderId so it's marked as saved order)
       const tabId = addOrUpdateOrderTab(
         existingOrder.id,
         existingOrder.orderNumber,
         existingOrder.clientId,
-        existingOrder.clientBusinessName
+        existingOrder.clientBusinessName,
+        orderItems // Pass items so they appear in sidebar
       );
       
-      console.log('Created tab with ID:', tabId);
-      
-      // Set items immediately after creating tab
-      if (orderItems.length > 0) {
-        console.log('Setting items for tab:', tabId, orderItems.length);
-        setTabItems(tabId, orderItems);
-      }
-      
+      // Set LOCAL state for the form (independent from QuickCart)
+      setLocalItems(orderItems);
+      setLocalClientId(existingOrder.clientId);
+      setLocalClientName(existingOrder.clientBusinessName);
       setCurrentTabId(tabId);
-      setOrderDate(existingOrder.orderDate.split('T')[0]);
-      setDeliveryDate(existingOrder.deliveryDate ? existingOrder.deliveryDate.split('T')[0] : '');
       setNotes(existingOrder.notes || '');
       
       setLoadedFromCart(true);
-      setLoadedOrderId(existingOrder.id); // Mark this order as loaded
+      setLoadedOrderId(existingOrder.id);
     }
-  }, [isEditMode, existingOrder, loadedOrderId, addOrUpdateOrderTab, setTabItems]);
+  }, [isEditMode, existingOrder, loadedOrderId, addOrUpdateOrderTab]);
 
   // Update currentTabId when activeTab changes (from sidebar clicks)
   useEffect(() => {
@@ -316,8 +305,17 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   }
 
   const handleSelectClient = (id: number, name: string) => {
-    if (currentTabId) {
-      setTabClient(id, name);
+    if (isEditMode) {
+      // In edit mode, update local state
+      setLocalClientId(id);
+      setLocalClientName(name);
+      toast.success(`Cliente ${name} seleccionado`, {
+        duration: 2000,
+        position: 'top-center'
+      });
+    } else if (currentTabId) {
+      // In draft mode, update QuickCart tab
+      setClient(id, name);
       toast.success(`Cliente ${name} seleccionado`, {
         duration: 2000,
         position: 'top-center'
@@ -326,8 +324,13 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   };
 
   const handleClearClient = () => {
-    if (currentTabId) {
-      clearTabClient();
+    if (isEditMode) {
+      // In edit mode, clear local state
+      setLocalClientId(undefined);
+      setLocalClientName('');
+    } else if (currentTabId) {
+      // In draft mode, clear QuickCart tab
+      clearClient();
     }
   };
 
@@ -364,8 +367,6 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   };
 
   const handleAddArticle = () => {
-    if (!currentTabId) return;
-    
     let articleToAdd = selectedArticle;
     
     if (!articleToAdd && articleCode && articles.length > 0) {
@@ -392,8 +393,26 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       return;
     }
 
-    // Use hook's addItem function
-    addItem(articleToAdd, qty);
+    if (isEditMode) {
+      // In edit mode, update local state
+      const existingIndex = localItems.findIndex(item => item.article.id === articleToAdd!.id);
+      let updatedItems: QuickCartItem[];
+      
+      if (existingIndex >= 0) {
+        updatedItems = [...localItems];
+        updatedItems[existingIndex] = {
+          ...updatedItems[existingIndex],
+          quantity: updatedItems[existingIndex].quantity + qty,
+        };
+      } else {
+        updatedItems = [...localItems, { article: articleToAdd!, quantity: qty }];
+      }
+      
+      setLocalItems(updatedItems);
+    } else if (currentTabId) {
+      // In draft mode, use QuickCart hook's addItem function
+      addItem(articleToAdd, qty);
+    }
     
     toast.success(`${articleToAdd.code} agregado`, {
       duration: 2000,
@@ -431,10 +450,20 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   };
 
   const handleSelectEditArticle = (article: Article) => {
-    if (!editingItemId || !currentTabId) return;
+    if (!editingItemId) return;
 
-    // Use hook's replaceItem function
-    replaceItem(editingItemId, article);
+    if (isEditMode) {
+      // In edit mode, update local state
+      const updatedItems = localItems.map(item =>
+        item.article.id === editingItemId 
+          ? { article, quantity: item.quantity }
+          : item
+      );
+      setLocalItems(updatedItems);
+    } else if (currentTabId) {
+      // In draft mode, use hook's replaceItem function
+      replaceItem(editingItemId, article);
+    }
     
     toast.success(`Artículo actualizado a ${article.code}`, {
       duration: 2000,
@@ -465,9 +494,14 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   };
 
   const handleRemoveItem = (articleId: number) => {
-    if (!currentTabId) return;
+    if (isEditMode) {
+      // In edit mode, update local state
+      setLocalItems(localItems.filter(item => item.article.id !== articleId));
+    } else if (currentTabId) {
+      // In draft mode, use QuickCart hook
+      removeItem(articleId);
+    }
     
-    removeItem(articleId);
     toast.success('Artículo eliminado', {
       duration: 2000,
       position: 'top-center'
@@ -475,8 +509,17 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   };
 
   const handleUpdateQuantity = (articleId: number, newQuantity: number) => {
-    if (!currentTabId || newQuantity <= 0) return;
-    updateQuantity(articleId, newQuantity);
+    if (newQuantity <= 0) return;
+    
+    if (isEditMode) {
+      // In edit mode, update local state
+      setLocalItems(localItems.map(item =>
+        item.article.id === articleId ? { ...item, quantity: newQuantity } : item
+      ));
+    } else if (currentTabId) {
+      // In draft mode, use QuickCart hook
+      updateQuantity(articleId, newQuantity);
+    }
   };
 
   const handleUpdateUnitPrice = (articleId: number, newPrice: number) => {
@@ -485,21 +528,12 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     setPrices(prev => ({ ...prev, [articleId]: newPrice }));
   };
 
-  const handleUpdateDiscount = (articleId: number, newDiscount: number) => {
-    // Discounts are stored separately as they don't exist in QuickCart
-    if (newDiscount < 0 || newDiscount > 100) return;
-    setDiscounts(prev => ({ ...prev, [articleId]: newDiscount }));
-  };
-
   const calculateLineTotal = (item: QuickCartItem) => {
     const articleId = item.article.id;
     const quantity = item.quantity;
     const unitPrice = prices[articleId] ?? item.article.unitPrice;
-    const discountPercent = discounts[articleId] ?? 0;
     
-    const subtotal = quantity * unitPrice;
-    const discount = subtotal * (discountPercent / 100);
-    return subtotal - discount;
+    return quantity * unitPrice;
   };
 
   const calculateTotal = () => {
@@ -528,27 +562,11 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       validation.warnings.forEach(warning => toast.warning(warning, { duration: 4000, position: 'top-center' }));
     }
 
-    if (!orderDate) {
-      toast.error('Debe ingresar la fecha de pedido', {
-        duration: 3000,
-        position: 'top-center'
-      });
-      return;
-    }
-
     // Validate items
     for (const item of items) {
       const unitPrice = prices[item.article.id] ?? item.article.unitPrice;
       if (unitPrice < 0) {
         toast.error(`El precio de ${item.article.code} no puede ser negativo`, {
-          duration: 3000,
-          position: 'top-center'
-        });
-        return;
-      }
-      const discountPercent = discounts[item.article.id] ?? 0;
-      if (discountPercent < 0 || discountPercent > 100) {
-        toast.error(`El descuento de ${item.article.code} debe estar entre 0 y 100%`, {
           duration: 3000,
           position: 'top-center'
         });
@@ -565,14 +583,12 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
 
       const requestData = {
         clientId,
-        orderDate,
-        deliveryDate: deliveryDate || undefined,
         notes: notes || undefined,
         items: items.map((item) => ({
           articleId: item.article.id,
           quantity: item.quantity,
           unitPrice: prices[item.article.id] ?? item.article.unitPrice,
-          discountPercent: discounts[item.article.id] ?? 0,
+          discountPercent: 0,
         })),
       };
 
@@ -691,109 +707,54 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   };
 
   return (
-    <div className="space-y-6 pb-24">
-      {fromQuickCart && loadedFromCart && !isEditMode && (
-        <Alert>
-          <ShoppingCart className="h-4 w-4" />
-          <AlertDescription>
-            Se han cargado datos desde tu lista de consulta rápida.
-          </AlertDescription>
-        </Alert>
-      )}
-
+    <div className="space-y-4 pb-24">
       {/* Stock Warnings - Compact */}
       {hasStockWarnings && (
-        <Alert variant="destructive" className="bg-red-50 border-red-300 py-3">
+        <Alert variant="destructive" className="bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-800 py-2">
           <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-red-600 flex-shrink-0" />
-            <p className="text-sm font-semibold text-red-900">Advertencia de Stock</p>
+            <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-500 flex-shrink-0" />
+            <p className="text-sm font-semibold text-red-900 dark:text-red-200">Advertencia de Stock</p>
           </div>
         </Alert>
       )}
 
       {/* Client and General Info Section */}
       <Card>
-        <CardContent className="pt-6">
-          <div className="space-y-4">
-            <div className="space-y-2">
-              {clientId && clientName ? (
-                <div className="flex items-center gap-2">
-                  <div className="flex-1 flex items-center gap-2 p-3 bg-primary/10 border border-primary/20 rounded">
-                    <User className="h-4 w-4 text-primary" />
-                    <div className="flex-1 min-w-0">
-                      <div className="text-sm font-medium truncate">{clientName}</div>
-                      <div className="text-xs text-muted-foreground">Cliente seleccionado</div>
-                    </div>
+        <CardContent className="pt-4">
+          <div>
+            {clientId && clientName ? (
+              <div className="flex items-center gap-2">
+                <div className="flex-1 flex items-center gap-2 p-2 bg-primary/10 border border-primary/20 rounded">
+                  <User className="h-4 w-4 text-primary" />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-medium truncate">{clientName}</div>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={handleClearClient}
-                  >
-                    <X className="h-4 w-4" />
-                  </Button>
                 </div>
-              ) : (
-                <ClientLookup onSelectClient={handleSelectClient} />
-              )}
-              <p className="text-sm text-muted-foreground">
-                Selecciona el cliente para el pedido
-              </p>
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-2">
-                <Label htmlFor="orderDate">Fecha de Pedido *</Label>
-                <Input
-                  id="orderDate"
-                  type="date"
-                  value={orderDate}
-                  onChange={(e) => setOrderDate(e.target.value)}
-                  disabled={isReadOnly}
-                  required
-                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleClearClient}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="deliveryDate">Fecha de Entrega</Label>
-                <Input
-                  id="deliveryDate"
-                  type="date"
-                  value={deliveryDate}
-                  onChange={(e) => setDeliveryDate(e.target.value)}
-                  min={orderDate}
-                  disabled={isReadOnly}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="notes">Notas</Label>
-                <Textarea
-                  id="notes"
-                  placeholder="Observaciones..."
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows={1}
-                  className="resize-none"
-                  disabled={isReadOnly}
-                />
-              </div>
-            </div>
+            ) : (
+              <ClientLookup onSelectClient={handleSelectClient} />
+            )}
           </div>
         </CardContent>
       </Card>
 
       {/* Articles Section */}
       <Card className="flex-1">
-        <CardContent className="pt-6">
-          <div className="space-y-4">
+        <CardContent className="pt-4">
+          <div className="space-y-3">
 
               {/* Quick Article Lookup */}
               {!isReadOnly && (
-                <div className="p-4 border rounded-lg bg-muted/30">
+                <div className="p-3 border rounded-lg bg-muted/30">
                 <div className="flex items-start gap-2">
                   <div className="flex-1 relative">
-                    <Label className="text-xs mb-1 block text-muted-foreground">Código de Artículo</Label>
                     <div className="relative">
                       <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
                       <Input
@@ -858,7 +819,6 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                   </div>
 
                   <div className="w-20">
-                    <Label className="text-xs mb-1 block text-muted-foreground">Cant.</Label>
                     <Input
                       ref={quantityInputRef}
                       type="number"
@@ -867,11 +827,12 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                       onChange={(e) => setQuantity(e.target.value)}
                       onKeyDown={handleQuantityKeyDown}
                       onFocus={(e) => e.target.select()}
+                      placeholder="Cant."
                       className="text-center text-sm h-9"
                     />
                   </div>
 
-                  <div className="pt-6">
+                  <div className="pt-0">
                     <Button
                       size="sm"
                       onClick={handleAddArticle}
@@ -888,7 +849,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
               {/* Items List */}
               <div className="space-y-2 max-h-[600px] overflow-y-auto">
                 {items.length === 0 ? (
-                  <div className="border border-dashed rounded-lg p-8 text-center text-muted-foreground">
+                  <div className="border border-dashed rounded-lg p-6 text-center text-muted-foreground">
                     <ShoppingCart className="h-8 w-8 mx-auto mb-2 opacity-30" />
                     <p className="text-sm">No hay artículos agregados</p>
                     <p className="text-xs mt-1">Usa el buscador para agregar</p>
@@ -899,9 +860,9 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                     return (
                       <div
                         key={item.article.id}
-                        className={`border rounded-lg p-3 space-y-2 transition-colors ${
+                        className={`border rounded-lg p-2.5 transition-colors ${
                           hasStockIssue
-                            ? 'border-red-300 bg-red-50 hover:bg-red-100'
+                            ? 'border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-950/50'
                             : 'bg-card hover:bg-accent/5'
                         }`}
                       >
@@ -970,95 +931,82 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                               )}
                             </div>
                           ) : (
-                            <div className="flex items-center gap-2">
-                              <div className="flex items-center gap-1.5">
-                                <div className="font-medium text-sm font-mono">
-                                  {item.article.code}
-                                </div>
-                                {item.quantity > item.article.stock && (
-                                  <div title={`Stock insuficiente: solicitado ${item.quantity}, disponible ${item.article.stock}`}>
-                                    <AlertTriangle 
-                                      className="h-3.5 w-3.5 text-red-600 flex-shrink-0"
-                                    />
+                            <div className="grid grid-cols-[2fr_3fr_1fr_1.5fr_auto] gap-2 items-center">
+                              {/* Column 1: Code with Stock */}
+                              <div className="flex flex-col gap-0.5">
+                                <div className="flex items-center gap-1.5">
+                                  <div className="font-medium text-sm font-mono">
+                                    {item.article.code}
                                   </div>
-                                )}
+                                  {!isReadOnly && (
+                                    <Button
+                                      variant="ghost"
+                                      size="icon"
+                                      className="h-4 w-4 p-0"
+                                      onClick={() => handleEditItem(item.article.id, item.article.code)}
+                                    >
+                                      <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                                    </Button>
+                                  )}
+                                </div>
+                                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                  <span>(Stock: <span className={getStockStatusClass(item.article.stock)}>{item.article.stock}</span>)</span>
+                                  {item.quantity > item.article.stock && (
+                                    <div title={`Stock insuficiente: solicitado ${item.quantity}, disponible ${item.article.stock}`}>
+                                      <AlertTriangle 
+                                        className="h-3 w-3 text-red-600 flex-shrink-0"
+                                      />
+                                    </div>
+                                  )}
+                                </div>
                               </div>
+                              
+                              {/* Column 2: Description */}
+                              <div className="text-xs text-muted-foreground truncate">
+                                {item.article.description}
+                              </div>
+                              
+                              {/* Column 3: Quantity */}
+                              <div>
+                                <Input
+                                  type="number"
+                                  min="1"
+                                  value={item.quantity}
+                                  onChange={(e) => handleUpdateQuantity(item.article.id, parseInt(e.target.value) || 1)}
+                                  className="h-8 text-sm text-center"
+                                  onFocus={(e) => e.target.select()}
+                                  disabled={isReadOnly}
+                                />
+                              </div>
+                              
+                              {/* Column 4: Price */}
+                              <div>
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  step="0.01"
+                                  value={prices[item.article.id] ?? item.article.unitPrice}
+                                  onChange={(e) => handleUpdateUnitPrice(item.article.id, parseFloat(e.target.value) || 0)}
+                                  className="h-8 text-sm text-right"
+                                  onFocus={(e) => e.target.select()}
+                                  disabled={isReadOnly}
+                                />
+                              </div>
+                              
+                              {/* Delete Button */}
                               {!isReadOnly && (
                                 <Button
                                   variant="ghost"
                                   size="icon"
-                                  className="h-5 w-5"
-                                  onClick={() => handleEditItem(item.article.id, item.article.code)}
+                                  className="h-8 w-8"
+                                  onClick={() => handleRemoveItem(item.article.id)}
                                 >
-                                  <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                                  <Trash2 className="h-4 w-4 text-red-600" />
                                 </Button>
                               )}
                             </div>
                           )}
-                          <div className="text-xs text-muted-foreground truncate">
-                            {item.article.description}
-                          </div>
-                          <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2">
-                            <span>Stock: <span className={getStockStatusClass(item.article.stock)}>{item.article.stock}</span></span>
-                          </div>
                         </div>
-                        {!isReadOnly && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() => handleRemoveItem(item.article.id)}
-                          >
-                            <Trash2 className="h-4 w-4 text-red-600" />
-                          </Button>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-3 gap-2">
-                        <div>
-                          <Label className="text-xs text-muted-foreground">Cantidad</Label>
-                          <Input
-                            type="number"
-                            min="1"
-                            value={item.quantity}
-                            onChange={(e) => handleUpdateQuantity(item.article.id, parseInt(e.target.value) || 1)}
-                            className="h-8 text-sm"
-                            onFocus={(e) => e.target.select()}
-                            disabled={isReadOnly}
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs text-muted-foreground">Precio</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            value={prices[item.article.id] ?? item.article.unitPrice}
-                            onChange={(e) => handleUpdateUnitPrice(item.article.id, parseFloat(e.target.value) || 0)}
-                            className="h-8 text-sm"
-                            onFocus={(e) => e.target.select()}
-                            disabled={isReadOnly}
-                          />
-                        </div>
-                        <div>
-                          <Label className="text-xs text-muted-foreground">Desc %</Label>
-                          <Input
-                            type="number"
-                            min="0"
-                            max="100"
-                            step="0.01"
-                            value={discounts[item.article.id] ?? 0}
-                            onChange={(e) => handleUpdateDiscount(item.article.id, parseFloat(e.target.value) || 0)}
-                            className="h-8 text-sm"
-                            onFocus={(e) => e.target.select()}
-                            disabled={isReadOnly}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="text-right pt-1 border-t">
-                        <span className="text-xs text-muted-foreground">Subtotal: </span>
-                        <span className="text-sm font-semibold">{formatCurrency(calculateLineTotal(item))}</span>
                       </div>
                     </div>
                   );
@@ -1068,17 +1016,9 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
 
               {/* Total */}
               {items.length > 0 && (
-                <div className="p-4 bg-muted/50 rounded-lg">
-                  <div className="flex justify-between items-center">
-                    <div>
-                      <div className="text-xs text-muted-foreground">Items</div>
-                      <div className="text-lg font-semibold">{items.length}</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-xs text-muted-foreground">Total</div>
-                      <div className="text-2xl font-bold">{formatCurrency(calculateTotal())}</div>
-                    </div>
-                  </div>
+                <div className="flex justify-between items-center p-2.5 bg-muted/50 rounded-lg">
+                  <span className="text-sm font-medium">Total</span>
+                  <span className="text-2xl font-bold">{formatCurrency(calculateTotal())}</span>
                 </div>
               )}
             </div>

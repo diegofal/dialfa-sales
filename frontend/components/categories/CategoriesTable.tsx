@@ -8,6 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { ClickableTableRow } from '@/components/ui/clickable-table-row';
 import { SortableTableHead } from '@/components/ui/sortable-table-head';
 import { Button } from '@/components/ui/button';
 import {
@@ -91,7 +92,12 @@ export function CategoriesTable({ categories, onEdit, currentSortBy, currentSort
               </TableRow>
             ) : (
               categories.map((category) => (
-                <TableRow key={category.id}>
+                <ClickableTableRow
+                  key={category.id}
+                  onRowClick={() => onEdit(category.id)}
+                  disabled={category.isDeleted}
+                  aria-label={`Editar categoría ${category.name}`}
+                >
                   <TableCell className="font-medium">{category.code}</TableCell>
                   <TableCell className="font-semibold">{category.name}</TableCell>
                   <TableCell className="text-gray-600">
@@ -137,7 +143,7 @@ export function CategoriesTable({ categories, onEdit, currentSortBy, currentSort
                       </Button>
                     </div>
                   </TableCell>
-                </TableRow>
+                </ClickableTableRow>
               ))
             )}
           </TableBody>

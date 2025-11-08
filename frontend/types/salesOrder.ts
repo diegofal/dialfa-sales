@@ -53,8 +53,6 @@ export interface SalesOrderListDto {
 
 export interface CreateSalesOrderRequest {
   clientId: number;
-  orderDate: string;
-  deliveryDate?: string;
   notes?: string;
   items: CreateSalesOrderItemRequest[];
 }
@@ -68,8 +66,6 @@ export interface CreateSalesOrderItemRequest {
 
 export interface UpdateSalesOrderRequest {
   clientId: number;
-  orderDate: string;
-  deliveryDate?: string;
   notes?: string;
   items: UpdateSalesOrderItemRequest[];
 }
@@ -85,8 +81,6 @@ export interface UpdateSalesOrderItemRequest {
 // For wizard state
 export interface SalesOrderFormData {
   clientId?: number;
-  orderDate: string;
-  deliveryDate?: string;
   notes?: string;
   items: SalesOrderItemFormData[];
 }

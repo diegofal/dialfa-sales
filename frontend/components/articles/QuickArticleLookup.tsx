@@ -3,7 +3,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { useArticles } from '@/lib/hooks/useArticles';
 import { useQuickCartTabs } from '@/lib/hooks/useQuickCartTabs';
@@ -174,7 +173,6 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
     <div className="flex items-start gap-2 w-full">
       {/* Article Code Input */}
       <div className="flex-1 relative">
-        <Label className="text-xs mb-1 block text-muted-foreground">Código de Artículo</Label>
         <div className="relative">
           <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
@@ -188,7 +186,7 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
             onKeyDown={handleCodeKeyDown}
             onFocus={() => articleCode && setShowCodeResults(true)}
             onBlur={() => setTimeout(() => setShowCodeResults(false), 200)}
-            placeholder="BRS1501"
+            placeholder="Buscar artículo..."
             className="pl-7 uppercase text-sm h-9"
           />
         </div>
@@ -240,7 +238,6 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
 
       {/* Quantity Input */}
       <div className="w-24">
-        <Label className="text-xs mb-1 block text-muted-foreground">Cant.</Label>
         <Input
           ref={quantityInputRef}
           type="number"
@@ -249,6 +246,7 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
           onChange={(e) => setQuantity(e.target.value)}
           onKeyDown={handleQuantityKeyDown}
           onFocus={(e) => e.target.select()}
+          placeholder="Cant."
           className="text-center text-sm h-9"
         />
       </div>

@@ -147,8 +147,6 @@ export async function PUT(
           where: { id },
           data: {
             client_id: validatedData.clientId,
-            order_date: validatedData.orderDate,
-            delivery_date: validatedData.deliveryDate,
             status: validatedData.status,
             special_discount_percent: validatedData.specialDiscountPercent,
             total: total,
@@ -216,8 +214,6 @@ export async function PUT(
         where: { id },
         data: {
           client_id: validatedData.clientId,
-          order_date: validatedData.orderDate,
-          delivery_date: validatedData.deliveryDate,
           status: validatedData.status,
           special_discount_percent: validatedData.specialDiscountPercent,
           notes: validatedData.notes,

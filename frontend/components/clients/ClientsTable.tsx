@@ -11,6 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { ClickableTableRow } from '@/components/ui/clickable-table-row';
 import { SortableTableHead } from '@/components/ui/sortable-table-head';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -119,7 +120,11 @@ export default function ClientsTable({
               </TableRow>
             ) : (
               clients.map((client) => (
-                <TableRow key={client.id}>
+                <ClickableTableRow
+                  key={client.id}
+                  onRowClick={() => onEdit(client)}
+                  aria-label={`Editar cliente ${client.businessName}`}
+                >
                   <TableCell className="font-medium">{client.code}</TableCell>
                   <TableCell>{client.businessName}</TableCell>
                   <TableCell className="font-mono text-sm">
@@ -154,7 +159,7 @@ export default function ClientsTable({
                       </Button>
                     </div>
                   </TableCell>
-                </TableRow>
+                </ClickableTableRow>
               ))
             )}
           </TableBody>

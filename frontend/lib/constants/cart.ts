@@ -13,10 +13,10 @@ export const CART_CONSTANTS = {
   // Popup dimensions and spacing
   POPUP: {
     GAP: 16, // Gap between button and popup
-    WIDTH_NORMAL: 520,
-    HEIGHT_NORMAL: 750,
+    WIDTH_NORMAL: 650,
+    HEIGHT_NORMAL: 550, // Reduced from 750 to fit better in viewport
     MIN_WIDTH: 400,
-    MIN_HEIGHT: 400,
+    MIN_HEIGHT: 350, // Reduced from 400 to allow more flexibility
     Z_INDEX: 50,
     
     // Responsive breakpoints
@@ -66,7 +66,7 @@ export function calculateCartPositions(bottomBarHeight: number, windowWidth?: nu
   const buttonRight = isMobile ? 16 : CART_CONSTANTS.BUTTON.MARGIN_RIGHT; // Closer to edge on mobile
   const popupRight = isMobile ? 8 : CART_CONSTANTS.BUTTON.MARGIN_RIGHT;
   const popupWidth = isMobile ? safeWindowWidth - 16 : CART_CONSTANTS.POPUP.WIDTH_NORMAL;
-  const popupHeight = isMobile ? 500 : CART_CONSTANTS.POPUP.HEIGHT_NORMAL;
+  const popupHeight = isMobile ? 450 : CART_CONSTANTS.POPUP.HEIGHT_NORMAL; // Reduced from 500 to 450 for mobile
 
   const result = {
     button: {

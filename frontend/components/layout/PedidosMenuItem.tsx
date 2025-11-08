@@ -37,8 +37,9 @@ export default function PedidosMenuItem() {
     
     setActiveTab(tabId);
     
-    // If it's a saved order, navigate to edit page
+    // Navigate based on tab type
     if (tab.orderId) {
+      // If it's a saved order, navigate to edit page
       router.push(`/dashboard/sales-orders/${tab.orderId}/edit`);
     } else {
       // If it's a draft, navigate to new order page with QuickCart
@@ -99,7 +100,7 @@ export default function PedidosMenuItem() {
           Pedidos
         </Link>
 
-        {/* Sub-items (Quick Cart Tabs - All tabs shown in sidebar) */}
+        {/* Sub-items (All tabs - drafts and saved orders for navigation) */}
         {isExpanded && (
           <div className="ml-6 space-y-1">
             {tabs.length === 0 ? (
@@ -108,15 +109,15 @@ export default function PedidosMenuItem() {
               </div>
             ) : (
               tabs.map((tab) => {
-                const isTabActive = isNewOrderPage && (
+                const isTabActive = (isNewOrderPage && !tab.orderId && (
                   pathname.includes(`tabId=${tab.id}`) || 
                   (tab.id === activeTabId && !pathname.includes('tabId='))
-                ) || (
-                  // Also mark as active if we're on the edit page for this order
+                )) || (
+                  // Mark as active if we're on the edit page for this saved order
                   tab.orderId && pathname.includes(`/sales-orders/${tab.orderId}/edit`)
                 );
                 
-                const isDraft = !tab.orderId; // It's a draft if no orderId
+                const isDraft = !tab.orderId; // Drafts are italic, saved orders are not
                 
                 return (
                   <div

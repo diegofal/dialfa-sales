@@ -69,21 +69,11 @@ export const salesOrderItemSchema = z.object({
 // Sales Order Validation Schema
 export const createSalesOrderSchema = z.object({
   clientId: z.coerce.bigint().refine(val => val > 0, 'ClientId must be greater than 0'),
-  orderDate: z.coerce.date(),
-  deliveryDate: z.coerce.date().optional().nullable(),
   status: z.string().optional().default('PENDING'),
   specialDiscountPercent: z.coerce.number().min(0).max(100).default(0),
   notes: z.string().optional().nullable(),
   items: z.array(salesOrderItemSchema).min(1, 'Order must have at least one item'),
-}).refine(
-  data => {
-    if (data.deliveryDate && data.orderDate) {
-      return data.deliveryDate >= data.orderDate;
-    }
-    return true;
-  },
-  { message: 'DeliveryDate must be greater than or equal to OrderDate', path: ['deliveryDate'] }
-);
+});
 
 export const updateSalesOrderSchema = createSalesOrderSchema.partial().required({ clientId: true });
 

@@ -122,13 +122,13 @@ export async function POST(request: NextRequest) {
 
     // Create sales order with items in transaction
     const result = await prisma.$transaction(async (tx) => {
-      // Create the sales order
+      // Create the sales order - use current date for orderDate
       const salesOrder = await tx.sales_orders.create({
         data: {
           client_id: validatedData.clientId,
           order_number: orderNumber,
-          order_date: validatedData.orderDate,
-          delivery_date: validatedData.deliveryDate,
+          order_date: now, // Use current date
+          delivery_date: null, // No delivery date by default
           status: validatedData.status || 'PENDING',
           special_discount_percent: validatedData.specialDiscountPercent,
           total: total,

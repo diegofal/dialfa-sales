@@ -113,12 +113,9 @@ export function useQuickCartTabs() {
 
   // Add new tab
   const addTab = () => {
-    // Count only draft tabs (without orderId) for numbering
-    const draftCount = state.tabs.filter(tab => !tab.orderId).length;
-    
     const newTab: QuickCartTab = {
       id: `tab-${Date.now()}`,
-      name: `Pedido ${draftCount + 1}`,
+      name: `Pedido ${state.tabs.length + 1}`,
       items: [],
       createdAt: Date.now(),
     };
@@ -178,10 +175,8 @@ export function useQuickCartTabs() {
 
   // Clear client for active tab
   const clearClient = () => {
-    // Calculate the draft index for naming
-    const draftTabs = state.tabs.filter(tab => !tab.orderId);
-    const draftIndex = draftTabs.findIndex(tab => tab.id === state.activeTabId);
-    const tabName = draftIndex >= 0 ? `Pedido ${draftIndex + 1}` : 'Pedido';
+    const tabIndex = state.tabs.findIndex(tab => tab.id === state.activeTabId);
+    const tabName = tabIndex >= 0 ? `Pedido ${tabIndex + 1}` : 'Pedido';
     
     const updatedTabs = state.tabs.map(tab =>
       tab.id === state.activeTabId
@@ -200,10 +195,8 @@ export function useQuickCartTabs() {
 
   // Clear client for a specific tab
   const clearSpecificClient = (tabId: string) => {
-    // Calculate the draft index for naming
-    const draftTabs = state.tabs.filter(tab => !tab.orderId);
-    const draftIndex = draftTabs.findIndex(tab => tab.id === tabId);
-    const tabName = draftIndex >= 0 ? `Pedido ${draftIndex + 1}` : 'Pedido';
+    const tabIndex = state.tabs.findIndex(tab => tab.id === tabId);
+    const tabName = tabIndex >= 0 ? `Pedido ${tabIndex + 1}` : 'Pedido';
     
     const updatedTabs = state.tabs.map(tab =>
       tab.id === tabId
@@ -336,13 +329,6 @@ export function useQuickCartTabs() {
     setState(newState);
   };
 
-  // Get total items across all tabs
-  const getTotalItems = () => {
-    return state.tabs.reduce((sum, tab) => 
-      sum + tab.items.reduce((tabSum, item) => tabSum + item.quantity, 0), 0
-    );
-  };
-
   // Get total items in active tab
   const getActiveTabTotalItems = () => {
     return activeTab.items.reduce((sum, item) => sum + item.quantity, 0);
@@ -380,10 +366,8 @@ export function useQuickCartTabs() {
 
   // Clear both items and client from a specific tab
   const clearSpecificTabCompletely = (tabId: string) => {
-    // Calculate the draft index for naming
-    const draftTabs = state.tabs.filter(tab => !tab.orderId);
-    const draftIndex = draftTabs.findIndex(tab => tab.id === tabId);
-    const tabName = draftIndex >= 0 ? `Pedido ${draftIndex + 1}` : 'Pedido';
+    const tabIndex = state.tabs.findIndex(tab => tab.id === tabId);
+    const tabName = tabIndex >= 0 ? `Pedido ${tabIndex + 1}` : 'Pedido';
     
     const updatedTabs = state.tabs.map(tab =>
       tab.id === tabId
@@ -406,61 +390,25 @@ export function useQuickCartTabs() {
     setState(newState);
   };
 
-  // Set items for a specific tab
-  const setTabItems = (tabId: string, items: QuickCartItem[]) => {
-    // Read latest state from localStorage to avoid stale closure issues
-    const currentState = getStateFromStorage();
-    
-    const updatedTabs = currentState.tabs.map(tab =>
-      tab.id === tabId
-        ? { ...tab, items }
-        : tab
-    );
-    
-    const newState: QuickCartState = {
-      ...currentState,
-      tabs: updatedTabs,
-    };
-    
-    saveStateToStorage(newState);
-    setState(newState);
-  };
-
-  // Set client for a specific tab
-  const setTabClient = (tabId: string, clientId: number, clientName: string) => {
-    const updatedTabs = state.tabs.map(tab =>
-      tab.id === tabId
-        ? { ...tab, clientId, clientName, name: clientName }
-        : tab
-    );
-    
-    const newState: QuickCartState = {
-      ...state,
-      tabs: updatedTabs,
-    };
-    
-    saveStateToStorage(newState);
-    setState(newState);
-  };
-
-  // Add or update a tab for editing a saved order
-  const addOrUpdateOrderTab = (orderId: number, orderNumber: string, clientId: number, clientName: string) => {
+  // Add or update a tab for editing a saved order (for sidebar navigation)
+  // NOTE: This creates a tab but does NOT sync with QuickCart popup
+  const addOrUpdateOrderTab = (orderId: number, orderNumber: string, clientId: number, clientName: string, items: QuickCartItem[] = []) => {
     console.log('addOrUpdateOrderTab called:', { orderId, orderNumber, clientId, clientName });
-    console.log('Current tabs:', state.tabs);
     
     // Check if a tab for this order already exists
     const existingTabIndex = state.tabs.findIndex(tab => tab.orderId === orderId);
     
     if (existingTabIndex >= 0) {
-      console.log('Updating existing tab at index:', existingTabIndex);
+      console.log('Updating existing order tab at index:', existingTabIndex);
       // Update existing tab and set as active
       const updatedTabs = [...state.tabs];
       updatedTabs[existingTabIndex] = {
         ...updatedTabs[existingTabIndex],
         clientId,
         clientName,
-        name: clientName,
+        name: `#${orderNumber} - ${clientName}`,
         orderNumber,
+        items, // Update items too
       };
       
       const newState: QuickCartState = {
@@ -470,17 +418,17 @@ export function useQuickCartTabs() {
       
       saveStateToStorage(newState);
       setState(newState);
-      console.log('Tab updated, returning ID:', updatedTabs[existingTabIndex].id);
+      console.log('Order tab updated, returning ID:', updatedTabs[existingTabIndex].id);
       return updatedTabs[existingTabIndex].id;
     } else {
       console.log('Creating new tab for order');
       // Create new tab for this order
       const newTab: QuickCartTab = {
         id: `order-${orderId}-${Date.now()}`,
-        name: clientName,
+        name: `#${orderNumber} - ${clientName}`,
         clientId,
         clientName,
-        items: [], // Items will be loaded separately
+        items,
         createdAt: Date.now(),
         orderId,
         orderNumber,
@@ -493,9 +441,18 @@ export function useQuickCartTabs() {
       
       saveStateToStorage(newState);
       setState(newState);
-      console.log('Tab created, returning ID:', newTab.id);
+      console.log('Order tab created, returning ID:', newTab.id);
       return newTab.id;
     }
+  };
+
+  // Get total items across all tabs (ONLY count draft tabs, not saved orders)
+  const getTotalItems = () => {
+    return state.tabs
+      .filter(tab => !tab.orderId) // Only count drafts
+      .reduce((sum, tab) => 
+        sum + tab.items.reduce((tabSum, item) => tabSum + item.quantity, 0), 0
+      );
   };
 
   return {
@@ -518,8 +475,6 @@ export function useQuickCartTabs() {
     getTabItems,
     clearSpecificCart,
     clearSpecificTabCompletely,
-    setTabItems,
-    setTabClient,
     addOrUpdateOrderTab,
     getTotalItems,
     getActiveTabTotalItems,

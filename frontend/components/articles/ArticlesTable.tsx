@@ -9,6 +9,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { ClickableTableRow } from '@/components/ui/clickable-table-row';
 import { SortableTableHead } from '@/components/ui/sortable-table-head';
 import { Badge } from '@/components/ui/badge';
 import { Pencil, Trash2 } from 'lucide-react';
@@ -86,7 +87,11 @@ export function ArticlesTable({ articles, onEdit, onDelete, currentSortBy, curre
             </TableRow>
           ) : (
             articles.map((article) => (
-              <TableRow key={article.id}>
+              <ClickableTableRow
+                key={article.id}
+                onRowClick={() => onEdit(article)}
+                aria-label={`Editar artículo ${article.code} - ${article.description}`}
+              >
                 <TableCell className="font-medium">{article.code}</TableCell>
                 <TableCell>
                   <div className="max-w-md">
@@ -157,7 +162,7 @@ export function ArticlesTable({ articles, onEdit, onDelete, currentSortBy, curre
                     </AlertDialog>
                   </div>
                 </TableCell>
-              </TableRow>
+              </ClickableTableRow>
             ))
           )}
         </TableBody>
