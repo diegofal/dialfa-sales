@@ -17,7 +17,7 @@ import {
  * GET /api/dashboard/metrics
  * Returns all dashboard metrics for the BI cards
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Execute all queries in parallel for better performance
     const [

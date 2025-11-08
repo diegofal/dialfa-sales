@@ -5,7 +5,7 @@
 
 'use client';
 
-import { FileText, Calendar } from 'lucide-react';
+import { FileText, Calendar, AlertTriangle } from 'lucide-react';
 import { MetricCard } from './MetricCard';
 import { useDashboardMetrics, formatCurrency } from '@/lib/hooks/useDashboard';
 import { Alert, AlertDescription } from '@/components/ui/alert';

@@ -16,11 +16,8 @@ import {
  * GET /api/dashboard/charts
  * Returns chart data for dashboard visualizations
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
-    const { searchParams } = new URL(request.url);
-    const months = parseInt(searchParams.get('months') || '12', 10);
-
     // Execute all queries in parallel
     const [topCustomers, salesTrend] = await Promise.all([
       executeXerpQuery<TopCustomer>(XERP_TOP_CUSTOMERS),

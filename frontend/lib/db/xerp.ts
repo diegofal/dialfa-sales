@@ -46,7 +46,7 @@ export async function getXerpConnection(): Promise<sql.ConnectionPool> {
 /**
  * Execute query against xERP database
  */
-export async function executeXerpQuery<T = any>(query: string): Promise<T[]> {
+export async function executeXerpQuery<T = unknown>(query: string): Promise<T[]> {
   try {
     const connection = await getXerpConnection();
     const result = await connection.request().query(query);
@@ -60,7 +60,7 @@ export async function executeXerpQuery<T = any>(query: string): Promise<T[]> {
 /**
  * Execute query and return single value (scalar) from xERP
  */
-export async function executeXerpScalar<T = any>(query: string): Promise<T | null> {
+export async function executeXerpScalar<T = unknown>(query: string): Promise<T | null> {
   try {
     const connection = await getXerpConnection();
     const result = await connection.request().query(query);
