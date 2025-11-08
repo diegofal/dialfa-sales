@@ -5,6 +5,8 @@ import { ArrowLeft, Printer, Edit, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useDeliveryNote, useDownloadDeliveryNotePdf } from '@/lib/hooks/useDeliveryNotes';
+import { useQuickDeliveryNoteTabs } from '@/lib/hooks/useQuickDeliveryNoteTabs';
+import { useEffect } from 'react';
 
 export default function DeliveryNoteDetailPage() {
   const params = useParams();
@@ -13,6 +15,20 @@ export default function DeliveryNoteDetailPage() {
   
   const { data: deliveryNote, isLoading } = useDeliveryNote(deliveryNoteId);
   const downloadPdfMutation = useDownloadDeliveryNotePdf();
+  const { addTab } = useQuickDeliveryNoteTabs();
+
+  // Add to tabs when deliveryNote is loaded
+  useEffect(() => {
+    if (deliveryNote) {
+      addTab({
+        id: `dn-${deliveryNote.id}`,
+        deliveryNoteId: deliveryNote.id,
+        deliveryNumber: deliveryNote.deliveryNumber,
+        clientName: deliveryNote.clientBusinessName,
+        salesOrderNumber: deliveryNote.salesOrderNumber,
+      });
+    }
+  }, [deliveryNote, addTab]);
 
   if (isLoading) {
     return (

@@ -14,6 +14,7 @@ import {
 } from 'lucide-react';
 import PedidosMenuItem from './PedidosMenuItem';
 import FacturasMenuItem from './FacturasMenuItem';
+import RemitosMenuItem from './RemitosMenuItem';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -22,8 +23,7 @@ const navigation = [
   { name: 'Artículos', href: '/dashboard/articles', icon: Package },
 ];
 
-const navigationAfterFacturas = [
-  { name: 'Remitos', href: '/dashboard/delivery-notes', icon: Truck },
+const navigationAfterRemitos = [
   { name: 'Reportes', href: '/dashboard/reports', icon: TrendingUp },
   { name: 'Configuración', href: '/dashboard/settings', icon: Settings },
 ];
@@ -62,7 +62,10 @@ export default function Sidebar() {
         {/* Facturas with expandable sub-items */}
         <FacturasMenuItem />
         
-        {navigationAfterFacturas.map((item) => {
+        {/* Remitos with expandable sub-items */}
+        <RemitosMenuItem />
+        
+        {navigationAfterRemitos.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
             <Link

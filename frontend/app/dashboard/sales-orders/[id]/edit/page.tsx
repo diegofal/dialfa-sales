@@ -1,12 +1,13 @@
 'use client';
 
-import { Suspense } from 'react';
-import { ArrowLeft, AlertTriangle } from 'lucide-react';
+import { Suspense, useState } from 'react';
+import { ArrowLeft, AlertTriangle, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SingleStepOrderForm } from '@/components/salesOrders/SingleStepOrderForm';
+import { DeliveryNoteDialog } from '@/components/deliveryNotes/DeliveryNoteDialog';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { useSalesOrder } from '@/lib/hooks/useSalesOrders';
 import { useSalesOrderPermissions } from '@/lib/hooks/useSalesOrderPermissions';
 import {
@@ -18,9 +19,11 @@ import {
 
 export default function EditSalesOrderPage() {
   const params = useParams();
+  const router = useRouter();
   const orderId = params.id ? Number(params.id) : undefined;
   const { data: existingOrder } = useSalesOrder(orderId || 0);
   const permissions = useSalesOrderPermissions(existingOrder, false);
+  const [isDeliveryNoteDialogOpen, setIsDeliveryNoteDialogOpen] = useState(false);
 
   const getStatusBadge = () => {
     if (!existingOrder) return null;
@@ -102,39 +105,73 @@ export default function EditSalesOrderPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center gap-4">
-        <Link href="/dashboard/sales-orders">
-          <Button variant="ghost" size="icon">
-            <ArrowLeft className="h-5 w-5" />
-          </Button>
-        </Link>
-        <div className="flex items-center gap-3">
-          <h1 className="text-3xl font-bold tracking-tight">
-            {orderId ? 'Editar Pedido' : 'Nuevo Pedido'}
-          </h1>
-          {orderId && existingOrder && (
-            <>
-              {getStatusBadge()}
-              {!permissions.canEdit && (
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Badge variant="outline" className="cursor-help">Solo lectura</Badge>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p>Este pedido no puede ser modificado.</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              )}
-            </>
-          )}
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Link href="/dashboard/sales-orders">
+            <Button variant="ghost" size="icon">
+              <ArrowLeft className="h-5 w-5" />
+            </Button>
+          </Link>
+          <div className="flex items-center gap-3">
+            <h1 className="text-3xl font-bold tracking-tight">
+              {orderId ? 'Editar Pedido' : 'Nuevo Pedido'}
+            </h1>
+            {orderId && existingOrder && (
+              <>
+                {getStatusBadge()}
+                {!permissions.canEdit && (
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Badge variant="outline" className="cursor-help">Solo lectura</Badge>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>Este pedido no puede ser modificado.</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                )}
+              </>
+            )}
+          </div>
         </div>
+
+        {/* Actions */}
+        {orderId && existingOrder && (
+          <div className="flex gap-2">
+            {existingOrder.deliveryNote && (
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/dashboard/delivery-notes/${existingOrder.deliveryNote?.id}`)}
+              >
+                Ver Remito
+              </Button>
+            )}
+            {!existingOrder.deliveryNote && existingOrder.status === 'PENDING' && (
+              <Button
+                variant="default"
+                onClick={() => setIsDeliveryNoteDialogOpen(true)}
+              >
+                <Truck className="mr-2 h-4 w-4" />
+                Generar Remito
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
       <Suspense fallback={<div className="text-center py-12">Cargando...</div>}>
         <SingleStepOrderForm orderId={orderId} />
       </Suspense>
+
+      {/* Delivery Note Dialog */}
+      {orderId && (
+        <DeliveryNoteDialog
+          open={isDeliveryNoteDialogOpen}
+          onOpenChange={setIsDeliveryNoteDialogOpen}
+          preselectedSalesOrderId={orderId}
+        />
+      )}
     </div>
   );
 }
