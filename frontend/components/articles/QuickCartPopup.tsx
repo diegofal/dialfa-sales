@@ -188,27 +188,31 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
     
     let newWidth = resizeStartRef.current.width;
     let newHeight = resizeStartRef.current.height;
-    let newRight = resizeStartRef.current.right;
-    let newBottom = resizeStartRef.current.bottom;
     
     const edge = resizeEdge;
     
+    // Check if we're resizing horizontally (left or right)
+    const isLeft = edge === 'left' || edge === 'corner-tl' || edge === 'corner-bl';
+    const isRight = edge === 'right' || edge === 'corner-tr' || edge === 'corner-br';
+    
+    // Check if we're resizing vertically (top or bottom)
+    const isTop = edge === 'top' || edge === 'corner-tl' || edge === 'corner-tr';
+    const isBottom = edge === 'bottom' || edge === 'corner-bl' || edge === 'corner-br';
+    
     // Handle horizontal resizing
-    if (edge.includes('left')) {
+    if (isLeft) {
       // Drag LEFT (negative deltaX) = increase width, window expands left
-      // Since we're anchored right, just increase width - no position change needed
       newWidth = Math.max(MIN_SIZE.width, resizeStartRef.current.width - deltaX);
-    } else if (edge.includes('right') || edge === 'right') {
+    } else if (isRight) {
       // Drag RIGHT (positive deltaX) = increase width, window expands right
       newWidth = Math.max(MIN_SIZE.width, resizeStartRef.current.width + deltaX);
     }
     
     // Handle vertical resizing
-    if (edge.includes('top')) {
+    if (isTop) {
       // Drag UP (negative deltaY) = increase height, window expands up
-      // Since we're anchored bottom, just increase height - no position change needed
       newHeight = Math.max(MIN_SIZE.height, resizeStartRef.current.height - deltaY);
-    } else if (edge.includes('bottom') || edge === 'bottom') {
+    } else if (isBottom) {
       // Drag DOWN (positive deltaY) = increase height, window expands down
       newHeight = Math.max(MIN_SIZE.height, resizeStartRef.current.height + deltaY);
     }
@@ -221,7 +225,6 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
     
     setCustomWidth(newWidth);
     setCustomHeight(newHeight);
-    // Position stays the same - no adjustment needed!
     setTempPosition(null);
   }, [isResizing, resizeEdge]);
 
@@ -794,44 +797,44 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
           
           {/* Top-left corner handle */}
           <div
-            className="absolute top-0 left-0 w-4 h-4 cursor-nwse-resize hover:bg-primary/30 transition-colors"
+            className="absolute top-0 left-0 w-6 h-6 cursor-nwse-resize hover:bg-primary/30 transition-colors rounded-br-sm"
             onMouseDown={(e) => handleResizeStart(e, 'corner-tl')}
-            style={{ zIndex: 61 }}
+            style={{ zIndex: 62 }}
           >
-            <svg className="w-full h-full text-muted-foreground/40" viewBox="0 0 16 16" fill="currentColor">
+            <svg className="w-4 h-4 m-0.5 text-muted-foreground/40" viewBox="0 0 16 16" fill="currentColor">
               <path d="M1 6V5h1v1H1zm0-3V2h1v1H1zm3 0V2h1v1H4zm3 0V2h1v1H7z" />
             </svg>
           </div>
           
           {/* Top-right corner handle */}
           <div
-            className="absolute top-0 right-0 w-4 h-4 cursor-nesw-resize hover:bg-primary/30 transition-colors"
+            className="absolute top-0 right-0 w-6 h-6 cursor-nesw-resize hover:bg-primary/30 transition-colors rounded-bl-sm"
             onMouseDown={(e) => handleResizeStart(e, 'corner-tr')}
-            style={{ zIndex: 61 }}
+            style={{ zIndex: 62 }}
           >
-            <svg className="w-full h-full text-muted-foreground/40" viewBox="0 0 16 16" fill="currentColor">
+            <svg className="w-4 h-4 m-0.5 ml-auto text-muted-foreground/40" viewBox="0 0 16 16" fill="currentColor">
               <path d="M15 2v1h-1V2h1zm0 3v1h-1V5h1zM9 2v1H8V2h1zm3 0v1h-1V2h1z" />
             </svg>
           </div>
           
           {/* Bottom-left corner handle */}
           <div
-            className="absolute bottom-0 left-0 w-4 h-4 cursor-nesw-resize hover:bg-primary/30 transition-colors"
+            className="absolute bottom-0 left-0 w-6 h-6 cursor-nesw-resize hover:bg-primary/30 transition-colors rounded-tr-sm"
             onMouseDown={(e) => handleResizeStart(e, 'corner-bl')}
-            style={{ zIndex: 61 }}
+            style={{ zIndex: 62 }}
           >
-            <svg className="w-full h-full text-muted-foreground/40" viewBox="0 0 16 16" fill="currentColor">
+            <svg className="w-4 h-4 m-0.5 mt-auto text-muted-foreground/40" viewBox="0 0 16 16" fill="currentColor">
               <path d="M1 10v1h1v-1H1zm0 3v1h1v-1H1zm3 0v1h1v-1H4zm3 0v1H7v-1h1z" />
             </svg>
           </div>
           
           {/* Bottom-right corner handle */}
           <div
-            className="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize hover:bg-primary/30 transition-colors"
+            className="absolute bottom-0 right-0 w-6 h-6 cursor-nwse-resize hover:bg-primary/30 transition-colors rounded-tl-sm"
             onMouseDown={(e) => handleResizeStart(e, 'corner-br')}
-            style={{ zIndex: 61 }}
+            style={{ zIndex: 62 }}
           >
-            <svg className="w-full h-full text-muted-foreground/40" viewBox="0 0 16 16" fill="currentColor">
+            <svg className="w-4 h-4 m-0.5 ml-auto mt-auto text-muted-foreground/40" viewBox="0 0 16 16" fill="currentColor">
               <path d="M15 10v1h-1v-1h1zm0 3v1h-1v-1h1zm-3 0v1h-1v-1h1zm-3 0v1H8v-1h1z" />
             </svg>
           </div>
