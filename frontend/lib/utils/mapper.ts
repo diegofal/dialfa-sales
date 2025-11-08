@@ -210,5 +210,32 @@ export function mapInvoiceToDTO(invoice: unknown) {
   };
 }
 
-
+/**
+ * Maps delivery note data from Prisma (snake_case) to frontend format (camelCase)
+ */
+export function mapDeliveryNoteToDTO(deliveryNote: unknown) {
+  const d = deliveryNote as Record<string, unknown>;
+  const salesOrders = d.sales_orders as {
+    order_number?: string;
+    clients?: { business_name?: string };
+  } | undefined;
+  const transporters = d.transporters as { name?: string } | undefined;
+  
+  return {
+    id: parseInt(String((d.id as bigint | number))),
+    deliveryNumber: d.delivery_number as string,
+    salesOrderId: parseInt(String((d.sales_order_id as bigint | number))),
+    salesOrderNumber: salesOrders?.order_number || '',
+    clientBusinessName: salesOrders?.clients?.business_name || '',
+    deliveryDate: (d.delivery_date as Date).toISOString(),
+    transporterId: d.transporter_id ? parseInt(String(d.transporter_id)) : null,
+    transporterName: transporters?.name || null,
+    weightKg: d.weight_kg ? parseFloat(String(d.weight_kg)) : null,
+    packagesCount: d.packages_count ? Number(d.packages_count) : null,
+    declaredValue: d.declared_value ? parseFloat(String(d.declared_value)) : null,
+    notes: d.notes as string | null,
+    createdAt: (d.created_at as Date).toISOString(),
+    updatedAt: (d.updated_at as Date).toISOString(),
+  };
+}
 

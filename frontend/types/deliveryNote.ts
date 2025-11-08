@@ -19,6 +19,7 @@ export interface DeliveryNoteListDto {
   id: number;
   deliveryNumber: string;
   deliveryDate: string;
+  salesOrderId: number;
   salesOrderNumber: string;
   clientBusinessName: string;
   transporterName: string | null;

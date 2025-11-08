@@ -90,10 +90,12 @@ export function OrderSummaryStep({ formData }: OrderSummaryStepProps) {
         </CardHeader>
         <CardContent className="space-y-2">
           <div className="grid gap-2 md:grid-cols-2">
-            <div>
-              <p className="text-sm text-muted-foreground">Fecha de Pedido</p>
-              <p className="font-medium">{formatDate(formData.orderDate)}</p>
-            </div>
+            {formData.orderDate && (
+              <div>
+                <p className="text-sm text-muted-foreground">Fecha de Pedido</p>
+                <p className="font-medium">{formatDate(formData.orderDate)}</p>
+              </div>
+            )}
             {formData.deliveryDate && (
               <div>
                 <p className="text-sm text-muted-foreground">Fecha de Entrega</p>

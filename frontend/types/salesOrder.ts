@@ -81,6 +81,8 @@ export interface UpdateSalesOrderItemRequest {
 // For wizard state
 export interface SalesOrderFormData {
   clientId?: number;
+  orderDate?: string;
+  deliveryDate?: string;
   notes?: string;
   items: SalesOrderItemFormData[];
 }

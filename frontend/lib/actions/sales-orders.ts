@@ -100,8 +100,8 @@ export async function createSalesOrder(data: CreateSalesOrderInput) {
       data: {
         client_id: validated.clientId,
         order_number: orderNumber,
-        order_date: validated.orderDate,
-        delivery_date: validated.deliveryDate,
+        order_date: validated.orderDate || new Date(),
+        delivery_date: validated.deliveryDate || null,
         status: validated.status || 'PENDING',
         special_discount_percent: validated.specialDiscountPercent,
         total,

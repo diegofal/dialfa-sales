@@ -69,6 +69,8 @@ export const salesOrderItemSchema = z.object({
 // Sales Order Validation Schema
 export const createSalesOrderSchema = z.object({
   clientId: z.coerce.bigint().refine(val => val > 0, 'ClientId must be greater than 0'),
+  orderDate: z.coerce.date().optional(),
+  deliveryDate: z.coerce.date().optional().nullable(),
   status: z.string().optional().default('PENDING'),
   specialDiscountPercent: z.coerce.number().min(0).max(100).default(0),
   notes: z.string().optional().nullable(),
@@ -89,6 +91,26 @@ export const createInvoiceSchema = z.object({
 
 export const updateInvoiceSchema = createInvoiceSchema.partial();
 
+// Delivery Note Validation Schema
+export const createDeliveryNoteSchema = z.object({
+  salesOrderId: z.coerce.bigint().refine(val => val > 0, 'Sales Order ID is required'),
+  deliveryDate: z.coerce.date(),
+  transporterId: z.coerce.number().int().optional().nullable(),
+  weightKg: z.coerce.number().min(0).optional().nullable(),
+  packagesCount: z.coerce.number().int().min(0).optional().nullable(),
+  declaredValue: z.coerce.number().min(0).optional().nullable(),
+  notes: z.string().optional().nullable(),
+});
+
+export const updateDeliveryNoteSchema = z.object({
+  deliveryDate: z.coerce.date(),
+  transporterId: z.coerce.number().int().optional().nullable(),
+  weightKg: z.coerce.number().min(0).optional().nullable(),
+  packagesCount: z.coerce.number().int().min(0).optional().nullable(),
+  declaredValue: z.coerce.number().min(0).optional().nullable(),
+  notes: z.string().optional().nullable(),
+});
+
 // Type exports
 export type CreateArticleInput = z.infer<typeof createArticleSchema>;
 export type UpdateArticleInput = z.infer<typeof updateArticleSchema>;
@@ -101,5 +123,6 @@ export type CreateSalesOrderInput = z.infer<typeof createSalesOrderSchema>;
 export type UpdateSalesOrderInput = z.infer<typeof updateSalesOrderSchema>;
 export type CreateInvoiceInput = z.infer<typeof createInvoiceSchema>;
 export type UpdateInvoiceInput = z.infer<typeof updateInvoiceSchema>;
-
+export type CreateDeliveryNoteInput = z.infer<typeof createDeliveryNoteSchema>;
+export type UpdateDeliveryNoteInput = z.infer<typeof updateDeliveryNoteSchema>;
 
