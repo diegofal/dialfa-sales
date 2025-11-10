@@ -99,27 +99,6 @@ export async function POST(request: NextRequest) {
     // Validate input
     const validatedData = createSalesOrderSchema.parse(body);
 
-    // Generate order number (format: SO-YYYYMMDD-XXXX)
-    const now = new Date();
-    const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
-    
-    // Get count of orders today to generate sequence
-    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const todayEnd = new Date(todayStart);
-    todayEnd.setDate(todayEnd.getDate() + 1);
-    
-    const todayOrdersCount = await prisma.sales_orders.count({
-      where: {
-        order_date: {
-          gte: todayStart,
-          lt: todayEnd,
-        },
-      },
-    });
-    
-    const sequence = String(todayOrdersCount + 1).padStart(4, '0');
-    const orderNumber = `SO-${dateStr}-${sequence}`;
-
     // Calculate totals for each item and overall total
     const itemsData = validatedData.items.map((item) => {
       const lineTotal = item.quantity * item.unitPrice * (1 - item.discountPercent / 100);
@@ -136,7 +115,42 @@ export async function POST(request: NextRequest) {
     const total = subtotal * (1 - validatedData.specialDiscountPercent / 100);
 
     // Create sales order with items in transaction
+    // Generate order number INSIDE transaction to avoid race conditions
     const result = await prisma.$transaction(async (tx) => {
+      // Generate order number (format: SO-YYYYMMDD-XXXX)
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
+      
+      // Get count of orders today to generate sequence - INSIDE transaction
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const todayEnd = new Date(todayStart);
+      todayEnd.setDate(todayEnd.getDate() + 1);
+      
+      // Use FOR UPDATE to lock the rows and prevent race conditions
+      // Get the highest sequence number for today
+      const lastOrder = await tx.sales_orders.findFirst({
+        where: {
+          order_number: {
+            startsWith: `SO-${dateStr}-`,
+          },
+        },
+        orderBy: {
+          order_number: 'desc',
+        },
+        select: {
+          order_number: true,
+        },
+      });
+      
+      let sequence = 1;
+      if (lastOrder) {
+        // Extract sequence from order number (SO-YYYYMMDD-XXXX)
+        const lastSequence = parseInt(lastOrder.order_number.split('-')[2]);
+        sequence = lastSequence + 1;
+      }
+      
+      const orderNumber = `SO-${dateStr}-${String(sequence).padStart(4, '0')}`;
+      
       // Create the sales order - use current date for orderDate
       const salesOrder = await tx.sales_orders.create({
         data: {

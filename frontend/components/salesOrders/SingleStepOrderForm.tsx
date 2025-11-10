@@ -602,15 +602,18 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
         // Create new order
         const createdOrder = await createOrderMutation.mutateAsync(requestData);
         
-        // Keep the tab open - don't remove it after creating order
-        // This allows user to continue working with the same tab
-        // Toast is shown by the mutation's onSuccess handler
+        // Remove the draft tab that was used to create this order
+        // This prevents duplicate tabs (one draft + one saved)
+        if (currentTabId && currentTab && !currentTab.orderId) {
+          // Only remove if it's a draft tab (no orderId yet)
+          removeTab(currentTabId);
+        }
         
         // If the order was created, navigate to the edit view to allow further modifications
         if (createdOrder && createdOrder.id) {
           router.push(`/dashboard/sales-orders/${createdOrder.id}/edit`);
         }
-        // Stay on the form after creating (already redirected to edit view)
+        // The edit view will create a new tab with orderId for the saved order
       }
     } catch (error) {
       console.error('Error saving order:', error);
