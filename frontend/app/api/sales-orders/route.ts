@@ -46,6 +46,21 @@ export async function GET(request: NextRequest) {
               articles: true,
             },
           },
+          invoices: {
+            select: {
+              id: true,
+              invoice_number: true,
+              is_printed: true,
+              is_cancelled: true,
+            },
+            where: {
+              deleted_at: null,
+            },
+            orderBy: {
+              created_at: 'desc',
+            },
+            take: 1,
+          },
         },
         orderBy: {
           order_date: 'desc',

@@ -49,6 +49,9 @@ export interface SalesOrderListDto {
   status: string;
   total: number;
   itemsCount: number;
+  // For permission calculations
+  hasInvoice: boolean;
+  invoicePrinted: boolean;
 }
 
 export interface CreateSalesOrderRequest {

@@ -160,7 +160,6 @@ export async function PUT(
           ...item,
           sales_order_id: salesOrder.id,
           created_at: now,
-          updated_at: now,
         }));
 
         await tx.sales_order_items.createMany({
@@ -297,19 +296,33 @@ export async function DELETE(
       );
     }
 
-    // Check permissions: cannot delete if has non-cancelled invoice
+    // Check permissions: can delete if invoice is not printed
+    // (Stock is debited when the invoice is printed)
     const activeInvoice = existingSalesOrder.invoices[0];
     if (activeInvoice && !activeInvoice.is_cancelled) {
-      return NextResponse.json(
-        { error: 'No se puede eliminar un pedido con factura asociada' },
-        { status: 403 }
-      );
+      if (activeInvoice.is_printed) {
+        return NextResponse.json(
+          { error: 'No se puede eliminar un pedido con factura impresa (el stock ya fue debitado)' },
+          { status: 403 }
+        );
+      }
     }
 
     const now = new Date();
 
     // Soft delete sales order and its items in transaction
     await prisma.$transaction(async (tx) => {
+      // If there's an invoice that's not printed and has no stock movements, delete it too
+      if (activeInvoice && !activeInvoice.is_printed) {
+        await tx.invoices.update({
+          where: { id: activeInvoice.id },
+          data: {
+            deleted_at: now,
+            updated_at: now,
+          },
+        });
+      }
+
       // Delete items (hard delete since they don't have deleted_at column)
       await tx.sales_order_items.deleteMany({
         where: { sales_order_id: id },

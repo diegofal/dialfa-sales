@@ -12,9 +12,11 @@ import { DeliveryNotesTable } from '@/components/deliveryNotes/DeliveryNotesTabl
 import { DeliveryNoteDialog } from '@/components/deliveryNotes/DeliveryNoteDialog';
 import { useDeliveryNotes, useDeleteDeliveryNote } from '@/lib/hooks/useDeliveryNotes';
 import { useRouter } from 'next/navigation';
+import { useQuickDeliveryNoteTabs } from '@/lib/hooks/useQuickDeliveryNoteTabs';
 
 export default function DeliveryNotesPage() {
   const router = useRouter();
+  const { removeTab, tabs } = useQuickDeliveryNoteTabs();
   const [filters, setFilters] = useState({
     salesOrderId: undefined as number | undefined,
     fromDate: '',
@@ -51,7 +53,15 @@ export default function DeliveryNotesPage() {
   };
 
   const handleDeleteDeliveryNote = (id: number) => {
-    deleteDeliveryNoteMutation.mutate(id);
+    deleteDeliveryNoteMutation.mutate(id, {
+      onSuccess: () => {
+        // Remove tab from sidebar if it exists (find by deliveryNoteId)
+        const tabToRemove = tabs.find(tab => tab.deliveryNoteId === id);
+        if (tabToRemove) {
+          removeTab(tabToRemove.id);
+        }
+      },
+    });
   };
 
   const totalDeliveryNotes = data?.pagination.total || 0;

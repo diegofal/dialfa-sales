@@ -132,25 +132,27 @@ export function SalesOrdersTable({
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      {order.status === 'PENDING' && (
-                        <>
-                          <Button
-                            variant={ACTION_BUTTON_CONFIG.cancel.variant}
-                            size={ACTION_BUTTON_CONFIG.cancel.size}
-                            onClick={() => setOrderToCancel(order.id)}
-                            title={ACTION_BUTTON_CONFIG.cancel.title}
-                          >
-                            <XCircle className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant={ACTION_BUTTON_CONFIG.delete.variant}
-                            size={ACTION_BUTTON_CONFIG.delete.size}
-                            onClick={() => setOrderToDelete(order.id)}
-                            title={ACTION_BUTTON_CONFIG.delete.title}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </>
+                      {/* Can cancel if invoice is not printed */}
+                      {!order.invoicePrinted && order.status !== 'CANCELLED' && (
+                        <Button
+                          variant={ACTION_BUTTON_CONFIG.cancel.variant}
+                          size={ACTION_BUTTON_CONFIG.cancel.size}
+                          onClick={() => setOrderToCancel(order.id)}
+                          title={ACTION_BUTTON_CONFIG.cancel.title}
+                        >
+                          <XCircle className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {/* Can delete if invoice is not printed */}
+                      {!order.invoicePrinted && order.status !== 'CANCELLED' && (
+                        <Button
+                          variant={ACTION_BUTTON_CONFIG.delete.variant}
+                          size={ACTION_BUTTON_CONFIG.delete.size}
+                          onClick={() => setOrderToDelete(order.id)}
+                          title={ACTION_BUTTON_CONFIG.delete.title}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       )}
                     </div>
                   </TableCell>

@@ -113,6 +113,7 @@ export function SalesOrderWizard() {
         toast.success('Pedido creado y lista de consulta limpiada');
       }
       
+      // After creating order, navigate to edit view to continue working
       router.push('/dashboard/sales-orders');
     } catch (error) {
       console.error('Error creating order:', error);

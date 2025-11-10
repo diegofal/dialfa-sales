@@ -128,18 +128,49 @@ export async function PUT(
       }
     }
 
-    // Update invoice
-    const invoice = await prisma.invoices.update({
-      where: { id },
-      data: updateData,
-      include: {
-        sales_orders: {
-          include: {
-            clients: true,
-            sales_order_items: true,
+    // Update invoice and potentially sales order status in transaction
+    const invoice = await prisma.$transaction(async (tx) => {
+      // Update the invoice
+      const updatedInvoice = await tx.invoices.update({
+        where: { id },
+        data: updateData,
+        include: {
+          sales_orders: {
+            include: {
+              clients: true,
+              sales_order_items: true,
+            },
           },
         },
-      },
+      });
+
+      // If invoice was cancelled, check if we need to update sales order status
+      if (updateData.is_cancelled) {
+        const salesOrder = await tx.sales_orders.findUnique({
+          where: { id: existingInvoice.sales_order_id },
+          include: {
+            invoices: {
+              where: {
+                deleted_at: null,
+                is_cancelled: false,
+              },
+            },
+          },
+        });
+
+        // If no active invoices remain, set order status back to PENDING
+        if (salesOrder && salesOrder.invoices.length === 0) {
+          await tx.sales_orders.update({
+            where: { id: existingInvoice.sales_order_id },
+            data: {
+              status: 'PENDING',
+              updated_at: now,
+            },
+          });
+        }
+      }
+
+      return updatedInvoice;
     });
 
     // Convert BigInt to string for JSON serialization
@@ -219,13 +250,39 @@ export async function DELETE(
 
     const now = new Date();
 
-    // Soft delete invoice
-    await prisma.invoices.update({
-      where: { id },
-      data: {
-        deleted_at: now,
-        updated_at: now,
-      },
+    // Soft delete invoice and update sales order status in transaction
+    await prisma.$transaction(async (tx) => {
+      // Soft delete the invoice
+      await tx.invoices.update({
+        where: { id },
+        data: {
+          deleted_at: now,
+          updated_at: now,
+        },
+      });
+
+      // Update sales order status back to PENDING if this was the only invoice
+      const salesOrder = await tx.sales_orders.findUnique({
+        where: { id: existingInvoice.sales_order_id },
+        include: {
+          invoices: {
+            where: {
+              deleted_at: null,
+              is_cancelled: false,
+            },
+          },
+        },
+      });
+
+      if (salesOrder && salesOrder.invoices.length === 0) {
+        await tx.sales_orders.update({
+          where: { id: existingInvoice.sales_order_id },
+          data: {
+            status: 'PENDING',
+            updated_at: now,
+          },
+        });
+      }
     });
 
     return NextResponse.json(

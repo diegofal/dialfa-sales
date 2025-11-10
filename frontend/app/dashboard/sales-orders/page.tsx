@@ -12,9 +12,11 @@ import { Badge } from '@/components/ui/badge';
 import { SalesOrdersTable } from '@/components/salesOrders/SalesOrdersTable';
 import { useSalesOrders, useCancelSalesOrder, useDeleteSalesOrder } from '@/lib/hooks/useSalesOrders';
 import { useRouter } from 'next/navigation';
+import { useQuickCartTabs } from '@/lib/hooks/useQuickCartTabs';
 
 export default function SalesOrdersPage() {
   const router = useRouter();
+  const { removeTab, tabs } = useQuickCartTabs();
   const [filters, setFilters] = useState({
     status: '',
     clientId: undefined as number | undefined,
@@ -61,7 +63,15 @@ export default function SalesOrdersPage() {
   };
 
   const handleDeleteOrder = (id: number) => {
-    deleteOrderMutation.mutate(id);
+    deleteOrderMutation.mutate(id, {
+      onSuccess: () => {
+        // Remove tab from sidebar if it exists (find by orderId)
+        const tabToRemove = tabs.find(tab => tab.orderId === id);
+        if (tabToRemove) {
+          removeTab(tabToRemove.id);
+        }
+      },
+    });
   };
 
   const handleCreateOrder = () => {

@@ -597,7 +597,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
         await updateOrderMutation.mutateAsync({ id: orderId, data: requestData });
         setHasUnsavedChanges(false);
         // Toast is shown by the mutation's onSuccess handler
-        router.push('/dashboard/sales-orders');
+        // Stay on the form after saving
       } else {
         // Create new order
         const createdOrder = await createOrderMutation.mutateAsync(requestData);
@@ -609,9 +609,8 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
         // If the order was created, navigate to the edit view to allow further modifications
         if (createdOrder && createdOrder.id) {
           router.push(`/dashboard/sales-orders/${createdOrder.id}/edit`);
-        } else {
-          router.push('/dashboard/sales-orders');
         }
+        // Stay on the form after creating (already redirected to edit view)
       }
     } catch (error) {
       console.error('Error saving order:', error);
@@ -634,6 +633,11 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     if (orderId) {
       deleteOrderMutation.mutate(orderId, {
         onSuccess: () => {
+          // Remove tab from sidebar if it exists (find by orderId)
+          const tabToRemove = tabs.find(tab => tab.orderId === orderId);
+          if (tabToRemove) {
+            removeTab(tabToRemove.id);
+          }
           // Toast is shown by the mutation's onSuccess handler
           router.push('/dashboard/sales-orders');
         },

@@ -125,7 +125,8 @@ export function DeliveryNoteDialog({
           notes: data.notes,
         });
       }
-      onOpenChange(false);
+      // Stay in dialog after saving - don't close automatically
+      // onOpenChange(false);
       reset();
     } catch (error) {
       console.error('Error saving delivery note:', error);

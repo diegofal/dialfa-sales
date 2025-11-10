@@ -49,6 +49,8 @@ export default function NewInvoicePage() {
       },
       {
         onSuccess: (data) => {
+          // Stay on the form after creating invoice
+          // Navigate to edit view to allow further modifications
           router.push(`/dashboard/invoices/${data.id}`);
         },
       }
