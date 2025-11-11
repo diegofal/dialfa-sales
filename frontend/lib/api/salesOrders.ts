@@ -50,8 +50,14 @@ export const salesOrdersApi = {
     await apiClient.post(`/sales-orders/${id}/cancel`);
   },
 
-  delete: async (id: number): Promise<void> => {
-    await apiClient.delete(`/sales-orders/${id}`);
+  delete: async (id: number): Promise<{
+    message: string;
+    affectedInvoices?: Array<{ id: string; invoiceNumber: string; wasCancelled: boolean }>;
+    affectedDeliveryNotes?: string[];
+    orderNumber?: string;
+  }> => {
+    const { data } = await apiClient.delete(`/sales-orders/${id}`);
+    return data;
   },
 
   getPermissions: async (id: number): Promise<{ 

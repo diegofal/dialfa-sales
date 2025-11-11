@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { mapInvoiceToDTO } from '@/lib/utils/mapper';
 import { updateInvoiceSchema } from '@/lib/validations/schemas';
 import { z } from 'zod';
+import { STOCK_MOVEMENT_TYPES } from '@/lib/constants/stockMovementTypes';
 
 export async function GET(
   request: NextRequest,
@@ -112,6 +113,9 @@ export async function PUT(
     }
 
     // Handle cancellation
+    const isCancellingPrintedInvoice = (body.is_cancelled === true || body.isCancelled === true) && 
+                                        !existingInvoice.is_cancelled && 
+                                        existingInvoice.is_printed;
     if (body.is_cancelled === true || body.isCancelled === true) {
       updateData.is_cancelled = true;
       updateData.cancelled_at = now;
@@ -121,6 +125,7 @@ export async function PUT(
     }
 
     // Handle printing
+    const isPrintingNow = (body.is_printed === true || body.isPrinted === true) && !existingInvoice.is_printed;
     if (body.is_printed === true || body.isPrinted === true) {
       updateData.is_printed = true;
       if (!existingInvoice.printed_at) {
@@ -130,6 +135,86 @@ export async function PUT(
 
     // Update invoice and potentially sales order status in transaction
     const invoice = await prisma.$transaction(async (tx) => {
+      // If cancelling a printed invoice, restore stock
+      if (isCancellingPrintedInvoice) {
+        // Get sales order items to restore stock
+        const salesOrder = await tx.sales_orders.findUnique({
+          where: { id: existingInvoice.sales_order_id },
+          include: {
+            sales_order_items: true,
+          },
+        });
+
+        if (salesOrder) {
+          for (const item of salesOrder.sales_order_items) {
+            // Create positive stock movement (credit - return to stock)
+            await tx.stock_movements.create({
+              data: {
+                article_id: item.article_id,
+                movement_type: STOCK_MOVEMENT_TYPES.CREDIT,
+                quantity: item.quantity,
+                reference_document: `Cancelación factura ${existingInvoice.invoice_number}`,
+                movement_date: now,
+                notes: `Stock devuelto por cancelación de factura impresa: ${body.cancellation_reason || body.cancellationReason || 'Sin razón especificada'}`,
+                created_at: now,
+                updated_at: now,
+              },
+            });
+
+            // Update article stock
+            await tx.articles.update({
+              where: { id: item.article_id },
+              data: {
+                stock: {
+                  increment: item.quantity,
+                },
+                updated_at: now,
+              },
+            });
+          }
+        }
+      }
+
+      // If printing the invoice for the first time, debit stock
+      if (isPrintingNow) {
+        // Get sales order items to debit stock
+        const salesOrder = await tx.sales_orders.findUnique({
+          where: { id: existingInvoice.sales_order_id },
+          include: {
+            sales_order_items: true,
+          },
+        });
+
+        if (salesOrder) {
+          for (const item of salesOrder.sales_order_items) {
+            // Create negative stock movement (debit from stock)
+            await tx.stock_movements.create({
+              data: {
+                article_id: item.article_id,
+                movement_type: STOCK_MOVEMENT_TYPES.DEBIT,
+                quantity: item.quantity,
+                reference_document: `Impresión factura ${existingInvoice.invoice_number}`,
+                movement_date: now,
+                notes: `Stock debitado por impresión de factura`,
+                created_at: now,
+                updated_at: now,
+              },
+            });
+
+            // Update article stock
+            await tx.articles.update({
+              where: { id: item.article_id },
+              data: {
+                stock: {
+                  decrement: item.quantity,
+                },
+                updated_at: now,
+              },
+            });
+          }
+        }
+      }
+
       // Update the invoice
       const updatedInvoice = await tx.invoices.update({
         where: { id },

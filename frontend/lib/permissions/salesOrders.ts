@@ -112,14 +112,7 @@ export function canDeleteSalesOrder(salesOrder: SalesOrder | null | undefined): 
     return { canDelete: false, reason: 'Pedido no encontrado' };
   }
 
-  // Cannot delete if invoice is printed (stock has been debited)
-  if (salesOrder.invoice?.isPrinted) {
-    return { 
-      canDelete: false, 
-      reason: 'No se puede eliminar un pedido con factura impresa (el stock ya fue debitado)' 
-    };
-  }
-
+  // Can always delete - if invoice is printed, it will be cancelled and stock restored
   return { canDelete: true };
 }
 

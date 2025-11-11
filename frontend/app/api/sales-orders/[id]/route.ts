@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { mapSalesOrderToDTO } from '@/lib/utils/mapper';
 import { updateSalesOrderSchema } from '@/lib/validations/schemas';
 import { z } from 'zod';
+import { STOCK_MOVEMENT_TYPES } from '@/lib/constants/stockMovementTypes';
 
 export async function GET(
   request: NextRequest,
@@ -284,7 +285,14 @@ export async function DELETE(
         invoices: {
           where: { deleted_at: null },
           orderBy: { created_at: 'desc' },
-          take: 1,
+        },
+        delivery_notes: {
+          where: { deleted_at: null },
+        },
+        sales_order_items: {
+          include: {
+            articles: true,
+          },
         },
       },
     });
@@ -296,26 +304,93 @@ export async function DELETE(
       );
     }
 
-    // Check permissions: can delete if invoice is not printed
-    // (Stock is debited when the invoice is printed)
-    const activeInvoice = existingSalesOrder.invoices[0];
-    if (activeInvoice && !activeInvoice.is_cancelled) {
-      if (activeInvoice.is_printed) {
-        return NextResponse.json(
-          { error: 'No se puede eliminar un pedido con factura impresa (el stock ya fue debitado)' },
-          { status: 403 }
-        );
-      }
-    }
-
     const now = new Date();
 
-    // Soft delete sales order and its items in transaction
+    // Track affected invoices and delivery notes for response
+    const affectedInvoiceIds: string[] = [];
+    const affectedDeliveryNoteIds: string[] = [];
+    const cancelledInvoices: Array<{ id: string; invoiceNumber: string; wasCancelled: boolean }> = [];
+
+    // Process invoices and delivery notes in transaction
     await prisma.$transaction(async (tx) => {
-      // If there's an invoice that's not printed and has no stock movements, delete it too
-      if (activeInvoice && !activeInvoice.is_printed) {
-        await tx.invoices.update({
-          where: { id: activeInvoice.id },
+      // Handle invoices
+      for (const invoice of existingSalesOrder.invoices) {
+        affectedInvoiceIds.push(invoice.id.toString());
+        
+        if (invoice.is_cancelled) {
+          // Skip cancelled invoices
+          continue;
+        }
+
+        if (invoice.is_printed) {
+          // Cancel the invoice and restore stock
+          await tx.invoices.update({
+            where: { id: invoice.id },
+            data: {
+              is_cancelled: true,
+              cancelled_at: now,
+              cancellation_reason: 'Pedido eliminado',
+              updated_at: now,
+            },
+          });
+
+          cancelledInvoices.push({
+            id: invoice.id.toString(),
+            invoiceNumber: invoice.invoice_number,
+            wasCancelled: true,
+          });
+
+          // Restore stock for each item (credit movement)
+          for (const item of existingSalesOrder.sales_order_items) {
+            // Create positive stock movement (return to stock)
+            await tx.stock_movements.create({
+              data: {
+                article_id: item.article_id,
+                movement_type: STOCK_MOVEMENT_TYPES.CREDIT,
+                quantity: item.quantity,
+                reference_document: `Cancelación factura ${invoice.invoice_number} - Pedido eliminado`,
+                movement_date: now,
+                notes: `Stock devuelto por cancelación de factura al eliminar pedido ${existingSalesOrder.order_number}`,
+                created_at: now,
+                updated_at: now,
+              },
+            });
+
+            // Update article stock
+            await tx.articles.update({
+              where: { id: item.article_id },
+              data: {
+                stock: {
+                  increment: item.quantity,
+                },
+                updated_at: now,
+              },
+            });
+          }
+        } else {
+          // Soft delete non-printed invoices
+          await tx.invoices.update({
+            where: { id: invoice.id },
+            data: {
+              deleted_at: now,
+              updated_at: now,
+            },
+          });
+
+          cancelledInvoices.push({
+            id: invoice.id.toString(),
+            invoiceNumber: invoice.invoice_number,
+            wasCancelled: false,
+          });
+        }
+      }
+
+      // Soft delete all delivery notes
+      for (const deliveryNote of existingSalesOrder.delivery_notes) {
+        affectedDeliveryNoteIds.push(deliveryNote.id.toString());
+        
+        await tx.delivery_notes.update({
+          where: { id: deliveryNote.id },
           data: {
             deleted_at: now,
             updated_at: now,
@@ -339,7 +414,12 @@ export async function DELETE(
     });
 
     return NextResponse.json(
-      { message: 'Sales order deleted successfully' },
+      { 
+        message: 'Sales order deleted successfully',
+        affectedInvoices: cancelledInvoices,
+        affectedDeliveryNotes: affectedDeliveryNoteIds,
+        orderNumber: existingSalesOrder.order_number,
+      },
       { status: 200 }
     );
   } catch (error) {

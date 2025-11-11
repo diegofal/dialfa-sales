@@ -145,6 +145,14 @@ export function useQuickInvoiceTabs() {
     setState(newState);
   };
 
+  // Remove tab by invoice ID
+  const removeTabByInvoiceId = (invoiceId: number) => {
+    const tabToRemove = state.tabs.find(tab => tab.invoiceId === invoiceId);
+    if (tabToRemove) {
+      removeTab(tabToRemove.id);
+    }
+  };
+
   // Get active tab
   const activeTab = state.tabs.find(tab => tab.id === state.activeTabId) || state.tabs[0];
 
@@ -154,6 +162,7 @@ export function useQuickInvoiceTabs() {
     activeTabId: state.activeTabId,
     addInvoiceTab,
     removeTab,
+    removeTabByInvoiceId,
     setActiveTab,
   };
 }

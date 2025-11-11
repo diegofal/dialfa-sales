@@ -36,12 +36,12 @@ export function calculateSalesOrderPermissions(
       status.id !== null && 
       (!status.hasInvoice || status.invoiceCancelled),
     
-    // No cancelar si tiene factura impresa
-    canCancel: !status.invoicePrinted,
+    // No cancelar si tiene factura impresa o si el pedido no existe aún
+    canCancel: status.id !== null && !status.invoicePrinted,
     
-    // Se puede eliminar si la factura NO está impresa
+    // Se puede eliminar si la factura NO está impresa y el pedido ya existe
     // (Cuando se imprime la factura es cuando se debita el stock)
-    canDelete: !status.invoicePrinted,
+    canDelete: status.id !== null && !status.invoicePrinted,
     
     // Crear remito si está guardado
     canCreateDeliveryNote: status.id !== null

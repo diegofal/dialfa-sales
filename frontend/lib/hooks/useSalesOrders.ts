@@ -5,6 +5,8 @@ import type { CreateSalesOrderRequest, UpdateSalesOrderRequest } from '@/types/s
 import type { Invoice } from '@/types/invoice';
 import type { DeliveryNote } from '@/types/deliveryNote';
 import { toast } from 'sonner';
+import { useQuickInvoiceTabs } from './useQuickInvoiceTabs';
+import { useQuickDeliveryNoteTabs } from './useQuickDeliveryNoteTabs';
 
 export const useSalesOrders = (params: PaginationParams & {
   clientId?: number;
@@ -24,6 +26,14 @@ export const useSalesOrder = (id: number) => {
     queryKey: ['salesOrders', id],
     queryFn: () => salesOrdersApi.getById(id),
     enabled: !!id,
+    retry: (failureCount, error) => {
+      // Don't retry on 404 (deleted order)
+      const err = error as { response?: { status?: number } };
+      if (err?.response?.status === 404) {
+        return false;
+      }
+      return failureCount < 3;
+    },
   });
 };
 
@@ -78,12 +88,51 @@ export const useCancelSalesOrder = () => {
 
 export const useDeleteSalesOrder = () => {
   const queryClient = useQueryClient();
+  const { removeTabByInvoiceId } = useQuickInvoiceTabs();
+  const { removeTabByDeliveryNoteId } = useQuickDeliveryNoteTabs();
 
   return useMutation({
     mutationFn: (id: number) => salesOrdersApi.delete(id),
-    onSuccess: () => {
+    onSuccess: (data) => {
+      // Remove tabs from sidebar for affected invoices and delivery notes
+      if (data.affectedInvoices && data.affectedInvoices.length > 0) {
+        data.affectedInvoices.forEach(invoice => {
+          removeTabByInvoiceId(parseInt(invoice.id));
+        });
+      }
+      
+      if (data.affectedDeliveryNotes && data.affectedDeliveryNotes.length > 0) {
+        data.affectedDeliveryNotes.forEach(deliveryNoteId => {
+          removeTabByDeliveryNoteId(parseInt(deliveryNoteId));
+        });
+      }
+      
+      // Invalidate sales orders queries
       queryClient.invalidateQueries({ queryKey: ['salesOrders'] });
-      toast.success('Pedido eliminado exitosamente');
+      // Invalidate invoices and delivery notes queries since they may have been deleted/cancelled
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['delivery-notes'] });
+      
+      // Build detailed success message
+      let message = `Pedido ${data.orderNumber || ''} eliminado exitosamente`;
+      
+      if (data.affectedInvoices && data.affectedInvoices.length > 0) {
+        const cancelledCount = data.affectedInvoices.filter(inv => inv.wasCancelled).length;
+        const deletedCount = data.affectedInvoices.filter(inv => !inv.wasCancelled).length;
+        
+        if (cancelledCount > 0) {
+          message += `. ${cancelledCount} factura(s) impresa(s) cancelada(s) y stock devuelto`;
+        }
+        if (deletedCount > 0) {
+          message += `. ${deletedCount} factura(s) no impresa(s) eliminada(s)`;
+        }
+      }
+      
+      if (data.affectedDeliveryNotes && data.affectedDeliveryNotes.length > 0) {
+        message += `. ${data.affectedDeliveryNotes.length} remito(s) eliminado(s)`;
+      }
+      
+      toast.success(message);
     },
     onError: (error: unknown) => {
       const err = error as { response?: { data?: { message?: string } } };

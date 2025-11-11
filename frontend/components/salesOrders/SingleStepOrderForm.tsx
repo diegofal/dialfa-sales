@@ -51,7 +51,18 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   const isEditMode = !!orderId;
   
   // Load existing order if in edit mode
-  const { data: existingOrder, isLoading: isLoadingOrder } = useSalesOrder(orderId || 0);
+  const { data: existingOrder, isLoading: isLoadingOrder, error: orderError } = useSalesOrder(orderId || 0);
+  
+  // Check if order was deleted or not found
+  useEffect(() => {
+    if (orderError && orderId) {
+      const err = orderError as { response?: { status?: number; data?: { error?: string } } };
+      if (err?.response?.status === 404) {
+        toast.error('El pedido no existe o ha sido eliminado');
+        router.push('/dashboard/sales-orders');
+      }
+    }
+  }, [orderError, orderId, router]);
   
   // Track unsaved changes
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
@@ -681,9 +692,10 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     }
 
     try {
-      await generateDeliveryNoteMutation.mutateAsync({ id: orderId, deliveryData: {} });
-      // Refresh the order to show the new delivery note
-      router.refresh();
+      const deliveryNote = await generateDeliveryNoteMutation.mutateAsync({ id: orderId, deliveryData: {} });
+      if (deliveryNote) {
+        router.push(`/dashboard/delivery-notes/${deliveryNote.id}`);
+      }
     } catch (error) {
       console.error('Error generating delivery note:', error);
     }
@@ -1148,6 +1160,11 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
             <AlertDialogTitle>¿Eliminar pedido?</AlertDialogTitle>
             <AlertDialogDescription>
               Esta acción eliminará el pedido permanentemente. Esta acción no se puede deshacer.
+              {existingOrder?.invoice?.isPrinted && (
+                <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
+                  <strong>Nota:</strong> Este pedido tiene una factura impresa. Al eliminar el pedido, la factura será cancelada y el stock será devuelto automáticamente.
+                </div>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
