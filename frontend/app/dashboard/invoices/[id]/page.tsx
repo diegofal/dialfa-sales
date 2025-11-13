@@ -1,10 +1,12 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Printer, XCircle, Edit, Eye } from 'lucide-react';
+import { ArrowLeft, Printer, XCircle, Eye, Save, X as XIcon, Edit2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Table,
   TableBody,
@@ -13,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useInvoice, useCancelInvoice, usePrintInvoice } from '@/lib/hooks/useInvoices';
+import { useInvoice, useCancelInvoice, usePrintInvoice, useUpdateInvoiceExchangeRate } from '@/lib/hooks/useInvoices';
 import { useQuickInvoiceTabs } from '@/lib/hooks/useQuickInvoiceTabs';
 import { useState, useEffect } from 'react';
 import {
@@ -35,14 +37,20 @@ export default function InvoiceDetailPage() {
   const { data: invoice, isLoading } = useInvoice(invoiceId);
   const cancelInvoiceMutation = useCancelInvoice();
   const printInvoiceMutation = usePrintInvoice();
+  const updateExchangeRateMutation = useUpdateInvoiceExchangeRate();
   const { addInvoiceTab } = useQuickInvoiceTabs();
 
   const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [isEditingExchangeRate, setIsEditingExchangeRate] = useState(false);
+  const [editedExchangeRate, setEditedExchangeRate] = useState('');
 
   // Add invoice to tabs when loaded
   useEffect(() => {
     if (invoice) {
       addInvoiceTab(invoice.id, invoice.invoiceNumber, invoice.clientBusinessName);
+      if (invoice.usdExchangeRate) {
+        setEditedExchangeRate(invoice.usdExchangeRate.toString());
+      }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invoice?.id]); // Only depend on invoice.id to avoid infinite loop
@@ -104,6 +112,31 @@ export default function InvoiceDetailPage() {
     printInvoiceMutation.mutate(invoiceId);
   };
 
+  const handleSaveExchangeRate = () => {
+    const rate = parseFloat(editedExchangeRate);
+    if (isNaN(rate) || rate <= 0) {
+      return;
+    }
+
+    updateExchangeRateMutation.mutate(
+      { id: invoiceId, usdExchangeRate: rate },
+      {
+        onSuccess: () => {
+          setIsEditingExchangeRate(false);
+        },
+      }
+    );
+  };
+
+  const handleCancelEditExchangeRate = () => {
+    setIsEditingExchangeRate(false);
+    if (invoice?.usdExchangeRate) {
+      setEditedExchangeRate(invoice.usdExchangeRate.toString());
+    }
+  };
+
+  const canEditExchangeRate = invoice && !invoice.isPrinted && !invoice.isCancelled;
+
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
@@ -149,17 +182,68 @@ export default function InvoiceDetailPage() {
           <CardHeader>
             <CardTitle>Información de la Factura</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-4">
             <div>
               <p className="text-sm text-muted-foreground">Pedido N°</p>
               <p className="font-medium">{invoice.salesOrderNumber}</p>
             </div>
+            
             <div>
-              <p className="text-sm text-muted-foreground">Tipo de Cambio USD</p>
-              <p className="font-medium">
-                {invoice.usdExchangeRate ? `$ ${invoice.usdExchangeRate.toFixed(2)}` : 'N/A'}
-              </p>
+              <Label htmlFor="exchangeRate" className="text-sm text-muted-foreground">
+                Tipo de Cambio USD
+              </Label>
+              {isEditingExchangeRate ? (
+                <div className="flex gap-2 mt-2">
+                  <Input
+                    id="exchangeRate"
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    value={editedExchangeRate}
+                    onChange={(e) => setEditedExchangeRate(e.target.value)}
+                    className="max-w-xs"
+                  />
+                  <Button
+                    size="sm"
+                    onClick={handleSaveExchangeRate}
+                    disabled={updateExchangeRateMutation.isPending}
+                  >
+                    <Save className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleCancelEditExchangeRate}
+                  >
+                    <XIcon className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="font-medium">
+                    {invoice.usdExchangeRate ? `$ ${invoice.usdExchangeRate.toFixed(2)}` : 'N/A'}
+                  </p>
+                  {canEditExchangeRate && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6"
+                      onClick={() => setIsEditingExchangeRate(true)}
+                      title="Editar tipo de cambio"
+                    >
+                      <Edit2 className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+              )}
+              {canEditExchangeRate && !isEditingExchangeRate && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Puede modificar el tipo de cambio mientras la factura no esté impresa.
+                  Esto recalculará todos los importes.
+                </p>
+              )}
             </div>
+            
             <div>
               <p className="text-sm text-muted-foreground">Descuento Especial</p>
               <p className="font-medium">{invoice.specialDiscountPercent}%</p>

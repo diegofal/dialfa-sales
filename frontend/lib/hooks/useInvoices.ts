@@ -113,5 +113,32 @@ export function useNextInvoiceNumber() {
   });
 }
 
+export function useUpdateInvoiceExchangeRate() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, usdExchangeRate }: { id: number; usdExchangeRate: number }) =>
+      fetch(`/api/invoices/${id}/exchange-rate`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usdExchangeRate }),
+      }).then(async (res) => {
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.error || 'Failed to update exchange rate');
+        }
+        return res.json();
+      }),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['invoices', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      toast.success('Tipo de cambio actualizado. Los precios han sido recalculados.');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+}
+
 
 
