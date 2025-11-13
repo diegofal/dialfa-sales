@@ -165,11 +165,11 @@ export function mapInvoiceToDTO(invoice: unknown) {
       cuit?: string;
       tax_conditions?: { name?: string };
     };
-    sales_order_items?: Array<Record<string, unknown>>;
     special_discount_percent?: number;
   } | undefined;
   
-  const salesOrderItems = (salesOrders?.sales_order_items || []) as Array<Record<string, unknown>>;
+  // Use invoice_items instead of sales_order_items
+  const invoiceItems = (i.invoice_items || []) as Array<Record<string, unknown>>;
   
   return {
     id: parseInt(String((i.id as bigint | number))),
@@ -196,18 +196,19 @@ export function mapInvoiceToDTO(invoice: unknown) {
     notes: i.notes as string | null,
     createdAt: i.created_at as Date,
     updatedAt: i.updated_at as Date,
-    items: salesOrderItems.map((item) => {
-      const articles = item.articles as { code?: string; description?: string } | undefined;
-      
+    items: invoiceItems.map((item) => {
       return {
         id: parseInt(String((item.id as bigint | number))),
+        salesOrderItemId: item.sales_order_item_id ? parseInt(String(item.sales_order_item_id as bigint | number)) : null,
         articleId: parseInt(String((item.article_id as bigint | number))),
-        articleCode: articles?.code || '',
-        articleDescription: articles?.description || '',
+        articleCode: item.article_code as string,
+        articleDescription: item.article_description as string,
         quantity: item.quantity as number,
-        unitPrice: parseFloat(String(item.unit_price)),
+        unitPriceUsd: parseFloat(String(item.unit_price_usd)),
+        unitPriceArs: parseFloat(String(item.unit_price_ars)),
         discountPercent: parseFloat(String(item.discount_percent)),
         lineTotal: parseFloat(String(item.line_total)),
+        createdAt: (item.created_at as Date).toISOString(),
       };
     }),
   };

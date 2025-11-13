@@ -23,7 +23,6 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
 import type { InvoiceListDto } from '@/types/invoice';
 import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
 
@@ -31,7 +30,7 @@ interface InvoicesTableProps {
   invoices: InvoiceListDto[];
   onViewInvoice: (id: number) => void;
   onViewSalesOrder?: (id: number) => void;
-  onCancelInvoice?: (id: number, reason: string) => void;
+  onCancelInvoice?: (id: number) => void;
   onPrintInvoice?: (id: number) => void;
   currentSortBy?: string;
   currentSortDescending?: boolean;
@@ -49,7 +48,6 @@ export function InvoicesTable({
   onSort,
 }: InvoicesTableProps) {
   const [invoiceToCancel, setInvoiceToCancel] = useState<number | null>(null);
-  const [cancellationReason, setCancellationReason] = useState('');
 
   const getStatusBadge = (invoice: InvoiceListDto) => {
     if (invoice.isCancelled) {
@@ -74,10 +72,9 @@ export function InvoicesTable({
   };
 
   const handleCancelConfirm = () => {
-    if (invoiceToCancel && onCancelInvoice && cancellationReason.trim()) {
-      onCancelInvoice(invoiceToCancel, cancellationReason);
+    if (invoiceToCancel && onCancelInvoice) {
+      onCancelInvoice(invoiceToCancel);
       setInvoiceToCancel(null);
-      setCancellationReason('');
     }
   };
 
@@ -201,38 +198,21 @@ export function InvoicesTable({
       {/* Cancel Confirmation Dialog */}
       <AlertDialog
         open={!!invoiceToCancel}
-        onOpenChange={() => {
-          setInvoiceToCancel(null);
-          setCancellationReason('');
-        }}
+        onOpenChange={() => setInvoiceToCancel(null)}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Cancelar factura?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción marcará la factura como CANCELADA. Debe proporcionar un motivo de
-              cancelación.
+              Esta acción marcará la factura como CANCELADA y restaurará el stock si la factura estaba impresa.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="py-4">
-            <label className="text-sm font-medium mb-2 block">
-              Motivo de cancelación
-            </label>
-            <Input
-              value={cancellationReason}
-              onChange={(e) => setCancellationReason(e.target.value)}
-              placeholder="Ingrese el motivo de la cancelación"
-            />
-          </div>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setCancellationReason('')}>
-              Cancelar
+            <AlertDialogCancel>
+              No, volver
             </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleCancelConfirm}
-              disabled={!cancellationReason.trim()}
-            >
-              Confirmar
+            <AlertDialogAction onClick={handleCancelConfirm}>
+              Sí, cancelar factura
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

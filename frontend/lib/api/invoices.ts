@@ -5,7 +5,6 @@ import type {
   InvoiceListDto,
   CreateInvoiceRequest,
   UpdateInvoiceRequest,
-  CancelInvoiceRequest,
 } from '@/types/invoice';
 
 export const invoicesApi = {
@@ -46,8 +45,8 @@ export const invoicesApi = {
     await apiClient.put(`/invoices/${id}`, invoiceData);
   },
 
-  cancel: async (id: number, cancelData: CancelInvoiceRequest): Promise<void> => {
-    await apiClient.post(`/invoices/${id}/cancel`, cancelData);
+  cancel: async (id: number): Promise<void> => {
+    await apiClient.post(`/invoices/${id}/cancel`);
   },
 
   print: async (id: number): Promise<void> => {

@@ -4,6 +4,7 @@ import { useAuthStore } from '@/store/authStore';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Keyboard, TrendingUp } from 'lucide-react';
 import { DashboardMetrics } from '@/components/dashboard/DashboardMetrics';
+import { RecentSalesOrders } from '@/components/dashboard/RecentSalesOrders';
 
 export default function DashboardPage() {
   const user = useAuthStore((state) => state.user);
@@ -29,22 +30,8 @@ export default function DashboardPage() {
       {/* BI Metrics Cards */}
       <DashboardMetrics />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Acceso Rápido</CardTitle>
-          <CardDescription>
-            Funcionalidades disponibles en el sistema
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-2">
-            <p className="text-sm">✅ <strong>Clientes:</strong> Gestión completa de clientes con CRUD</p>
-            <p className="text-sm text-muted-foreground">⏳ Artículos: Próximamente</p>
-            <p className="text-sm text-muted-foreground">⏳ Pedidos: Próximamente</p>
-            <p className="text-sm text-muted-foreground">⏳ Facturas: Próximamente</p>
-          </div>
-        </CardContent>
-      </Card>
+      {/* Recent Sales Orders */}
+      <RecentSalesOrders limit={5} />
 
       <Card>
         <CardHeader>

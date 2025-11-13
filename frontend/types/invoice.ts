@@ -28,13 +28,16 @@ export interface Invoice {
 
 export interface InvoiceItem {
   id: number;
+  salesOrderItemId: number | null;
   articleId: number;
   articleCode: string;
   articleDescription: string;
   quantity: number;
-  unitPrice: number;
+  unitPriceUsd: number;
+  unitPriceArs: number;
   discountPercent: number;
   lineTotal: number;
+  createdAt: string;
 }
 
 export interface InvoiceListDto {

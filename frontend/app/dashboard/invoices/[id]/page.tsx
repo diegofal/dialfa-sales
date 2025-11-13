@@ -26,7 +26,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Input } from '@/components/ui/input';
 
 export default function InvoiceDetailPage() {
   const params = useParams();
@@ -39,7 +38,6 @@ export default function InvoiceDetailPage() {
   const { addInvoiceTab } = useQuickInvoiceTabs();
 
   const [showCancelDialog, setShowCancelDialog] = useState(false);
-  const [cancellationReason, setCancellationReason] = useState('');
 
   // Add invoice to tabs when loaded
   useEffect(() => {
@@ -92,17 +90,14 @@ export default function InvoiceDetailPage() {
   };
 
   const handleCancel = () => {
-    if (cancellationReason.trim()) {
-      cancelInvoiceMutation.mutate(
-        { id: invoiceId, data: { cancellationReason } },
-        {
-          onSuccess: () => {
-            setShowCancelDialog(false);
-            setCancellationReason('');
-          },
-        }
-      );
-    }
+    cancelInvoiceMutation.mutate(
+      { id: invoiceId },
+      {
+        onSuccess: () => {
+          setShowCancelDialog(false);
+        },
+      }
+    );
   };
 
   const handlePrint = () => {
@@ -203,7 +198,12 @@ export default function InvoiceDetailPage() {
                   <TableCell className="font-medium">{item.articleCode}</TableCell>
                   <TableCell>{item.articleDescription}</TableCell>
                   <TableCell className="text-right">{item.quantity}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
+                  <TableCell className="text-right">
+                    {formatCurrency(item.unitPriceArs)}
+                    <span className="text-xs text-muted-foreground block">
+                      (USD {item.unitPriceUsd.toFixed(2)})
+                    </span>
+                  </TableCell>
                   <TableCell className="text-right">{item.discountPercent}%</TableCell>
                   <TableCell className="text-right font-medium">
                     {formatCurrency(item.lineTotal)}
@@ -301,28 +301,18 @@ export default function InvoiceDetailPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Cancelar factura?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción marcará la factura como CANCELADA. Debe proporcionar un motivo.
+              Esta acción marcará la factura como CANCELADA y restaurará el stock si la factura estaba impresa.
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="py-4">
-            <label className="text-sm font-medium mb-2 block">
-              Motivo de cancelación
-            </label>
-            <Input
-              value={cancellationReason}
-              onChange={(e) => setCancellationReason(e.target.value)}
-              placeholder="Ingrese el motivo de la cancelación"
-            />
-          </div>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setCancellationReason('')}>
-              Cancelar
+            <AlertDialogCancel>
+              No, volver
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleCancel}
-              disabled={!cancellationReason.trim() || cancelInvoiceMutation.isPending}
+              disabled={cancelInvoiceMutation.isPending}
             >
-              {cancelInvoiceMutation.isPending ? 'Cancelando...' : 'Confirmar'}
+              {cancelInvoiceMutation.isPending ? 'Cancelando...' : 'Sí, cancelar factura'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

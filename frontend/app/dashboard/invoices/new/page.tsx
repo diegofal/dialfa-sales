@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,10 +11,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCreateInvoice } from '@/lib/hooks/useInvoices';
 import { useSalesOrders } from '@/lib/hooks/useSalesOrders';
+import { useSystemSettings } from '@/lib/hooks/useSettings';
 
 export default function NewInvoicePage() {
   const router = useRouter();
   const createInvoiceMutation = useCreateInvoice();
+  const { data: settings } = useSystemSettings();
 
   const [formData, setFormData] = useState({
     salesOrderId: '',
@@ -31,6 +33,16 @@ export default function NewInvoicePage() {
     status: 'PENDING',
     activeOnly: true,
   });
+
+  // Pre-fill exchange rate from system settings
+  useEffect(() => {
+    if (settings && !formData.usdExchangeRate) {
+      setFormData(prev => ({
+        ...prev,
+        usdExchangeRate: settings.usdExchangeRate.toString()
+      }));
+    }
+  }, [settings, formData.usdExchangeRate]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,7 +125,7 @@ export default function NewInvoicePage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="usdExchangeRate">Tipo de Cambio USD (opcional)</Label>
+              <Label htmlFor="usdExchangeRate">Tipo de Cambio USD a ARS *</Label>
               <Input
                 id="usdExchangeRate"
                 type="number"
@@ -123,9 +135,11 @@ export default function NewInvoicePage() {
                 onChange={(e) =>
                   setFormData({ ...formData, usdExchangeRate: e.target.value })
                 }
+                required
               />
               <p className="text-sm text-muted-foreground">
-                Dejar vacío para usar el tipo de cambio predeterminado (1.00)
+                Los precios están en USD. Este valor se usa para convertir a pesos argentinos.
+                {settings && ` Valor actual del sistema: $${settings.usdExchangeRate.toFixed(2)}`}
               </p>
             </div>
 
@@ -172,7 +186,7 @@ export default function NewInvoicePage() {
           </Button>
           <Button
             type="submit"
-            disabled={!formData.salesOrderId || createInvoiceMutation.isPending}
+            disabled={!formData.salesOrderId || !formData.usdExchangeRate || createInvoiceMutation.isPending}
           >
             {createInvoiceMutation.isPending ? 'Creando...' : 'Crear Factura'}
           </Button>
@@ -181,5 +195,6 @@ export default function NewInvoicePage() {
     </div>
   );
 }
+
 
 

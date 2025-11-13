@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { invoicesApi } from '@/lib/api/invoices';
-import type { Invoice, InvoiceListDto, CreateInvoiceRequest, UpdateInvoiceRequest, CancelInvoiceRequest } from '@/types/invoice';
+import type { Invoice, InvoiceListDto, CreateInvoiceRequest, UpdateInvoiceRequest } from '@/types/invoice';
 import { PagedResult, PaginationParams } from '@/types/pagination';
 import { toast } from 'sonner';
 import { getErrorMessage } from '@/lib/utils/errors';
@@ -65,8 +65,8 @@ export function useCancelInvoice() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: CancelInvoiceRequest }) =>
-      invoicesApi.cancel(id, data),
+    mutationFn: ({ id }: { id: number }) =>
+      invoicesApi.cancel(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['sales-orders'] });

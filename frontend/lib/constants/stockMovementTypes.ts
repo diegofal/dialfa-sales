@@ -10,3 +10,7 @@ export const STOCK_MOVEMENT_TYPES = {
 
 export type StockMovementType = typeof STOCK_MOVEMENT_TYPES[keyof typeof STOCK_MOVEMENT_TYPES];
 
+
+
+
+

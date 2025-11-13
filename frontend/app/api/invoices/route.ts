@@ -30,15 +30,15 @@ export async function GET(request: NextRequest) {
       where.is_cancelled = isCancelled === 'true';
     }
 
-    // Get invoices with sales order and client
+    // Get invoices with invoice_items instead of sales_order_items
     const [invoices, total] = await Promise.all([
       prisma.invoices.findMany({
         where,
         include: {
+          invoice_items: true,
           sales_orders: {
             include: {
               clients: true,
-              sales_order_items: true,
             },
           },
         },
@@ -83,7 +83,11 @@ export async function POST(request: NextRequest) {
     const salesOrder = await prisma.sales_orders.findUnique({
       where: { id: validatedData.salesOrderId },
       include: {
-        sales_order_items: true,
+        sales_order_items: {
+          include: {
+            articles: true,
+          },
+        },
         invoices: {
           where: {
             deleted_at: null,
@@ -108,6 +112,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Get USD exchange rate: use provided value or fetch from system settings
+    let usdExchangeRate = validatedData.usdExchangeRate;
+    if (!usdExchangeRate) {
+      const settings = await prisma.system_settings.findUnique({
+        where: { id: 1 },
+      });
+      usdExchangeRate = settings ? parseFloat(settings.usd_exchange_rate.toString()) : 1.0;
+    }
+
     // Generate invoice number (format: INV-YYYYMMDD-XXXX)
     const now = new Date();
     const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
@@ -129,14 +142,44 @@ export async function POST(request: NextRequest) {
     const sequence = String(todayInvoicesCount + 1).padStart(4, '0');
     const invoiceNumber = `INV-${dateStr}-${sequence}`;
 
-    // Calculate amounts from sales order
-    // Assuming 21% tax rate (IVA) - you may want to make this configurable
+    // Calculate amounts with USD to ARS conversion
+    // Tax rate (IVA) - 21%
     const TAX_RATE = 0.21;
-    const netAmount = parseFloat(salesOrder.total.toString());
-    const taxAmount = netAmount * TAX_RATE;
-    const totalAmount = netAmount + taxAmount;
+    
+    let netAmountArs = 0;
+    
+    // Prepare invoice items with conversion
+    const invoiceItemsData = salesOrder.sales_order_items.map((item) => {
+      const unitPriceUsd = parseFloat(item.unit_price.toString());
+      const unitPriceArs = unitPriceUsd * usdExchangeRate;
+      const discountPercent = parseFloat(item.discount_percent.toString());
+      const quantity = item.quantity;
+      
+      // Calculate line total: (price * quantity) - discount
+      const subtotal = unitPriceArs * quantity;
+      const discount = subtotal * (discountPercent / 100);
+      const lineTotal = subtotal - discount;
+      
+      netAmountArs += lineTotal;
+      
+      return {
+        sales_order_item_id: item.id,
+        article_id: item.article_id,
+        article_code: item.articles.code,
+        article_description: item.articles.description,
+        quantity: quantity,
+        unit_price_usd: unitPriceUsd,
+        unit_price_ars: unitPriceArs,
+        discount_percent: discountPercent,
+        line_total: lineTotal,
+        created_at: now,
+      };
+    });
 
-    // Create invoice and update sales order in transaction
+    const taxAmount = netAmountArs * TAX_RATE;
+    const totalAmount = netAmountArs + taxAmount;
+
+    // Create invoice and invoice items in transaction
     const result = await prisma.$transaction(async (tx) => {
       // Create the invoice
       const invoice = await tx.invoices.create({
@@ -144,16 +187,24 @@ export async function POST(request: NextRequest) {
           invoice_number: invoiceNumber,
           sales_order_id: validatedData.salesOrderId,
           invoice_date: validatedData.invoiceDate || now,
-          net_amount: netAmount,
+          net_amount: netAmountArs,
           tax_amount: taxAmount,
           total_amount: totalAmount,
-          usd_exchange_rate: validatedData.usdExchangeRate,
+          usd_exchange_rate: usdExchangeRate,
           is_credit_note: validatedData.isCreditNote ?? false,
           is_quotation: validatedData.isQuotation ?? false,
           notes: validatedData.notes,
           created_at: now,
           updated_at: now,
         },
+      });
+
+      // Create invoice items with USD to ARS conversion
+      await tx.invoice_items.createMany({
+        data: invoiceItemsData.map((item) => ({
+          ...item,
+          invoice_id: invoice.id,
+        })),
       });
 
       // Update sales order status to INVOICED (unless it's a quotation)
@@ -171,10 +222,10 @@ export async function POST(request: NextRequest) {
       return await tx.invoices.findUnique({
         where: { id: invoice.id },
         include: {
+          invoice_items: true,
           sales_orders: {
             include: {
               clients: true,
-              sales_order_items: true,
             },
           },
         },
