@@ -23,8 +23,18 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useCreateDeliveryNote, useUpdateDeliveryNote } from '@/lib/hooks/useDeliveryNotes';
 import { useSalesOrders } from '@/lib/hooks/useSalesOrders';
+import { useSalesOrder } from '@/lib/hooks/useSalesOrders';
 import { useTransporters } from '@/lib/hooks/useLookups';
 import type { DeliveryNote } from '@/types/deliveryNote';
 
@@ -64,6 +74,10 @@ export function DeliveryNoteDialog({
   });
   const { data: transportersData } = useTransporters();
 
+  const [selectedOrderId, setSelectedOrderId] = useState<number>(preselectedSalesOrderId || 0);
+  const { data: selectedOrder } = useSalesOrder(selectedOrderId);
+  const [itemQuantities, setItemQuantities] = useState<Record<number, number>>({});
+
   const {
     register,
     handleSubmit,
@@ -97,8 +111,33 @@ export function DeliveryNoteDialog({
       });
     } else if (preselectedSalesOrderId) {
       setValue('salesOrderId', preselectedSalesOrderId);
+      setSelectedOrderId(preselectedSalesOrderId);
     }
   }, [deliveryNote, preselectedSalesOrderId, reset, setValue]);
+
+  // Initialize item quantities when order is loaded
+  useEffect(() => {
+    if (selectedOrder && selectedOrder.items) {
+      const initialQuantities: Record<number, number> = {};
+      selectedOrder.items.forEach((item) => {
+        initialQuantities[item.id] = item.quantity;
+      });
+      setItemQuantities(initialQuantities);
+    }
+  }, [selectedOrder]);
+
+  const handleOrderChange = (orderId: number) => {
+    setSelectedOrderId(orderId);
+    setValue('salesOrderId', orderId);
+    setItemQuantities({});
+  };
+
+  const handleQuantityChange = (itemId: number, quantity: number) => {
+    setItemQuantities((prev) => ({
+      ...prev,
+      [itemId]: Math.max(0, quantity),
+    }));
+  };
 
   const onSubmit = async (data: DeliveryNoteFormValues) => {
     try {
@@ -115,6 +154,22 @@ export function DeliveryNoteDialog({
           },
         });
       } else {
+        // Build items array from selected quantities
+        const items = selectedOrder?.items
+          .filter((item) => itemQuantities[item.id] > 0)
+          .map((item) => ({
+            salesOrderItemId: item.id,
+            articleId: item.articleId,
+            articleCode: item.articleCode,
+            articleDescription: item.articleDescription,
+            quantity: itemQuantities[item.id],
+          })) || [];
+
+        if (items.length === 0) {
+          alert('Debe seleccionar al menos un item con cantidad mayor a 0');
+          return;
+        }
+
         await createMutation.mutateAsync({
           salesOrderId: data.salesOrderId,
           deliveryDate: data.deliveryDate,
@@ -123,11 +178,11 @@ export function DeliveryNoteDialog({
           packagesCount: data.packagesCount,
           declaredValue: data.declaredValue,
           notes: data.notes,
+          items,
         });
       }
-      // Stay in dialog after saving - don't close automatically
-      // onOpenChange(false);
       reset();
+      setItemQuantities({});
     } catch (error) {
       console.error('Error saving delivery note:', error);
     }
@@ -135,7 +190,7 @@ export function DeliveryNoteDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Editar Remito' : 'Nuevo Remito'}
@@ -143,7 +198,7 @@ export function DeliveryNoteDialog({
           <DialogDescription>
             {isEditing
               ? 'Modifica los datos del remito'
-              : 'Crea un nuevo remito de entrega desde un pedido'}
+              : 'Crea un nuevo remito de entrega. Puede seleccionar envío parcial ajustando las cantidades.'}
           </DialogDescription>
         </DialogHeader>
 
@@ -156,7 +211,7 @@ export function DeliveryNoteDialog({
               </Label>
               <Select
                 value={watch('salesOrderId')?.toString() || ''}
-                onValueChange={(value) => setValue('salesOrderId', parseInt(value))}
+                onValueChange={(value) => handleOrderChange(parseInt(value))}
                 disabled={isEditing}
               >
                 <SelectTrigger>
@@ -174,6 +229,51 @@ export function DeliveryNoteDialog({
                 <p className="text-sm text-red-500">{errors.salesOrderId.message}</p>
               )}
             </div>
+
+            {/* Items Selection - Only for creation */}
+            {!isEditing && selectedOrder && selectedOrder.items && selectedOrder.items.length > 0 && (
+              <div className="col-span-2">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Items a Entregar</CardTitle>
+                    <CardDescription>
+                      Ajuste las cantidades para envío parcial. Por defecto se entregan todas las cantidades del pedido.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Código</TableHead>
+                          <TableHead>Descripción</TableHead>
+                          <TableHead className="text-right">Cant. Pedido</TableHead>
+                          <TableHead className="text-right">Cant. a Entregar</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {selectedOrder.items.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell className="font-medium">{item.articleCode}</TableCell>
+                            <TableCell>{item.articleDescription}</TableCell>
+                            <TableCell className="text-right">{item.quantity}</TableCell>
+                            <TableCell className="text-right">
+                              <Input
+                                type="number"
+                                min="0"
+                                max={item.quantity}
+                                value={itemQuantities[item.id] || 0}
+                                onChange={(e) => handleQuantityChange(item.id, parseInt(e.target.value) || 0)}
+                                className="w-24 text-right"
+                              />
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
 
             {/* Delivery Date */}
             <div className="space-y-2">
@@ -282,5 +382,6 @@ export function DeliveryNoteDialog({
     </Dialog>
   );
 }
+
 
 

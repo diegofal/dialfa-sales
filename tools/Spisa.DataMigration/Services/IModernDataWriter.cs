@@ -11,7 +11,7 @@ public interface IModernDataWriter
     Task ResetSequenceAsync(string tableName, string sequenceName);
     Task TestConnectionAsync();
     Task ExecuteRawSqlAsync(string sql);
-    Task<int> GetRecordCountAsync(string tableName);
+    Task<int> GetRecordCountAsync(string tableName, bool checkDeletedAt = true);
     Task<HashSet<int>> GetValidIdsAsync(string tableName);
 }
 

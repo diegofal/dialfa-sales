@@ -10,7 +10,7 @@ echo   Azure SQL Server to Local PostgreSQL
 echo ========================================
 echo.
 
-cd /d "%~dp0backend\tools\Spisa.DataMigration"
+cd /d "%~dp0tools\Spisa.DataMigration"
 
 echo [1/3] Checking migration tool...
 if not exist "Spisa.DataMigration.csproj" (
@@ -23,6 +23,7 @@ echo [2/3] Starting data migration...
 echo This will migrate data from Azure SQL Server to Local PostgreSQL.
 echo Using default (local) environment configuration.
 echo.
+set DOTNET_ENVIRONMENT=Development
 dotnet run -- --yes
 
 if %errorlevel% neq 0 (

@@ -86,3 +86,35 @@ public class LegacyRemito
     public decimal? Valor { get; set; }
 }
 
+// Lookup table models
+public class LegacyProvincia
+{  v 
+    public int IdProvincia { get; set; }
+    public string Provincia { get; set; } = string.Empty;
+}
+
+public class LegacyCondicionIVA
+{
+    public int IdCondicionIVA { get; set; }
+    public string CondicionIVA { get; set; } = string.Empty;
+}
+
+public class LegacyOperatoria
+{
+    public int IdOperatoria { get; set; }
+    public string Operatoria { get; set; } = string.Empty;
+}
+
+public class LegacyFormaDePago
+{
+    public int IdFormaDePago { get; set; }
+    public string FormaDePago { get; set; } = string.Empty;
+}
+
+public class LegacyTransportista
+{
+    public int IdTransportista { get; set; }
+    public string Transportista { get; set; } = string.Empty;
+    public string? Domicilio { get; set; }
+}
+

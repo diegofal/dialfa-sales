@@ -225,6 +225,9 @@ export function mapDeliveryNoteToDTO(deliveryNote: unknown) {
   } | undefined;
   const transporters = d.transporters as { name?: string } | undefined;
   
+  // Use delivery_note_items instead of sales_order_items
+  const deliveryNoteItems = (d.delivery_note_items || []) as Array<Record<string, unknown>>;
+  
   return {
     id: parseInt(String((d.id as bigint | number))),
     deliveryNumber: d.delivery_number as string,
@@ -240,6 +243,18 @@ export function mapDeliveryNoteToDTO(deliveryNote: unknown) {
     notes: d.notes as string | null,
     createdAt: (d.created_at as Date).toISOString(),
     updatedAt: (d.updated_at as Date).toISOString(),
+    items: deliveryNoteItems.map((item) => {
+      return {
+        id: parseInt(String((item.id as bigint | number))),
+        salesOrderItemId: item.sales_order_item_id ? parseInt(String(item.sales_order_item_id as bigint | number)) : null,
+        articleId: parseInt(String((item.article_id as bigint | number))),
+        articleCode: item.article_code as string,
+        articleDescription: item.article_description as string,
+        quantity: item.quantity as number,
+        createdAt: (item.created_at as Date).toISOString(),
+      };
+    }),
   };
 }
+
 

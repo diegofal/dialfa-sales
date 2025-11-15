@@ -92,6 +92,14 @@ export const createInvoiceSchema = z.object({
 export const updateInvoiceSchema = createInvoiceSchema.partial();
 
 // Delivery Note Validation Schema
+export const deliveryNoteItemSchema = z.object({
+  salesOrderItemId: z.coerce.bigint().optional().nullable(),
+  articleId: z.coerce.bigint().refine(val => val > 0, 'Article ID is required'),
+  articleCode: z.string().min(1, 'Article code is required'),
+  articleDescription: z.string().min(1, 'Article description is required'),
+  quantity: z.coerce.number().int().min(1, 'Quantity must be at least 1'),
+});
+
 export const createDeliveryNoteSchema = z.object({
   salesOrderId: z.coerce.bigint().refine(val => val > 0, 'Sales Order ID is required'),
   deliveryDate: z.coerce.date(),
@@ -100,6 +108,7 @@ export const createDeliveryNoteSchema = z.object({
   packagesCount: z.coerce.number().int().min(0).optional().nullable(),
   declaredValue: z.coerce.number().min(0).optional().nullable(),
   notes: z.string().optional().nullable(),
+  items: z.array(deliveryNoteItemSchema).min(1, 'At least one item is required'),
 });
 
 export const updateDeliveryNoteSchema = z.object({

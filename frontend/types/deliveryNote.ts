@@ -1,3 +1,13 @@
+export interface DeliveryNoteItem {
+  id: number;
+  salesOrderItemId: number | null;
+  articleId: number;
+  articleCode: string;
+  articleDescription: string;
+  quantity: number;
+  createdAt: string;
+}
+
 export interface DeliveryNote {
   id: number;
   deliveryNumber: string;
@@ -13,6 +23,7 @@ export interface DeliveryNote {
   notes: string | null;
   createdAt: string;
   updatedAt: string;
+  items: DeliveryNoteItem[];
 }
 
 export interface DeliveryNoteListDto {
@@ -24,6 +35,15 @@ export interface DeliveryNoteListDto {
   clientBusinessName: string;
   transporterName: string | null;
   packagesCount: number | null;
+  itemsCount: number;
+}
+
+export interface DeliveryNoteItemRequest {
+  salesOrderItemId: number | null;
+  articleId: number;
+  articleCode: string;
+  articleDescription: string;
+  quantity: number;
 }
 
 export interface CreateDeliveryNoteRequest {
@@ -34,6 +54,7 @@ export interface CreateDeliveryNoteRequest {
   packagesCount: number | null;
   declaredValue: number | null;
   notes: string | null;
+  items: DeliveryNoteItemRequest[];
 }
 
 export interface UpdateDeliveryNoteRequest {
@@ -44,5 +65,6 @@ export interface UpdateDeliveryNoteRequest {
   declaredValue: number | null;
   notes: string | null;
 }
+
 
 

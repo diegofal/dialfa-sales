@@ -88,9 +88,12 @@ public class MigrationOrchestrator
             // Step 10: Migrate delivery notes
             await MigrateDeliveryNotes(ctx, result);
 
+            // Step 11: Seed admin user
+            await SeedAdminUser(ctx, result);
+
             // Note: Materialized views not created by EF migrations, skipping refresh
 
-            // Step 11: Post-migration validation
+            // Step 12: Post-migration validation
             var postValidTask = ctx.AddTask("[yellow]Validating migrated data[/]");
             var recordCountValidation = await _validator.ValidateRecordCountsAsync();
             var integrityValidation = await _validator.ValidateReferentialIntegrityAsync();
@@ -523,6 +526,65 @@ public class MigrationOrchestrator
             result.EntityResults.Add(new EntityMigrationResult
             {
                 EntityName = "DeliveryNotes",
+                FailedCount = 1,
+                Errors = new List<string> { ex.Message }
+            });
+        }
+    }
+
+    private async Task SeedAdminUser(ProgressContext ctx, MigrationResult result)
+    {
+        var task = ctx.AddTask("[blue]Seeding admin user[/]");
+        var stopwatch = Stopwatch.StartNew();
+        
+        try
+        {
+            // Check if admin user already exists (users table has no deleted_at column)
+            var existingCount = await _modernWriter.GetRecordCountAsync("users", checkDeletedAt: false);
+            if (existingCount > 0)
+            {
+                _logger.LogInformation("Users already exist ({Count} records), skipping admin user seeding", existingCount);
+                task.Value = 100;
+                return;
+            }
+
+            // Hash password using BCrypt
+            var passwordHash = BCrypt.Net.BCrypt.HashPassword("admin123");
+            
+            var adminUser = new
+            {
+                Username = "admin",
+                Email = "admin@spisa.local",
+                PasswordHash = passwordHash,
+                FullName = "System Administrator",
+                Role = "Admin",
+                IsActive = true,
+                LastLoginAt = (DateTime?)null,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            var users = new[] { adminUser };
+            var migrated = await _modernWriter.WriteDataAsync("users", users);
+            task.Value = 100;
+            
+            await _modernWriter.ResetSequenceAsync("users", "users_id_seq");
+            
+            _logger.LogInformation("Seeded admin user: {Username}", adminUser.Username);
+            
+            result.EntityResults.Add(new EntityMigrationResult
+            {
+                EntityName = "Users (Seeded)",
+                MigratedCount = migrated,
+                Duration = stopwatch.Elapsed
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to seed admin user");
+            result.EntityResults.Add(new EntityMigrationResult
+            {
+                EntityName = "Users (Seeded)",
                 FailedCount = 1,
                 Errors = new List<string> { ex.Message }
             });

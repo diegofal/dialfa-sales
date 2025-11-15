@@ -103,6 +103,7 @@ public class PostgresDataWriter : IModernDataWriter
         try
         {
             // Truncate all tables in reverse dependency order (children first)
+            // Note: users table is NOT truncated to preserve admin user
             var sql = @"
                 TRUNCATE TABLE 
                     delivery_notes,
@@ -122,7 +123,7 @@ public class PostgresDataWriter : IModernDataWriter
             
             // Set long timeout for TRUNCATE (10 minutes)
             await connection.ExecuteAsync(sql, commandTimeout: 600);
-            _logger.LogInformation("Truncated all tables");
+            _logger.LogInformation("Truncated all tables (except users)");
         }
         catch (Exception ex)
         {
@@ -168,12 +169,14 @@ public class PostgresDataWriter : IModernDataWriter
         await connection.ExecuteAsync(sql);
     }
 
-    public async Task<int> GetRecordCountAsync(string tableName)
+    public async Task<int> GetRecordCountAsync(string tableName, bool checkDeletedAt = true)
     {
         using var connection = new NpgsqlConnection(_connectionString);
         await connection.OpenAsync();
         
-        var sql = $"SELECT COUNT(*) FROM {tableName} WHERE deleted_at IS NULL";
+        var sql = checkDeletedAt 
+            ? $"SELECT COUNT(*) FROM {tableName} WHERE deleted_at IS NULL"
+            : $"SELECT COUNT(*) FROM {tableName}";
         var count = await connection.ExecuteScalarAsync<int>(sql);
         
         return count;

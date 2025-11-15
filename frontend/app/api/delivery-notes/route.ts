@@ -52,6 +52,7 @@ export async function GET(request: NextRequest) {
             },
           },
           transporters: true,
+          delivery_note_items: true,
         },
         orderBy: {
           delivery_date: 'desc',
@@ -63,7 +64,13 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Map to DTO format (snake_case to camelCase)
-    const mappedDeliveryNotes = deliveryNotes.map(mapDeliveryNoteToDTO);
+    const mappedDeliveryNotes = deliveryNotes.map((dn) => {
+      const mapped = mapDeliveryNoteToDTO(dn);
+      return {
+        ...mapped,
+        itemsCount: (dn.delivery_note_items || []).length,
+      };
+    });
 
     return NextResponse.json({
       data: mappedDeliveryNotes,
@@ -99,6 +106,11 @@ export async function POST(request: NextRequest) {
             deleted_at: null,
           },
         },
+        sales_order_items: {
+          include: {
+            articles: true,
+          },
+        },
       },
     });
 
@@ -109,15 +121,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if already has delivery note
-    if (salesOrder.delivery_notes.length > 0) {
+    // Validate that items match sales order items
+    if (!validatedData.items || validatedData.items.length === 0) {
       return NextResponse.json(
-        { error: 'Sales order already has a delivery note' },
+        { error: 'Delivery note must have at least one item' },
         { status: 400 }
       );
     }
 
-    // Generate delivery number (format: DN-YYYYMMDD-XXXX)
+    // Generate delivery number (format: REM-YYYYMMDD-XXXX)
     const now = new Date();
     const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
     
@@ -136,31 +148,57 @@ export async function POST(request: NextRequest) {
     });
     
     const sequence = String(todayDeliveryNotesCount + 1).padStart(4, '0');
-    const deliveryNumber = `DN-${dateStr}-${sequence}`;
+    const deliveryNumber = `REM-${dateStr}-${sequence}`;
 
-    // Create delivery note
-    const deliveryNote = await prisma.delivery_notes.create({
-      data: {
-        delivery_number: deliveryNumber,
-        sales_order_id: validatedData.salesOrderId,
-        delivery_date: validatedData.deliveryDate,
-        transporter_id: validatedData.transporterId,
-        weight_kg: validatedData.weightKg,
-        packages_count: validatedData.packagesCount,
-        declared_value: validatedData.declaredValue,
-        notes: validatedData.notes,
-        created_at: now,
-        updated_at: now,
-      },
-      include: {
-        sales_orders: {
-          include: {
-            clients: true,
-          },
+    // Create delivery note with items in a transaction
+    const deliveryNote = await prisma.$transaction(async (tx) => {
+      // Create delivery note
+      const newDeliveryNote = await tx.delivery_notes.create({
+        data: {
+          delivery_number: deliveryNumber,
+          sales_order_id: validatedData.salesOrderId,
+          delivery_date: validatedData.deliveryDate,
+          transporter_id: validatedData.transporterId,
+          weight_kg: validatedData.weightKg,
+          packages_count: validatedData.packagesCount,
+          declared_value: validatedData.declaredValue,
+          notes: validatedData.notes,
+          created_at: now,
+          updated_at: now,
         },
-        transporters: true,
-      },
+      });
+
+      // Create delivery note items
+      await tx.delivery_note_items.createMany({
+        data: validatedData.items.map((item) => ({
+          delivery_note_id: newDeliveryNote.id,
+          sales_order_item_id: item.salesOrderItemId,
+          article_id: BigInt(item.articleId),
+          article_code: item.articleCode,
+          article_description: item.articleDescription,
+          quantity: item.quantity,
+          created_at: now,
+        })),
+      });
+
+      // Return complete delivery note with all includes
+      return tx.delivery_notes.findUnique({
+        where: { id: newDeliveryNote.id },
+        include: {
+          sales_orders: {
+            include: {
+              clients: true,
+            },
+          },
+          transporters: true,
+          delivery_note_items: true,
+        },
+      });
     });
+
+    if (!deliveryNote) {
+      throw new Error('Failed to create delivery note');
+    }
 
     // Map to DTO format
     const mappedDeliveryNote = mapDeliveryNoteToDTO(deliveryNote);

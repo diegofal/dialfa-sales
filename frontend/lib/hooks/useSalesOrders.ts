@@ -21,11 +21,11 @@ export const useSalesOrders = (params: PaginationParams & {
   });
 };
 
-export const useSalesOrder = (id: number) => {
+export const useSalesOrder = (id: number, options?: { enabled?: boolean }) => {
   return useQuery({
     queryKey: ['salesOrders', id],
     queryFn: () => salesOrdersApi.getById(id),
-    enabled: !!id,
+    enabled: options?.enabled !== undefined ? options.enabled : !!id,
     retry: (failureCount, error) => {
       // Don't retry on 404 (deleted order)
       const err = error as { response?: { status?: number } };

@@ -3,7 +3,15 @@
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Printer, Edit, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { useDeliveryNote, useDownloadDeliveryNotePdf } from '@/lib/hooks/useDeliveryNotes';
 import { useQuickDeliveryNoteTabs } from '@/lib/hooks/useQuickDeliveryNoteTabs';
 import { useEffect } from 'react';
@@ -59,7 +67,7 @@ export default function DeliveryNoteDetailPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-24">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -153,6 +161,40 @@ export default function DeliveryNoteDetailPage() {
         </Card>
       </div>
 
+      {/* Items */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Items Entregados</CardTitle>
+          <CardDescription>{deliveryNote.items?.length || 0} artículo(s)</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {deliveryNote.items && deliveryNote.items.length > 0 ? (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Código</TableHead>
+                  <TableHead>Descripción</TableHead>
+                  <TableHead className="text-right">Cantidad</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {deliveryNote.items.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-medium">{item.articleCode}</TableCell>
+                    <TableCell>{item.articleDescription}</TableCell>
+                    <TableCell className="text-right">{item.quantity}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <p className="text-sm text-muted-foreground text-center py-4">
+              No hay items registrados en este remito
+            </p>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Metadata */}
       <Card>
         <CardHeader>
@@ -172,6 +214,7 @@ export default function DeliveryNoteDetailPage() {
     </div>
   );
 }
+
 
 
 

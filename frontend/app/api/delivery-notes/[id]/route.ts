@@ -21,6 +21,11 @@ export async function GET(
           },
         },
         transporters: true,
+        delivery_note_items: {
+          orderBy: {
+            id: 'asc',
+          },
+        },
       },
     });
 
