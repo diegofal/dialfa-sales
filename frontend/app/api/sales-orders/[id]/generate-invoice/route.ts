@@ -85,10 +85,22 @@ export async function POST(
     const body = await request.json().catch(() => ({}));
     let usdExchangeRate = body.usdExchangeRate;
     if (!usdExchangeRate) {
-      const settings = await prisma.system_settings.findUnique({
+      let settings = await prisma.system_settings.findUnique({
         where: { id: 1 },
       });
-      usdExchangeRate = settings ? parseFloat(settings.usd_exchange_rate.toString()) : 1.0;
+      
+      // If settings don't exist, create with default values
+      if (!settings) {
+        settings = await prisma.system_settings.create({
+          data: {
+            id: 1,
+            usd_exchange_rate: 1000.00,
+            updated_at: now,
+          },
+        });
+      }
+      
+      usdExchangeRate = parseFloat(settings.usd_exchange_rate.toString());
     }
 
     // Calculate amounts with USD to ARS conversion

@@ -115,10 +115,22 @@ export async function POST(request: NextRequest) {
     // Get USD exchange rate: use provided value or fetch from system settings
     let usdExchangeRate = validatedData.usdExchangeRate;
     if (!usdExchangeRate) {
-      const settings = await prisma.system_settings.findUnique({
+      let settings = await prisma.system_settings.findUnique({
         where: { id: 1 },
       });
-      usdExchangeRate = settings ? parseFloat(settings.usd_exchange_rate.toString()) : 1.0;
+      
+      // If settings don't exist, create with default values
+      if (!settings) {
+        settings = await prisma.system_settings.create({
+          data: {
+            id: 1,
+            usd_exchange_rate: 1000.00,
+            updated_at: new Date(),
+          },
+        });
+      }
+      
+      usdExchangeRate = parseFloat(settings.usd_exchange_rate.toString());
     }
 
     // Generate invoice number (format: INV-YYYYMMDD-XXXX)

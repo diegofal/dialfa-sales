@@ -6,7 +6,7 @@ export function useTransporters() {
   return useQuery({
     queryKey: ['transporters'],
     queryFn: async () => {
-      const { data } = await apiClient.get('/api/lookups/transporters');
+      const { data } = await apiClient.get('/lookups/transporters');
       return data as Array<{
         id: number;
         name: string;
@@ -24,7 +24,7 @@ export function useTaxConditions() {
   return useQuery({
     queryKey: ['tax-conditions'],
     queryFn: async () => {
-      const { data } = await apiClient.get('/api/lookups/tax-conditions');
+      const { data } = await apiClient.get('/lookups/tax-conditions');
       return data as Array<{
         id: number;
         name: string;
@@ -39,7 +39,7 @@ export function useOperationTypes() {
   return useQuery({
     queryKey: ['operation-types'],
     queryFn: async () => {
-      const { data } = await apiClient.get('/api/lookups/operation-types');
+      const { data } = await apiClient.get('/lookups/operation-types');
       return data as Array<{
         id: number;
         name: string;
@@ -54,7 +54,7 @@ export function useProvinces() {
   return useQuery({
     queryKey: ['provinces'],
     queryFn: async () => {
-      const { data } = await apiClient.get('/api/lookups/provinces');
+      const { data } = await apiClient.get('/lookups/provinces');
       return data as Array<{
         id: number;
         name: string;
@@ -69,7 +69,7 @@ export function usePaymentMethods() {
   return useQuery({
     queryKey: ['payment-methods'],
     queryFn: async () => {
-      const { data } = await apiClient.get('/api/lookups/payment-methods');
+      const { data } = await apiClient.get('/lookups/payment-methods');
       return data as Array<{
         id: number;
         name: string;
@@ -79,6 +79,7 @@ export function usePaymentMethods() {
     },
   });
 }
+
 
 
 

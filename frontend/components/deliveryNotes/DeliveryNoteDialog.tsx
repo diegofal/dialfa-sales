@@ -63,6 +63,12 @@ export function DeliveryNoteDialog({
   deliveryNote,
   preselectedSalesOrderId,
 }: DeliveryNoteDialogProps) {
+  console.log('🎨 DeliveryNoteDialog render:', {
+    open,
+    isEditing: !!deliveryNote,
+    preselectedSalesOrderId,
+  });
+
   const isEditing = !!deliveryNote;
   const createMutation = useCreateDeliveryNote();
   const updateMutation = useUpdateDeliveryNote();
@@ -109,22 +115,47 @@ export function DeliveryNoteDialog({
         declaredValue: deliveryNote.declaredValue,
         notes: deliveryNote.notes,
       });
-    } else if (preselectedSalesOrderId) {
+    } else if (preselectedSalesOrderId && open) {
+      // Reset order ID and quantities when dialog opens with preselected order
       setValue('salesOrderId', preselectedSalesOrderId);
       setSelectedOrderId(preselectedSalesOrderId);
+      // Clear quantities to force reinitialization
+      setItemQuantities({});
     }
-  }, [deliveryNote, preselectedSalesOrderId, reset, setValue]);
+  }, [deliveryNote, preselectedSalesOrderId, open, reset, setValue]);
 
   // Initialize item quantities when order is loaded
   useEffect(() => {
-    if (selectedOrder && selectedOrder.items) {
+    console.log('🔍 Effect triggered - Initialize item quantities', {
+      hasSelectedOrder: !!selectedOrder,
+      hasItems: selectedOrder?.items?.length,
+      isOpen: open,
+      isEditing: !!deliveryNote,
+      selectedOrderId,
+    });
+
+    if (selectedOrder && selectedOrder.items && open && !deliveryNote) {
+      console.log('✅ Initializing quantities for items:', selectedOrder.items);
       const initialQuantities: Record<number, number> = {};
       selectedOrder.items.forEach((item) => {
         initialQuantities[item.id] = item.quantity;
       });
+      console.log('📊 Setting item quantities:', initialQuantities);
       setItemQuantities(initialQuantities);
+    } else {
+      console.log('❌ Conditions not met for initializing quantities');
     }
-  }, [selectedOrder]);
+  }, [selectedOrder, open, deliveryNote, selectedOrderId]);
+
+  // Clean up when dialog closes
+  useEffect(() => {
+    if (!open) {
+      setItemQuantities({});
+      if (!deliveryNote) {
+        reset();
+      }
+    }
+  }, [open, deliveryNote, reset]);
 
   const handleOrderChange = (orderId: number) => {
     setSelectedOrderId(orderId);
@@ -140,6 +171,14 @@ export function DeliveryNoteDialog({
   };
 
   const onSubmit = async (data: DeliveryNoteFormValues) => {
+    console.log('🚀 Starting onSubmit', {
+      isEditing,
+      selectedOrderId,
+      hasSelectedOrder: !!selectedOrder,
+      itemQuantities,
+      selectedOrderItems: selectedOrder?.items,
+    });
+
     try {
       if (isEditing) {
         await updateMutation.mutateAsync({
@@ -153,10 +192,15 @@ export function DeliveryNoteDialog({
             notes: data.notes,
           },
         });
+        onOpenChange(false);
       } else {
         // Build items array from selected quantities
         const items = selectedOrder?.items
-          .filter((item) => itemQuantities[item.id] > 0)
+          .filter((item) => {
+            const quantity = itemQuantities[item.id];
+            console.log(`Item ${item.id}: quantity from state = ${quantity}`);
+            return quantity > 0;
+          })
           .map((item) => ({
             salesOrderItemId: item.id,
             articleId: item.articleId,
@@ -165,10 +209,24 @@ export function DeliveryNoteDialog({
             quantity: itemQuantities[item.id],
           })) || [];
 
+        console.log('📦 Built items array:', items);
+
         if (items.length === 0) {
+          console.error('❌ No items with quantity > 0');
           alert('Debe seleccionar al menos un item con cantidad mayor a 0');
           return;
         }
+
+        console.log('📤 Sending createDeliveryNote mutation with:', {
+          salesOrderId: data.salesOrderId,
+          deliveryDate: data.deliveryDate,
+          transporterId: data.transporterId,
+          weightKg: data.weightKg,
+          packagesCount: data.packagesCount,
+          declaredValue: data.declaredValue,
+          notes: data.notes,
+          items,
+        });
 
         await createMutation.mutateAsync({
           salesOrderId: data.salesOrderId,
@@ -180,9 +238,8 @@ export function DeliveryNoteDialog({
           notes: data.notes,
           items,
         });
+        onOpenChange(false);
       }
-      reset();
-      setItemQuantities({});
     } catch (error) {
       console.error('Error saving delivery note:', error);
     }
@@ -294,16 +351,16 @@ export function DeliveryNoteDialog({
             <div className="space-y-2">
               <Label htmlFor="transporterId">Transportista</Label>
               <Select
-                value={watch('transporterId')?.toString() || ''}
+                value={watch('transporterId')?.toString() || 'none'}
                 onValueChange={(value) => 
-                  setValue('transporterId', value ? parseInt(value) : null)
+                  setValue('transporterId', value === 'none' ? null : parseInt(value))
                 }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccionar transportista" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sin transportista</SelectItem>
+                  <SelectItem value="none">Sin transportista</SelectItem>
                   {transportersData?.map((transporter) => (
                     <SelectItem key={transporter.id} value={transporter.id.toString()}>
                       {transporter.name}

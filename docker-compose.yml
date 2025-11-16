@@ -17,7 +17,8 @@ services:
       - postgres_data:/var/lib/postgresql/data
       # Schema is now managed by Prisma migrations, not by init scripts
       # - ./database/schema.sql:/docker-entrypoint-initdb.d/01-schema.sql
-      - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
+      # Seed data is empty directory, commenting out to fix mount error
+      # - ./database/seed.sql:/docker-entrypoint-initdb.d/02-seed.sql
     ports:
       - "5432:5432"
     healthcheck:

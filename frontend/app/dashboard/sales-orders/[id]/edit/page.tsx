@@ -25,6 +25,15 @@ export default function EditSalesOrderPage() {
   const permissions = useSalesOrderPermissions(existingOrder, false);
   const [isDeliveryNoteDialogOpen, setIsDeliveryNoteDialogOpen] = useState(false);
 
+  console.log('🔍 EditSalesOrderPage render:', {
+    orderId,
+    hasExistingOrder: !!existingOrder,
+    existingOrderItems: existingOrder?.items?.length,
+    hasDeliveryNote: !!existingOrder?.deliveryNote,
+    status: existingOrder?.status,
+    isDeliveryNoteDialogOpen,
+  });
+
   const getStatusBadge = () => {
     if (!existingOrder) return null;
     
@@ -142,7 +151,10 @@ export default function EditSalesOrderPage() {
             {existingOrder.deliveryNote && (
               <Button
                 variant="outline"
-                onClick={() => router.push(`/dashboard/delivery-notes/${existingOrder.deliveryNote?.id}`)}
+                onClick={() => {
+                  console.log('🚚 Ver Remito clicked');
+                  router.push(`/dashboard/delivery-notes/${existingOrder.deliveryNote?.id}`);
+                }}
               >
                 Ver Remito
               </Button>
@@ -150,7 +162,10 @@ export default function EditSalesOrderPage() {
             {!existingOrder.deliveryNote && existingOrder.status === 'PENDING' && (
               <Button
                 variant="default"
-                onClick={() => setIsDeliveryNoteDialogOpen(true)}
+                onClick={() => {
+                  console.log('🚚 Generar Remito clicked, opening dialog');
+                  setIsDeliveryNoteDialogOpen(true);
+                }}
               >
                 <Truck className="mr-2 h-4 w-4" />
                 Generar Remito

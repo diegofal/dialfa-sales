@@ -93,9 +93,11 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+    console.log('🔵 POST /api/delivery-notes received body:', JSON.stringify(body, null, 2));
 
     // Validate input
     const validatedData = createDeliveryNoteSchema.parse(body);
+    console.log('✅ Validation passed. Validated data:', JSON.stringify(validatedData, null, 2));
 
     // Check if sales order exists
     const salesOrder = await prisma.sales_orders.findUnique({
@@ -121,8 +123,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    console.log('📦 Sales order found with items:', salesOrder.sales_order_items.length);
+    console.log('📦 Items to create in delivery note:', validatedData.items?.length);
+
     // Validate that items match sales order items
     if (!validatedData.items || validatedData.items.length === 0) {
+      console.error('❌ No items provided in request!');
       return NextResponse.json(
         { error: 'Delivery note must have at least one item' },
         { status: 400 }
@@ -150,6 +156,8 @@ export async function POST(request: NextRequest) {
     const sequence = String(todayDeliveryNotesCount + 1).padStart(4, '0');
     const deliveryNumber = `REM-${dateStr}-${sequence}`;
 
+    console.log('🏷️ Generated delivery number:', deliveryNumber);
+
     // Create delivery note with items in a transaction
     const deliveryNote = await prisma.$transaction(async (tx) => {
       // Create delivery note
@@ -168,7 +176,18 @@ export async function POST(request: NextRequest) {
         },
       });
 
+      console.log('✅ Delivery note created with ID:', newDeliveryNote.id);
+
       // Create delivery note items
+      console.log('📝 Creating delivery note items:', validatedData.items.map(i => ({
+        delivery_note_id: newDeliveryNote.id,
+        sales_order_item_id: i.salesOrderItemId,
+        article_id: i.articleId,
+        article_code: i.articleCode,
+        article_description: i.articleDescription,
+        quantity: i.quantity,
+      })));
+
       await tx.delivery_note_items.createMany({
         data: validatedData.items.map((item) => ({
           delivery_note_id: newDeliveryNote.id,
@@ -180,6 +199,8 @@ export async function POST(request: NextRequest) {
           created_at: now,
         })),
       });
+
+      console.log('✅ Delivery note items created');
 
       // Return complete delivery note with all includes
       return tx.delivery_notes.findUnique({
@@ -200,14 +221,17 @@ export async function POST(request: NextRequest) {
       throw new Error('Failed to create delivery note');
     }
 
+    console.log('✅ Delivery note created successfully with', deliveryNote.delivery_note_items.length, 'items');
+
     // Map to DTO format
     const mappedDeliveryNote = mapDeliveryNoteToDTO(deliveryNote);
 
     return NextResponse.json(mappedDeliveryNote, { status: 201 });
   } catch (error) {
-    console.error('Error creating delivery note:', error);
+    console.error('❌ Error creating delivery note:', error);
 
     if (error instanceof z.ZodError) {
+      console.error('Validation errors:', error.issues);
       return NextResponse.json(
         { error: 'Validation error', details: error.issues },
         { status: 400 }
