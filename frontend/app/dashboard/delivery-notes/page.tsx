@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Filter, X } from 'lucide-react';
+import { Filter, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
@@ -9,7 +9,6 @@ import { usePagination } from '@/lib/hooks/usePagination';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { DeliveryNotesTable } from '@/components/deliveryNotes/DeliveryNotesTable';
-import { DeliveryNoteDialog } from '@/components/deliveryNotes/DeliveryNoteDialog';
 import { useDeliveryNotes, useDeleteDeliveryNote } from '@/lib/hooks/useDeliveryNotes';
 import { useRouter } from 'next/navigation';
 import { useQuickDeliveryNoteTabs } from '@/lib/hooks/useQuickDeliveryNoteTabs';
@@ -22,7 +21,6 @@ export default function DeliveryNotesPage() {
     fromDate: '',
     toDate: '',
   });
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
 
   const { pagination, setPage, setPageSize, setSorting } = usePagination(10);
 
@@ -72,12 +70,8 @@ export default function DeliveryNotesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Remitos</h1>
-          <p className="text-muted-foreground">Gestiona los remitos de entrega</p>
+          <p className="text-muted-foreground">Gestiona los remitos de entrega. Los remitos se generan desde los pedidos.</p>
         </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="mr-2 h-4 w-4" />
-          Nuevo Remito
-        </Button>
       </div>
 
       {/* Statistics Cards */}
@@ -198,12 +192,6 @@ export default function DeliveryNotesPage() {
           )}
         </CardContent>
       </Card>
-
-      {/* Create Dialog */}
-      <DeliveryNoteDialog
-        open={isCreateDialogOpen}
-        onOpenChange={setIsCreateDialogOpen}
-      />
     </div>
   );
 }

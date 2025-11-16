@@ -5,7 +5,6 @@ import { ArrowLeft, AlertTriangle, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { SingleStepOrderForm } from '@/components/salesOrders/SingleStepOrderForm';
-import { DeliveryNoteDialog } from '@/components/deliveryNotes/DeliveryNoteDialog';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { useSalesOrder } from '@/lib/hooks/useSalesOrders';
@@ -23,7 +22,6 @@ export default function EditSalesOrderPage() {
   const orderId = params.id ? Number(params.id) : undefined;
   const { data: existingOrder } = useSalesOrder(orderId || 0);
   const permissions = useSalesOrderPermissions(existingOrder, false);
-  const [isDeliveryNoteDialogOpen, setIsDeliveryNoteDialogOpen] = useState(false);
 
   console.log('🔍 EditSalesOrderPage render:', {
     orderId,
@@ -178,15 +176,6 @@ export default function EditSalesOrderPage() {
       <Suspense fallback={<div className="text-center py-12">Cargando...</div>}>
         <SingleStepOrderForm orderId={orderId} />
       </Suspense>
-
-      {/* Delivery Note Dialog */}
-      {orderId && (
-        <DeliveryNoteDialog
-          open={isDeliveryNoteDialogOpen}
-          onOpenChange={setIsDeliveryNoteDialogOpen}
-          preselectedSalesOrderId={orderId}
-        />
-      )}
     </div>
   );
 }
