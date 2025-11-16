@@ -195,7 +195,7 @@ export function DeliveryNoteDialog({
         onOpenChange(false);
       } else {
         // Build items array from selected quantities
-        const items = selectedOrder?.items
+        const items = (selectedOrder?.items || [])
           .filter((item) => {
             const quantity = itemQuantities[item.id];
             console.log(`Item ${item.id}: quantity from state = ${quantity}`);
@@ -207,7 +207,7 @@ export function DeliveryNoteDialog({
             articleCode: item.articleCode,
             articleDescription: item.articleDescription,
             quantity: itemQuantities[item.id],
-          })) || [];
+          }));
 
         console.log('📦 Built items array:', items);
 
