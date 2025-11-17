@@ -29,7 +29,6 @@ export default function EditSalesOrderPage() {
     existingOrderItems: existingOrder?.items?.length,
     hasDeliveryNote: !!existingOrder?.deliveryNote,
     status: existingOrder?.status,
-    isDeliveryNoteDialogOpen,
   });
 
   const getStatusBadge = () => {
