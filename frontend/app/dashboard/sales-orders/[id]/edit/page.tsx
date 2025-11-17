@@ -156,18 +156,6 @@ export default function EditSalesOrderPage() {
                 Ver Remito
               </Button>
             )}
-            {!existingOrder.deliveryNote && existingOrder.status === 'PENDING' && (
-              <Button
-                variant="default"
-                onClick={() => {
-                  console.log('🚚 Generar Remito clicked, opening dialog');
-                  setIsDeliveryNoteDialogOpen(true);
-                }}
-              >
-                <Truck className="mr-2 h-4 w-4" />
-                Generar Remito
-              </Button>
-            )}
           </div>
         )}
       </div>
