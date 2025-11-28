@@ -6,6 +6,7 @@
 
 // Import configuration logging (will be executed immediately)
 /* eslint-disable @typescript-eslint/no-require-imports */
+const { execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
 
@@ -73,8 +74,29 @@ function maskDatabaseUrl(url) {
   }
 }
 
+function runMigrations() {
+  try {
+    console.log('🔄 Checking database schema...');
+    // Only run if DATABASE_URL is present
+    if (process.env.DATABASE_URL) {
+      console.log('Running: npx prisma db push --skip-generate');
+      execSync('npx prisma db push --skip-generate', { stdio: 'inherit' });
+      console.log('✅ Database schema synced successfully');
+    } else {
+      console.log('⚠️ Skipping migrations: DATABASE_URL not set');
+    }
+  } catch (error) {
+    console.error('❌ Migration failed:', error.message);
+    // We don't exit here to allow the server to try starting anyway, 
+    // though it might fail if DB is out of sync.
+  }
+}
+
 // Log configuration
 logConfig();
+
+// Run migrations
+runMigrations();
 
 // Start the Next.js server
 console.log('🔄 Loading Next.js server...\n');

@@ -54,6 +54,9 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
+# Copy Prisma schema for migrations
+COPY --from=builder /app/prisma ./prisma
+
 # Copy startup script with logging
 COPY server-with-logs.js ./
 
