@@ -83,12 +83,13 @@ function runMigrations() {
       const isProduction = process.env.NODE_ENV === 'production';
 
       if (isProduction) {
-        console.log('Running: npx prisma migrate deploy');
-        execSync('npx prisma migrate deploy', { stdio: 'inherit' });
+        // Use local prisma binary to avoid downloading Prisma 7.x
+        console.log('Running: node node_modules/.bin/prisma migrate deploy');
+        execSync('node node_modules/.bin/prisma migrate deploy', { stdio: 'inherit' });
         console.log('✅ Database migrations deployed successfully');
       } else {
-        console.log('Running: npx prisma db push --skip-generate');
-        execSync('npx prisma db push --skip-generate', { stdio: 'inherit' });
+        console.log('Running: node node_modules/.bin/prisma db push --skip-generate');
+        execSync('node node_modules/.bin/prisma db push --skip-generate', { stdio: 'inherit' });
         console.log('✅ Database schema synced successfully');
       }
     } else {
@@ -111,4 +112,3 @@ runMigrations();
 // Start the Next.js server
 console.log('🔄 Loading Next.js server...\n');
 require('./server.js');
-
