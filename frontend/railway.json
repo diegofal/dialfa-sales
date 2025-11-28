@@ -5,10 +5,9 @@
     "dockerfilePath": "frontend/Dockerfile"
   },
   "deploy": {
-    "startCommand": "node server.js",
+    "startCommand": "node server-with-logs.js",
     "healthcheckPath": "/",
     "healthcheckTimeout": 100,
     "restartPolicyType": "ON_FAILURE"
   }
 }
-

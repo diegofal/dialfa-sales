@@ -16,13 +16,22 @@ Created Prisma migrations to ensure the database schema is properly deployed on 
 - Modified `server-with-logs.js` to use `prisma migrate deploy` in production
 - This ensures migrations run automatically on Railway deployment
 
+### 3. Railway Configuration Fixed
+- Updated `railway.json` to use `server-with-logs.js` instead of `server.js`
+- **This was the critical missing piece** - Railway was bypassing our migration script!
+
+### 4. Dockerfile Enhanced
+- Added Prisma CLI dependencies (openssl, libc6-compat)
+- Copied Prisma node_modules to enable migrations in production
+- Ensures `npx prisma migrate deploy` works correctly
+
 ## Deployment Steps
 
 ### Option 1: Automatic (Recommended)
 1. Commit and push these changes:
    ```bash
-   git add prisma/migrations/ server-with-logs.js
-   git commit -m "Add Prisma migrations for Railway deployment"
+   git add prisma/migrations/ server-with-logs.js railway.json Dockerfile RAILWAY_DEPLOYMENT_FIX.md
+   git commit -m "Fix Railway deployment: add migrations and fix startup script"
    git push
    ```
 
