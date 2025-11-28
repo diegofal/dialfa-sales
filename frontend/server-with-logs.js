@@ -79,14 +79,24 @@ function runMigrations() {
     console.log('🔄 Checking database schema...');
     // Only run if DATABASE_URL is present
     if (process.env.DATABASE_URL) {
-      console.log('Running: npx prisma db push --skip-generate');
-      execSync('npx prisma db push --skip-generate', { stdio: 'inherit' });
-      console.log('✅ Database schema synced successfully');
+      // Use migrate deploy in production, db push in development
+      const isProduction = process.env.NODE_ENV === 'production';
+
+      if (isProduction) {
+        console.log('Running: npx prisma migrate deploy');
+        execSync('npx prisma migrate deploy', { stdio: 'inherit' });
+        console.log('✅ Database migrations deployed successfully');
+      } else {
+        console.log('Running: npx prisma db push --skip-generate');
+        execSync('npx prisma db push --skip-generate', { stdio: 'inherit' });
+        console.log('✅ Database schema synced successfully');
+      }
     } else {
       console.log('⚠️ Skipping migrations: DATABASE_URL not set');
     }
   } catch (error) {
     console.error('❌ Migration failed:', error.message);
+    console.error('   Full error:', error);
     // We don't exit here to allow the server to try starting anyway, 
     // though it might fail if DB is out of sync.
   }
