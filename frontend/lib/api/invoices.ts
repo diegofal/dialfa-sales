@@ -23,11 +23,11 @@ export const invoicesApi = {
       limit: params.pageSize || 50,
       isCancelled: params.isCancelled,
     };
-    
+
     const { data } = await apiClient.get<PagedResult<InvoiceListDto>>('/invoices', {
       params: apiParams,
     });
-    
+
     return data;
   },
 
@@ -50,14 +50,49 @@ export const invoicesApi = {
   },
 
   print: async (id: number): Promise<void> => {
-    await apiClient.post(`/invoices/${id}/print`);
+    const response = await apiClient.post(`/invoices/${id}/print`, {}, {
+      responseType: 'blob',
+    });
+
+    // Create blob URL from the PDF
+    const pdfBlob = new Blob([response.data], { type: 'application/pdf' });
+    const pdfUrl = window.URL.createObjectURL(pdfBlob);
+
+    // Create hidden iframe to load the PDF
+    const iframe = document.createElement('iframe');
+    iframe.style.display = 'none';
+    iframe.src = pdfUrl;
+    document.body.appendChild(iframe);
+
+    // Wait for PDF to load, then trigger print dialog
+    iframe.onload = () => {
+      setTimeout(() => {
+        const iframeWindow = iframe.contentWindow;
+        if (!iframeWindow) return;
+
+        // Clean up after print dialog is closed
+        const cleanup = () => {
+          document.body.removeChild(iframe);
+          window.URL.revokeObjectURL(pdfUrl);
+        };
+
+        // Listen for afterprint event
+        iframeWindow.addEventListener('afterprint', cleanup);
+
+        // Fallback cleanup after 30 seconds in case afterprint doesn't fire
+        setTimeout(cleanup, 30000);
+
+        // Trigger print dialog
+        iframeWindow.print();
+      }, 250);
+    };
   },
 
   downloadPdf: async (id: number): Promise<void> => {
     const response = await apiClient.get(`/invoices/${id}/pdf`, {
       responseType: 'blob',
     });
-    
+
     // Create blob link to download
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement('a');

@@ -46,13 +46,13 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   const searchParams = useSearchParams();
   const fromQuickCart = searchParams.get('fromQuickCart') === 'true';
   const tabId = searchParams.get('tabId');
-  
+
   // Determine if we're in edit mode
   const isEditMode = !!orderId;
-  
+
   // Load existing order if in edit mode
   const { data: existingOrder, isLoading: isLoadingOrder, error: orderError } = useSalesOrder(orderId || 0);
-  
+
   // Check if order was deleted or not found
   useEffect(() => {
     if (orderError && orderId) {
@@ -63,18 +63,18 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       }
     }
   }, [orderError, orderId, router]);
-  
+
   // Track unsaved changes
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  
+
   // Calculate permissions using the custom hook
   const permissions = useSalesOrderPermissions(existingOrder, hasUnsavedChanges);
-  
+
   // Read-only mode based on permissions
   const isReadOnly = !permissions.canEdit;
-  
-  const { 
-    tabs, 
+
+  const {
+    tabs,
     activeTab,
     removeTab,
     setActiveTab,
@@ -88,15 +88,15 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     replaceItem,
     addOrUpdateOrderTab,
   } = useQuickCartTabs();
-  
+
   const [notes, setNotes] = useState('');
   const [loadedFromCart, setLoadedFromCart] = useState(false);
   const [loadedOrderId, setLoadedOrderId] = useState<number | null>(null);
   const [currentTabId, setCurrentTabId] = useState<string | null>(null);
-  
+
   // Store custom prices separately as they don't exist in QuickCart
   const [prices, setPrices] = useState<Record<number, number>>({});
-  
+
   // Local state for edit mode (saved orders should NOT use Quick Cart Tabs)
   const [localItems, setLocalItems] = useState<QuickCartItem[]>([]);
   const [localClientId, setLocalClientId] = useState<number | undefined>(undefined);
@@ -108,13 +108,13 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   const [showCodeResults, setShowCodeResults] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
-  
+
   // Edit article state
   const [editingItemId, setEditingItemId] = useState<number | null>(null);
   const [editCode, setEditCode] = useState('');
   const [showEditResults, setShowEditResults] = useState(false);
   const [selectedEditIndex, setSelectedEditIndex] = useState(0);
-  
+
   const codeInputRef = useRef<HTMLInputElement>(null);
   const quantityInputRef = useRef<HTMLInputElement>(null);
   const selectedItemRef = useRef<HTMLButtonElement>(null);
@@ -135,7 +135,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   const [unsavedChangesAction, setUnsavedChangesAction] = useState<'save' | 'discard' | null>(null);
 
   // Search articles for adding
-  const { data: articlesResult } = useArticles({ 
+  const { data: articlesResult } = useArticles({
     searchTerm: articleCode,
     activeOnly: true,
     pageSize: 5,
@@ -164,7 +164,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       const itemsChanged = items.length !== (existingOrder.items?.length || 0);
       const clientChanged = clientId !== existingOrder.clientId;
       const notesChanged = (notes || '') !== (existingOrder.notes || '');
-      
+
       const hasChanges = itemsChanged || clientChanged || notesChanged;
       setHasUnsavedChanges(hasChanges);
     }
@@ -175,14 +175,14 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     // Only load if we're in edit mode, have the order data, and haven't loaded this specific order yet
     if (isEditMode && existingOrder && loadedOrderId !== existingOrder.id) {
       console.log('Loading existing order:', existingOrder.id, existingOrder.orderNumber);
-      
+
       // For edit mode, create a tab for sidebar navigation but use local state for the form
       const orderItems: QuickCartItem[] = [];
       if (existingOrder.items && existingOrder.items.length > 0) {
         existingOrder.items.forEach(item => {
           // Set prices
           setPrices(prev => ({ ...prev, [item.articleId]: item.unitPrice }));
-          
+
           // Add to items array with real stock from backend
           orderItems.push({
             article: {
@@ -196,7 +196,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
           });
         });
       }
-      
+
       // Create tab for sidebar navigation (with orderId so it's marked as saved order)
       const tabId = addOrUpdateOrderTab(
         existingOrder.id,
@@ -205,14 +205,14 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
         existingOrder.clientBusinessName,
         orderItems // Pass items so they appear in sidebar
       );
-      
+
       // Set LOCAL state for the form (independent from QuickCart)
       setLocalItems(orderItems);
       setLocalClientId(existingOrder.clientId);
       setLocalClientName(existingOrder.clientBusinessName);
       setCurrentTabId(tabId);
       setNotes(existingOrder.notes || '');
-      
+
       setLoadedFromCart(true);
       setLoadedOrderId(existingOrder.id);
     }
@@ -238,7 +238,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       } else {
         setCurrentTabId(activeTab.id);
       }
-      
+
       setLoadedFromCart(true);
     } else if (fromQuickCart && !loadedFromCart && tabs.length === 0) {
       // Ensure a tab exists
@@ -379,14 +379,14 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
 
   const handleAddArticle = () => {
     let articleToAdd = selectedArticle;
-    
+
     if (!articleToAdd && articleCode && articles.length > 0) {
       articleToAdd = articles[0];
       setSelectedArticle(articleToAdd);
     }
-    
+
     if (!articleToAdd) {
-      toast.error('Selecciona un artículo válido', { 
+      toast.error('Selecciona un artículo válido', {
         duration: 2000,
         position: 'top-center'
       });
@@ -408,7 +408,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       // In edit mode, update local state
       const existingIndex = localItems.findIndex(item => item.article.id === articleToAdd!.id);
       let updatedItems: QuickCartItem[];
-      
+
       if (existingIndex >= 0) {
         updatedItems = [...localItems];
         updatedItems[existingIndex] = {
@@ -418,18 +418,18 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       } else {
         updatedItems = [...localItems, { article: articleToAdd!, quantity: qty }];
       }
-      
+
       setLocalItems(updatedItems);
     } else if (currentTabId) {
       // In draft mode, use QuickCart hook's addItem function
       addItem(articleToAdd, qty);
     }
-    
+
     toast.success(`${articleToAdd.code} agregado`, {
       duration: 2000,
       position: 'top-center'
     });
-    
+
     // Reset form
     setArticleCode('');
     setQuantity('1');
@@ -466,7 +466,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     if (isEditMode) {
       // In edit mode, update local state
       const updatedItems = localItems.map(item =>
-        item.article.id === editingItemId 
+        item.article.id === editingItemId
           ? { article, quantity: item.quantity }
           : item
       );
@@ -475,7 +475,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       // In draft mode, use hook's replaceItem function
       replaceItem(editingItemId, article);
     }
-    
+
     toast.success(`Artículo actualizado a ${article.code}`, {
       duration: 2000,
       position: 'top-center'
@@ -512,7 +512,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       // In draft mode, use QuickCart hook
       removeItem(articleId);
     }
-    
+
     toast.success('Artículo eliminado', {
       duration: 2000,
       position: 'top-center'
@@ -521,7 +521,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
 
   const handleUpdateQuantity = (articleId: number, newQuantity: number) => {
     if (newQuantity <= 0) return;
-    
+
     if (isEditMode) {
       // In edit mode, update local state
       setLocalItems(localItems.map(item =>
@@ -543,7 +543,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     const articleId = item.article.id;
     const quantity = item.quantity;
     const unitPrice = prices[articleId] ?? item.article.unitPrice;
-    
+
     return quantity * unitPrice;
   };
 
@@ -612,14 +612,14 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       } else {
         // Create new order
         const createdOrder = await createOrderMutation.mutateAsync(requestData);
-        
+
         // Remove the draft tab that was used to create this order
         // This prevents duplicate tabs (one draft + one saved)
         if (currentTabId && currentTab && !currentTab.orderId) {
           // Only remove if it's a draft tab (no orderId yet)
           removeTab(currentTabId);
         }
-        
+
         // If the order was created, navigate to the edit view to allow further modifications
         if (createdOrder && createdOrder.id) {
           router.push(`/dashboard/sales-orders/${createdOrder.id}/edit`);
@@ -769,9 +769,9 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
         <CardContent className="pt-4">
           <div className="space-y-3">
 
-              {/* Quick Article Lookup */}
-              {!isReadOnly && (
-                <div className="p-3 border rounded-lg bg-muted/30">
+            {/* Quick Article Lookup */}
+            {!isReadOnly && (
+              <div className="p-3 border rounded-lg bg-muted/30">
                 <div className="flex items-start gap-2">
                   <div className="flex-1 relative">
                     <div className="relative">
@@ -801,9 +801,8 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                               key={article.id}
                               ref={index === selectedIndex ? selectedItemRef : null}
                               onClick={() => handleSelectArticle(article, index)}
-                              className={`w-full text-left p-2.5 rounded transition-colors ${
-                                index === selectedIndex ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'
-                              }`}
+                              className={`w-full text-left p-2.5 rounded transition-colors ${index === selectedIndex ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'
+                                }`}
                             >
                               <div className="flex justify-between items-start gap-3">
                                 <div className="flex-1 min-w-0">
@@ -818,11 +817,10 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                                   <div className="text-sm font-bold">
                                     {formatCurrency(article.unitPrice)}
                                   </div>
-                                  <div className={`text-xs font-medium mt-0.5 ${
-                                    index === selectedIndex 
-                                      ? 'text-primary-foreground' 
+                                  <div className={`text-xs font-medium mt-0.5 ${index === selectedIndex
+                                      ? 'text-primary-foreground'
                                       : getStockStatusClass(article.stock)
-                                  }`}>
+                                    }`}>
                                     Stock: {article.stock}
                                   </div>
                                 </div>
@@ -863,28 +861,27 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                   </div>
                 </div>
               </div>
-              )}
+            )}
 
-              {/* Items List */}
-              <div className="space-y-2 max-h-[600px] overflow-y-auto">
-                {items.length === 0 ? (
-                  <div className="border border-dashed rounded-lg p-6 text-center text-muted-foreground">
-                    <ShoppingCart className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                    <p className="text-sm">No hay artículos agregados</p>
-                    <p className="text-xs mt-1">Usa el buscador para agregar</p>
-                  </div>
-                ) : (
-                  items.map((item) => {
-                    const hasStockIssue = item.quantity > item.article.stock;
-                    return (
-                      <div
-                        key={item.article.id}
-                        className={`border rounded-lg p-2.5 transition-colors ${
-                          hasStockIssue
-                            ? 'border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-950/50'
-                            : 'bg-card hover:bg-accent/5'
+            {/* Items List */}
+            <div className="space-y-2 max-h-[600px] overflow-y-auto">
+              {items.length === 0 ? (
+                <div className="border border-dashed rounded-lg p-6 text-center text-muted-foreground">
+                  <ShoppingCart className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                  <p className="text-sm">No hay artículos agregados</p>
+                  <p className="text-xs mt-1">Usa el buscador para agregar</p>
+                </div>
+              ) : (
+                items.map((item) => {
+                  const hasStockIssue = item.quantity > item.article.stock;
+                  return (
+                    <div
+                      key={item.article.id}
+                      className={`border rounded-lg p-2.5 transition-colors ${hasStockIssue
+                          ? 'border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-950/50'
+                          : 'bg-card hover:bg-accent/5'
                         }`}
-                      >
+                    >
                       <div className="flex items-start justify-between gap-2">
                         <div className="flex-1 min-w-0">
                           {editingItemId === item.article.id ? (
@@ -923,9 +920,8 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                                         key={article.id}
                                         ref={index === selectedEditIndex ? selectedEditItemRef : null}
                                         onClick={() => handleSelectEditArticle(article)}
-                                        className={`w-full text-left p-2 rounded transition-colors ${
-                                          index === selectedEditIndex ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'
-                                        }`}
+                                        className={`w-full text-left p-2 rounded transition-colors ${index === selectedEditIndex ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'
+                                          }`}
                                       >
                                         <div className="flex justify-between items-start gap-2">
                                           <div className="flex-1 min-w-0">
@@ -972,19 +968,19 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                                   <span>(Stock: <span className={getStockStatusClass(item.article.stock)}>{item.article.stock}</span>)</span>
                                   {item.quantity > item.article.stock && (
                                     <div title={`Stock insuficiente: solicitado ${item.quantity}, disponible ${item.article.stock}`}>
-                                      <AlertTriangle 
+                                      <AlertTriangle
                                         className="h-3 w-3 text-red-600 flex-shrink-0"
                                       />
                                     </div>
                                   )}
                                 </div>
                               </div>
-                              
+
                               {/* Column 2: Description */}
                               <div className="text-xs text-muted-foreground truncate">
                                 {item.article.description}
                               </div>
-                              
+
                               {/* Column 3: Quantity */}
                               <div>
                                 <Input
@@ -997,7 +993,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                                   disabled={isReadOnly}
                                 />
                               </div>
-                              
+
                               {/* Column 4: Price */}
                               <div>
                                 <Input
@@ -1011,7 +1007,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                                   disabled={isReadOnly}
                                 />
                               </div>
-                              
+
                               {/* Delete Button */}
                               {!isReadOnly && (
                                 <Button
@@ -1029,20 +1025,20 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                       </div>
                     </div>
                   );
-                  })
-                )}
-              </div>
-
-              {/* Total */}
-              {items.length > 0 && (
-                <div className="flex justify-between items-center p-2.5 bg-muted/50 rounded-lg">
-                  <span className="text-sm font-medium">Total</span>
-                  <span className="text-2xl font-bold">{formatCurrency(calculateTotal())}</span>
-                </div>
+                })
               )}
             </div>
-          </CardContent>
-        </Card>
+
+            {/* Total */}
+            {items.length > 0 && (
+              <div className="flex justify-between items-center p-2.5 bg-muted/50 rounded-lg">
+                <span className="text-sm font-medium">Total</span>
+                <span className="text-2xl font-bold">{formatCurrency(calculateTotal())}</span>
+              </div>
+            )}
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Fixed Action Buttons */}
       <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t z-50">
@@ -1096,7 +1092,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                   Ver Remito
                 </Button>
               )}
-              {permissions.canCreateInvoice && !existingOrder?.invoice && (
+              {permissions.canCreateInvoice && (!existingOrder?.invoice || existingOrder.invoice.isCancelled) && (
                 <Button
                   variant="outline"
                   onClick={handleGenerateInvoice}
@@ -1121,7 +1117,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                   disabled={!clientId || items.length === 0 || (isEditMode ? updateOrderMutation.isPending : createOrderMutation.isPending)}
                   size="lg"
                 >
-                  {isEditMode 
+                  {isEditMode
                     ? (updateOrderMutation.isPending ? 'Guardando...' : 'Guardar Cambios')
                     : (createOrderMutation.isPending ? 'Creando...' : 'Crear Pedido')
                   }

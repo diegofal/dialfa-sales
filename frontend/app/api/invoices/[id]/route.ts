@@ -16,7 +16,11 @@ export async function GET(
     const invoice = await prisma.invoices.findUnique({
       where: { id },
       include: {
-        invoice_items: true,
+        invoice_items: {
+          include: {
+            articles: true
+          }
+        },
         sales_orders: {
           include: {
             clients: {
@@ -24,6 +28,24 @@ export async function GET(
                 tax_conditions: true,
               },
             },
+            sales_order_items: {
+              include: {
+                articles: {
+                  include: {
+                    stock_movements: {
+                      where: {
+                        reference_document: {
+                          contains: idStr
+                        }
+                      },
+                      orderBy: {
+                        created_at: 'desc'
+                      }
+                    }
+                  }
+                }
+              }
+            }
           },
         },
       },
@@ -109,9 +131,9 @@ export async function PUT(
     }
 
     // Handle cancellation
-    const isCancellingPrintedInvoice = (body.is_cancelled === true || body.isCancelled === true) && 
-                                        !existingInvoice.is_cancelled && 
-                                        existingInvoice.is_printed;
+    const isCancellingPrintedInvoice = (body.is_cancelled === true || body.isCancelled === true) &&
+      !existingInvoice.is_cancelled &&
+      existingInvoice.is_printed;
     if (body.is_cancelled === true || body.isCancelled === true) {
       updateData.is_cancelled = true;
       updateData.cancelled_at = now;

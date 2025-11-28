@@ -1,0 +1,64 @@
+import { NextRequest, NextResponse } from 'next/server';
+import { prisma } from '@/lib/db';
+import { pdfService } from '@/lib/services/PDFService';
+import { loadTemplate } from '@/lib/print-templates/template-loader';
+
+export async function GET(
+    request: NextRequest,
+    { params }: { params: Promise<{ id: string }> }
+) {
+    try {
+        const { id } = await params;
+        const invoiceId = parseInt(id);
+
+        const invoice = await prisma.invoices.findUnique({
+            where: { id: invoiceId },
+            include: {
+                sales_orders: {
+                    include: {
+                        clients: {
+                            include: {
+                                provinces: true,
+                                tax_conditions: true,
+                            }
+                        },
+                        sales_order_items: {
+                            include: {
+                                articles: true
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        if (!invoice || invoice.deleted_at) {
+            return NextResponse.json(
+                { error: 'Invoice not found' },
+                { status: 404 }
+            );
+        }
+
+        const template = await loadTemplate('invoice', 'default');
+        const pdfBuffer = await pdfService.generateInvoicePDF(
+            invoice,
+            template
+        );
+
+        return new NextResponse(pdfBuffer as any, {
+            status: 200,
+            headers: {
+                'Content-Type': 'application/pdf',
+                'Content-Disposition': `inline; filename="factura-${invoice.invoice_number}-preview.pdf"`,
+                'Cache-Control': 'no-cache',
+            },
+        });
+
+    } catch (error) {
+        console.error('Error generating invoice preview:', error);
+        return NextResponse.json(
+            { error: 'Failed to generate PDF preview' },
+            { status: 500 }
+        );
+    }
+}

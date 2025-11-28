@@ -9,8 +9,10 @@ import { usePagination } from '@/lib/hooks/usePagination';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { InvoicesTable } from '@/components/invoices/InvoicesTable';
-import { useInvoices, useCancelInvoice, usePrintInvoice } from '@/lib/hooks/useInvoices';
+import { useInvoices, useCancelInvoice } from '@/lib/hooks/useInvoices';
 import { useRouter } from 'next/navigation';
+import { usePrintDocument } from '@/hooks/usePrintDocument';
+import { PDFPreviewModal } from '@/components/print/PDFPreviewModal';
 
 export default function InvoicesPage() {
   const router = useRouter();
@@ -25,7 +27,7 @@ export default function InvoicesPage() {
 
   const { pagination, setPage, setPageSize, setSorting } = usePagination(10);
 
-  const { data, isLoading } = useInvoices({
+  const { data, isLoading, refetch } = useInvoices({
     ...filters,
     pageNumber: pagination.pageNumber,
     pageSize: pagination.pageSize,
@@ -34,7 +36,18 @@ export default function InvoicesPage() {
   });
 
   const cancelInvoiceMutation = useCancelInvoice();
-  const printInvoiceMutation = usePrintInvoice();
+
+  // Print System Hooks
+  const {
+    fetchPreview,
+    printDocument,
+    previewUrl,
+    isLoading: isPrintLoading,
+    closePreview
+  } = usePrintDocument('invoice');
+
+  const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+  const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
 
   const activeFiltersCount = Object.values(filters).filter(
     (v) => v !== undefined && v !== '' && v !== true
@@ -63,8 +76,26 @@ export default function InvoicesPage() {
     cancelInvoiceMutation.mutate({ id });
   };
 
-  const handlePrintInvoice = (id: number) => {
-    printInvoiceMutation.mutate(id);
+  const handlePrintClick = async (id: number) => {
+    setSelectedInvoiceId(id);
+    setIsPreviewOpen(true);
+    await fetchPreview(id);
+  };
+
+  const handleConfirmPrint = async () => {
+    if (selectedInvoiceId) {
+      await printDocument(selectedInvoiceId);
+      setIsPreviewOpen(false);
+      closePreview();
+      // Refresh list to show "Printed" status
+      refetch();
+    }
+  };
+
+  const handleClosePreview = () => {
+    setIsPreviewOpen(false);
+    closePreview();
+    setSelectedInvoiceId(null);
   };
 
   const handleCreateInvoice = () => {
@@ -228,7 +259,7 @@ export default function InvoicesPage() {
                 onViewInvoice={handleViewInvoice}
                 onViewSalesOrder={handleViewSalesOrder}
                 onCancelInvoice={handleCancelInvoice}
-                onPrintInvoice={handlePrintInvoice}
+                onPrintInvoice={handlePrintClick}
                 currentSortBy={pagination.sortBy}
                 currentSortDescending={pagination.sortDescending}
                 onSort={setSorting}
@@ -250,6 +281,16 @@ export default function InvoicesPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Print Preview Modal */}
+      <PDFPreviewModal
+        isOpen={isPreviewOpen}
+        onClose={handleClosePreview}
+        previewUrl={previewUrl}
+        isLoading={isPrintLoading}
+        onPrint={handleConfirmPrint}
+        title="Vista Previa de Factura"
+      />
     </div>
   );
 }

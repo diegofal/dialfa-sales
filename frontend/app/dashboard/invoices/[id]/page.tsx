@@ -33,7 +33,7 @@ export default function InvoiceDetailPage() {
   const params = useParams();
   const router = useRouter();
   const invoiceId = Number(params.id);
-  
+
   const { data: invoice, isLoading } = useInvoice(invoiceId);
   const cancelInvoiceMutation = useCancelInvoice();
   const printInvoiceMutation = usePrintInvoice();
@@ -187,7 +187,7 @@ export default function InvoiceDetailPage() {
               <p className="text-sm text-muted-foreground">Pedido N°</p>
               <p className="font-medium">{invoice.salesOrderNumber}</p>
             </div>
-            
+
             <div>
               <Label htmlFor="exchangeRate" className="text-sm text-muted-foreground">
                 Tipo de Cambio USD
@@ -243,7 +243,7 @@ export default function InvoiceDetailPage() {
                 </p>
               )}
             </div>
-            
+
             <div>
               <p className="text-sm text-muted-foreground">Descuento Especial</p>
               <p className="font-medium">{invoice.specialDiscountPercent}%</p>
@@ -339,6 +339,24 @@ export default function InvoiceDetailPage() {
         </Card>
       )}
 
+      {/* Stock Movements Section */}
+      {(invoice.isPrinted || invoice.isCancelled) && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Movimientos de Stock</CardTitle>
+            <CardDescription>
+              Movimientos de inventario asociados a esta factura
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground text-center py-4">
+              Sección de movimientos de stock - próximamente con datos reales de la API
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+
       {/* Fixed Action Buttons */}
       <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t z-50">
         <div className="container max-w-7xl mx-auto px-6 py-4">
@@ -350,7 +368,7 @@ export default function InvoiceDetailPage() {
               >
                 Volver
               </Button>
-              {!invoice.isCancelled && !invoice.isPrinted && (
+              {!invoice.isCancelled && (
                 <Button
                   variant="outline"
                   onClick={() => setShowCancelDialog(true)}
@@ -367,6 +385,13 @@ export default function InvoiceDetailPage() {
               >
                 <Eye className="mr-2 h-4 w-4" />
                 Ver Pedido
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => window.open(`/api/invoices/${invoice.id}/preview-pdf`, '_blank')}
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                Ver PDF
               </Button>
               {!invoice.isCancelled && !invoice.isPrinted && (
                 <Button onClick={handlePrint} disabled={printInvoiceMutation.isPending}>
@@ -385,7 +410,10 @@ export default function InvoiceDetailPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Cancelar factura?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción marcará la factura como CANCELADA y restaurará el stock si la factura estaba impresa.
+              Esta acción marcará la factura como CANCELADA.
+              {invoice?.isPrinted && (
+                <> Como la factura está impresa, se restaurará el stock automáticamente.</>
+              )}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -401,7 +429,7 @@ export default function InvoiceDetailPage() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
+    </div >
   );
 }
 
