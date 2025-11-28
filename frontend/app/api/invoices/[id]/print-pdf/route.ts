@@ -63,7 +63,7 @@ export async function POST(
             });
         });
 
-        return new NextResponse(pdfBuffer as any, {
+        return new NextResponse(new Uint8Array(pdfBuffer), {
             status: 200,
             headers: {
                 'Content-Type': 'application/pdf',

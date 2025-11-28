@@ -67,7 +67,7 @@ export async function POST(
         });
 
         // 4. Retornar PDF
-        return new NextResponse(pdfBuffer as any, {
+        return new NextResponse(new Uint8Array(pdfBuffer), {
             status: 200,
             headers: {
                 'Content-Type': 'application/pdf',

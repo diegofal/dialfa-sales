@@ -1,12 +1,47 @@
-import { PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { PDFDocument, rgb, StandardFonts, PDFPage, PDFFont } from 'pdf-lib';
 import { PrintTemplate, PrintField, ItemsConfiguration } from '@/types/print-template';
+
+interface InvoiceItem {
+    quantity: number;
+    unit_price: any;
+    articles?: {
+        description: string | null;
+    } | null;
+}
+
+interface Invoice {
+    invoice_date: Date | string;
+    invoice_number: string;
+    net_amount: any;
+    tax_amount: any;
+    total_amount: any;
+    sales_orders?: {
+        clients?: {
+            business_name?: string | null;
+            address?: string | null;
+            city?: string | null;
+            provinces?: { name: string } | null;
+            tax_conditions?: { name: string } | null;
+            cuit?: string | null;
+        } | null;
+        sales_order_items?: InvoiceItem[];
+    } | null;
+}
+
+interface RenderedItem {
+    quantity: number;
+    articleDescription: string;
+    unitPrice: number;
+    lineTotal: number;
+}
 
 export class PDFService {
     private currentTemplate: PrintTemplate | null = null;
     private pageHeight: number = 0;
 
     async generateInvoicePDF(
-        invoice: any,
+        invoice: Invoice,
         template: PrintTemplate
     ): Promise<Buffer> {
         this.currentTemplate = template;
@@ -15,7 +50,7 @@ export class PDFService {
         try {
             const pdfDoc = await PDFDocument.create();
             const font = await pdfDoc.embedFont(StandardFonts.Helvetica);
-            
+
             let page = pdfDoc.addPage([template.pageSize.width, template.pageSize.height]);
 
             // Renderizar campos estáticos
@@ -44,13 +79,13 @@ export class PDFService {
             await this.renderField(page, font, template.fields.cuit, cuit);
 
             if (template.items && invoice.sales_orders?.sales_order_items) {
-                const items = invoice.sales_orders.sales_order_items.map((item: any) => ({
+                const items = invoice.sales_orders.sales_order_items.map((item) => ({
                     quantity: item.quantity,
                     articleDescription: item.articles?.description || '',
                     unitPrice: Number(item.unit_price || 0),
                     lineTotal: Number(item.quantity || 0) * Number(item.unit_price || 0)
                 }));
-                
+
                 page = await this.renderItems(pdfDoc, page, font, items, template.items);
             }
 
@@ -71,8 +106,8 @@ export class PDFService {
     }
 
     private async renderField(
-        page: any,
-        font: any,
+        page: PDFPage,
+        font: PDFFont,
         field: PrintField | undefined,
         value: string | number | null | undefined
     ): Promise<void> {
@@ -82,7 +117,7 @@ export class PDFService {
         const offsetX = this.currentTemplate?.globalOffset?.x || 0;
         const offsetY = this.currentTemplate?.globalOffset?.y || 0;
         const finalX = field.x + offsetX;
-        
+
         // Convert from top-left origin to bottom-left origin
         const finalY = this.pageHeight - (field.y + offsetY);
 
@@ -108,18 +143,18 @@ export class PDFService {
     }
 
     private async renderItems(
-        pdfDoc: any,
-        currentPage: any,
-        font: any,
-        items: any[],
+        pdfDoc: PDFDocument,
+        currentPage: PDFPage,
+        font: PDFFont,
+        items: RenderedItem[],
         config: ItemsConfiguration
-    ): Promise<any> {
+    ): Promise<PDFPage> {
         let page = currentPage;
         let currentY = config.startY;
 
         for (let index = 0; index < items.length; index++) {
             const item = items[index];
-            
+
             if (config.maxRows && index > 0 && index % config.maxRows === 0) {
                 page = pdfDoc.addPage([this.currentTemplate?.pageSize.width || 595, this.pageHeight]);
                 currentY = config.startY;

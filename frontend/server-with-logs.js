@@ -5,6 +5,7 @@
  */
 
 // Import configuration logging (will be executed immediately)
+/* eslint-disable @typescript-eslint/no-require-imports */
 const path = require('path');
 const fs = require('fs');
 
@@ -13,7 +14,7 @@ function logConfig() {
   console.log('\n' + '='.repeat(80));
   console.log('🚀 SPISA APPLICATION STARTING');
   console.log('='.repeat(80));
-  
+
   console.log('\n📋 CONFIGURATION:');
   console.log(JSON.stringify({
     environment: {
@@ -26,7 +27,7 @@ function logConfig() {
       HOSTNAME: process.env.HOSTNAME || '0.0.0.0',
     },
     database: {
-      DATABASE_URL: process.env.DATABASE_URL 
+      DATABASE_URL: process.env.DATABASE_URL
         ? maskDatabaseUrl(process.env.DATABASE_URL)
         : '(not set)',
     },
@@ -37,7 +38,7 @@ function logConfig() {
       NEXT_TELEMETRY_DISABLED: process.env.NEXT_TELEMETRY_DISABLED === '1',
     },
   }, null, 2));
-  
+
   // Validation
   const errors = [];
   if (!process.env.DATABASE_URL) {
@@ -46,14 +47,14 @@ function logConfig() {
   if (!process.env.NEXT_PUBLIC_API_URL) {
     errors.push('NEXT_PUBLIC_API_URL is not set');
   }
-  
+
   if (errors.length > 0) {
     console.log('\n⚠️  CONFIGURATION WARNINGS:');
     errors.forEach(error => console.log(`   - ${error}`));
   } else {
     console.log('\n✅ Configuration validated successfully');
   }
-  
+
   console.log('\n' + '='.repeat(80));
   console.log(`📅 Started at: ${new Date().toISOString()}`);
   console.log(`🏠 Running on: http://${process.env.HOSTNAME || '0.0.0.0'}:${process.env.PORT || '3000'}`);
