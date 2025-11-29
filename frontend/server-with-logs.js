@@ -2,10 +2,10 @@
 /**
  * Server startup wrapper
  * Logs configuration before starting the Next.js server
- * VERSION: 2.0-FIXED - Prisma 6.18.0 Migration Support
+ * VERSION: 2.1-FIXED - Prisma Binary Execution Fix
  */
 
-console.log('\n🔵 SERVER-WITH-LOGS.JS VERSION 2.0 STARTING 🔵\n');
+console.log('\n🔵 SERVER-WITH-LOGS.JS VERSION 2.1 STARTING 🔵\n');
 
 // Import configuration logging (will be executed immediately)
 /* eslint-disable @typescript-eslint/no-require-imports */
@@ -86,13 +86,15 @@ function runMigrations() {
       const isProduction = process.env.NODE_ENV === 'production';
 
       if (isProduction) {
-        // Use local prisma binary to avoid downloading Prisma 7.x
-        console.log('Running: node node_modules/.bin/prisma migrate deploy');
-        execSync('node node_modules/.bin/prisma migrate deploy', { stdio: 'inherit' });
+        // Use local prisma binary directly (it's a shell script)
+        const prismaPath = path.join(__dirname, 'node_modules', '.bin', 'prisma');
+        console.log(`Running: ${prismaPath} migrate deploy`);
+        execSync(`"${prismaPath}" migrate deploy`, { stdio: 'inherit', shell: true });
         console.log('✅ Database migrations deployed successfully');
       } else {
-        console.log('Running: node node_modules/.bin/prisma db push --skip-generate');
-        execSync('node node_modules/.bin/prisma db push --skip-generate', { stdio: 'inherit' });
+        const prismaPath = path.join(__dirname, 'node_modules', '.bin', 'prisma');
+        console.log(`Running: ${prismaPath} db push --skip-generate`);
+        execSync(`"${prismaPath}" db push --skip-generate`, { stdio: 'inherit', shell: true });
         console.log('✅ Database schema synced successfully');
       }
     } else {
@@ -100,7 +102,9 @@ function runMigrations() {
     }
   } catch (error) {
     console.error('❌ Migration failed:', error.message);
-    console.error('   Full error:', error);
+    if (error.stdout) console.error('   stdout:', error.stdout.toString());
+    if (error.stderr) console.error('   stderr:', error.stderr.toString());
+    console.error('   Exit code:', error.status);
     // We don't exit here to allow the server to try starting anyway, 
     // though it might fail if DB is out of sync.
   }
