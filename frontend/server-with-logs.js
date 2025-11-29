@@ -2,7 +2,10 @@
 /**
  * Server startup wrapper
  * Logs configuration before starting the Next.js server
+ * VERSION: 2.0-FIXED - Prisma 6.18.0 Migration Support
  */
+
+console.log('\n🔵 SERVER-WITH-LOGS.JS VERSION 2.0 STARTING 🔵\n');
 
 // Import configuration logging (will be executed immediately)
 /* eslint-disable @typescript-eslint/no-require-imports */
