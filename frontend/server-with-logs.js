@@ -86,21 +86,13 @@ function runMigrations() {
       const isProduction = process.env.NODE_ENV === 'production';
 
       if (isProduction) {
-        // Use local prisma binary directly
-        const prismaPath = path.join(__dirname, 'node_modules', '.bin', 'prisma');
-        
-        // Check if Prisma binary exists
-        if (fs.existsSync(prismaPath)) {
-          console.log(`✓ Found Prisma binary at: ${prismaPath}`);
-        } else {
-          console.warn(`⚠️  Prisma binary not found at: ${prismaPath}`);
-        }
-        
+        // Use globally installed prisma (installed in Dockerfile)
         console.log(`🔧 Running: prisma migrate deploy`);
         console.log(`📁 Working directory: ${__dirname}`);
         console.log(`🗄️  Database: ${maskDatabaseUrl(process.env.DATABASE_URL)}`);
         
-        execSync(`"${prismaPath}" migrate deploy`, { 
+        // Use global prisma command
+        execSync('prisma migrate deploy', { 
           stdio: 'inherit', 
           shell: true,
           cwd: __dirname 
