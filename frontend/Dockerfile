@@ -62,11 +62,16 @@ COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
 
+# Create bin directory and copy Prisma CLI binary (required for migrations)
+RUN mkdir -p ./node_modules/.bin
+COPY --from=builder /app/node_modules/.bin/prisma ./node_modules/.bin/prisma
+
 # Copy startup script with logging
 COPY server-with-logs.js ./
 
-# Set ownership
-RUN chown -R nextjs:nodejs /app
+# Set ownership and make Prisma binary executable
+RUN chown -R nextjs:nodejs /app && \
+    chmod +x ./node_modules/.bin/prisma
 
 # Switch to non-root user
 USER nextjs

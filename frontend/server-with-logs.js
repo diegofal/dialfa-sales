@@ -86,10 +86,25 @@ function runMigrations() {
       const isProduction = process.env.NODE_ENV === 'production';
 
       if (isProduction) {
-        // Use local prisma binary directly (it's a shell script)
+        // Use local prisma binary directly
         const prismaPath = path.join(__dirname, 'node_modules', '.bin', 'prisma');
-        console.log(`Running: ${prismaPath} migrate deploy`);
-        execSync(`"${prismaPath}" migrate deploy`, { stdio: 'inherit', shell: true });
+        
+        // Check if Prisma binary exists
+        if (fs.existsSync(prismaPath)) {
+          console.log(`✓ Found Prisma binary at: ${prismaPath}`);
+        } else {
+          console.warn(`⚠️  Prisma binary not found at: ${prismaPath}`);
+        }
+        
+        console.log(`🔧 Running: prisma migrate deploy`);
+        console.log(`📁 Working directory: ${__dirname}`);
+        console.log(`🗄️  Database: ${maskDatabaseUrl(process.env.DATABASE_URL)}`);
+        
+        execSync(`"${prismaPath}" migrate deploy`, { 
+          stdio: 'inherit', 
+          shell: true,
+          cwd: __dirname 
+        });
         console.log('✅ Database migrations deployed successfully');
       } else {
         const prismaPath = path.join(__dirname, 'node_modules', '.bin', 'prisma');
@@ -101,10 +116,12 @@ function runMigrations() {
       console.log('⚠️ Skipping migrations: DATABASE_URL not set');
     }
   } catch (error) {
-    console.error('❌ Migration failed:', error.message);
-    if (error.stdout) console.error('   stdout:', error.stdout.toString());
-    if (error.stderr) console.error('   stderr:', error.stderr.toString());
-    console.error('   Exit code:', error.status);
+    console.error('\n❌ MIGRATION FAILED ❌');
+    console.error('Error message:', error.message);
+    if (error.stdout) console.error('stdout:', error.stdout.toString());
+    if (error.stderr) console.error('stderr:', error.stderr.toString());
+    console.error('Exit code:', error.status);
+    console.error('\n⚠️  Server will continue to start, but database may be out of sync!\n');
     // We don't exit here to allow the server to try starting anyway, 
     // though it might fail if DB is out of sync.
   }
