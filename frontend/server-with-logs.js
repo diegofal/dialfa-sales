@@ -111,16 +111,22 @@ function runMigrations() {
         // Use global prisma command
         console.log(`\n🔄 Executing migration...`);
         try {
-          execSync('prisma migrate deploy', { 
-            stdio: 'inherit', 
+          // Don't use stdio: 'inherit' so we can capture the error output
+          const output = execSync('prisma migrate deploy', { 
             shell: true,
             cwd: __dirname,
-            env: process.env
+            env: process.env,
+            encoding: 'utf8'
           });
+          console.log(output);
           console.log('\n✅ Database migrations deployed successfully\n');
         } catch (deployError) {
-          // Check if this is the P3005 error (database not empty, needs baseline)
-          const errorOutput = deployError.stderr ? deployError.stderr.toString() : deployError.message;
+          // With stdio NOT set to inherit, we can capture stdout/stderr
+          const errorOutput = (deployError.stderr || deployError.stdout || deployError.message || '').toString();
+          
+          // Always print the error output first
+          if (deployError.stdout) console.log(deployError.stdout.toString());
+          if (deployError.stderr) console.error(deployError.stderr.toString());
           
           if (errorOutput.includes('P3005') || errorOutput.includes('database schema is not empty')) {
             console.log('\n⚠️  Database is not empty and needs baselining (Error P3005)...');
