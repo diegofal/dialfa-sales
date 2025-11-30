@@ -57,12 +57,16 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
-# Copy Prisma schema and generated client
+# Prisma Setup for Production
+# Copy schema, migration files, and generated client from builder stage
+# Note: Next.js standalone build doesn't include these automatically
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma/client ./node_modules/@prisma/client
 
-# Install Prisma CLI for migrations (with all its dependencies)
+# Install Prisma CLI globally for running migrations at startup
+# Reason: Standalone builds exclude CLI dependencies, but we need them to run
+# `prisma migrate deploy` in server-with-logs.js before the app starts
 RUN npm install -g prisma@6.18.0
 
 # Copy startup script with logging

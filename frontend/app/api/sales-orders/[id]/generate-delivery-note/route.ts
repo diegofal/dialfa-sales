@@ -86,6 +86,9 @@ export async function POST(
       notes = null,
     } = body;
 
+    // If no transporter specified, use the client's default transporter
+    const finalTransporterId = transporterId ?? salesOrder.clients.transporter_id;
+
     // Create delivery note with items in a transaction
     const deliveryNote = await prisma.$transaction(async (tx) => {
       // Create delivery note
@@ -94,7 +97,7 @@ export async function POST(
           delivery_number: deliveryNumber,
           sales_order_id: salesOrderId,
           delivery_date: deliveryDate,
-          transporter_id: transporterId,
+          transporter_id: finalTransporterId,
           weight_kg: weightKg,
           packages_count: packagesCount,
           declared_value: declaredValue,

@@ -692,7 +692,11 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     }
 
     try {
-      const deliveryNote = await generateDeliveryNoteMutation.mutateAsync({ id: orderId, deliveryData: {} });
+      // Generate delivery note with empty data - transporter will be taken from client automatically
+      const deliveryNote = await generateDeliveryNoteMutation.mutateAsync({ 
+        id: orderId, 
+        deliveryData: {} 
+      });
       if (deliveryNote) {
         router.push(`/dashboard/delivery-notes/${deliveryNote.id}`);
       }

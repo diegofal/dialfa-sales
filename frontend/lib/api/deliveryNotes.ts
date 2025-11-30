@@ -46,11 +46,24 @@ export const deliveryNotesApi = {
     await apiClient.delete(`/delivery-notes/${id}`);
   },
 
-  downloadPdf: async (id: number): Promise<Blob> => {
-    const { data } = await apiClient.get<Blob>(`/delivery-notes/${id}/pdf`, {
+  downloadPdf: async (id: number): Promise<void> => {
+    const response = await apiClient.get(`/delivery-notes/${id}/pdf`, {
       responseType: 'blob',
     });
-    return data;
+
+    // Create blob link to download
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.setAttribute('download', `remito-${id}.pdf`);
+    document.body.appendChild(link);
+    link.click();
+    
+    // Cleanup
+    if (link.parentNode) {
+      link.parentNode.removeChild(link);
+    }
+    window.URL.revokeObjectURL(url);
   },
 };
 

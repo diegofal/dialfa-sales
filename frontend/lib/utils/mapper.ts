@@ -223,7 +223,7 @@ export function mapDeliveryNoteToDTO(deliveryNote: unknown) {
     order_number?: string;
     clients?: { business_name?: string };
   } | undefined;
-  const transporters = d.transporters as { name?: string } | undefined;
+  const transporters = d.transporters as { name?: string; address?: string | null } | undefined;
   
   // Use delivery_note_items instead of sales_order_items
   const deliveryNoteItems = (d.delivery_note_items || []) as Array<Record<string, unknown>>;
@@ -237,6 +237,7 @@ export function mapDeliveryNoteToDTO(deliveryNote: unknown) {
     deliveryDate: (d.delivery_date as Date).toISOString(),
     transporterId: d.transporter_id ? parseInt(String(d.transporter_id)) : null,
     transporterName: transporters?.name || null,
+    transporterAddress: transporters?.address || null,
     weightKg: d.weight_kg ? parseFloat(String(d.weight_kg)) : null,
     packagesCount: d.packages_count ? Number(d.packages_count) : null,
     declaredValue: d.declared_value ? parseFloat(String(d.declared_value)) : null,

@@ -1,0 +1,107 @@
+{
+    "name": "Default Delivery Note",
+    "version": "1.0.0",
+    "type": "delivery-note",
+    "pageSize": {
+        "width": 595,
+        "height": 842
+    },
+    "margins": {
+        "top": 20,
+        "bottom": 20,
+        "left": 20,
+        "right": 20
+    },
+    "globalOffset": {
+        "x": 0,
+        "y": 0
+    },
+    "font": {
+        "family": "Courier",
+        "size": 10
+    },
+    "fields": {
+        "fecha": {
+            "x": 389,
+            "y": 65,
+            "align": "left"
+        },
+        "numeroRemito": {
+            "x": 389,
+            "y": 80,
+            "align": "left",
+            "fontWeight": "bold"
+        },
+        "numeroPedido": {
+            "x": 389,
+            "y": 95,
+            "align": "left"
+        },
+        "razonSocial": {
+            "x": 72,
+            "y": 130,
+            "fontWeight": "bold"
+        },
+        "domicilio": {
+            "x": 72,
+            "y": 140
+        },
+        "localidad": {
+            "x": 72,
+            "y": 151
+        },
+        "provincia": {
+            "x": 72,
+            "y": 169
+        },
+        "condicionIVA": {
+            "x": 72,
+            "y": 191
+        },
+        "cuit": {
+            "x": 331,
+            "y": 191
+        },
+        "transportista": {
+            "x": 72,
+            "y": 720
+        },
+        "domicilioTransportista": {
+            "x": 72,
+            "y": 735
+        },
+        "peso": {
+            "x": 72,
+            "y": 755
+        },
+        "bultos": {
+            "x": 250,
+            "y": 755
+        },
+        "valor": {
+            "x": 400,
+            "y": 755
+        },
+        "observaciones": {
+            "x": 72,
+            "y": 775
+        }
+    },
+    "items": {
+        "startY": 252,
+        "spacing": 12,
+        "maxRows": 35,
+        "columns": {
+            "cantidad": {
+                "x": 58,
+                "align": "right"
+            },
+            "descripcion": {
+                "x": 94,
+                "width": 400,
+                "align": "left"
+            }
+        }
+    }
+}
+
