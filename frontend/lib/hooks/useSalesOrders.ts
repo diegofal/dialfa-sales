@@ -72,6 +72,22 @@ export const useUpdateSalesOrder = () => {
   });
 };
 
+export const useCancelSalesOrder = () => {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => salesOrdersApi.cancel(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['salesOrders'] });
+      toast.success('Pedido cancelado exitosamente');
+    },
+    onError: (error: unknown) => {
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err?.response?.data?.message || 'Error al cancelar el pedido');
+    },
+  });
+};
+
 export const useDeleteSalesOrder = () => {
   const queryClient = useQueryClient();
   const { removeTabByInvoiceId } = useQuickInvoiceTabs();

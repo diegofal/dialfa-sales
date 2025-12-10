@@ -68,7 +68,6 @@ export default function EditSalesOrderPage() {
       }
     }
     
-    // Si no tiene factura activa, verificar si tiene remito
     if (existingOrder.deliveryNote) {
       return (
         <TooltipProvider>
@@ -84,7 +83,6 @@ export default function EditSalesOrderPage() {
       );
     }
     
-    // Si no tiene nada, es pendiente
     return (
       <TooltipProvider>
         <Tooltip>

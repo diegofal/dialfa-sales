@@ -1,7 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { invoicesApi } from '@/lib/api/invoices';
 import type { Invoice, InvoiceListDto, CreateInvoiceRequest, UpdateInvoiceRequest } from '@/types/invoice';
-import type { StockMovement } from '@/types/stockMovement';
 import { PagedResult, PaginationParams } from '@/types/pagination';
 import { toast } from 'sonner';
 import { getErrorMessage } from '@/lib/utils/errors';
@@ -27,8 +26,6 @@ export function useInvoice(id: number) {
     queryKey: ['invoices', id],
     queryFn: () => invoicesApi.getById(id),
     enabled: !!id,
-    staleTime: 0, // Los datos se consideran obsoletos inmediatamente
-    refetchOnMount: 'always', // Siempre refetch al montar para obtener datos frescos
   });
 }
 
@@ -140,14 +137,6 @@ export function useUpdateInvoiceExchangeRate() {
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
     },
-  });
-}
-
-export function useInvoiceStockMovements(invoiceId: number) {
-  return useQuery<StockMovement[]>({
-    queryKey: ['invoices', invoiceId, 'stock-movements'],
-    queryFn: () => invoicesApi.getStockMovements(invoiceId),
-    enabled: !!invoiceId,
   });
 }
 

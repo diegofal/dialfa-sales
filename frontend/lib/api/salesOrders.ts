@@ -46,6 +46,10 @@ export const salesOrdersApi = {
     await apiClient.put(`/sales-orders/${id}`, orderData);
   },
 
+  cancel: async (id: number): Promise<void> => {
+    await apiClient.post(`/sales-orders/${id}/cancel`);
+  },
+
   delete: async (id: number): Promise<{
     message: string;
     affectedInvoices?: Array<{ id: string; invoiceNumber: string; wasCancelled: boolean }>;
