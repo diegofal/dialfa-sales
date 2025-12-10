@@ -6,6 +6,7 @@ import type {
   CreateInvoiceRequest,
   UpdateInvoiceRequest,
 } from '@/types/invoice';
+import type { StockMovement } from '@/types/stockMovement';
 
 export const invoicesApi = {
   getAll: async (
@@ -106,6 +107,11 @@ export const invoicesApi = {
 
   getNextNumber: async (): Promise<{ invoiceNumber: string }> => {
     const { data } = await apiClient.get<{ invoiceNumber: string }>('/invoices/next-number');
+    return data;
+  },
+
+  getStockMovements: async (id: number): Promise<StockMovement[]> => {
+    const { data } = await apiClient.get<StockMovement[]>(`/invoices/${id}/stock-movements`);
     return data;
   },
 };

@@ -14,13 +14,7 @@ import {
 } from '@/components/ui/table';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import { useDeliveryNote, useDownloadDeliveryNotePdf, useUpdateDeliveryNote } from '@/lib/hooks/useDeliveryNotes';
 import { useQuickDeliveryNoteTabs } from '@/lib/hooks/useQuickDeliveryNoteTabs';
 import { useEffect, useState } from 'react';
@@ -177,26 +171,23 @@ export default function DeliveryNoteDetailPage() {
             {/* Transportista */}
             <div>
               <p className="text-sm text-muted-foreground mb-1">Transportista</p>
-              <Select
+              <Combobox
+                options={[
+                  { value: 'none', label: 'Sin transportista' },
+                  ...transporters.map((t) => ({
+                    value: String(t.id),
+                    label: t.name,
+                  })),
+                ]}
                 value={editData.transporterId ? String(editData.transporterId) : 'none'}
                 onValueChange={(value) => {
                   const transporterId = value === 'none' ? null : Number(value);
                   setEditData({ ...editData, transporterId });
                   handleFieldUpdate('transporterId', transporterId);
                 }}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Sin transportista" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Sin transportista</SelectItem>
-                  {transporters.map((t) => (
-                    <SelectItem key={t.id} value={String(t.id)}>
-                      {t.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                placeholder="Sin transportista"
+                emptyMessage="No se encontraron transportistas"
+              />
             </div>
 
             {/* Domicilio del Transportista */}

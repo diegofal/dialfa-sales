@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useInvoice, useCancelInvoice, usePrintInvoice, useUpdateInvoiceExchangeRate } from '@/lib/hooks/useInvoices';
+import { useInvoice, useCancelInvoice, usePrintInvoice, useUpdateInvoiceExchangeRate, useInvoiceStockMovements } from '@/lib/hooks/useInvoices';
 import { useQuickInvoiceTabs } from '@/lib/hooks/useQuickInvoiceTabs';
 import { useState, useEffect } from 'react';
 import {
@@ -35,6 +35,7 @@ export default function InvoiceDetailPage() {
   const invoiceId = Number(params.id);
 
   const { data: invoice, isLoading } = useInvoice(invoiceId);
+  const { data: stockMovements, isLoading: isLoadingStockMovements } = useInvoiceStockMovements(invoiceId);
   const cancelInvoiceMutation = useCancelInvoice();
   const printInvoiceMutation = usePrintInvoice();
   const updateExchangeRateMutation = useUpdateInvoiceExchangeRate();
@@ -349,9 +350,54 @@ export default function InvoiceDetailPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground text-center py-4">
-              Sección de movimientos de stock - próximamente con datos reales de la API
-            </p>
+            {isLoadingStockMovements ? (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                Cargando movimientos de stock...
+              </p>
+            ) : stockMovements && stockMovements.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Código</TableHead>
+                    <TableHead>Descripción</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead className="text-right">Cantidad</TableHead>
+                    <TableHead>Referencia</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {stockMovements.map((movement) => (
+                    <TableRow key={movement.id}>
+                      <TableCell>
+                        {new Date(movement.movementDate).toLocaleDateString('es-AR')}
+                      </TableCell>
+                      <TableCell className="font-medium">{movement.articleCode}</TableCell>
+                      <TableCell>{movement.articleDescription}</TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center rounded-full px-2 py-1 text-xs font-medium ${
+                          movement.movementType === 2 ? 'bg-red-100 text-red-700' : 
+                          movement.movementType === 1 ? 'bg-green-100 text-green-700' : 
+                          'bg-gray-100 text-gray-700'
+                        }`}>
+                          {movement.movementTypeName}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {movement.movementType === 2 ? '-' : '+'}{movement.quantity}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {movement.referenceDocument || '-'}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <p className="text-sm text-muted-foreground text-center py-4">
+                No hay movimientos de stock registrados para esta factura
+              </p>
+            )}
           </CardContent>
         </Card>
       )}
