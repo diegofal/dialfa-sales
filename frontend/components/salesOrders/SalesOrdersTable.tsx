@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Trash2, XCircle, Eye } from 'lucide-react';
+import { Trash2, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -29,7 +29,6 @@ import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
 interface SalesOrdersTableProps {
   orders: SalesOrderListDto[];
   onViewOrder: (id: number) => void;
-  onCancelOrder: (id: number) => void;
   onDeleteOrder: (id: number) => void;
   currentSortBy?: string;
   currentSortDescending?: boolean;
@@ -39,13 +38,11 @@ interface SalesOrdersTableProps {
 export function SalesOrdersTable({
   orders,
   onViewOrder,
-  onCancelOrder,
   onDeleteOrder,
   currentSortBy,
   currentSortDescending,
   onSort,
 }: SalesOrdersTableProps) {
-  const [orderToCancel, setOrderToCancel] = useState<number | null>(null);
   const [orderToDelete, setOrderToDelete] = useState<number | null>(null);
 
   const getStatusBadge = (status: string) => {
@@ -132,19 +129,8 @@ export function SalesOrdersTable({
                       >
                         <Eye className="h-4 w-4" />
                       </Button>
-                      {/* Can cancel if invoice is not printed */}
-                      {!order.invoicePrinted && order.status !== 'CANCELLED' && (
-                        <Button
-                          variant={ACTION_BUTTON_CONFIG.cancel.variant}
-                          size={ACTION_BUTTON_CONFIG.cancel.size}
-                          onClick={() => setOrderToCancel(order.id)}
-                          title={ACTION_BUTTON_CONFIG.cancel.title}
-                        >
-                          <XCircle className="h-4 w-4" />
-                        </Button>
-                      )}
-                      {/* Can delete if invoice is not printed */}
-                      {!order.invoicePrinted && order.status !== 'CANCELLED' && (
+                      {/* Can delete anytime (if printed invoice exists, it will be cancelled automatically) */}
+                      {order.status !== 'CANCELLED' && (
                         <Button
                           variant={ACTION_BUTTON_CONFIG.delete.variant}
                           size={ACTION_BUTTON_CONFIG.delete.size}
@@ -162,32 +148,6 @@ export function SalesOrdersTable({
           </TableBody>
         </Table>
       </div>
-
-      {/* Cancel Confirmation Dialog */}
-      <AlertDialog open={!!orderToCancel} onOpenChange={() => setOrderToCancel(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Cancelar pedido?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción cambiará el estado del pedido a CANCELADO. Esta acción no se puede
-              deshacer.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                if (orderToCancel) {
-                  onCancelOrder(orderToCancel);
-                  setOrderToCancel(null);
-                }
-              }}
-            >
-              Confirmar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={!!orderToDelete} onOpenChange={() => setOrderToDelete(null)}>

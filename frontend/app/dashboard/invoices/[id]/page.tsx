@@ -416,7 +416,7 @@ export default function InvoiceDetailPage() {
               </Button>
               {!invoice.isCancelled && (
                 <Button
-                  variant="outline"
+                  variant="destructive"
                   onClick={() => setShowCancelDialog(true)}
                 >
                   <XCircle className="mr-2 h-4 w-4" />

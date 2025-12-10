@@ -13,7 +13,7 @@ import { Alert } from '@/components/ui/alert';
 import { ShoppingCart, User, X, Trash2, Pencil, Search, Plus, XCircle, FileText, AlertTriangle, Truck, Eye } from 'lucide-react';
 import { useArticles } from '@/lib/hooks/useArticles';
 import type { Article } from '@/types/article';
-import { useSalesOrder, useUpdateSalesOrder, useCancelSalesOrder, useDeleteSalesOrder } from '@/lib/hooks/useSalesOrders';
+import { useSalesOrder, useUpdateSalesOrder, useDeleteSalesOrder } from '@/lib/hooks/useSalesOrders';
 import { useSalesOrderPermissions } from '@/lib/hooks/useSalesOrderPermissions';
 import { validateSalesOrder } from '@/lib/permissions/salesOrders';
 import { Badge } from '@/components/ui/badge';
@@ -64,11 +64,8 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     }
   }, [orderError, orderId, router]);
 
-  // Track unsaved changes
-  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-
   // Calculate permissions using the custom hook
-  const permissions = useSalesOrderPermissions(existingOrder, hasUnsavedChanges);
+  const permissions = useSalesOrderPermissions(existingOrder);
 
   // Read-only mode based on permissions
   const isReadOnly = !permissions.canEdit;
@@ -123,16 +120,12 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
 
   const createOrderMutation = useCreateSalesOrder();
   const updateOrderMutation = useUpdateSalesOrder();
-  const cancelOrderMutation = useCancelSalesOrder();
   const deleteOrderMutation = useDeleteSalesOrder();
   const generateInvoiceMutation = useGenerateInvoice();
   const generateDeliveryNoteMutation = useGenerateDeliveryNote();
 
   // Dialog states for edit mode
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
-  const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false);
-  const [unsavedChangesAction, setUnsavedChangesAction] = useState<'save' | 'discard' | null>(null);
 
   // Search articles for adding
   const { data: articlesResult } = useArticles({
@@ -156,19 +149,6 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   const items = isEditMode ? localItems : (currentTab ? currentTab.items : []);
   const clientId = isEditMode ? localClientId : currentTab?.clientId;
   const clientName = isEditMode ? localClientName : (currentTab?.clientName || '');
-
-  // Track changes for unsaved changes detection
-  useEffect(() => {
-    if (isEditMode && existingOrder && loadedOrderId === existingOrder.id) {
-      // Check if anything changed
-      const itemsChanged = items.length !== (existingOrder.items?.length || 0);
-      const clientChanged = clientId !== existingOrder.clientId;
-      const notesChanged = (notes || '') !== (existingOrder.notes || '');
-
-      const hasChanges = itemsChanged || clientChanged || notesChanged;
-      setHasUnsavedChanges(hasChanges);
-    }
-  }, [isEditMode, existingOrder, loadedOrderId, items, clientId, notes]);
 
   // Load existing order data into form when in edit mode
   useEffect(() => {
@@ -315,7 +295,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     );
   }
 
-  const handleSelectClient = (id: number, name: string) => {
+  const handleSelectClient = async (id: number, name: string) => {
     if (isEditMode) {
       // In edit mode, update local state
       setLocalClientId(id);
@@ -324,6 +304,8 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
         duration: 2000,
         position: 'top-center'
       });
+      // Auto-save after small delay to let state update
+      setTimeout(() => autoSaveOrder(), 100);
     } else if (currentTabId) {
       // In draft mode, update QuickCart tab
       setClient(id, name);
@@ -420,6 +402,9 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       }
 
       setLocalItems(updatedItems);
+      
+      // Auto-save after state update
+      setTimeout(() => autoSaveOrder(), 100);
     } else if (currentTabId) {
       // In draft mode, use QuickCart hook's addItem function
       addItem(articleToAdd, qty);
@@ -471,6 +456,9 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
           : item
       );
       setLocalItems(updatedItems);
+      
+      // Auto-save after state update
+      setTimeout(() => autoSaveOrder(), 100);
     } else if (currentTabId) {
       // In draft mode, use hook's replaceItem function
       replaceItem(editingItemId, article);
@@ -508,6 +496,9 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     if (isEditMode) {
       // In edit mode, update local state
       setLocalItems(localItems.filter(item => item.article.id !== articleId));
+      
+      // Auto-save after state update
+      setTimeout(() => autoSaveOrder(), 100);
     } else if (currentTabId) {
       // In draft mode, use QuickCart hook
       removeItem(articleId);
@@ -539,6 +530,19 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     setPrices(prev => ({ ...prev, [articleId]: newPrice }));
   };
 
+  // Handle onBlur for quantity/price to trigger auto-save
+  const handleQuantityBlur = () => {
+    if (isEditMode) {
+      autoSaveOrder();
+    }
+  };
+
+  const handlePriceBlur = () => {
+    if (isEditMode) {
+      autoSaveOrder();
+    }
+  };
+
   const calculateLineTotal = (item: QuickCartItem) => {
     const articleId = item.article.id;
     const quantity = item.quantity;
@@ -551,47 +555,12 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     return items.reduce((sum, item) => sum + calculateLineTotal(item), 0);
   };
 
-  const handleSubmit = async () => {
-    // Validation using the validation helper
-    const validation = validateSalesOrder(
-      clientId,
-      items.map(item => ({
-        quantity: item.quantity,
-        stock: item.article.stock,
-        articleDescription: item.article.description,
-      })),
-      true // Allow low stock with warning
-    );
-
-    if (!validation.isValid) {
-      validation.errors.forEach(error => toast.error(error, { duration: 3000, position: 'top-center' }));
-      return;
-    }
-
-    // Show warnings if any
-    if (validation.warnings.length > 0) {
-      validation.warnings.forEach(warning => toast.warning(warning, { duration: 4000, position: 'top-center' }));
-    }
-
-    // Validate items
-    for (const item of items) {
-      const unitPrice = prices[item.article.id] ?? item.article.unitPrice;
-      if (unitPrice < 0) {
-        toast.error(`El precio de ${item.article.code} no puede ser negativo`, {
-          duration: 3000,
-          position: 'top-center'
-        });
-        return;
-      }
-    }
+  // Auto-save function for existing orders
+  const autoSaveOrder = async () => {
+    // Only auto-save in edit mode
+    if (!isEditMode || !orderId || !clientId) return;
 
     try {
-      // Validate clientId is present
-      if (!clientId) {
-        toast.error('Please select a client');
-        return;
-      }
-
       const requestData = {
         clientId,
         notes: notes || undefined,
@@ -603,43 +572,73 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
         })),
       };
 
-      if (isEditMode && orderId) {
-        // Update existing order
-        await updateOrderMutation.mutateAsync({ id: orderId, data: requestData });
-        setHasUnsavedChanges(false);
-        // Toast is shown by the mutation's onSuccess handler
-        // Stay on the form after saving
-      } else {
-        // Create new order
-        const createdOrder = await createOrderMutation.mutateAsync(requestData);
-
-        // Remove the draft tab that was used to create this order
-        // This prevents duplicate tabs (one draft + one saved)
-        if (currentTabId && currentTab && !currentTab.orderId) {
-          // Only remove if it's a draft tab (no orderId yet)
-          removeTab(currentTabId);
-        }
-
-        // If the order was created, navigate to the edit view to allow further modifications
-        if (createdOrder && createdOrder.id) {
-          router.push(`/dashboard/sales-orders/${createdOrder.id}/edit`);
-        }
-        // The edit view will create a new tab with orderId for the saved order
-      }
+      await updateOrderMutation.mutateAsync({ id: orderId, data: requestData });
     } catch (error) {
-      console.error('Error saving order:', error);
+      console.error('Error auto-saving order:', error);
     }
   };
 
-  const handleCancel = () => {
-    if (orderId) {
-      cancelOrderMutation.mutate(orderId, {
-        onSuccess: () => {
-          setShowCancelDialog(false);
-          // Toast is shown by the mutation's onSuccess handler
-          router.push('/dashboard/sales-orders');
-        },
-      });
+  // Create order function for new orders
+  const handleCreateOrder = async () => {
+    // Validation
+    const validation = validateSalesOrder(
+      clientId,
+      items.map(item => ({
+        quantity: item.quantity,
+        stock: item.article.stock,
+        articleDescription: item.article.description,
+      })),
+      true
+    );
+
+    if (!validation.isValid) {
+      validation.errors.forEach(error => toast.error(error, { duration: 3000, position: 'top-center' }));
+      return;
+    }
+
+    if (validation.warnings.length > 0) {
+      validation.warnings.forEach(warning => toast.warning(warning, { duration: 4000, position: 'top-center' }));
+    }
+
+    for (const item of items) {
+      const unitPrice = prices[item.article.id] ?? item.article.unitPrice;
+      if (unitPrice < 0) {
+        toast.error(`El precio de ${item.article.code} no puede ser negativo`, {
+          duration: 3000,
+          position: 'top-center'
+        });
+        return;
+      }
+    }
+
+    if (!clientId) {
+      toast.error('Por favor selecciona un cliente');
+      return;
+    }
+
+    try {
+      const requestData = {
+        clientId,
+        notes: notes || undefined,
+        items: items.map((item) => ({
+          articleId: item.article.id,
+          quantity: item.quantity,
+          unitPrice: prices[item.article.id] ?? item.article.unitPrice,
+          discountPercent: 0,
+        })),
+      };
+
+      const createdOrder = await createOrderMutation.mutateAsync(requestData);
+
+      if (currentTabId && currentTab && !currentTab.orderId) {
+        removeTab(currentTabId);
+      }
+
+      if (createdOrder && createdOrder.id) {
+        router.push(`/dashboard/sales-orders/${createdOrder.id}/edit`);
+      }
+    } catch (error) {
+      console.error('Error creating order:', error);
     }
   };
 
@@ -662,14 +661,6 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   const handleGenerateInvoice = async () => {
     if (!orderId) return;
 
-    // Check for unsaved changes
-    if (hasUnsavedChanges) {
-      const confirmed = window.confirm('Hay cambios sin guardar. ¿Desea guardar los cambios antes de generar la factura?');
-      if (confirmed) {
-        await handleSubmit();
-      }
-    }
-
     try {
       const invoice = await generateInvoiceMutation.mutateAsync({ id: orderId });
       if (invoice) {
@@ -683,16 +674,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   const handleGenerateDeliveryNote = async () => {
     if (!orderId) return;
 
-    // Check for unsaved changes
-    if (hasUnsavedChanges) {
-      const confirmed = window.confirm('Hay cambios sin guardar. ¿Desea guardar los cambios antes de generar el remito?');
-      if (confirmed) {
-        await handleSubmit();
-      }
-    }
-
     try {
-      // Generate delivery note with empty data - transporter will be taken from client automatically
       const deliveryNote = await generateDeliveryNoteMutation.mutateAsync({ 
         id: orderId, 
         deliveryData: {} 
@@ -706,27 +688,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   };
 
   const handleBackButton = () => {
-    if (hasUnsavedChanges) {
-      setShowUnsavedChangesDialog(true);
-    } else {
-      router.push('/dashboard/sales-orders');
-    }
-  };
-
-  const handleUnsavedChangesResponse = async (action: 'save' | 'discard' | 'cancel') => {
-    if (action === 'save') {
-      setUnsavedChangesAction(action);
-      await handleSubmit();
-      setShowUnsavedChangesDialog(false);
-      router.push('/dashboard/sales-orders');
-    } else if (action === 'discard') {
-      setUnsavedChangesAction(action);
-      setShowUnsavedChangesDialog(false);
-      router.push('/dashboard/sales-orders');
-    } else {
-      // action === 'cancel' - just close the dialog without setting state
-      setShowUnsavedChangesDialog(false);
-    }
+    router.push('/dashboard/sales-orders');
   };
 
   return (
@@ -992,6 +954,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                                   min="1"
                                   value={item.quantity}
                                   onChange={(e) => handleUpdateQuantity(item.article.id, parseInt(e.target.value) || 1)}
+                                  onBlur={handleQuantityBlur}
                                   className="h-8 text-sm text-center"
                                   onFocus={(e) => e.target.select()}
                                   disabled={isReadOnly}
@@ -1006,6 +969,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                                   step="0.01"
                                   value={prices[item.article.id] ?? item.article.unitPrice}
                                   onChange={(e) => handleUpdateUnitPrice(item.article.id, parseFloat(e.target.value) || 0)}
+                                  onBlur={handlePriceBlur}
                                   className="h-8 text-sm text-right"
                                   onFocus={(e) => e.target.select()}
                                   disabled={isReadOnly}
@@ -1055,19 +1019,9 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
               >
                 {isEditMode ? 'Volver' : 'Cancelar'}
               </Button>
-              {permissions.canCancel && (
-                <Button
-                  variant="outline"
-                  onClick={() => setShowCancelDialog(true)}
-                  disabled={cancelOrderMutation.isPending}
-                >
-                  <XCircle className="mr-2 h-4 w-4" />
-                  Cancelar Pedido
-                </Button>
-              )}
               {permissions.canDelete && (
                 <Button
-                  variant="outline"
+                  variant="destructive"
                   onClick={() => setShowDeleteDialog(true)}
                   disabled={deleteOrderMutation.isPending}
                 >
@@ -1106,7 +1060,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                   {generateInvoiceMutation.isPending ? 'Generando...' : 'Generar Factura'}
                 </Button>
               )}
-              {existingOrder?.invoice && (
+              {existingOrder?.invoice && !existingOrder.invoice.isCancelled && (
                 <Button
                   variant="outline"
                   onClick={() => router.push(`/dashboard/invoices/${existingOrder.invoice?.id}`)}
@@ -1115,43 +1069,19 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                   Ver Factura
                 </Button>
               )}
-              {permissions.canSave && (
+              {!isEditMode && (
                 <Button
-                  onClick={handleSubmit}
-                  disabled={!clientId || items.length === 0 || (isEditMode ? updateOrderMutation.isPending : createOrderMutation.isPending)}
+                  onClick={handleCreateOrder}
+                  disabled={!clientId || items.length === 0 || createOrderMutation.isPending}
                   size="lg"
                 >
-                  {isEditMode
-                    ? (updateOrderMutation.isPending ? 'Guardando...' : 'Guardar Cambios')
-                    : (createOrderMutation.isPending ? 'Creando...' : 'Crear Pedido')
-                  }
+                  {createOrderMutation.isPending ? 'Creando...' : 'Crear Pedido'}
                 </Button>
               )}
             </div>
           </div>
         </div>
       </div>
-
-      {/* Cancel Order Dialog */}
-      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Cancelar pedido?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción marcará el pedido como CANCELADO. Esta acción no se puede deshacer.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Volver</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleCancel}
-              disabled={cancelOrderMutation.isPending}
-            >
-              {cancelOrderMutation.isPending ? 'Cancelando...' : 'Confirmar Cancelación'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Delete Order Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
@@ -1175,32 +1105,6 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
               className="bg-destructive hover:bg-destructive/90"
             >
               {deleteOrderMutation.isPending ? 'Eliminando...' : 'Confirmar Eliminación'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      {/* Unsaved Changes Dialog */}
-      <AlertDialog open={showUnsavedChangesDialog} onOpenChange={setShowUnsavedChangesDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Guardar cambios?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Hay cambios sin guardar en el pedido. ¿Desea guardarlos antes de salir?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => handleUnsavedChangesResponse('cancel')}>
-              Cancelar
-            </AlertDialogCancel>
-            <Button
-              variant="outline"
-              onClick={() => handleUnsavedChangesResponse('discard')}
-            >
-              No Guardar
-            </Button>
-            <AlertDialogAction onClick={() => handleUnsavedChangesResponse('save')}>
-              Guardar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

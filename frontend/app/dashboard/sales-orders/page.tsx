@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { SalesOrdersTable } from '@/components/salesOrders/SalesOrdersTable';
-import { useSalesOrders, useCancelSalesOrder, useDeleteSalesOrder } from '@/lib/hooks/useSalesOrders';
+import { useSalesOrders, useDeleteSalesOrder } from '@/lib/hooks/useSalesOrders';
 import { useRouter } from 'next/navigation';
 import { useQuickCartTabs } from '@/lib/hooks/useQuickCartTabs';
 
@@ -39,7 +39,6 @@ export default function SalesOrdersPage() {
     sortBy: pagination.sortBy,
     sortDescending: pagination.sortDescending,
   });
-  const cancelOrderMutation = useCancelSalesOrder();
   const deleteOrderMutation = useDeleteSalesOrder();
 
   const activeFiltersCount = Object.values(filters).filter((v) => v && v !== true).length;
@@ -56,10 +55,6 @@ export default function SalesOrdersPage() {
 
   const handleViewOrder = (id: number) => {
     router.push(`/dashboard/sales-orders/${id}`);
-  };
-
-  const handleCancelOrder = (id: number) => {
-    cancelOrderMutation.mutate(id);
   };
 
   const handleDeleteOrder = (id: number) => {
@@ -227,7 +222,6 @@ export default function SalesOrdersPage() {
               <SalesOrdersTable
                 orders={data.data}
                 onViewOrder={handleViewOrder}
-                onCancelOrder={handleCancelOrder}
                 onDeleteOrder={handleDeleteOrder}
                 currentSortBy={pagination.sortBy}
                 currentSortDescending={pagination.sortDescending}

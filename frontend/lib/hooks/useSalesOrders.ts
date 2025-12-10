@@ -26,6 +26,8 @@ export const useSalesOrder = (id: number, options?: { enabled?: boolean }) => {
     queryKey: ['salesOrders', id],
     queryFn: () => salesOrdersApi.getById(id),
     enabled: options?.enabled !== undefined ? options.enabled : !!id,
+    staleTime: 0, // Los datos se consideran obsoletos inmediatamente
+    refetchOnMount: 'always', // Siempre refetch al montar para obtener datos frescos
     retry: (failureCount, error) => {
       // Don't retry on 404 (deleted order)
       const err = error as { response?: { status?: number } };
@@ -66,22 +68,6 @@ export const useUpdateSalesOrder = () => {
     onError: (error: unknown) => {
       const err = error as { response?: { data?: { message?: string } } };
       toast.error(err?.response?.data?.message || 'Error al actualizar el pedido');
-    },
-  });
-};
-
-export const useCancelSalesOrder = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (id: number) => salesOrdersApi.cancel(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['salesOrders'] });
-      toast.success('Pedido cancelado exitosamente');
-    },
-    onError: (error: unknown) => {
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err?.response?.data?.message || 'Error al cancelar el pedido');
     },
   });
 };

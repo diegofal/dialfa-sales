@@ -10,9 +10,7 @@ export interface SalesOrderStatus {
 
 export interface SalesOrderPermissions {
   canEdit: boolean;
-  canSave: boolean;
   canCreateInvoice: boolean;
-  canCancel: boolean;
   canDelete: boolean;
   canCreateDeliveryNote: boolean;
 }
@@ -28,20 +26,14 @@ export function calculateSalesOrderPermissions(
     // No se puede editar si la factura fue impresa
     canEdit: !status.invoicePrinted,
     
-    // Solo se puede guardar si es editable
-    canSave: !status.invoicePrinted,
-    
     // Solo crear factura si está guardado y no tiene factura activa
     canCreateInvoice: 
       status.id !== null && 
       (!status.hasInvoice || status.invoiceCancelled),
     
-    // No cancelar si tiene factura impresa o si el pedido no existe aún
-    canCancel: status.id !== null && !status.invoicePrinted,
-    
-    // Se puede eliminar si la factura NO está impresa y el pedido ya existe
-    // (Cuando se imprime la factura es cuando se debita el stock)
-    canDelete: status.id !== null && !status.invoicePrinted,
+    // Se puede eliminar si el pedido ya existe
+    // Si tiene factura impresa, se cancelará automáticamente y se devolverá el stock
+    canDelete: status.id !== null,
     
     // Crear remito si está guardado
     canCreateDeliveryNote: status.id !== null

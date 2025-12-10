@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Printer } from 'lucide-react';
+import { ArrowLeft, Printer, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
@@ -15,7 +15,17 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Combobox } from '@/components/ui/combobox';
-import { useDeliveryNote, useDownloadDeliveryNotePdf, useUpdateDeliveryNote } from '@/lib/hooks/useDeliveryNotes';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { useDeliveryNote, useDownloadDeliveryNotePdf, useUpdateDeliveryNote, useDeleteDeliveryNote } from '@/lib/hooks/useDeliveryNotes';
 import { useQuickDeliveryNoteTabs } from '@/lib/hooks/useQuickDeliveryNoteTabs';
 import { useEffect, useState } from 'react';
 
@@ -27,9 +37,11 @@ export default function DeliveryNoteDetailPage() {
   const { data: deliveryNote, isLoading } = useDeliveryNote(deliveryNoteId);
   const downloadPdfMutation = useDownloadDeliveryNotePdf();
   const updateDeliveryNoteMutation = useUpdateDeliveryNote();
-  const { addTab } = useQuickDeliveryNoteTabs();
+  const deleteDeliveryNoteMutation = useDeleteDeliveryNote();
+  const { addTab, removeTab } = useQuickDeliveryNoteTabs();
 
   const [transporters, setTransporters] = useState<Array<{ id: number; name: string; address: string | null }>>([]);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [editData, setEditData] = useState({
     transporterId: null as number | null,
     weightKg: '',
@@ -95,6 +107,17 @@ export default function DeliveryNoteDetailPage() {
     downloadPdfMutation.mutate(deliveryNoteId);
   };
 
+  const handleDelete = () => {
+    deleteDeliveryNoteMutation.mutate(deliveryNoteId, {
+      onSuccess: () => {
+        // Remove tab from sidebar if it exists
+        removeTab(`dn-${deliveryNoteId}`);
+        setShowDeleteDialog(false);
+        router.push('/dashboard/delivery-notes');
+      },
+    });
+  };
+
   const handleFieldUpdate = (field: keyof typeof editData, value: string | number | null) => {
     if (!deliveryNote) return;
 
@@ -115,23 +138,15 @@ export default function DeliveryNoteDetailPage() {
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => router.back()}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div>
-            <h1 className="text-3xl font-bold">Remito {deliveryNote.deliveryNumber}</h1>
-            <p className="text-muted-foreground">
-              Fecha de Entrega: {formatDate(deliveryNote.deliveryDate)}
-            </p>
-          </div>
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleDownloadPdf} disabled={downloadPdfMutation.isPending}>
-            <Printer className="mr-2 h-4 w-4" />
-            {downloadPdfMutation.isPending ? 'Descargando...' : 'Descargar PDF'}
-          </Button>
+      <div className="flex items-center gap-4">
+        <Button variant="ghost" onClick={() => router.back()}>
+          <ArrowLeft className="h-4 w-4" />
+        </Button>
+        <div>
+          <h1 className="text-3xl font-bold">Remito {deliveryNote.deliveryNumber}</h1>
+          <p className="text-muted-foreground">
+            Fecha de Entrega: {formatDate(deliveryNote.deliveryDate)}
+          </p>
         </div>
       </div>
 
@@ -303,6 +318,65 @@ export default function DeliveryNoteDetailPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Fixed Action Buttons */}
+      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t z-50">
+        <div className="container max-w-7xl mx-auto px-6 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => router.push('/dashboard/delivery-notes')}
+              >
+                Volver
+              </Button>
+              <Button 
+                variant="destructive" 
+                onClick={() => setShowDeleteDialog(true)}
+                disabled={deleteDeliveryNoteMutation.isPending}
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Eliminar
+              </Button>
+            </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                onClick={() => router.push(`/dashboard/sales-orders/${deliveryNote.salesOrderId}/edit`)}
+              >
+                Ver Pedido
+              </Button>
+              <Button variant="outline" onClick={handleDownloadPdf} disabled={downloadPdfMutation.isPending}>
+                <Printer className="mr-2 h-4 w-4" />
+                {downloadPdfMutation.isPending ? 'Descargando...' : 'Descargar PDF'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar remito?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción eliminará permanentemente el remito {deliveryNote.deliveryNumber}. 
+              Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDelete}
+              disabled={deleteDeliveryNoteMutation.isPending}
+              className="bg-destructive hover:bg-destructive/90"
+            >
+              {deleteDeliveryNoteMutation.isPending ? 'Eliminando...' : 'Eliminar Remito'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

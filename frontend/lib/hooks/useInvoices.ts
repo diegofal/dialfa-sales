@@ -27,6 +27,8 @@ export function useInvoice(id: number) {
     queryKey: ['invoices', id],
     queryFn: () => invoicesApi.getById(id),
     enabled: !!id,
+    staleTime: 0, // Los datos se consideran obsoletos inmediatamente
+    refetchOnMount: 'always', // Siempre refetch al montar para obtener datos frescos
   });
 }
 

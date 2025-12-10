@@ -21,7 +21,7 @@ export default function EditSalesOrderPage() {
   const router = useRouter();
   const orderId = params.id ? Number(params.id) : undefined;
   const { data: existingOrder } = useSalesOrder(orderId || 0);
-  const permissions = useSalesOrderPermissions(existingOrder, false);
+  const permissions = useSalesOrderPermissions(existingOrder);
 
   console.log('🔍 EditSalesOrderPage render:', {
     orderId,
@@ -34,7 +34,8 @@ export default function EditSalesOrderPage() {
   const getStatusBadge = () => {
     if (!existingOrder) return null;
     
-    if (existingOrder.invoice) {
+    // Solo mostrar badge de factura si existe y NO está cancelada
+    if (existingOrder.invoice && !existingOrder.invoice.isCancelled) {
       if (existingOrder.invoice.isPrinted) {
         return (
           <TooltipProvider>
@@ -47,19 +48,6 @@ export default function EditSalesOrderPage() {
               </TooltipTrigger>
               <TooltipContent>
                 <p className="max-w-xs">Este pedido tiene una factura impresa. No se pueden realizar modificaciones. El stock ya fue debitado y el movimiento contable fue registrado.</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        );
-      } else if (existingOrder.invoice.isCancelled) {
-        return (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Badge variant="destructive" className="cursor-help">Factura Cancelada</Badge>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>La factura asociada fue cancelada. Puede crear una nueva factura.</p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -80,6 +68,7 @@ export default function EditSalesOrderPage() {
       }
     }
     
+    // Si no tiene factura activa, verificar si tiene remito
     if (existingOrder.deliveryNote) {
       return (
         <TooltipProvider>
@@ -95,6 +84,7 @@ export default function EditSalesOrderPage() {
       );
     }
     
+    // Si no tiene nada, es pendiente
     return (
       <TooltipProvider>
         <Tooltip>

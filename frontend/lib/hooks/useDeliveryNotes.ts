@@ -23,6 +23,8 @@ export function useDeliveryNote(id: number) {
     queryKey: ['delivery-notes', id],
     queryFn: () => deliveryNotesApi.getById(id),
     enabled: !!id,
+    staleTime: 0, // Los datos se consideran obsoletos inmediatamente
+    refetchOnMount: 'always', // Siempre refetch al montar para obtener datos frescos
   });
 }
 
