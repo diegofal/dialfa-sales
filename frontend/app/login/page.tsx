@@ -29,7 +29,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const { isAuthenticated, hydrated } = useAuthStore();
   const loginMutation = useLogin();
 
   const form = useForm<LoginFormValues>({
@@ -41,10 +41,11 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    if (isAuthenticated) {
+    // Only redirect if hydrated and authenticated
+    if (hydrated && isAuthenticated) {
       router.push('/dashboard');
     }
-  }, [isAuthenticated, router]);
+  }, [hydrated, isAuthenticated, router]);
 
   const onSubmit = (data: LoginFormValues) => {
     loginMutation.mutate(data);

@@ -6,17 +6,19 @@ import { useAuthStore } from '@/store/authStore';
 
 export default function HomePage() {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, hydrated } = useAuthStore();
 
   useEffect(() => {
-    // Auth state will be managed by middleware and cookies
-    // No need to initialize from localStorage
+    // Wait for hydration before redirecting
+    if (!hydrated) return;
+    
+    // Redirect based on authentication status
     if (isAuthenticated) {
       router.push('/dashboard');
     } else {
       router.push('/login');
     }
-  }, [isAuthenticated, router]);
+  }, [hydrated, isAuthenticated, router]);
 
   return (
     <div className="flex min-h-screen items-center justify-center">

@@ -12,16 +12,17 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, hydrated } = useAuthStore();
 
   useEffect(() => {
-    // Auth is handled by middleware with HTTP-only cookies
-    if (!isAuthenticated) {
+    // Only redirect after state has been hydrated from localStorage
+    if (hydrated && !isAuthenticated) {
       router.push('/login');
     }
-  }, [isAuthenticated, router]);
+  }, [hydrated, isAuthenticated, router]);
 
-  if (!isAuthenticated) {
+  // Show loading while hydrating or if not authenticated
+  if (!hydrated || !isAuthenticated) {
     return (
       <div className="flex min-h-screen items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
