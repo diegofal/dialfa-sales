@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { pdfService } from '@/lib/services/PDFService';
 import { loadTemplate } from '@/lib/print-templates/template-loader';
+import { STOCK_MOVEMENT_TYPES } from '@/lib/constants/stockMovementTypes';
 
 export async function POST(
     request: NextRequest,
@@ -54,14 +55,57 @@ export async function POST(
             template
         );
 
-        // 3. Marcar como impreso y ejecutar lógica de negocio
+        // 3. Marcar como impreso y ejecutar lógica de negocio (crear movimientos de stock)
+        const now = new Date();
+        const isPrintingNow = !invoice.is_printed; // Only create movements if printing for the first time
+
         await prisma.$transaction(async (tx) => {
+            // If printing the invoice for the first time, debit stock
+            if (isPrintingNow && invoice.sales_orders) {
+                const salesOrder = await tx.sales_orders.findUnique({
+                    where: { id: invoice.sales_orders.id },
+                    include: {
+                        sales_order_items: true,
+                    },
+                });
+
+                if (salesOrder) {
+                    for (const item of salesOrder.sales_order_items) {
+                        // Create negative stock movement (debit from stock)
+                        await tx.stock_movements.create({
+                            data: {
+                                article_id: item.article_id,
+                                movement_type: STOCK_MOVEMENT_TYPES.DEBIT,
+                                quantity: item.quantity,
+                                reference_document: `Impresión factura ${invoice.invoice_number}`,
+                                movement_date: now,
+                                notes: `Stock debitado por impresión de factura`,
+                                created_at: now,
+                                updated_at: now,
+                            },
+                        });
+
+                        // Update article stock
+                        await tx.articles.update({
+                            where: { id: item.article_id },
+                            data: {
+                                stock: {
+                                    decrement: item.quantity,
+                                },
+                                updated_at: now,
+                            },
+                        });
+                    }
+                }
+            }
+
+            // Mark invoice as printed
             await tx.invoices.update({
                 where: { id: invoiceId },
                 data: {
                     is_printed: true,
-                    printed_at: new Date(),
-                    updated_at: new Date(),
+                    printed_at: invoice.is_printed ? invoice.printed_at : now,
+                    updated_at: now,
                 }
             });
         });

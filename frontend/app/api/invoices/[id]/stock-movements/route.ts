@@ -34,19 +34,28 @@ export async function GET(
     // Get stock movements for these articles that reference this invoice
     const stockMovements = await prisma.stock_movements.findMany({
       where: {
-        OR: [
-          // Movements that reference this invoice
+        AND: [
           {
-            reference_document: invoice.invoice_number,
             deleted_at: null,
           },
-          // Movements for the articles in this invoice, around the same date
           {
-            article_id: {
-              in: articleIds,
-            },
-            reference_document: invoice.invoice_number,
-            deleted_at: null,
+            OR: [
+              // Movements that reference this invoice (using contains because reference_document has format "Impresión factura {number}")
+              {
+                reference_document: {
+                  contains: invoice.invoice_number,
+                },
+              },
+              // Movements for the articles in this invoice
+              {
+                article_id: {
+                  in: articleIds,
+                },
+                reference_document: {
+                  contains: invoice.invoice_number,
+                },
+              },
+            ],
           },
         ],
       },
