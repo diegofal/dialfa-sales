@@ -8,12 +8,9 @@ export function AuthInitializer() {
   const hasValidated = useRef(false);
 
   useEffect(() => {
-    // Wait for zustand to hydrate from localStorage
-    const unsubscribe = useAuthStore.persist.onFinishHydration(() => {
-      setHydrated();
-    });
-
-    return () => unsubscribe();
+    // Mark as hydrated immediately on client side
+    // Zustand persist will have already loaded from localStorage by this point
+    setHydrated();
   }, [setHydrated]);
 
   useEffect(() => {
