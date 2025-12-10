@@ -1113,7 +1113,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
               )}
               {!isEditMode && (
                 <Button
-                  onClick={handleCreateOrder}
+                  onClick={handleSubmit}
                   disabled={!clientId || items.length === 0 || createOrderMutation.isPending}
                   size="lg"
                 >

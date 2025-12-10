@@ -7,11 +7,12 @@ import { calculateSalesOrderPermissions } from '@/lib/permissions/salesOrders';
  * React hook to calculate permissions for a sales order
  * 
  * @param salesOrder - The sales order entity
+ * @param hasUnsavedChanges - Whether the form has unsaved changes
  * @returns Computed permissions object
  * 
  * @example
  * ```tsx
- * const permissions = useSalesOrderPermissions(salesOrder);
+ * const permissions = useSalesOrderPermissions(salesOrder, hasUnsavedChanges);
  * 
  * <Button 
  *   onClick={handleDelete}
@@ -22,16 +23,18 @@ import { calculateSalesOrderPermissions } from '@/lib/permissions/salesOrders';
  * ```
  */
 export function useSalesOrderPermissions(
-  salesOrder: SalesOrder | null | undefined
+  salesOrder: SalesOrder | null | undefined,
+  hasUnsavedChanges: boolean = false
 ): SalesOrderPermissions {
   const permissions = useMemo(() => {
-    return calculateSalesOrderPermissions(salesOrder, false);
+    return calculateSalesOrderPermissions(salesOrder, hasUnsavedChanges);
   }, [
     salesOrder?.id,
     salesOrder?.invoice?.id,
     salesOrder?.invoice?.isPrinted,
     salesOrder?.invoice?.isCancelled,
     salesOrder?.deliveryNote?.id,
+    hasUnsavedChanges,
   ]);
 
   return permissions;
