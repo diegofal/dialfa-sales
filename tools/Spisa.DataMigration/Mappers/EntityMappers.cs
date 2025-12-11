@@ -90,8 +90,6 @@ public static class ClientMapper
             OperationTypeId = legacy.IdOperatoria,
             TransporterId = legacy.IdTransportista,
             CreditLimit = null, // Not available in legacy
-            CurrentBalance = legacy.Saldo,
-            IsActive = true,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };

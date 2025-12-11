@@ -5,6 +5,7 @@ import { Search, User } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { useClients } from '@/lib/hooks/useClients';
+import { formatCuit } from '@/lib/utils/formatters';
 import type { ClientDto } from '@/types/api';
 
 interface ClientLookupProps {
@@ -108,7 +109,7 @@ export function ClientLookup({ onSelectClient }: ClientLookupProps) {
                     )}
                     {client.cuit && (
                       <div className={`text-xs ${index === selectedIndex ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
-                        CUIT: {client.cuit}
+                        CUIT: {formatCuit(client.cuit)}
                       </div>
                     )}
                   </div>

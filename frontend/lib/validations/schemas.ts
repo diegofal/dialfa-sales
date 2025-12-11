@@ -52,8 +52,6 @@ export const createClientSchema = z.object({
   transporterId: z.coerce.number().int().optional().nullable(),
   sellerId: z.coerce.number().int().optional().nullable(),
   creditLimit: z.coerce.number().min(0).optional().nullable(),
-  currentBalance: z.coerce.number().default(0),
-  isActive: z.boolean().optional().default(true),
 });
 
 export const updateClientSchema = createClientSchema.partial().required({ code: true, businessName: true, taxConditionId: true, operationTypeId: true });

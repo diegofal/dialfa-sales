@@ -26,11 +26,13 @@ export interface ClientDto {
   phone: string | null;
   email: string | null;
   creditLimit: number | null;
-  currentBalance: number;
-  isActive: boolean;
+  taxConditionId: number;
   taxConditionName: string | null;
+  provinceId: number | null;
   provinceName: string | null;
+  operationTypeId: number;
   operationTypeName: string | null;
+  transporterId: number | null;
   transporterName: string | null;
   createdAt: string;
   updatedAt: string;
@@ -50,12 +52,10 @@ export interface CreateClientRequest {
   operationTypeId: number;
   transporterId?: number;
   creditLimit?: number;
-  currentBalance?: number;
 }
 
 export interface UpdateClientRequest extends CreateClientRequest {
   id: number;
-  isActive: boolean;
 }
 
 export interface ApiError {

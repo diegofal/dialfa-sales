@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { PDFDocument, rgb, StandardFonts, PDFPage, PDFFont } from 'pdf-lib';
 import { PrintTemplate, PrintField, ItemsConfiguration } from '@/types/print-template';
+import { formatCuit } from '@/lib/utils/formatters';
 
 interface InvoiceItem {
     quantity: number;
@@ -107,7 +108,7 @@ export class PDFService {
             await this.renderField(page, font, template.fields.condicionIVA, taxCondition);
 
             const cuit = invoice.sales_orders?.clients?.cuit || '';
-            await this.renderField(page, font, template.fields.cuit, cuit);
+            await this.renderField(page, font, template.fields.cuit, formatCuit(cuit));
 
             if (template.items && invoice.sales_orders?.sales_order_items) {
                 const items = invoice.sales_orders.sales_order_items.map((item) => ({
@@ -175,7 +176,7 @@ export class PDFService {
             await this.renderField(page, font, template.fields.condicionIVA, taxCondition);
 
             const cuit = deliveryNote.sales_orders?.clients?.cuit || '';
-            await this.renderField(page, font, template.fields.cuit, cuit);
+            await this.renderField(page, font, template.fields.cuit, formatCuit(cuit));
 
             // Renderizar items
             if (template.items && deliveryNote.delivery_note_items) {
