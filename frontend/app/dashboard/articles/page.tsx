@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { Plus, Search, Filter, Package, History } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -24,12 +25,36 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function ArticlesPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [stockFilter, setStockFilter] = useState<string>('all');
-  const [currentTab, setCurrentTab] = useState('articles');
+  
+  // Get initial tab from URL or default to 'articles'
+  const [currentTab, setCurrentTab] = useState<string>(() => {
+    return searchParams.get('tab') || 'articles';
+  });
+
+  // Sync tab with URL on mount and when searchParams change
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab') || 'articles';
+    if (tabFromUrl !== currentTab) {
+      setCurrentTab(tabFromUrl);
+    }
+  }, [searchParams]);
+
+  // Update URL when tab changes
+  const handleTabChange = (newTab: string) => {
+    setCurrentTab(newTab);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', newTab);
+    router.push(`${pathname}?${params.toString()}`);
+  };
 
   const {
     pagination,
@@ -106,7 +131,7 @@ export default function ArticlesPage() {
         </Button>
       </div>
 
-      <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
+      <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
         <TabsList className="grid w-full max-w-md grid-cols-2">
           <TabsTrigger value="articles" className="flex items-center gap-2">
             <Package className="h-4 w-4" />
