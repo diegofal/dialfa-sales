@@ -10,10 +10,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { useQuickCartTabs, QuickCartItem } from '@/lib/hooks/useQuickCartTabs';
 import { Alert } from '@/components/ui/alert';
-import { ShoppingCart, User, X, Trash2, Pencil, Search, Plus, XCircle, FileText, AlertTriangle, Truck, Eye } from 'lucide-react';
+import { ShoppingCart, User, X, Trash2, Pencil, Search, Plus, FileText, AlertTriangle, Truck, Eye } from 'lucide-react';
 import { useArticles } from '@/lib/hooks/useArticles';
 import type { Article } from '@/types/article';
-import { useSalesOrder, useUpdateSalesOrder, useCancelSalesOrder, useDeleteSalesOrder } from '@/lib/hooks/useSalesOrders';
+import { useSalesOrder, useUpdateSalesOrder, useDeleteSalesOrder } from '@/lib/hooks/useSalesOrders';
 import { useSalesOrderPermissions } from '@/lib/hooks/useSalesOrderPermissions';
 import { validateSalesOrder } from '@/lib/permissions/salesOrders';
 import { Badge } from '@/components/ui/badge';
@@ -123,13 +123,11 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
 
   const createOrderMutation = useCreateSalesOrder();
   const updateOrderMutation = useUpdateSalesOrder();
-  const cancelOrderMutation = useCancelSalesOrder();
   const deleteOrderMutation = useDeleteSalesOrder();
   const generateInvoiceMutation = useGenerateInvoice();
   const generateDeliveryNoteMutation = useGenerateDeliveryNote();
 
   // Dialog states for edit mode
-  const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false);
   const [unsavedChangesAction, setUnsavedChangesAction] = useState<'save' | 'discard' | null>(null);
@@ -631,18 +629,6 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     }
   };
 
-  const handleCancel = () => {
-    if (orderId) {
-      cancelOrderMutation.mutate(orderId, {
-        onSuccess: () => {
-          setShowCancelDialog(false);
-          // Toast is shown by the mutation's onSuccess handler
-          router.push('/dashboard/sales-orders');
-        },
-      });
-    }
-  };
-
   const handleDelete = () => {
     if (orderId) {
       deleteOrderMutation.mutate(orderId, {
@@ -1051,16 +1037,6 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
               >
                 {isEditMode ? 'Volver' : 'Cancelar'}
               </Button>
-              {permissions.canCancel && (
-                <Button
-                  variant="outline"
-                  onClick={() => setShowCancelDialog(true)}
-                  disabled={cancelOrderMutation.isPending}
-                >
-                  <XCircle className="mr-2 h-4 w-4" />
-                  Cancelar Pedido
-                </Button>
-              )}
               {permissions.canDelete && (
                 <Button
                   variant="outline"
@@ -1124,27 +1100,6 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
           </div>
         </div>
       </div>
-
-      {/* Cancel Order Dialog */}
-      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Cancelar pedido?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Esta acción marcará el pedido como CANCELADO. Esta acción no se puede deshacer.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Volver</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleCancel}
-              disabled={cancelOrderMutation.isPending}
-            >
-              {cancelOrderMutation.isPending ? 'Cancelando...' : 'Confirmar Cancelación'}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
 
       {/* Delete Order Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
