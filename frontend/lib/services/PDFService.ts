@@ -17,7 +17,7 @@ export class PDFService {
                 const doc = new PDFDocument({
                     size: [template.pageSize.width, template.pageSize.height],
                     margins: template.margins || { top: 0, bottom: 0, left: 0, right: 0 },
-                    autoFirstPage: true,
+                    autoFirstPage: false,
                     bufferPages: true
                 });
 
@@ -25,6 +25,11 @@ export class PDFService {
                 doc.on('data', (chunk) => chunks.push(chunk));
                 doc.on('end', () => resolve(Buffer.concat(chunks)));
                 doc.on('error', reject);
+
+                // Add page and explicitly set font to one of the standard 14 PDF fonts
+                // that don't require external font files
+                doc.addPage();
+                doc.font('Courier');
 
                 // Renderizar campos estáticos
                 this.renderField(doc, template.fields.fecha,
@@ -159,7 +164,7 @@ export class PDFService {
                 const doc = new PDFDocument({
                     size: [template.pageSize.width, template.pageSize.height],
                     margins: template.margins || { top: 0, bottom: 0, left: 0, right: 0 },
-                    autoFirstPage: true,
+                    autoFirstPage: false,
                     bufferPages: true
                 });
 
@@ -167,6 +172,11 @@ export class PDFService {
                 doc.on('data', (chunk) => chunks.push(chunk));
                 doc.on('end', () => resolve(Buffer.concat(chunks)));
                 doc.on('error', reject);
+
+                // Add page and explicitly set font to one of the standard 14 PDF fonts
+                // that don't require external font files
+                doc.addPage();
+                doc.font('Courier');
 
                 // Renderizar campos estáticos
                 this.renderField(doc, template.fields.fecha,

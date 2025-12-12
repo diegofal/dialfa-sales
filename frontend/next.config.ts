@@ -16,6 +16,21 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+
+  // Configure webpack to handle pdfkit properly
+  webpack: (config, { isServer }) => {
+    // Ignore fs module warnings from pdfkit on client side  
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        stream: false,
+        zlib: false,
+      };
+    }
+
+    return config;
+  },
 };
 
 export default nextConfig;
