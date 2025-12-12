@@ -57,6 +57,9 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 
+# Copy pdfkit data files (font metrics required for PDF generation)
+COPY --from=builder /app/node_modules/pdfkit ./node_modules/pdfkit
+
 # Prisma Setup for Production
 # Copy schema, migration files, and generated client from builder stage
 # Note: Next.js standalone build doesn't include these automatically

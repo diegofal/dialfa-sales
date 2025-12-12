@@ -17,8 +17,16 @@ const nextConfig: NextConfig = {
     ],
   },
 
+  // Keep pdfkit external so it can access its font files from node_modules
+  serverExternalPackages: ['pdfkit'],
+
   // Configure webpack to handle pdfkit properly
   webpack: (config, { isServer }) => {
+    // Mark pdfkit as external on server to prevent bundling
+    if (isServer) {
+      config.externals = [...(config.externals || []), 'pdfkit'];
+    }
+    
     // Ignore fs module warnings from pdfkit on client side  
     if (!isServer) {
       config.resolve.fallback = {
