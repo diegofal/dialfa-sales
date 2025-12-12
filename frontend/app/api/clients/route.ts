@@ -10,6 +10,7 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
     const search = searchParams.get('search') || '';
+    const isActive = searchParams.get('isActive');
 
     const skip = (page - 1) * limit;
 
@@ -25,6 +26,10 @@ export async function GET(request: NextRequest) {
         { business_name: { contains: search, mode: 'insensitive' } },
         { cuit: { contains: search, mode: 'insensitive' } },
       ];
+    }
+
+    if (isActive !== null && isActive !== undefined) {
+      where.is_active = isActive === 'true';
     }
 
     // Get clients with relations
@@ -91,6 +96,8 @@ export async function POST(request: NextRequest) {
         transporter_id: validatedData.transporterId,
         seller_id: validatedData.sellerId,
         credit_limit: validatedData.creditLimit,
+        current_balance: validatedData.currentBalance ?? 0,
+        is_active: validatedData.isActive ?? true,
         created_at: new Date(),
         updated_at: new Date(),
       },

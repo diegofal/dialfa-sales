@@ -65,20 +65,22 @@ export function mapClientToDTO(client: unknown) {
     code: c.code as string,
     businessName: c.business_name as string,
     cuit: c.cuit as string | null,
-    taxConditionId: parseInt(String(c.tax_condition_id as bigint | number)),
+    taxConditionId: c.tax_condition_id as bigint,
     taxConditionName: taxConditions?.name || '',
     address: c.address as string | null,
     city: c.city as string | null,
     postalCode: c.postal_code as string | null,
-    provinceId: c.province_id ? parseInt(String(c.province_id as bigint | number)) : null,
+    provinceId: c.province_id as bigint | null,
     provinceName: provinces?.name || '',
     phone: c.phone as string | null,
     email: c.email as string | null,
-    operationTypeId: parseInt(String(c.operation_type_id as bigint | number)),
+    operationTypeId: c.operation_type_id as bigint,
     operationTypeName: operationTypes?.name || '',
-    transporterId: c.transporter_id ? parseInt(String(c.transporter_id as bigint | number)) : null,
+    transporterId: c.transporter_id as bigint | null,
     transporterName: transporters?.name || '',
     creditLimit: c.credit_limit ? parseFloat(String(c.credit_limit)) : null,
+    currentBalance: parseFloat(String(c.current_balance)),
+    isActive: c.is_active as boolean,
     sellerId: c.seller_id as bigint | null,
     createdAt: c.created_at as Date,
     updatedAt: c.updated_at as Date,
@@ -221,7 +223,7 @@ export function mapDeliveryNoteToDTO(deliveryNote: unknown) {
     order_number?: string;
     clients?: { business_name?: string };
   } | undefined;
-  const transporters = d.transporters as { name?: string; address?: string | null } | undefined;
+  const transporters = d.transporters as { name?: string } | undefined;
   
   // Use delivery_note_items instead of sales_order_items
   const deliveryNoteItems = (d.delivery_note_items || []) as Array<Record<string, unknown>>;
@@ -235,7 +237,6 @@ export function mapDeliveryNoteToDTO(deliveryNote: unknown) {
     deliveryDate: (d.delivery_date as Date).toISOString(),
     transporterId: d.transporter_id ? parseInt(String(d.transporter_id)) : null,
     transporterName: transporters?.name || null,
-    transporterAddress: transporters?.address || null,
     weightKg: d.weight_kg ? parseFloat(String(d.weight_kg)) : null,
     packagesCount: d.packages_count ? Number(d.packages_count) : null,
     declaredValue: d.declared_value ? parseFloat(String(d.declared_value)) : null,

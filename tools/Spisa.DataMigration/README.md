@@ -20,18 +20,6 @@ Migrates data from Azure SQL Server to PostgreSQL databases.
 
 ## Before Running Migration
 
-### ⚠️ IMPORTANT: Regenerate migration-script.sql
-
-The `migration-script.sql` file is outdated and contains the deprecated `current_balance` column. 
-
-**To regenerate the migration script:**
-```powershell
-cd tools\Spisa.DataMigration
-.\generate-migration-sql.ps1
-```
-
-This will create a new `migration-script.sql` with the updated schema (without `current_balance`).
-
 ### 1. Update Azure SQL Connection String
 
 Edit the appropriate `appsettings.*.json` file and replace:

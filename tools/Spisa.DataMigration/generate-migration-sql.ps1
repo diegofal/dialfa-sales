@@ -235,6 +235,7 @@ $tables = @(
             @{Source="CUIT"; Target="cuit"; Type="string"}
             @{Source="IdTransportista"; Target="transporter_id"; Type="number"}
             @{Source="IdVendedor"; Target="seller_id"; Type="number"}
+            @{Source="Saldo"; Target="current_balance"; Type="number"}
         )
         ComputedColumns = @(
             @{Target="business_name"; Expression={ param($reader) 

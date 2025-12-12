@@ -47,6 +47,8 @@ public class ModernClient
     public int OperationTypeId { get; set; }
     public int? TransporterId { get; set; }
     public decimal? CreditLimit { get; set; }
+    public decimal CurrentBalance { get; set; }
+    public bool IsActive { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

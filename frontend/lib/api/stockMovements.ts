@@ -1,6 +1,6 @@
 import { apiClient } from './client';
 import type { StockMovement } from '@/types/stockMovement';
-import type { PaginationParams, PaginatedResponse } from '@/types/pagination';
+import type { PaginationParams, PagedResult } from '@/types/pagination';
 
 export interface StockMovementFilters extends PaginationParams {
   articleId?: number;
@@ -10,7 +10,7 @@ export interface StockMovementFilters extends PaginationParams {
 }
 
 export const stockMovementsApi = {
-  getAll: async (filters?: StockMovementFilters): Promise<PaginatedResponse<StockMovement>> => {
+  getAll: async (filters?: StockMovementFilters): Promise<PagedResult<StockMovement>> => {
     const params = new URLSearchParams();
     
     if (filters?.pageNumber) params.append('page', filters.pageNumber.toString());
@@ -20,10 +20,12 @@ export const stockMovementsApi = {
     if (filters?.startDate) params.append('startDate', filters.startDate);
     if (filters?.endDate) params.append('endDate', filters.endDate);
 
-    const { data } = await apiClient.get<PaginatedResponse<StockMovement>>(
+    const { data } = await apiClient.get<PagedResult<StockMovement>>(
       `/stock-movements?${params.toString()}`
     );
     return data;
   },
 };
+
+
 

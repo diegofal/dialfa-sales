@@ -17,7 +17,6 @@ import {
 } from '@/components/ui/table';
 import { useInvoice, useCancelInvoice, usePrintInvoice, useUpdateInvoiceExchangeRate } from '@/lib/hooks/useInvoices';
 import { useQuickInvoiceTabs } from '@/lib/hooks/useQuickInvoiceTabs';
-import { formatCuit } from '@/lib/utils/formatters';
 import { useState, useEffect } from 'react';
 import {
   AlertDialog,
@@ -169,7 +168,7 @@ export default function InvoiceDetailPage() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">CUIT</p>
-              <p className="font-medium">{formatCuit(invoice.clientCuit)}</p>
+              <p className="font-medium">{invoice.clientCuit}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Condición IVA</p>

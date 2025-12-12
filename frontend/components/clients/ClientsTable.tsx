@@ -14,6 +14,7 @@ import {
 import { ClickableTableRow } from '@/components/ui/clickable-table-row';
 import { SortableTableHead } from '@/components/ui/sortable-table-head';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,7 +27,6 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Pencil, Trash2 } from 'lucide-react';
 import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
-import { formatCuit } from '@/lib/utils/formatters';
 
 interface ClientsTableProps {
   clients: ClientDto[];
@@ -51,6 +51,13 @@ export default function ClientsTable({
       deleteClientMutation.mutate(clientToDelete.id);
       setClientToDelete(null);
     }
+  };
+
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('es-AR', {
+      style: 'currency',
+      currency: 'ARS',
+    }).format(value);
   };
 
   return (
@@ -91,13 +98,23 @@ export default function ClientsTable({
               >
                 Ciudad
               </SortableTableHead>
+              <SortableTableHead
+                sortKey="CurrentBalance"
+                currentSortBy={currentSortBy}
+                currentSortDescending={currentSortDescending}
+                onSort={onSort}
+                align="right"
+              >
+                Saldo
+              </SortableTableHead>
+              <SortableTableHead>Estado</SortableTableHead>
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {clients.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center text-muted-foreground">
+                <TableCell colSpan={7} className="text-center text-muted-foreground">
                   No hay clientes registrados
                 </TableCell>
               </TableRow>
@@ -111,9 +128,17 @@ export default function ClientsTable({
                   <TableCell className="font-medium">{client.code}</TableCell>
                   <TableCell>{client.businessName}</TableCell>
                   <TableCell className="font-mono text-sm">
-                    {formatCuit(client.cuit)}
+                    {client.cuit || '-'}
                   </TableCell>
                   <TableCell>{client.city || '-'}</TableCell>
+                  <TableCell className={client.currentBalance < 0 ? 'text-red-600' : ''}>
+                    {formatCurrency(client.currentBalance)}
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant={client.isActive ? 'default' : 'secondary'}>
+                      {client.isActive ? 'Activo' : 'Inactivo'}
+                    </Badge>
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button
