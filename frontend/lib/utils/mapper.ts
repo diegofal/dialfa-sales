@@ -116,7 +116,7 @@ export function mapSalesOrderToDTO(order: unknown) {
     isDeleted: !!o.deleted_at,
     // For permission calculations
     hasInvoice: !!invoice && !(invoice.is_cancelled as boolean),
-    invoicePrinted: invoice ? (invoice.is_printed as boolean) : false,
+    invoicePrinted: invoice && !(invoice.is_cancelled as boolean) ? (invoice.is_printed as boolean) : false,
     items: salesOrderItems.map((item) => {
       const articles = item.articles as { 
         code?: string; 

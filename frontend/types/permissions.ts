@@ -24,24 +24,29 @@ export interface SalesOrderPermissions {
 export function calculateSalesOrderPermissions(
   status: SalesOrderStatus
 ): SalesOrderPermissions {
+  // Una factura impresa Y cancelada no debería bloquear acciones
+  // porque no tiene implicancia fiscal (solo de stock)
+  const hasActiveInvoicePrinted = status.invoicePrinted && !status.invoiceCancelled;
+  
   return {
-    // No se puede editar si la factura fue impresa
-    canEdit: !status.invoicePrinted,
+    // No se puede editar si la factura fue impresa y NO está cancelada
+    canEdit: !hasActiveInvoicePrinted,
     
     // Solo se puede guardar si es editable
-    canSave: !status.invoicePrinted,
+    canSave: !hasActiveInvoicePrinted,
     
     // Solo crear factura si está guardado y no tiene factura activa
     canCreateInvoice: 
       status.id !== null && 
       (!status.hasInvoice || status.invoiceCancelled),
     
-    // No cancelar si tiene factura impresa o si el pedido no existe aún
-    canCancel: status.id !== null && !status.invoicePrinted,
+    // No cancelar si tiene factura impresa activa o si el pedido no existe aún
+    canCancel: status.id !== null && !hasActiveInvoicePrinted,
     
-    // Se puede eliminar si la factura NO está impresa y el pedido ya existe
+    // Se puede eliminar si la factura NO está impresa y activa, y el pedido ya existe
     // (Cuando se imprime la factura es cuando se debita el stock)
-    canDelete: status.id !== null && !status.invoicePrinted,
+    // Las facturas canceladas no bloquean porque el stock ya fue devuelto
+    canDelete: status.id !== null && !hasActiveInvoicePrinted,
     
     // Crear remito si está guardado
     canCreateDeliveryNote: status.id !== null

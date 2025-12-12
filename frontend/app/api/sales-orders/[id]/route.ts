@@ -91,6 +91,11 @@ export async function PUT(
       where: { id },
       include: {
         invoices: {
+          select: {
+            id: true,
+            is_printed: true,
+            is_cancelled: true,
+          },
           where: { deleted_at: null },
           orderBy: { created_at: 'desc' },
           take: 1,
@@ -105,11 +110,12 @@ export async function PUT(
       );
     }
 
-    // Check permissions: cannot edit if invoice is printed
+    // Check permissions: cannot edit if invoice is printed AND not cancelled
+    // Cancelled invoices don't block editing because they have no fiscal impact
     const activeInvoice = existingSalesOrder.invoices[0];
-    if (activeInvoice && activeInvoice.is_printed) {
+    if (activeInvoice && activeInvoice.is_printed && !activeInvoice.is_cancelled) {
       return NextResponse.json(
-        { error: 'No se puede modificar un pedido con factura impresa' },
+        { error: 'No se puede modificar un pedido con factura impresa activa' },
         { status: 403 }
       );
     }

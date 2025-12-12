@@ -1108,12 +1108,12 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
             <AlertDialogTitle>¿Eliminar pedido?</AlertDialogTitle>
             <AlertDialogDescription>
               Esta acción eliminará el pedido permanentemente. Esta acción no se puede deshacer.
-              {existingOrder?.invoice?.isPrinted && (
-                <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded">
-                  <strong>Nota:</strong> Este pedido tiene una factura impresa. Al eliminar el pedido, la factura será cancelada y el stock será devuelto automáticamente.
-                </div>
-              )}
             </AlertDialogDescription>
+            {existingOrder?.invoice?.isPrinted && (
+              <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm">
+                <strong>Nota:</strong> Este pedido tiene una factura impresa. Al eliminar el pedido, la factura será cancelada y el stock será devuelto automáticamente.
+              </div>
+            )}
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Volver</AlertDialogCancel>
