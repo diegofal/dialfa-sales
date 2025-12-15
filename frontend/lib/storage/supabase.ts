@@ -1,18 +1,14 @@
 import { createClient } from '@supabase/supabase-js'
 
-// Validate environment variables
-if (!process.env.SUPABASE_URL) {
-  throw new Error('Missing SUPABASE_URL environment variable')
-}
-
-if (!process.env.SUPABASE_SERVICE_KEY) {
-  throw new Error('Missing SUPABASE_SERVICE_KEY environment variable')
-}
+// Validate environment variables (only at runtime, not during build)
+const SUPABASE_URL = process.env.SUPABASE_URL || ''
+const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || ''
 
 // Create Supabase client with service role key (server-side only)
+// During build, this creates a dummy client that won't be used
 export const supabase = createClient(
-  process.env.SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_KEY,
+  SUPABASE_URL || 'https://dummy.supabase.co',
+  SUPABASE_SERVICE_KEY || 'dummy-key',
   {
     auth: {
       persistSession: false,
@@ -20,6 +16,16 @@ export const supabase = createClient(
     }
   }
 )
+
+// Validation helper that throws at runtime
+function validateSupabaseConfig() {
+  if (!SUPABASE_URL || SUPABASE_URL === 'https://dummy.supabase.co') {
+    throw new Error('Missing SUPABASE_URL environment variable')
+  }
+  if (!SUPABASE_SERVICE_KEY || SUPABASE_SERVICE_KEY === 'dummy-key') {
+    throw new Error('Missing SUPABASE_SERVICE_KEY environment variable')
+  }
+}
 
 const BUCKET_NAME = 'certificates'
 
@@ -85,6 +91,8 @@ export async function uploadCertificateFile(
   fileName: string,
   category: string
 ): Promise<{ storagePath: string; url: string }> {
+  validateSupabaseConfig()
+  
   // Validate file type
   if (!isAllowedFileType(fileName)) {
     throw new Error(`File type not allowed: ${getFileExtension(fileName)}`)
@@ -117,6 +125,8 @@ export async function uploadCertificateFile(
  * URLs are valid for 1 hour
  */
 export async function getCertificateSignedUrl(storagePath: string): Promise<string> {
+  validateSupabaseConfig()
+  
   const { data, error } = await supabase.storage
     .from(BUCKET_NAME)
     .createSignedUrl(storagePath, 3600) // 1 hour expiry
@@ -154,6 +164,8 @@ export async function getCertificateSignedUrls(
  * Delete a certificate file from storage
  */
 export async function deleteCertificateFile(storagePath: string): Promise<void> {
+  validateSupabaseConfig()
+  
   const { error } = await supabase.storage
     .from(BUCKET_NAME)
     .remove([storagePath])
@@ -167,6 +179,8 @@ export async function deleteCertificateFile(storagePath: string): Promise<void> 
  * Check if a file exists in storage
  */
 export async function certificateFileExists(storagePath: string): Promise<boolean> {
+  validateSupabaseConfig()
+  
   const { data, error } = await supabase.storage
     .from(BUCKET_NAME)
     .list(storagePath.split('/').slice(0, -1).join('/'), {
