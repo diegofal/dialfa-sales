@@ -11,6 +11,7 @@ import {
   Truck,
   TrendingUp,
   Settings,
+  FileCheck,
 } from 'lucide-react';
 import PedidosMenuItem from './PedidosMenuItem';
 import FacturasMenuItem from './FacturasMenuItem';
@@ -24,6 +25,7 @@ const navigation = [
 ];
 
 const navigationAfterRemitos = [
+  { name: 'Certificados', href: '/dashboard/certificates', icon: FileCheck },
   { name: 'Reportes', href: '/dashboard/reports', icon: TrendingUp },
   { name: 'Configuración', href: '/dashboard/settings', icon: Settings },
 ];
