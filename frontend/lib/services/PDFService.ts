@@ -96,15 +96,17 @@ export class PDFService {
 
         if (field.align === 'right') {
             const textWidth = doc.widthOfString(stringValue);
-            doc.text(stringValue, finalX - textWidth, finalY, {
-                width: field.maxWidth,
-                align: 'right'
-            });
+            // Para align right, posicionamos el texto para que termine en finalX
+            doc.text(stringValue, finalX - textWidth, finalY);
         } else {
-            doc.text(stringValue, finalX, finalY, {
-                width: field.maxWidth,
+            // Para align left o center, usamos las opciones de PDFKit
+            const options: any = {
                 align: field.align || 'left'
-            });
+            };
+            if (field.maxWidth) {
+                options.width = field.maxWidth;
+            }
+            doc.text(stringValue, finalX, finalY, options);
         }
 
         doc.fontSize(12);
@@ -117,12 +119,7 @@ export class PDFService {
     ): void {
         let currentY = config.startY;
 
-        items.forEach((item, index) => {
-            if (config.maxRows && index > 0 && index % config.maxRows === 0) {
-                doc.addPage();
-                currentY = config.startY;
-            }
-
+        items.forEach((item) => {
             if (config.columns.cantidad) {
                 const col = config.columns.cantidad;
                 this.renderField(doc, { ...col, y: currentY }, item.quantity);
@@ -172,8 +169,8 @@ export class PDFService {
                 this.renderField(doc, template.fields.fecha,
                     new Date(deliveryNote.delivery_date).toLocaleDateString());
 
-                this.renderField(doc, template.fields.numeroRemito || template.fields.numeroFactura,
-                    deliveryNote.delivery_number);
+                // NO renderizar número de remito (el formulario preimpreso ya lo tiene)
+                // En el sistema legacy, NumeroRemito tiene coordenadas vacías
 
                 const clientName = deliveryNote.sales_orders?.clients?.business_name || '';
                 this.renderField(doc, template.fields.razonSocial, clientName);
@@ -193,18 +190,30 @@ export class PDFService {
                 const cuit = deliveryNote.sales_orders?.clients?.cuit || '';
                 this.renderField(doc, template.fields.cuit, cuit);
 
-                // Datos específicos del remito
+                // Datos específicos del remito - Transportista
                 if (deliveryNote.transporter_id && deliveryNote.transporters) {
-                    const transporterName = deliveryNote.transporters.business_name || '';
+                    const transporterName = deliveryNote.transporters.name || '';
                     this.renderField(doc, template.fields.transportista, transporterName);
+                    
+                    // Dirección del transportista
+                    const transporterAddress = deliveryNote.transporters.address || '';
+                    this.renderField(doc, template.fields.domicilioTransportista, transporterAddress);
                 }
 
+                // Peso - con formato "Peso: X kg."
                 if (deliveryNote.weight_kg) {
-                    this.renderField(doc, template.fields.peso, `${deliveryNote.weight_kg} kg`);
+                    this.renderField(doc, template.fields.peso, `Peso: ${deliveryNote.weight_kg} kg.`);
                 }
 
+                // Bultos - con formato "Bultos: X"
                 if (deliveryNote.packages_count) {
-                    this.renderField(doc, template.fields.bultos, deliveryNote.packages_count.toString());
+                    this.renderField(doc, template.fields.bultos, `Bultos: ${deliveryNote.packages_count}`);
+                }
+
+                // Valor declarado - con formato "Valor: $X"
+                if (deliveryNote.declared_value) {
+                    const declaredValue = Number(deliveryNote.declared_value);
+                    this.renderField(doc, template.fields.valor, `Valor: $${declaredValue.toFixed(2)}`);
                 }
 
                 // Renderizar items si existen

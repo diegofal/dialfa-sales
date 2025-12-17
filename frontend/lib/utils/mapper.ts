@@ -237,10 +237,13 @@ export function mapDeliveryNoteToDTO(deliveryNote: unknown) {
     deliveryDate: (d.delivery_date as Date).toISOString(),
     transporterId: d.transporter_id ? parseInt(String(d.transporter_id)) : null,
     transporterName: transporters?.name || null,
+    transporterAddress: (transporters as { address?: string })?.address || null,
     weightKg: d.weight_kg ? parseFloat(String(d.weight_kg)) : null,
     packagesCount: d.packages_count ? Number(d.packages_count) : null,
     declaredValue: d.declared_value ? parseFloat(String(d.declared_value)) : null,
     notes: d.notes as string | null,
+    isPrinted: d.is_printed ? Boolean(d.is_printed) : false,
+    printedAt: d.printed_at ? (d.printed_at as Date).toISOString() : null,
     createdAt: (d.created_at as Date).toISOString(),
     updatedAt: (d.updated_at as Date).toISOString(),
     items: deliveryNoteItems.map((item) => {

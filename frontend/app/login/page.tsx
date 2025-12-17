@@ -41,11 +41,12 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    // Only redirect if hydrated and authenticated
-    if (hydrated && isAuthenticated) {
-      router.push('/dashboard');
+    // Only redirect if already authenticated (prevents showing login page if already logged in)
+    // Don't redirect during login mutation, let onSuccess handler do it
+    if (hydrated && isAuthenticated && !loginMutation.isPending) {
+      router.replace('/dashboard');
     }
-  }, [hydrated, isAuthenticated, router]);
+  }, [hydrated, isAuthenticated, loginMutation.isPending, router]);
 
   const onSubmit = (data: LoginFormValues) => {
     loginMutation.mutate(data);

@@ -7,10 +7,10 @@
         "height": 842
     },
     "margins": {
-        "top": 20,
-        "bottom": 20,
-        "left": 20,
-        "right": 20
+        "top": 0,
+        "bottom": 0,
+        "left": 0,
+        "right": 0
     },
     "globalOffset": {
         "x": 0,
@@ -22,88 +22,78 @@
     },
     "fields": {
         "fecha": {
-            "x": 389,
-            "y": 65,
-            "align": "left"
-        },
-        "numeroRemito": {
-            "x": 389,
-            "y": 80,
-            "align": "left",
-            "fontWeight": "bold"
-        },
-        "numeroPedido": {
-            "x": 389,
-            "y": 95,
+            "x": 405,
+            "y": 68,
             "align": "left"
         },
         "razonSocial": {
-            "x": 72,
-            "y": 130,
+            "x": 75,
+            "y": 135,
             "fontWeight": "bold"
         },
         "domicilio": {
-            "x": 72,
-            "y": 140
+            "x": 75,
+            "y": 146
         },
         "localidad": {
-            "x": 72,
-            "y": 151
+            "x": 75,
+            "y": 158
         },
         "provincia": {
-            "x": 72,
-            "y": 169
+            "x": 75,
+            "y": 176
         },
         "condicionIVA": {
-            "x": 72,
-            "y": 191
+            "x": 75,
+            "y": 199
         },
         "cuit": {
-            "x": 331,
-            "y": 191
+            "x": 345,
+            "y": 199
         },
         "transportista": {
-            "x": 72,
-            "y": 720
+            "x": 113,
+            "y": 709
         },
         "domicilioTransportista": {
-            "x": 72,
-            "y": 735
+            "x": 128,
+            "y": 743
         },
         "peso": {
-            "x": 72,
-            "y": 755
+            "x": 473,
+            "y": 600
         },
         "bultos": {
-            "x": 250,
-            "y": 755
+            "x": 473,
+            "y": 675
         },
         "valor": {
-            "x": 400,
-            "y": 755
+            "x": 473,
+            "y": 638
         },
         "observaciones": {
-            "x": 72,
-            "y": 775
+            "x": 54,
+            "y": 581
         }
     },
     "items": {
-        "startY": 252,
-        "spacing": 12,
-        "maxRows": 35,
+        "startY": 263,
+        "spacing": 11,
         "columns": {
             "cantidad": {
-                "x": 58,
+                "x": 60,
                 "align": "right"
             },
             "descripcion": {
-                "x": 94,
-                "width": 400,
+                "x": 120,
+                "width": 350,
                 "align": "left"
             }
         }
     }
 }
+
+
 
 
 

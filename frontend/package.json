@@ -13,7 +13,8 @@
     "migrate:update-coladas": "tsx scripts/update-coladas-from-excel.ts",
     "sync:excel": "tsx scripts/sync-from-excel.ts",
     "clean:all": "tsx scripts/clean-all.ts",
-    "clean:otros": "tsx scripts/cleanup-otros.ts"
+    "clean:otros": "tsx scripts/cleanup-otros.ts",
+    "db:verify": "tsx scripts/verify-db.ts"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.2.2",

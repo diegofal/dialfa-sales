@@ -149,6 +149,8 @@ model delivery_notes {
   packages_count      Int?
   declared_value      Decimal?             @db.Decimal
   notes               String?
+  is_printed          Boolean              @default(false)
+  printed_at          DateTime?            @db.Timestamptz(6)
   created_at          DateTime             @db.Timestamptz(6)
   updated_at          DateTime             @db.Timestamptz(6)
   deleted_at          DateTime?            @db.Timestamptz(6)

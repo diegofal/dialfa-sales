@@ -1,7 +1,8 @@
 'use client';
 
-import { Eye, Trash2, Printer, FileText } from 'lucide-react';
+import { Eye, Trash2, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Table,
   TableBody,
@@ -24,7 +25,7 @@ import {
 import { useState } from 'react';
 import type { DeliveryNoteListDto } from '@/types/deliveryNote';
 import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
-import { useDownloadDeliveryNotePdf } from '@/lib/hooks/useDeliveryNotes';
+import { useDownloadDeliveryNotePdf, usePrintDeliveryNote } from '@/lib/hooks/useDeliveryNotes';
 import { useRouter } from 'next/navigation';
 
 interface DeliveryNotesTableProps {
@@ -47,6 +48,7 @@ export function DeliveryNotesTable({
   const router = useRouter();
   const [deliveryNoteToDelete, setDeliveryNoteToDelete] = useState<number | null>(null);
   const downloadPdfMutation = useDownloadDeliveryNotePdf();
+  const printDeliveryNoteMutation = usePrintDeliveryNote();
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('es-AR');
@@ -62,6 +64,18 @@ export function DeliveryNotesTable({
   const handleDownloadPdf = (id: number, e: React.MouseEvent) => {
     e.stopPropagation();
     downloadPdfMutation.mutate(id);
+  };
+
+  const handlePrint = (id: number, e: React.MouseEvent) => {
+    e.stopPropagation();
+    printDeliveryNoteMutation.mutate(id);
+  };
+
+  const getStatusBadge = (deliveryNote: DeliveryNoteListDto) => {
+    if (deliveryNote.isPrinted) {
+      return <Badge variant="default" className="bg-green-600">Impreso</Badge>;
+    }
+    return <Badge variant="secondary">Pendiente</Badge>;
   };
 
   const handleViewSalesOrder = (salesOrderId: number, e: React.MouseEvent) => {
@@ -102,13 +116,14 @@ export function DeliveryNotesTable({
               <SortableTableHead>N° Pedido</SortableTableHead>
               <SortableTableHead>Transportista</SortableTableHead>
               <SortableTableHead align="right">Bultos</SortableTableHead>
+              <SortableTableHead>Estado</SortableTableHead>
               <SortableTableHead align="right">Acciones</SortableTableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {deliveryNotes.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
+                <TableCell colSpan={8} className="text-center text-muted-foreground">
                   No se encontraron remitos
                 </TableCell>
               </TableRow>
@@ -136,6 +151,7 @@ export function DeliveryNotesTable({
                   <TableCell className="text-right">
                     {deliveryNote.packagesCount || '-'}
                   </TableCell>
+                  <TableCell>{getStatusBadge(deliveryNote)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button
@@ -152,9 +168,9 @@ export function DeliveryNotesTable({
                       <Button
                         variant={ACTION_BUTTON_CONFIG.print.variant}
                         size={ACTION_BUTTON_CONFIG.print.size}
-                        onClick={(e) => handleDownloadPdf(deliveryNote.id, e)}
-                        disabled={downloadPdfMutation.isPending}
-                        title={ACTION_BUTTON_CONFIG.print.title}
+                        onClick={(e) => handlePrint(deliveryNote.id, e)}
+                        disabled={printDeliveryNoteMutation.isPending}
+                        title="Imprimir"
                       >
                         <Printer className="h-4 w-4" />
                       </Button>

@@ -1,8 +1,9 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Printer, Trash2 } from 'lucide-react';
+import { ArrowLeft, Printer, Trash2, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   Table,
@@ -25,7 +26,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { useDeliveryNote, useDownloadDeliveryNotePdf, useUpdateDeliveryNote, useDeleteDeliveryNote } from '@/lib/hooks/useDeliveryNotes';
+import { useDeliveryNote, useDownloadDeliveryNotePdf, usePrintDeliveryNote, useUpdateDeliveryNote, useDeleteDeliveryNote } from '@/lib/hooks/useDeliveryNotes';
 import { useQuickDeliveryNoteTabs } from '@/lib/hooks/useQuickDeliveryNoteTabs';
 import { useEffect, useState } from 'react';
 
@@ -36,6 +37,7 @@ export default function DeliveryNoteDetailPage() {
   
   const { data: deliveryNote, isLoading } = useDeliveryNote(deliveryNoteId);
   const downloadPdfMutation = useDownloadDeliveryNotePdf();
+  const printDeliveryNoteMutation = usePrintDeliveryNote();
   const updateDeliveryNoteMutation = useUpdateDeliveryNote();
   const deleteDeliveryNoteMutation = useDeleteDeliveryNote();
   const { addTab, removeTab } = useQuickDeliveryNoteTabs();
@@ -103,8 +105,19 @@ export default function DeliveryNoteDetailPage() {
     return new Date(dateString).toLocaleDateString('es-AR');
   };
 
+  const getStatusBadge = () => {
+    if (deliveryNote?.isPrinted) {
+      return <Badge variant="default" className="bg-green-600">Impreso</Badge>;
+    }
+    return <Badge variant="secondary">Pendiente</Badge>;
+  };
+
   const handleDownloadPdf = () => {
     downloadPdfMutation.mutate(deliveryNoteId);
+  };
+
+  const handlePrint = () => {
+    printDeliveryNoteMutation.mutate(deliveryNoteId);
   };
 
   const handleDelete = () => {
@@ -138,6 +151,7 @@ export default function DeliveryNoteDetailPage() {
   return (
     <div className="space-y-6 pb-24">
       {/* Header */}
+      <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" onClick={() => router.back()}>
             <ArrowLeft className="h-4 w-4" />
@@ -147,6 +161,8 @@ export default function DeliveryNoteDetailPage() {
             <p className="text-muted-foreground">
               Fecha de Entrega: {formatDate(deliveryNote.deliveryDate)}
             </p>
+          </div>
+          {getStatusBadge()}
         </div>
       </div>
 
@@ -346,9 +362,16 @@ export default function DeliveryNoteDetailPage() {
               >
                 Ver Pedido
               </Button>
-              <Button variant="outline" onClick={handleDownloadPdf} disabled={downloadPdfMutation.isPending}>
+              <Button
+                variant="outline"
+                onClick={() => window.open(`/api/delivery-notes/${deliveryNote.id}/pdf`, '_blank')}
+              >
+                <Eye className="mr-2 h-4 w-4" />
+                Ver PDF
+              </Button>
+              <Button onClick={handlePrint} disabled={printDeliveryNoteMutation.isPending}>
                 <Printer className="mr-2 h-4 w-4" />
-                {downloadPdfMutation.isPending ? 'Descargando...' : 'Descargar PDF'}
+                {printDeliveryNoteMutation.isPending ? 'Imprimiendo...' : 'Imprimir'}
               </Button>
             </div>
           </div>
