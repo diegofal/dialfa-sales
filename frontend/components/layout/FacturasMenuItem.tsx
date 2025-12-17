@@ -97,29 +97,38 @@ export default function FacturasMenuItem() {
             ) : (
               tabs.map((tab) => {
                 const isTabActive = pathname.includes(`/invoices/${tab.invoiceId}`);
+                const fullText = `${tab.invoiceNumber} - ${tab.clientName}`;
                 
                 return (
-                  <div
-                    key={tab.id}
-                    className={cn(
-                      'group flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors cursor-pointer',
-                      isTabActive
-                        ? 'bg-primary/10 text-primary font-medium'
-                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                    )}
-                    onClick={() => handleTabClick(tab.id)}
-                  >
-                    <div className="flex-1 min-w-0 truncate">
-                      {tab.invoiceNumber} - {tab.clientName}
-                    </div>
-                    <button
-                      onClick={(e) => handleRemoveTab(e, tab.id)}
-                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/10 rounded transition-opacity"
-                      aria-label={`Cerrar ${tab.invoiceNumber}`}
-                    >
-                      <X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
-                    </button>
-                  </div>
+                  <TooltipProvider key={tab.id}>
+                    <Tooltip delayDuration={300}>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={cn(
+                            'group flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors cursor-pointer',
+                            isTabActive
+                              ? 'bg-primary/10 text-primary font-medium'
+                              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                          )}
+                          onClick={() => handleTabClick(tab.id)}
+                        >
+                          <div className="flex-1 min-w-0 truncate">
+                            {fullText}
+                          </div>
+                          <button
+                            onClick={(e) => handleRemoveTab(e, tab.id)}
+                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/10 rounded transition-opacity"
+                            aria-label={`Cerrar ${tab.invoiceNumber}`}
+                          >
+                            <X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+                          </button>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" align="start">
+                        <p>{fullText}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 );
               })
             )}
