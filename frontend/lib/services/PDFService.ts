@@ -100,7 +100,8 @@ export class PDFService {
             doc.text(stringValue, finalX - textWidth, finalY);
         } else {
             // Para align left o center, usamos las opciones de PDFKit
-            const options: any = {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const options: Record<string, any> = {
                 align: field.align || 'left'
             };
             if (field.maxWidth) {
