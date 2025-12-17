@@ -5,6 +5,12 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { ShoppingCart, ChevronDown, ChevronRight, X, AlertCircle } from 'lucide-react';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useQuickCartTabs } from '@/lib/hooks/useQuickCartTabs';
 import { toast } from 'sonner';
 import {
@@ -120,35 +126,43 @@ export default function PedidosMenuItem() {
                 const isDraft = !tab.orderId; // Drafts are italic, saved orders are not
                 
                 return (
-                  <div
-                    key={tab.id}
-                    className={cn(
-                      'group flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors cursor-pointer',
-                      isTabActive
-                        ? 'bg-primary/10 text-primary font-medium'
-                        : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
-                    )}
-                    onClick={() => handleTabClick(tab.id)}
-                  >
-                    <div className={cn(
-                      "flex-1 min-w-0 truncate",
-                      isDraft && "italic"
-                    )}>
-                      {tab.orderNumber ? `#${tab.orderNumber} - ` : ''}{tab.clientName || tab.name}
-                      {tab.items.length > 0 && (
-                        <span className="ml-1 text-xs opacity-70">
-                          ({tab.items.length})
-                        </span>
-                      )}
-                    </div>
-                    <button
-                      onClick={(e) => handleRemoveTab(e, tab.id)}
-                      className="opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/10 rounded transition-opacity"
-                      aria-label={`Cerrar ${tab.clientName || tab.name}`}
-                    >
-                      <X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
-                    </button>
-                  </div>
+                  <TooltipProvider key={tab.id}>
+                    <Tooltip delayDuration={300}>
+                      <TooltipTrigger asChild>
+                        <div
+                          className={cn(
+                            'group flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors cursor-pointer',
+                            isTabActive
+                              ? 'bg-primary/10 text-primary font-medium'
+                              : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+                          )}
+                          onClick={() => handleTabClick(tab.id)}
+                        >
+                          <div className={cn(
+                            "flex-1 min-w-0 truncate",
+                            isDraft && "italic"
+                          )}>
+                            {tab.orderNumber ? `#${tab.orderNumber} - ` : ''}{tab.clientName || tab.name}
+                            {tab.items.length > 0 && (
+                              <span className="ml-1 text-xs opacity-70">
+                                ({tab.items.length})
+                              </span>
+                            )}
+                          </div>
+                          <button
+                            onClick={(e) => handleRemoveTab(e, tab.id)}
+                            className="opacity-0 group-hover:opacity-100 p-1 hover:bg-destructive/10 rounded transition-opacity"
+                            aria-label={`Cerrar ${tab.clientName || tab.name}`}
+                          >
+                            <X className="h-3.5 w-3.5 text-muted-foreground hover:text-destructive" />
+                          </button>
+                        </div>
+                      </TooltipTrigger>
+                      <TooltipContent side="right" align="start">
+                        <p>{tab.orderNumber ? `#${tab.orderNumber} - ` : ''}{tab.clientName || tab.name}</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 );
               })
             )}

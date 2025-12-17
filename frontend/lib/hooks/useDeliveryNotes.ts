@@ -86,19 +86,4 @@ export function useDownloadDeliveryNotePdf() {
   });
 }
 
-export function usePrintDeliveryNote() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (id: number) => deliveryNotesApi.print(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['delivery-notes'] });
-      toast.success('Remito marcado como impreso');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
-    },
-  });
-}
-
 

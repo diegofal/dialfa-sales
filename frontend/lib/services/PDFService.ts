@@ -1,12 +1,10 @@
 import PDFDocument from 'pdfkit';
 import { PrintTemplate, PrintField, ItemsConfiguration } from '@/types/print-template';
-import { PDFItem } from '@/types/pdf-data';
 
 export class PDFService {
     private currentTemplate: PrintTemplate | null = null;
 
     async generateInvoicePDF(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         invoice: any,
         template: PrintTemplate
     ): Promise<Buffer> {
@@ -52,8 +50,7 @@ export class PDFService {
                 this.renderField(doc, template.fields.cuit, cuit);
 
                 if (template.items && invoice.sales_orders?.sales_order_items) {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const items: PDFItem[] = invoice.sales_orders.sales_order_items.map((item: any) => ({
+                    const items = invoice.sales_orders.sales_order_items.map((item: any) => ({
                         quantity: item.quantity,
                         articleDescription: item.articles?.description || '',
                         unitPrice: Number(item.unit_price || 0),
@@ -96,18 +93,15 @@ export class PDFService {
 
         if (field.align === 'right') {
             const textWidth = doc.widthOfString(stringValue);
-            // Para align right, posicionamos el texto para que termine en finalX
-            doc.text(stringValue, finalX - textWidth, finalY);
+            doc.text(stringValue, finalX - textWidth, finalY, {
+                width: field.maxWidth,
+                align: 'right'
+            });
         } else {
-            // Para align left o center, usamos las opciones de PDFKit
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const options: Record<string, any> = {
+            doc.text(stringValue, finalX, finalY, {
+                width: field.maxWidth,
                 align: field.align || 'left'
-            };
-            if (field.maxWidth) {
-                options.width = field.maxWidth;
-            }
-            doc.text(stringValue, finalX, finalY, options);
+            });
         }
 
         doc.fontSize(12);
@@ -115,12 +109,17 @@ export class PDFService {
 
     private renderItems(
         doc: PDFKit.PDFDocument,
-        items: PDFItem[],
+        items: any[],
         config: ItemsConfiguration
     ): void {
         let currentY = config.startY;
 
-        items.forEach((item) => {
+        items.forEach((item, index) => {
+            if (config.maxRows && index > 0 && index % config.maxRows === 0) {
+                doc.addPage();
+                currentY = config.startY;
+            }
+
             if (config.columns.cantidad) {
                 const col = config.columns.cantidad;
                 this.renderField(doc, { ...col, y: currentY }, item.quantity);
@@ -142,103 +141,6 @@ export class PDFService {
             }
 
             currentY += config.spacing;
-        });
-    }
-
-    async generateDeliveryNotePDF(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        deliveryNote: any,
-        template: PrintTemplate
-    ): Promise<Buffer> {
-        this.currentTemplate = template;
-
-        return new Promise((resolve, reject) => {
-            try {
-                const doc = new PDFDocument({
-                    size: [template.pageSize.width, template.pageSize.height],
-                    margins: template.margins || { top: 0, bottom: 0, left: 0, right: 0 },
-                    autoFirstPage: true,
-                    bufferPages: true
-                });
-
-                const chunks: Buffer[] = [];
-                doc.on('data', (chunk) => chunks.push(chunk));
-                doc.on('end', () => resolve(Buffer.concat(chunks)));
-                doc.on('error', reject);
-
-                // Renderizar campos estáticos
-                this.renderField(doc, template.fields.fecha,
-                    new Date(deliveryNote.delivery_date).toLocaleDateString());
-
-                // NO renderizar número de remito (el formulario preimpreso ya lo tiene)
-                // En el sistema legacy, NumeroRemito tiene coordenadas vacías
-
-                const clientName = deliveryNote.sales_orders?.clients?.business_name || '';
-                this.renderField(doc, template.fields.razonSocial, clientName);
-
-                const address = deliveryNote.sales_orders?.clients?.address || '';
-                this.renderField(doc, template.fields.domicilio, address);
-
-                const city = deliveryNote.sales_orders?.clients?.city || '';
-                this.renderField(doc, template.fields.localidad, city);
-
-                const province = deliveryNote.sales_orders?.clients?.provinces?.name || '';
-                this.renderField(doc, template.fields.provincia, province);
-
-                const taxCondition = deliveryNote.sales_orders?.clients?.tax_conditions?.name || '';
-                this.renderField(doc, template.fields.condicionIVA, taxCondition);
-
-                const cuit = deliveryNote.sales_orders?.clients?.cuit || '';
-                this.renderField(doc, template.fields.cuit, cuit);
-
-                // Datos específicos del remito - Transportista
-                if (deliveryNote.transporter_id && deliveryNote.transporters) {
-                    const transporterName = deliveryNote.transporters.name || '';
-                    this.renderField(doc, template.fields.transportista, transporterName);
-                    
-                    // Dirección del transportista
-                    const transporterAddress = deliveryNote.transporters.address || '';
-                    this.renderField(doc, template.fields.domicilioTransportista, transporterAddress);
-                }
-
-                // Peso - con formato "Peso: X kg."
-                if (deliveryNote.weight_kg) {
-                    this.renderField(doc, template.fields.peso, `Peso: ${deliveryNote.weight_kg} kg.`);
-                }
-
-                // Bultos - con formato "Bultos: X"
-                if (deliveryNote.packages_count) {
-                    this.renderField(doc, template.fields.bultos, `Bultos: ${deliveryNote.packages_count}`);
-                }
-
-                // Valor declarado - con formato "Valor: $X"
-                if (deliveryNote.declared_value) {
-                    const declaredValue = Number(deliveryNote.declared_value);
-                    this.renderField(doc, template.fields.valor, `Valor: $${declaredValue.toFixed(2)}`);
-                }
-
-                // Renderizar items si existen
-                if (template.items && deliveryNote.delivery_note_items) {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const items: PDFItem[] = deliveryNote.delivery_note_items.map((item: any) => ({
-                        quantity: item.quantity,
-                        articleDescription: item.article_description || '',
-                        unitPrice: 0, // Los remitos normalmente no muestran precios
-                        lineTotal: 0
-                    }));
-                    this.renderItems(doc, items, template.items);
-                }
-
-                // Observaciones
-                if (deliveryNote.notes) {
-                    this.renderField(doc, template.fields.observaciones, deliveryNote.notes);
-                }
-
-                doc.end();
-
-            } catch (error) {
-                reject(error);
-            }
         });
     }
 }

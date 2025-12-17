@@ -17,13 +17,10 @@ export interface DeliveryNote {
   deliveryDate: string;
   transporterId: number | null;
   transporterName: string | null;
-  transporterAddress: string | null;
   weightKg: number | null;
   packagesCount: number | null;
   declaredValue: number | null;
   notes: string | null;
-  isPrinted: boolean;
-  printedAt: string | null;
   createdAt: string;
   updatedAt: string;
   items: DeliveryNoteItem[];
@@ -39,8 +36,6 @@ export interface DeliveryNoteListDto {
   transporterName: string | null;
   packagesCount: number | null;
   itemsCount: number;
-  isPrinted: boolean;
-  printedAt: string | null;
 }
 
 export interface DeliveryNoteItemRequest {

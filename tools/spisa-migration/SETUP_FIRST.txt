@@ -1,0 +1,26 @@
+========================================
+SPISA Migration Tool - First Time Setup
+========================================
+
+You need to configure your database credentials first!
+
+Quick Setup (3 steps):
+-----------------------
+
+1. Install dependencies:
+   pip install -r requirements.txt
+
+2. Create configuration:
+   python main.py setup
+
+3. Edit .env file and set your passwords:
+   - SQLSERVER_PASSWORD=your_sql_server_password
+   - POSTGRES_PASSWORD=your_postgres_password
+
+4. Test connection:
+   python main.py status
+
+That's it! See QUICKSTART.md for more details.
+
+========================================
+

@@ -29,7 +29,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 export default function LoginPage() {
   const router = useRouter();
-  const { isAuthenticated, hydrated } = useAuthStore();
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
   const loginMutation = useLogin();
 
   const form = useForm<LoginFormValues>({
@@ -41,12 +41,10 @@ export default function LoginPage() {
   });
 
   useEffect(() => {
-    // Only redirect if already authenticated (prevents showing login page if already logged in)
-    // Don't redirect during login mutation, let onSuccess handler do it
-    if (hydrated && isAuthenticated && !loginMutation.isPending) {
-      router.replace('/dashboard');
+    if (isAuthenticated) {
+      router.push('/dashboard');
     }
-  }, [hydrated, isAuthenticated, loginMutation.isPending, router]);
+  }, [isAuthenticated, router]);
 
   const onSubmit = (data: LoginFormValues) => {
     loginMutation.mutate(data);

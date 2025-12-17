@@ -3,6 +3,32 @@
 
 services:
   # ==============================================================================
+  # SQL SERVER (Legacy Database for Migration)
+  # ==============================================================================
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: spisa-sqlserver
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: ${SQLSERVER_PASSWORD:-Transc0reTransc0re!}
+      MSSQL_PID: Developer
+      MSSQL_COLLATION: Modern_Spanish_CI_AS
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+      # Mount a directory for importing .bak or .bacpac files
+      - ./database/import:/import
+    ports:
+      - "1433:1433"
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P ${SQLSERVER_PASSWORD:-Transc0reTransc0re!} -Q 'SELECT 1' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - spisa-network
+
+  # ==============================================================================
   # POSTGRESQL DATABASE
   # ==============================================================================
   postgres:
@@ -178,6 +204,8 @@ services:
 # VOLUMES
 # ==============================================================================
 volumes:
+  sqlserver_data:
+    driver: local
   postgres_data:
     driver: local
   pgadmin_data:
@@ -194,8 +222,11 @@ networks:
 # USAGE INSTRUCTIONS
 # ==============================================================================
 #
-# Start all services:
+# Start all services (including SQL Server):
 #   docker compose up -d
+#
+# Start only databases:
+#   docker compose up -d postgres sqlserver
 #
 # Start with pgAdmin:
 #   docker compose --profile tools up -d

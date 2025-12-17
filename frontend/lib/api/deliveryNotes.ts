@@ -46,63 +46,11 @@ export const deliveryNotesApi = {
     await apiClient.delete(`/delivery-notes/${id}`);
   },
 
-  downloadPdf: async (id: number): Promise<void> => {
-    const response = await apiClient.get(`/delivery-notes/${id}/pdf`, {
+  downloadPdf: async (id: number): Promise<Blob> => {
+    const { data } = await apiClient.get<Blob>(`/delivery-notes/${id}/pdf`, {
       responseType: 'blob',
     });
-
-    // Create blob link to download
-    const url = window.URL.createObjectURL(new Blob([response.data]));
-    const link = document.createElement('a');
-    link.href = url;
-    link.setAttribute('download', `remito-${id}.pdf`);
-    document.body.appendChild(link);
-    link.click();
-    
-    // Cleanup
-    if (link.parentNode) {
-      link.parentNode.removeChild(link);
-    }
-    window.URL.revokeObjectURL(url);
-  },
-
-  print: async (id: number): Promise<void> => {
-    const response = await apiClient.post(`/delivery-notes/${id}/print`, {}, {
-      responseType: 'blob',
-    });
-
-    // Create blob URL from the PDF
-    const pdfBlob = new Blob([response.data], { type: 'application/pdf' });
-    const pdfUrl = window.URL.createObjectURL(pdfBlob);
-
-    // Create hidden iframe to load the PDF
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.src = pdfUrl;
-    document.body.appendChild(iframe);
-
-    // Wait for PDF to load, then trigger print dialog
-    iframe.onload = () => {
-      setTimeout(() => {
-        const iframeWindow = iframe.contentWindow;
-        if (!iframeWindow) return;
-
-        // Clean up after print dialog is closed
-        const cleanup = () => {
-          document.body.removeChild(iframe);
-          window.URL.revokeObjectURL(pdfUrl);
-        };
-
-        // Listen for afterprint event
-        iframeWindow.addEventListener('afterprint', cleanup);
-
-        // Fallback cleanup after 30 seconds in case afterprint doesn't fire
-        setTimeout(cleanup, 30000);
-
-        // Trigger print dialog
-        iframeWindow.print();
-      }, 250);
-    };
+    return data;
   },
 };
 

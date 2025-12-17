@@ -15,12 +15,7 @@ export const useLogin = () => {
       // Token is in HTTP-only cookie, we just need user info
       setAuth(data.user);
       toast.success(`¡Bienvenido, ${data.user.fullName}!`);
-      
-      // Use replace instead of push to avoid browser back issues
-      // Add a small delay to ensure cookie and state are fully synced
-      setTimeout(() => {
-        router.replace('/dashboard');
-      }, 100);
+      router.push('/dashboard');
     },
     onError: (error: unknown) => {
       const err = error as { response?: { data?: { error?: string } } };
