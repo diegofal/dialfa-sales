@@ -350,3 +350,49 @@ model system_settings {
   updated_by        Int?
 }
 
+model certificates {
+  id                   BigInt               @id @default(autoincrement())
+  file_name            String
+  storage_path         String               @unique
+  original_path        String?
+  file_type            String
+  file_size_bytes      BigInt?
+  category             String?
+  notes                String?
+  extracted_text       String?
+  created_at           DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime             @default(now()) @updatedAt @db.Timestamptz(6)
+  deleted_at           DateTime?            @db.Timestamptz(6)
+  created_by           Int?
+  certificate_coladas  certificate_coladas[]
+
+  @@index([category])
+  @@index([created_at])
+}
+
+model coladas {
+  id                  BigInt               @id @default(autoincrement())
+  colada_number       String               @unique
+  description         String?
+  supplier            String?
+  material_type       String?
+  created_at          DateTime             @default(now()) @db.Timestamptz(6)
+  updated_at          DateTime             @default(now()) @updatedAt @db.Timestamptz(6)
+  certificate_coladas certificate_coladas[]
+
+  @@index([colada_number])
+}
+
+model certificate_coladas {
+  id             BigInt       @id @default(autoincrement())
+  certificate_id BigInt
+  colada_id      BigInt
+  created_at     DateTime     @default(now()) @db.Timestamptz(6)
+  certificate    certificates @relation(fields: [certificate_id], references: [id], onDelete: Cascade)
+  colada         coladas      @relation(fields: [colada_id], references: [id], onDelete: Cascade)
+
+  @@unique([certificate_id, colada_id])
+  @@index([certificate_id])
+  @@index([colada_id])
+}
+
