@@ -1,1 +1,78 @@
-
+{
+    "name": "Default Delivery Note",
+    "version": "1.0.0",
+    "type": "delivery-note",
+    "pageSize": {
+        "width": 595,
+        "height": 842
+    },
+    "margins": {
+        "top": 20,
+        "bottom": 20,
+        "left": 20,
+        "right": 20
+    },
+    "globalOffset": {
+        "x": 0,
+        "y": 0
+    },
+    "font": {
+        "family": "Courier",
+        "size": 10
+    },
+    "fields": {
+        "fecha": {
+            "x": 389,
+            "y": 65,
+            "align": "left"
+        },
+        "numeroRemito": {
+            "x": 389,
+            "y": 80,
+            "align": "left",
+            "fontWeight": "bold"
+        },
+        "razonSocial": {
+            "x": 72,
+            "y": 130,
+            "fontWeight": "bold"
+        },
+        "domicilio": {
+            "x": 72,
+            "y": 140
+        },
+        "localidad": {
+            "x": 72,
+            "y": 151
+        },
+        "provincia": {
+            "x": 72,
+            "y": 169
+        },
+        "cuit": {
+            "x": 331,
+            "y": 191
+        }
+    },
+    "items": {
+        "startY": 252,
+        "spacing": 12,
+        "maxRows": 35,
+        "columns": {
+            "cantidad": {
+                "x": 58,
+                "align": "right"
+            },
+            "descripcion": {
+                "x": 94,
+                "width": 300,
+                "align": "left"
+            },
+            "observaciones": {
+                "x": 400,
+                "width": 150,
+                "align": "left"
+            }
+        }
+    }
+}

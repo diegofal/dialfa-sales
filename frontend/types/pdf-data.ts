@@ -38,11 +38,16 @@ export interface InvoiceData {
 
 interface DeliveryNoteItem {
   quantity: number;
-  article_description: string;
+  article_description?: string;
+  description?: string;
+  articles?: {
+    description: string;
+  };
+  observations?: string | null;
 }
 
 interface Transporter {
-  business_name: string;
+  name: string;
 }
 
 export interface DeliveryNoteData {
@@ -62,5 +67,11 @@ export interface PDFItem {
   articleDescription: string;
   unitPrice: number;
   lineTotal: number;
+}
+
+export interface PDFDeliveryNoteItem {
+  quantity: number;
+  articleDescription: string;
+  observations: string;
 }
 

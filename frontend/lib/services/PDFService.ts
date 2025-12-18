@@ -1,11 +1,12 @@
 import PDFDocument from 'pdfkit';
 import { PrintTemplate, PrintField, ItemsConfiguration } from '@/types/print-template';
+import { InvoiceData, DeliveryNoteData, PDFItem, PDFDeliveryNoteItem } from '@/types/pdf-data';
 
 export class PDFService {
     private currentTemplate: PrintTemplate | null = null;
 
     async generateInvoicePDF(
-        invoice: any,
+        invoice: InvoiceData,
         template: PrintTemplate
     ): Promise<Buffer> {
         this.currentTemplate = template;
@@ -50,7 +51,7 @@ export class PDFService {
                 this.renderField(doc, template.fields.cuit, cuit);
 
                 if (template.items && invoice.sales_orders?.sales_order_items) {
-                    const items = invoice.sales_orders.sales_order_items.map((item: any) => ({
+                    const items: PDFItem[] = invoice.sales_orders.sales_order_items.map((item) => ({
                         quantity: item.quantity,
                         articleDescription: item.articles?.description || '',
                         unitPrice: Number(item.unit_price || 0),
@@ -109,7 +110,7 @@ export class PDFService {
 
     private renderItems(
         doc: PDFKit.PDFDocument,
-        items: any[],
+        items: PDFItem[],
         config: ItemsConfiguration
     ): void {
         let currentY = config.startY;
@@ -138,6 +139,97 @@ export class PDFService {
             if (config.columns.precioTotal) {
                 const col = config.columns.precioTotal;
                 this.renderField(doc, { ...col, y: currentY }, item.lineTotal.toFixed(2));
+            }
+
+            currentY += config.spacing;
+        });
+    }
+
+    async generateDeliveryNotePDF(
+        deliveryNote: DeliveryNoteData,
+        template: PrintTemplate
+    ): Promise<Buffer> {
+        this.currentTemplate = template;
+
+        return new Promise((resolve, reject) => {
+            try {
+                const doc = new PDFDocument({
+                    size: [template.pageSize.width, template.pageSize.height],
+                    margins: template.margins || { top: 0, bottom: 0, left: 0, right: 0 },
+                    autoFirstPage: true,
+                    bufferPages: true
+                });
+
+                const chunks: Buffer[] = [];
+                doc.on('data', (chunk) => chunks.push(chunk));
+                doc.on('end', () => resolve(Buffer.concat(chunks)));
+                doc.on('error', reject);
+
+                // Renderizar campos estáticos
+                this.renderField(doc, template.fields.fecha,
+                    new Date(deliveryNote.delivery_date).toLocaleDateString());
+
+                this.renderField(doc, template.fields.numeroRemito,
+                    deliveryNote.delivery_number);
+
+                const clientName = deliveryNote.sales_orders?.clients?.business_name || '';
+                this.renderField(doc, template.fields.razonSocial, clientName);
+
+                const address = deliveryNote.sales_orders?.clients?.address || '';
+                this.renderField(doc, template.fields.domicilio, address);
+
+                const city = deliveryNote.sales_orders?.clients?.city || '';
+                this.renderField(doc, template.fields.localidad, city);
+
+                const province = deliveryNote.sales_orders?.clients?.provinces?.name || '';
+                this.renderField(doc, template.fields.provincia, province);
+
+                const cuit = deliveryNote.sales_orders?.clients?.cuit || '';
+                this.renderField(doc, template.fields.cuit, cuit);
+
+                if (template.items && deliveryNote.delivery_note_items) {
+                    const items: PDFDeliveryNoteItem[] = deliveryNote.delivery_note_items.map((item) => ({
+                        quantity: item.quantity,
+                        articleDescription: item.articles?.description || item.description || item.article_description || '',
+                        observations: item.observations || ''
+                    }));
+                    this.renderDeliveryNoteItems(doc, items, template.items);
+                }
+
+                doc.end();
+
+            } catch (error) {
+                reject(error);
+            }
+        });
+    }
+
+    private renderDeliveryNoteItems(
+        doc: PDFKit.PDFDocument,
+        items: PDFDeliveryNoteItem[],
+        config: ItemsConfiguration
+    ): void {
+        let currentY = config.startY;
+
+        items.forEach((item, index) => {
+            if (config.maxRows && index > 0 && index % config.maxRows === 0) {
+                doc.addPage();
+                currentY = config.startY;
+            }
+
+            if (config.columns.cantidad) {
+                const col = config.columns.cantidad;
+                this.renderField(doc, { ...col, y: currentY }, item.quantity);
+            }
+
+            if (config.columns.descripcion) {
+                const col = config.columns.descripcion;
+                this.renderField(doc, { ...col, y: currentY }, item.articleDescription);
+            }
+
+            if (config.columns.observaciones) {
+                const col = config.columns.observaciones;
+                this.renderField(doc, { ...col, y: currentY }, item.observations);
             }
 
             currentY += config.spacing;
