@@ -225,13 +225,19 @@ The tool migrates data in **6 parallel waves** to maximize performance while res
 
 **Note**: In the legacy system, invoices and delivery notes didn't have their own items - they referenced the sales order items. In the modern system, each entity has its own items table for better data independence and querying.
 
-### Wave 5.5: Calculate Totals
+### Wave 5.5: Calculate Invoice Totals
 - Updates invoice totals (`net_amount`, `tax_amount`, `total_amount`) by summing the invoice items
 - Calculates tax based on client's tax condition:
   - Responsable Inscripto: 21% IVA
   - Monotributista/Exento: 0% IVA
 
 **Note**: The legacy system didn't store totals in the invoices table, so they're calculated post-migration from the items.
+
+### Wave 5.6: Calculate Sales Order Totals
+- Updates sales order totals by summing the sales order items
+- Applies the special discount percentage to get the final total
+
+**Note**: The legacy system didn't store totals in the sales orders table, so they're calculated post-migration from the items.
 
 ### Wave 6: Admin User
 - Seeds admin user (username: `admin`, password: `admin123`)

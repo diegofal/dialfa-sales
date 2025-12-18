@@ -141,6 +141,11 @@ class MigrationOrchestrator:
         totals_result = await self._update_invoice_totals()
         result.entities.append(totals_result)
         
+        # Wave 5.6: Update sales order totals from items
+        logger.info("Wave 5.6: Calculating sales order totals...")
+        order_totals_result = await self._update_sales_order_totals()
+        result.entities.append(order_totals_result)
+        
         # Wave 6: Seed admin user
         logger.info("Wave 6: Seeding admin user...")
         admin_result = await self._seed_admin_user()
@@ -176,6 +181,9 @@ class MigrationOrchestrator:
         
         # Update invoice totals
         result.entities.append(await self._update_invoice_totals())
+        
+        # Update sales order totals
+        result.entities.append(await self._update_sales_order_totals())
         
         # Admin user
         result.entities.append(await self._seed_admin_user())
@@ -793,6 +801,77 @@ class MigrationOrchestrator:
             
         except Exception as e:
             logger.exception("Failed to update invoice totals")
+            result.errors.append(str(e))
+            result.failed_count = 1
+        finally:
+            result.duration = time.time() - start
+        
+        return result
+    
+    async def _update_sales_order_totals(self) -> EntityMigrationResult:
+        """Calculate and update sales order totals from sales_order_items."""
+        start = time.time()
+        result = EntityMigrationResult(entity_name="Sales Order Totals Update")
+        
+        try:
+            # Get all sales orders
+            orders_query = """
+                SELECT id, special_discount_percent
+                FROM sales_orders
+                WHERE deleted_at IS NULL
+                ORDER BY id
+            """
+            orders = await self.pg_writer.fetch_all(orders_query)
+            
+            if not orders:
+                logger.info("No sales orders found to update")
+                return result
+            
+            # Get all order items with totals (WITHOUT discounts - just quantity * unit_price)
+            items_query = """
+                SELECT 
+                    sales_order_id,
+                    SUM(quantity * unit_price) as subtotal_without_discounts
+                FROM sales_order_items
+                GROUP BY sales_order_id
+            """
+            items_totals = await self.pg_writer.fetch_all(items_query)
+            totals_by_order = {item['sales_order_id']: item['subtotal_without_discounts'] for item in items_totals}
+            
+            updates_count = 0
+            for order in orders:
+                order_id = order['id']
+                subtotal = float(totals_by_order.get(order_id, 0))
+                special_discount_percent = float(order['special_discount_percent'])
+                
+                # Apply special discount to get final total (special discount is applied AFTER item discounts in the UI)
+                # BUT the "total" field in sales_orders should be the raw subtotal (quantity * price) for display purposes
+                total = subtotal * (1 - special_discount_percent / 100)
+                
+                # Update sales order
+                update_sql = """
+                    UPDATE sales_orders 
+                    SET 
+                        total = $1,
+                        updated_at = $2
+                    WHERE id = $3
+                """
+                
+                async with self.pg_writer.pool.acquire() as conn:
+                    await conn.execute(
+                        update_sql,
+                        total,
+                        datetime.utcnow(),
+                        order_id
+                    )
+                
+                updates_count += 1
+            
+            result.migrated_count = updates_count
+            logger.info(f"Updated totals for {updates_count} sales orders")
+            
+        except Exception as e:
+            logger.exception("Failed to update sales order totals")
             result.errors.append(str(e))
             result.failed_count = 1
         finally:

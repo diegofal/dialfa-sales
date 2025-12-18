@@ -77,7 +77,7 @@ def display_results(result: MigrationResult):
     table.add_column("Status")
     
     for entity in result.entities:
-        status = "[green]✓[/green]" if entity.success else "[red]✗[/red]"
+        status = "[green]OK[/green]" if entity.success else "[red]FAIL[/red]"
         table.add_row(
             entity.entity_name,
             str(entity.migrated_count),
@@ -110,9 +110,9 @@ def display_results(result: MigrationResult):
     
     # Final status
     if result.success:
-        console.print("\n[bold green]✓ Migration completed successfully![/bold green]")
+        console.print("\n[bold green]SUCCESS: Migration completed successfully![/bold green]")
     else:
-        console.print("\n[bold red]✗ Migration completed with errors.[/bold red]")
+        console.print("\n[bold red]ERROR: Migration completed with errors.[/bold red]")
 
 
 async def run_migration(dry_run: bool, parallel: bool, clean: bool = False):
@@ -130,7 +130,7 @@ async def run_migration(dry_run: bool, parallel: bool, clean: bool = False):
         if clean:
             console.print("\n[yellow]Performing full cleanup (including users)...[/yellow]")
             await pg_writer.cleanup_all_data()
-            console.print("[green]✓ Database cleaned[/green]\n")
+            console.print("[green]OK: Database cleaned[/green]\n")
         
         # Create validator and orchestrator
         validator = MigrationValidator(sql_reader, pg_writer)
@@ -202,7 +202,7 @@ def migrate(
         if dry_run:
             console.print("[yellow]Running in DRY RUN mode - no data will be written[/yellow]")
         else:
-            console.print("[yellow]⚠️  This will CLEAR all data in the target PostgreSQL database![/yellow]")
+            console.print("[yellow]WARNING: This will CLEAR all data in the target PostgreSQL database![/yellow]")
         
         confirm = typer.confirm("\nProceed with migration?", default=False)
         if not confirm:
@@ -254,9 +254,9 @@ def validate():
             legacy_result = await validator.validate_legacy_data()
             
             if legacy_result.is_valid:
-                console.print("[green]✓ Legacy data is valid[/green]\n")
+                console.print("[green]OK: Legacy data is valid[/green]\n")
             else:
-                console.print(f"[yellow]⚠️  Found {len(legacy_result.issues)} issues:[/yellow]")
+                console.print(f"[yellow]WARNING: Found {len(legacy_result.issues)} issues:[/yellow]")
                 for issue in legacy_result.issues:
                     console.print(f"  • {issue}")
                 console.print()
@@ -266,9 +266,9 @@ def validate():
             count_result = await validator.validate_record_counts()
             
             if count_result.is_valid:
-                console.print("[green]✓ Record counts match[/green]\n")
+                console.print("[green]OK: Record counts match[/green]\n")
             else:
-                console.print(f"[red]✗ Count mismatches found:[/red]")
+                console.print(f"[red]ERROR: Count mismatches found:[/red]")
                 for issue in count_result.issues:
                     console.print(f"  • {issue}")
                 console.print()
@@ -278,9 +278,9 @@ def validate():
             integrity_result = await validator.validate_referential_integrity()
             
             if integrity_result.is_valid:
-                console.print("[green]✓ Referential integrity is valid[/green]\n")
+                console.print("[green]OK: Referential integrity is valid[/green]\n")
             else:
-                console.print(f"[red]✗ Integrity issues found:[/red]")
+                console.print(f"[red]ERROR: Integrity issues found:[/red]")
                 for issue in integrity_result.issues:
                     console.print(f"  • {issue}")
                 console.print()
@@ -288,9 +288,9 @@ def validate():
             all_valid = legacy_result.is_valid and count_result.is_valid and integrity_result.is_valid
             
             if all_valid:
-                console.print("[bold green]✓ All validations passed![/bold green]")
+                console.print("[bold green]SUCCESS: All validations passed![/bold green]")
             else:
-                console.print("[bold yellow]⚠️  Some validation issues found[/bold yellow]")
+                console.print("[bold yellow]WARNING: Some validation issues found[/bold yellow]")
             
             return all_valid
             
@@ -343,9 +343,9 @@ def status():
                 pg_count = await pg_writer.get_record_count(pg_table)
                 
                 if sql_count == pg_count:
-                    status = "[green]✓[/green]"
+                    status = "[green]OK[/green]"
                 else:
-                    status = "[red]✗[/red]"
+                    status = "[red]FAIL[/red]"
                 
                 table.add_row(entity, str(sql_count), str(pg_count), status)
             
@@ -384,7 +384,7 @@ def clean(
     
     This is useful when you want a completely fresh start.
     """
-    console.print("\n[bold red]⚠️  Database Cleanup[/bold red]\n")
+    console.print("\n[bold red]WARNING: Database Cleanup[/bold red]\n")
     
     async def run_cleanup():
         pg_writer = PostgresWriter(settings.postgres_dsn)
@@ -435,7 +435,7 @@ def clean(
             else:
                 await pg_writer.truncate_all()
             
-            console.print("[bold green]✓ Database cleaned successfully![/bold green]\n")
+            console.print("[bold green]SUCCESS: Database cleaned successfully![/bold green]\n")
             
             # Show final state
             info_after = await pg_writer.get_table_info()
@@ -477,7 +477,7 @@ def setup():
     
     # Check if .env already exists
     if env_file.exists():
-        console.print("[yellow]⚠️  .env file already exists![/yellow]\n")
+        console.print("[yellow]WARNING: .env file already exists![/yellow]\n")
         overwrite = typer.confirm("Do you want to overwrite it?", default=False)
         if not overwrite:
             console.print("[green]Setup cancelled. Your existing .env is preserved.[/green]")
@@ -486,7 +486,7 @@ def setup():
     # Copy from example if it exists
     if example_file.exists():
         shutil.copy(example_file, env_file)
-        console.print("[green]✓ Created .env file from .env.example[/green]\n")
+        console.print("[green]OK: Created .env file from .env.example[/green]\n")
     else:
         # Create basic .env file
         env_content = """# SPISA Migration Tool Configuration
@@ -513,7 +513,7 @@ MIGRATION_GENERATE_REPORT=true
 MIGRATION_REPORT_PATH=./migration-reports
 """
         env_file.write_text(env_content)
-        console.print("[green]✓ Created .env file with default settings[/green]\n")
+        console.print("[green]OK: Created .env file with default settings[/green]\n")
     
     console.print("[bold]Next steps:[/bold]")
     console.print("1. Edit the .env file and set your database passwords:")
