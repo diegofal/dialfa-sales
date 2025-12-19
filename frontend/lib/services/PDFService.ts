@@ -169,8 +169,8 @@ export class PDFService {
                 this.renderField(doc, template.fields.fecha,
                     new Date(deliveryNote.delivery_date).toLocaleDateString());
 
-                this.renderField(doc, template.fields.numeroRemito,
-                    deliveryNote.delivery_number);
+                // NO renderizar número de remito (el formulario preimpreso ya lo tiene)
+                // En el sistema legacy, NumeroRemito tiene coordenadas vacías
 
                 const clientName = deliveryNote.sales_orders?.clients?.business_name || '';
                 this.renderField(doc, template.fields.razonSocial, clientName);
@@ -187,6 +187,36 @@ export class PDFService {
                 const cuit = deliveryNote.sales_orders?.clients?.cuit || '';
                 this.renderField(doc, template.fields.cuit, cuit);
 
+                const taxCondition = deliveryNote.sales_orders?.clients?.tax_conditions?.name || '';
+                this.renderField(doc, template.fields.condicionIVA, taxCondition);
+
+                // Datos específicos del remito - Transportista
+                if (deliveryNote.transporter_id && deliveryNote.transporters) {
+                    const transporterName = deliveryNote.transporters.name || '';
+                    this.renderField(doc, template.fields.transportista, transporterName);
+                    
+                    // Dirección del transportista
+                    const transporterAddress = deliveryNote.transporters.address || '';
+                    this.renderField(doc, template.fields.domicilioTransportista, transporterAddress);
+                }
+
+                // Peso - con formato "Peso: X kg."
+                if (deliveryNote.weight_kg) {
+                    this.renderField(doc, template.fields.peso, `Peso: ${deliveryNote.weight_kg} kg.`);
+                }
+
+                // Bultos - con formato "Bultos: X"
+                if (deliveryNote.packages_count) {
+                    this.renderField(doc, template.fields.bultos, `Bultos: ${deliveryNote.packages_count}`);
+                }
+
+                // Valor declarado - con formato "Valor: $X"
+                if (deliveryNote.declared_value) {
+                    const declaredValue = Number(deliveryNote.declared_value);
+                    this.renderField(doc, template.fields.valor, `Valor: $${declaredValue.toFixed(2)}`);
+                }
+
+                // Renderizar items si existen
                 if (template.items && deliveryNote.delivery_note_items) {
                     const items: PDFDeliveryNoteItem[] = deliveryNote.delivery_note_items.map((item) => ({
                         quantity: item.quantity,
@@ -194,6 +224,11 @@ export class PDFService {
                         observations: item.observations || ''
                     }));
                     this.renderDeliveryNoteItems(doc, items, template.items);
+                }
+
+                // Observaciones
+                if (deliveryNote.notes) {
+                    this.renderField(doc, template.fields.observaciones, deliveryNote.notes);
                 }
 
                 doc.end();
