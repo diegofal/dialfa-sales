@@ -48,6 +48,7 @@ interface DeliveryNoteItem {
 
 interface Transporter {
   name: string;
+  address?: string | null;
 }
 
 export interface DeliveryNoteData {
@@ -56,6 +57,7 @@ export interface DeliveryNoteData {
   transporter_id?: number | null;
   weight_kg?: number | string | Decimal | null;
   packages_count?: number | null;
+  declared_value?: number | string | Decimal | null;
   notes?: string | null;
   sales_orders?: SalesOrder;
   transporters?: Transporter | null;
