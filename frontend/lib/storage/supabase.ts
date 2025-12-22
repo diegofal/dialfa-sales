@@ -122,14 +122,14 @@ export async function uploadCertificateFile(
 
 /**
  * Get a signed URL for downloading/viewing a certificate
- * URLs are valid for 1 hour
+ * URLs are valid for 1 year
  */
 export async function getCertificateSignedUrl(storagePath: string): Promise<string> {
   validateSupabaseConfig()
   
   const { data, error } = await supabase.storage
     .from(BUCKET_NAME)
-    .createSignedUrl(storagePath, 3600) // 1 hour expiry
+    .createSignedUrl(storagePath, 31536000) // 1 year expiry (365 * 24 * 60 * 60)
   
   if (error) {
     throw new Error(`Failed to get signed URL: ${error.message}`)

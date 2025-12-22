@@ -26,7 +26,6 @@ export interface ClientDto {
   phone: string | null;
   email: string | null;
   creditLimit: number | null;
-  currentBalance: number;
   isActive: boolean;
   taxConditionName: string | null;
   provinceName: string | null;
@@ -50,7 +49,6 @@ export interface CreateClientRequest {
   operationTypeId: number;
   transporterId?: number;
   creditLimit?: number;
-  currentBalance?: number;
 }
 
 export interface UpdateClientRequest extends CreateClientRequest {

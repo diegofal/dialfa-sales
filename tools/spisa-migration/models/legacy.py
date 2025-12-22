@@ -119,3 +119,4 @@ class LegacyTransportista:
     Transportista: str
     Domicilio: Optional[str]
 
+

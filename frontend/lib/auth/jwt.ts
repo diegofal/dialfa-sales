@@ -22,7 +22,8 @@ export async function createToken(payload: JWTPayload): Promise<string> {
     .setIssuedAt()
     .setIssuer(JWT_ISSUER)
     .setAudience(JWT_AUDIENCE)
-    .setExpirationTime(`${JWT_EXPIRATION_MINUTES}m`)
+    // Token never expires - session persists indefinitely
+    .setExpirationTime('9999y')
     .sign(secret);
 
   return token;
@@ -59,7 +60,7 @@ export async function setAuthCookie(token: string) {
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
-    maxAge: JWT_EXPIRATION_MINUTES * 60, // Convert to seconds
+    maxAge: 315360000, // 10 years in seconds (10 * 365 * 24 * 60 * 60)
     path: '/',
   });
 }

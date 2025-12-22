@@ -96,7 +96,6 @@ export async function POST(request: NextRequest) {
         transporter_id: validatedData.transporterId,
         seller_id: validatedData.sellerId,
         credit_limit: validatedData.creditLimit,
-        current_balance: validatedData.currentBalance ?? 0,
         is_active: validatedData.isActive ?? true,
         created_at: new Date(),
         updated_at: new Date(),

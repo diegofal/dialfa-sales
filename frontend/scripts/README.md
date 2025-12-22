@@ -264,3 +264,4 @@ const pattern = /TU_PATRON_REGEX/gi;
 Si encuentras problemas o necesitas ayuda, consulta los logs del script o contacta al administrador del sistema.
 
 
+

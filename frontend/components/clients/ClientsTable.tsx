@@ -53,13 +53,6 @@ export default function ClientsTable({
     }
   };
 
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('es-AR', {
-      style: 'currency',
-      currency: 'ARS',
-    }).format(value);
-  };
-
   return (
     <>
       <div className="rounded-md border">
@@ -98,15 +91,6 @@ export default function ClientsTable({
               >
                 Ciudad
               </SortableTableHead>
-              <SortableTableHead
-                sortKey="CurrentBalance"
-                currentSortBy={currentSortBy}
-                currentSortDescending={currentSortDescending}
-                onSort={onSort}
-                align="right"
-              >
-                Saldo
-              </SortableTableHead>
               <SortableTableHead>Estado</SortableTableHead>
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
@@ -114,7 +98,7 @@ export default function ClientsTable({
           <TableBody>
             {clients.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
                   No hay clientes registrados
                 </TableCell>
               </TableRow>
@@ -131,9 +115,6 @@ export default function ClientsTable({
                     {client.cuit || '-'}
                   </TableCell>
                   <TableCell>{client.city || '-'}</TableCell>
-                  <TableCell className={client.currentBalance < 0 ? 'text-red-600' : ''}>
-                    {formatCurrency(client.currentBalance)}
-                  </TableCell>
                   <TableCell>
                     <Badge variant={client.isActive ? 'default' : 'secondary'}>
                       {client.isActive ? 'Activo' : 'Inactivo'}
