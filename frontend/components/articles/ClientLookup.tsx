@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Card } from '@/components/ui/card';
 import { useClients } from '@/lib/hooks/useClients';
 import type { ClientDto } from '@/types/api';
+import { formatCuit } from '@/lib/utils';
 
 interface ClientLookupProps {
   onSelectClient: (clientId: number, clientName: string) => void;
@@ -108,7 +109,7 @@ export function ClientLookup({ onSelectClient }: ClientLookupProps) {
                     )}
                     {client.cuit && (
                       <div className={`text-xs ${index === selectedIndex ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
-                        CUIT: {client.cuit}
+                        CUIT: {formatCuit(client.cuit)}
                       </div>
                     )}
                   </div>

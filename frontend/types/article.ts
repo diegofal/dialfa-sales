@@ -4,6 +4,7 @@ export interface Article {
   description: string;
   categoryId: number;
   categoryName: string;
+  categoryDefaultDiscount: number;
   unitPrice: number;
   stock: number;
   minimumStock: number;

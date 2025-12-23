@@ -79,6 +79,22 @@ export function useCancelInvoice() {
   });
 }
 
+export function useDeleteInvoice() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => invoicesApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['sales-orders'] });
+      toast.success('Factura eliminada exitosamente');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+}
+
 export function usePrintInvoice() {
   const queryClient = useQueryClient();
 
@@ -149,5 +165,32 @@ export function useInvoiceStockMovements(invoiceId: number) {
   });
 }
 
+export function useUpdateInvoiceItems() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, items }: { id: number; items: Array<{ id: number; discountPercent: number }> }) =>
+      fetch(`/api/invoices/${id}/items`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ items }),
+      }).then(async (res) => {
+        if (!res.ok) {
+          const error = await res.json();
+          throw new Error(error.error || 'Error al actualizar descuentos');
+        }
+        return res.json();
+      }),
+    onSuccess: (data, variables) => {
+      // Invalidar las queries para forzar refetch
+      queryClient.invalidateQueries({ queryKey: ['invoices', variables.id] });
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      toast.success('Descuentos actualizados correctamente');
+    },
+    onError: (error: unknown) => {
+      toast.error(getErrorMessage(error));
+    },
+  });
+}
 
 

@@ -4,6 +4,7 @@ import { Article } from '@/types/article';
 export interface QuickCartItem {
   article: Article;
   quantity: number;
+  discountPercent?: number;
 }
 
 export interface QuickCartTab {
@@ -214,7 +215,7 @@ export function useQuickCartTabs() {
   };
 
   // Add item to active tab
-  const addItem = (article: Article, quantity: number = 1) => {
+  const addItem = (article: Article, quantity: number = 1, discountPercent?: number) => {
     const updatedTabs = state.tabs.map(tab => {
       if (tab.id !== state.activeTabId) return tab;
       
@@ -226,9 +227,14 @@ export function useQuickCartTabs() {
         updatedItems[existingIndex] = {
           ...updatedItems[existingIndex],
           quantity: updatedItems[existingIndex].quantity + quantity,
+          // Mantener descuento existente al sumar cantidad
         };
       } else {
-        updatedItems = [...tab.items, { article, quantity }];
+        updatedItems = [...tab.items, { 
+          article, 
+          quantity,
+          discountPercent: discountPercent ?? article.categoryDefaultDiscount ?? 0
+        }];
       }
       
       return { ...tab, items: updatedItems };
@@ -297,7 +303,30 @@ export function useQuickCartTabs() {
         ...tab,
         items: tab.items.map(item =>
           item.article.id === oldArticleId 
-            ? { article: newArticle, quantity: item.quantity }
+            ? { article: newArticle, quantity: item.quantity, discountPercent: item.discountPercent }
+            : item
+        ),
+      };
+    });
+    
+    const newState: QuickCartState = {
+      ...state,
+      tabs: updatedTabs,
+    };
+    
+    saveStateToStorage(newState);
+    setState(newState);
+  };
+
+  // Update discount for an item in active tab
+  const updateItemDiscount = (articleId: number, discountPercent: number) => {
+    const updatedTabs = state.tabs.map(tab => {
+      if (tab.id !== state.activeTabId) return tab;
+      return {
+        ...tab,
+        items: tab.items.map(item =>
+          item.article.id === articleId 
+            ? { ...item, discountPercent } 
             : item
         ),
       };
@@ -470,6 +499,7 @@ export function useQuickCartTabs() {
     addItem,
     removeItem,
     updateQuantity,
+    updateItemDiscount,
     replaceItem,
     clearCart,
     getTabItems,

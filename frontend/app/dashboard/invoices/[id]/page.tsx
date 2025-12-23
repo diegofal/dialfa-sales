@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Printer, XCircle, Eye, Save, X as XIcon, Edit2 } from 'lucide-react';
+import { ArrowLeft, Printer, XCircle, Eye, Save, X as XIcon, Edit2, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,9 +15,10 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useInvoice, useCancelInvoice, usePrintInvoice, useUpdateInvoiceExchangeRate, useInvoiceStockMovements } from '@/lib/hooks/useInvoices';
+import { useInvoice, useCancelInvoice, usePrintInvoice, useUpdateInvoiceExchangeRate, useInvoiceStockMovements, useDeleteInvoice, useUpdateInvoiceItems } from '@/lib/hooks/useInvoices';
 import { useQuickInvoiceTabs } from '@/lib/hooks/useQuickInvoiceTabs';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -28,6 +29,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { formatCuit } from '@/lib/utils';
 
 export default function InvoiceDetailPage() {
   const params = useParams();
@@ -37,13 +39,73 @@ export default function InvoiceDetailPage() {
   const { data: invoice, isLoading } = useInvoice(invoiceId);
   const { data: stockMovements, isLoading: isLoadingMovements } = useInvoiceStockMovements(invoiceId);
   const cancelInvoiceMutation = useCancelInvoice();
+  const deleteInvoiceMutation = useDeleteInvoice();
   const printInvoiceMutation = usePrintInvoice();
   const updateExchangeRateMutation = useUpdateInvoiceExchangeRate();
+  const updateInvoiceItemsMutation = useUpdateInvoiceItems();
   const { addInvoiceTab } = useQuickInvoiceTabs();
 
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [isEditingExchangeRate, setIsEditingExchangeRate] = useState(false);
   const [editedExchangeRate, setEditedExchangeRate] = useState('');
+  const [editedItems, setEditedItems] = useState<Array<{id: number, discountPercent: number}>>([]);
+  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Función para guardar items (debe estar antes de los returns condicionales)
+  const handleSaveItems = useCallback(() => {
+    if (!invoice) return;
+    
+    // Comparar con valores originales - solo guardar si hay cambios REALES
+    const hasRealChanges = editedItems.some(editedItem => {
+      const originalItem = invoice.items.find(i => i.id === editedItem.id);
+      return originalItem && originalItem.discountPercent !== editedItem.discountPercent;
+    });
+
+    if (!hasRealChanges || editedItems.length === 0) {
+      return;
+    }
+
+    // Enviar TODOS los items con sus descuentos actuales (mezclando editados y originales)
+    const allItemsWithDiscounts = invoice.items.map(item => {
+      const editedItem = editedItems.find(e => e.id === item.id);
+      return {
+        id: item.id,
+        discountPercent: editedItem ? editedItem.discountPercent : item.discountPercent,
+      };
+    });
+
+    updateInvoiceItemsMutation.mutate(
+      { id: invoiceId, items: allItemsWithDiscounts },
+      {
+        onSuccess: () => {
+          // Limpiar items editados después de guardar
+          setEditedItems([]);
+        },
+      }
+    );
+  }, [editedItems, invoiceId, invoice, updateInvoiceItemsMutation]);
+
+  // Debounce para guardar automáticamente después de 1 segundo
+  useEffect(() => {
+    if (editedItems.length === 0) return;
+
+    // Limpiar el timeout anterior
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+
+    // Crear nuevo timeout
+    saveTimeoutRef.current = setTimeout(() => {
+      handleSaveItems();
+    }, 1000); // 1 segundo de delay
+
+    // Cleanup
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [editedItems, handleSaveItems]);
 
   // Add invoice to tabs when loaded
   useEffect(() => {
@@ -52,6 +114,11 @@ export default function InvoiceDetailPage() {
       if (invoice.usdExchangeRate) {
         setEditedExchangeRate(invoice.usdExchangeRate.toString());
       }
+      // Cargar descuentos editables
+      setEditedItems(invoice.items.map(item => ({
+        id: item.id,
+        discountPercent: item.discountPercent
+      })));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invoice?.id]); // Only depend on invoice.id to avoid infinite loop
@@ -107,6 +174,15 @@ export default function InvoiceDetailPage() {
         },
       }
     );
+  };
+
+  const handleDelete = () => {
+    deleteInvoiceMutation.mutate(invoiceId, {
+      onSuccess: () => {
+        setShowCancelDialog(false);
+        router.push('/dashboard/invoices');
+      },
+    });
   };
 
   const handlePrint = () => {
@@ -211,7 +287,7 @@ export default function InvoiceDetailPage() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">CUIT</p>
-              <p className="font-medium">{invoice.clientCuit}</p>
+              <p className="font-medium font-mono">{formatCuit(invoice.clientCuit)}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Condición IVA</p>
@@ -287,10 +363,6 @@ export default function InvoiceDetailPage() {
               )}
             </div>
 
-            <div>
-              <p className="text-sm text-muted-foreground">Descuento Especial</p>
-              <p className="font-medium">{invoice.specialDiscountPercent}%</p>
-            </div>
             {invoice.notes && (
               <div>
                 <p className="text-sm text-muted-foreground">Observaciones</p>
@@ -331,7 +403,36 @@ export default function InvoiceDetailPage() {
                       (USD {item.unitPriceUsd.toFixed(2)})
                     </span>
                   </TableCell>
-                  <TableCell className="text-right">{item.discountPercent}%</TableCell>
+                  <TableCell className="text-right">
+                    {canEditExchangeRate ? (
+                      <div className="flex items-center justify-end gap-1">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          max="100"
+                          value={editedItems.find(i => i.id === item.id)?.discountPercent ?? item.discountPercent}
+                          onChange={(e) => {
+                            const newDiscount = parseFloat(e.target.value) || 0;
+                            setEditedItems(items => {
+                              const existingIndex = items.findIndex(i => i.id === item.id);
+                              if (existingIndex >= 0) {
+                                return items.map(i => 
+                                  i.id === item.id ? { ...i, discountPercent: newDiscount } : i
+                                );
+                              } else {
+                                return [...items, { id: item.id, discountPercent: newDiscount }];
+                              }
+                            });
+                          }}
+                          className="w-16 h-8 text-right text-sm"
+                        />
+                        <span className="text-xs text-muted-foreground">%</span>
+                      </div>
+                    ) : (
+                      `${item.discountPercent}%`
+                    )}
+                  </TableCell>
                   <TableCell className="text-right font-medium">
                     {formatCurrency(item.lineTotal)}
                   </TableCell>
@@ -472,9 +573,19 @@ export default function InvoiceDetailPage() {
                 <Button
                   variant="outline"
                   onClick={() => setShowCancelDialog(true)}
+                  className={!invoice.isPrinted ? "text-destructive hover:text-destructive" : ""}
                 >
-                  <XCircle className="mr-2 h-4 w-4" />
-                  Cancelar Factura
+                  {invoice.isPrinted ? (
+                    <>
+                      <XCircle className="mr-2 h-4 w-4" />
+                      Cancelar Factura
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="mr-2 h-4 w-4" />
+                      Eliminar Factura
+                    </>
+                  )}
                 </Button>
               )}
             </div>
@@ -504,15 +615,22 @@ export default function InvoiceDetailPage() {
         </div>
       </div>
 
-      {/* Cancel Dialog */}
+      {/* Cancel/Delete Dialog */}
       <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Cancelar factura?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {invoice.isPrinted ? '¿Cancelar factura?' : '¿Eliminar factura?'}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción marcará la factura como CANCELADA.
-              {invoice?.isPrinted && (
-                <> Como la factura está impresa, se restaurará el stock automáticamente.</>
+              {invoice.isPrinted ? (
+                <>
+                  Esta acción marcará la factura como CANCELADA y se restaurará el stock automáticamente.
+                </>
+              ) : (
+                <>
+                  Esta acción eliminará la factura permanentemente. Como la factura no ha sido impresa, no hay cambios en el stock que revertir.
+                </>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -521,10 +639,15 @@ export default function InvoiceDetailPage() {
               No, volver
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={handleCancel}
-              disabled={cancelInvoiceMutation.isPending}
+              onClick={invoice.isPrinted ? handleCancel : handleDelete}
+              disabled={cancelInvoiceMutation.isPending || deleteInvoiceMutation.isPending}
+              className={!invoice.isPrinted ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
             >
-              {cancelInvoiceMutation.isPending ? 'Cancelando...' : 'Sí, cancelar factura'}
+              {invoice.isPrinted ? (
+                cancelInvoiceMutation.isPending ? 'Cancelando...' : 'Sí, cancelar factura'
+              ) : (
+                deleteInvoiceMutation.isPending ? 'Eliminando...' : 'Sí, eliminar factura'
+              )}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

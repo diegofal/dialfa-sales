@@ -127,6 +127,24 @@ export async function PUT(
 
     const now = new Date();
 
+    // Check for unprinted invoices and delivery notes that need updating
+    const unprintedInvoices = await prisma.invoices.findMany({
+      where: {
+        sales_order_id: id,
+        is_printed: false,
+        is_cancelled: false,
+        deleted_at: null,
+      },
+    });
+
+    const unprintedDeliveryNotes = await prisma.delivery_notes.findMany({
+      where: {
+        sales_order_id: id,
+        is_printed: false,
+        deleted_at: null,
+      },
+    });
+
     // If items are included, update them in transaction
     if (validatedData.items && validatedData.items.length > 0) {
       // Calculate totals for each item and overall total
@@ -146,7 +164,7 @@ export async function PUT(
 
       // Update in transaction
       const result = await prisma.$transaction(async (tx) => {
-        // Delete existing items
+        // Delete existing sales order items
         await tx.sales_order_items.deleteMany({
           where: { sales_order_id: id },
         });
@@ -175,6 +193,129 @@ export async function PUT(
           data: itemsWithOrderId,
         });
 
+        // Get created items with article info for updating documents
+        const createdItems = await tx.sales_order_items.findMany({
+          where: { sales_order_id: id },
+          include: { 
+            articles: {
+              include: {
+                categories: true  // Include categories for discount info
+              }
+            }
+          },
+        });
+
+        // Update invoices if any exist (instead of regenerating)
+        for (const invoice of unprintedInvoices) {
+          // Get existing invoice items to preserve discount percentages
+          const existingInvoiceItems = await tx.invoice_items.findMany({
+            where: { invoice_id: invoice.id },
+          });
+
+          // Create a map of article_id to discount_percent from existing invoice
+          const existingDiscounts = new Map(
+            existingInvoiceItems.map(item => [
+              item.article_id.toString(),
+              parseFloat(item.discount_percent.toString())
+            ])
+          );
+
+          // Delete old invoice items
+          await tx.invoice_items.deleteMany({
+            where: { invoice_id: invoice.id },
+          });
+
+          // Use preserved exchange rate
+          const usdExchangeRate = invoice.usd_exchange_rate ? parseFloat(invoice.usd_exchange_rate.toString()) : 1000;
+
+          // Calculate new amounts
+          const TAX_RATE = 0.21;
+          let netAmountArs = 0;
+          
+          const newInvoiceItems = createdItems.map((item) => {
+            const unitPriceUsd = parseFloat(item.unit_price.toString());
+            const unitPriceArs = unitPriceUsd * usdExchangeRate;
+            
+            // PRESERVE existing discount or use category default for new items
+            const articleIdStr = item.article_id.toString();
+            const discountPercent = existingDiscounts.has(articleIdStr)
+              ? existingDiscounts.get(articleIdStr)!
+              : (item.articles.categories?.default_discount_percent 
+                  ? parseFloat(item.articles.categories.default_discount_percent.toString())
+                  : 0);
+            
+            const quantity = item.quantity;
+            
+            const subtotal = unitPriceArs * quantity;
+            const discount = subtotal * (discountPercent / 100);
+            const lineTotal = subtotal - discount;
+            
+            netAmountArs += lineTotal;
+            
+            return {
+              invoice_id: invoice.id,
+              article_id: item.article_id,
+              article_code: item.articles.code,
+              article_description: item.articles.description,
+              quantity: quantity,
+              unit_price_usd: unitPriceUsd,
+              unit_price_ars: unitPriceArs,
+              discount_percent: discountPercent,
+              line_total: lineTotal,
+              created_at: now,
+            };
+          });
+
+          const taxAmount = netAmountArs * TAX_RATE;
+          const totalAmount = netAmountArs + taxAmount;
+
+          // Create new invoice items
+          await tx.invoice_items.createMany({
+            data: newInvoiceItems,
+          });
+
+          // Update invoice with new totals
+          await tx.invoices.update({
+            where: { id: invoice.id },
+            data: {
+              net_amount: netAmountArs,
+              tax_amount: taxAmount,
+              total_amount: totalAmount,
+              updated_at: now,
+            },
+          });
+        }
+
+        // Update delivery notes if any exist (instead of regenerating)
+        for (const deliveryNote of unprintedDeliveryNotes) {
+          // Delete old delivery note items
+          await tx.delivery_note_items.deleteMany({
+            where: { delivery_note_id: deliveryNote.id },
+          });
+
+          // Create new delivery note items from updated order
+          const newDeliveryItems = createdItems.map((item) => ({
+            delivery_note_id: deliveryNote.id,
+            article_id: item.article_id,
+            article_code: item.articles.code,
+            article_description: item.articles.description,
+            quantity: item.quantity,
+            created_at: now,
+          }));
+
+          await tx.delivery_note_items.createMany({
+            data: newDeliveryItems,
+          });
+
+          // Update delivery note timestamp
+          await tx.delivery_notes.update({
+            where: { id: deliveryNote.id },
+            data: {
+              updated_at: now,
+            },
+          });
+        }
+
         // Return the full sales order with relations
         return await tx.sales_orders.findUnique({
           where: { id: salesOrder.id },
@@ -192,6 +333,13 @@ export async function PUT(
       if (!result) {
         throw new Error('Failed to update sales order');
       }
+
+      // Build update info for response
+      const updateInfo = (unprintedInvoices.length > 0 || unprintedDeliveryNotes.length > 0) ? {
+        invoices: unprintedInvoices.length,
+        deliveryNotes: unprintedDeliveryNotes.length,
+        message: `Se actualizaron automáticamente ${unprintedInvoices.length} factura(s) y ${unprintedDeliveryNotes.length} remito(s) no impreso(s)`,
+      } : undefined;
 
       // Convert BigInt to string for JSON serialization
       const serializedSalesOrder = {
@@ -213,6 +361,7 @@ export async function PUT(
             category_id: item.articles.category_id.toString(),
           },
         })),
+        regenerated: updateInfo,
       };
 
       // Log activity

@@ -18,6 +18,14 @@ export async function POST(
         const invoice = await prisma.invoices.findUnique({
             where: { id: invoiceId },
             include: {
+                invoice_items: {
+                    include: {
+                        articles: true
+                    },
+                    orderBy: {
+                        id: 'asc'
+                    }
+                },
                 sales_orders: {
                     include: {
                         clients: {
@@ -26,11 +34,7 @@ export async function POST(
                                 tax_conditions: true,
                             }
                         },
-                        sales_order_items: {
-                            include: {
-                                articles: true
-                            }
-                        }
+                        sales_order_items: true
                     }
                 }
             }

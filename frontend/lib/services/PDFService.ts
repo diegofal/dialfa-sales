@@ -1,6 +1,7 @@
 import PDFDocument from 'pdfkit';
 import { PrintTemplate, PrintField, ItemsConfiguration } from '@/types/print-template';
 import { InvoiceData, DeliveryNoteData, PDFItem, PDFDeliveryNoteItem } from '@/types/pdf-data';
+import { formatCuit } from '@/lib/utils';
 
 export class PDFService {
     private currentTemplate: PrintTemplate | null = null;
@@ -48,15 +49,24 @@ export class PDFService {
                 this.renderField(doc, template.fields.condicionIVA, taxCondition);
 
                 const cuit = invoice.sales_orders?.clients?.cuit || '';
-                this.renderField(doc, template.fields.cuit, cuit);
+                this.renderField(doc, template.fields.cuit, formatCuit(cuit));
 
-                if (template.items && invoice.sales_orders?.sales_order_items) {
-                    const items: PDFItem[] = invoice.sales_orders.sales_order_items.map((item) => ({
-                        quantity: item.quantity,
-                        articleDescription: item.articles?.description || '',
-                        unitPrice: Number(item.unit_price || 0),
-                        lineTotal: Number(item.quantity || 0) * Number(item.unit_price || 0)
-                    }));
+                if (template.items && invoice.invoice_items) {
+                    const items: PDFItem[] = invoice.invoice_items.map((item) => {
+                        const unitPriceArs = Number(item.unit_price_ars || 0);
+                        const discountPercent = Number(item.discount_percent || 0);
+                        const quantity = Number(item.quantity || 0);
+                        
+                        // Calculate unit price with discount applied
+                        const unitPriceWithDiscount = unitPriceArs * (1 - discountPercent / 100);
+                        
+                        return {
+                            quantity: item.quantity,
+                            articleDescription: item.article_description || '',
+                            unitPrice: unitPriceWithDiscount,
+                            lineTotal: Number(item.line_total || 0)
+                        };
+                    });
                     this.renderItems(doc, items, template.items);
                 }
 
@@ -93,9 +103,11 @@ export class PDFService {
         doc.fontSize(fontSize);
 
         if (field.align === 'right') {
-            const textWidth = doc.widthOfString(stringValue);
-            doc.text(stringValue, finalX - textWidth, finalY, {
-                width: field.maxWidth,
+            // For right alignment, provide a fixed width for the text box
+            // PDFKit will align the text to the right within that width
+            const boxWidth = field.maxWidth || 100;
+            doc.text(stringValue, finalX - boxWidth, finalY, {
+                width: boxWidth,
                 align: 'right'
             });
         } else {
@@ -185,7 +197,7 @@ export class PDFService {
                 this.renderField(doc, template.fields.provincia, province);
 
                 const cuit = deliveryNote.sales_orders?.clients?.cuit || '';
-                this.renderField(doc, template.fields.cuit, cuit);
+                this.renderField(doc, template.fields.cuit, formatCuit(cuit));
 
                 const taxCondition = deliveryNote.sales_orders?.clients?.tax_conditions?.name || '';
                 this.renderField(doc, template.fields.condicionIVA, taxCondition);

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { mapCategoryToDTO } from '@/lib/utils/mapper';
 import { updateCategorySchema } from '@/lib/validations/schemas';
 import { z } from 'zod';
 
@@ -14,12 +15,15 @@ export async function GET(
     const category = await prisma.categories.findUnique({
       where: { id },
       include: {
-        articles: {
-          where: {
-            deleted_at: null,
-            is_active: true,
+        _count: {
+          select: {
+            articles: {
+              where: {
+                deleted_at: null,
+                is_active: true,
+              },
+            },
           },
-          take: 10, // Limit related articles
         },
       },
     });
@@ -31,18 +35,13 @@ export async function GET(
       );
     }
 
-    // Convert BigInt to string for JSON serialization
-    const serializedCategory = {
-      ...category,
-      id: category.id.toString(),
-      articles: category.articles.map((article: typeof category.articles[number]) => ({
-        ...article,
-        id: article.id.toString(),
-        category_id: article.category_id.toString(),
-      })),
+    // Convert BigInt to string and map to DTO format
+    const mappedCategory = {
+      ...mapCategoryToDTO(category),
+      articlesCount: category._count?.articles || 0,
     };
-
-    return NextResponse.json(serializedCategory);
+    
+    return NextResponse.json(mappedCategory);
   } catch (error) {
     console.error('Error fetching category:', error);
     return NextResponse.json(
@@ -89,13 +88,10 @@ export async function PUT(
       },
     });
 
-    // Convert BigInt to string for JSON serialization
-    const serializedCategory = {
-      ...category,
-      id: category.id.toString(),
-    };
-
-    return NextResponse.json(serializedCategory);
+    // Convert BigInt to string and map to DTO format
+    const mappedCategory = mapCategoryToDTO(category);
+    
+    return NextResponse.json(mappedCategory);
   } catch (error) {
     console.error('Error updating category:', error);
 
