@@ -36,6 +36,20 @@ export async function GET(request: NextRequest) {
       where.is_active = isActive === 'true';
     }
 
+    // If searching, try to find exact match first
+    let exactMatch = null;
+    if (search) {
+      exactMatch = await prisma.articles.findFirst({
+        where: {
+          ...where,
+          code: { equals: search, mode: 'insensitive' },
+        },
+        include: {
+          categories: true,
+        },
+      });
+    }
+
     // Get articles with category
     const [articles, total] = await Promise.all([
       prisma.articles.findMany({
@@ -54,7 +68,46 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Map to DTO format (snake_case to camelCase)
-    const mappedArticles = articles.map(mapArticleToDTO);
+    let mappedArticles = articles.map(mapArticleToDTO);
+
+    // If there's an exact match, ensure it's first and not duplicated
+    if (exactMatch) {
+      const exactMatchDTO = mapArticleToDTO(exactMatch);
+      // Remove exact match if it's already in the results
+      mappedArticles = mappedArticles.filter(a => a.id !== exactMatchDTO.id);
+      // Add it at the beginning
+      mappedArticles.unshift(exactMatchDTO);
+      // Trim to limit
+      if (mappedArticles.length > limit) {
+        mappedArticles = mappedArticles.slice(0, limit);
+      }
+    }
+
+    // If search term provided, sort remaining items by relevance
+    if (search && mappedArticles.length > 1) {
+      const searchUpper = search.toUpperCase();
+      const first = mappedArticles[0]; // Keep first item (exact match) in place
+      const rest = mappedArticles.slice(1);
+      
+      rest.sort((a, b) => {
+        const aCode = a.code.toUpperCase();
+        const bCode = b.code.toUpperCase();
+
+        // Starts with priority
+        const aStarts = aCode.startsWith(searchUpper);
+        const bStarts = bCode.startsWith(searchUpper);
+        if (aStarts && !bStarts) return -1;
+        if (!aStarts && bStarts) return 1;
+
+        // Fall back to display order and alphabetical
+        if (a.displayOrder !== b.displayOrder) {
+          return a.displayOrder - b.displayOrder;
+        }
+        return aCode.localeCompare(bCode);
+      });
+
+      mappedArticles = [first, ...rest];
+    }
 
     return NextResponse.json({
       data: mappedArticles,
