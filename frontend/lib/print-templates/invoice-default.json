@@ -86,16 +86,16 @@
             },
             "descripcion": {
                 "x": 94,
-                "width": 220,
+                "width": 250,
                 "align": "left"
             },
             "precioUnitario": {
-                "x": 415,
+                "x": 461,
                 "align": "right",
-                "maxWidth": 80
+                "maxWidth": 70
             },
             "precioTotal": {
-                "x": 555,
+                "x": 540,
                 "align": "right",
                 "maxWidth": 80
             }
