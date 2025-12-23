@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { salesOrdersApi } from '../api/salesOrders';
 import { PaginationParams } from '@/types/pagination';
-import type { CreateSalesOrderRequest, UpdateSalesOrderRequest } from '@/types/salesOrder';
+import type { CreateSalesOrderRequest, UpdateSalesOrderRequest, SalesOrderUpdateResponse } from '@/types/salesOrder';
 import type { Invoice } from '@/types/invoice';
 import type { DeliveryNote } from '@/types/deliveryNote';
 import { toast } from 'sonner';
@@ -58,12 +58,32 @@ export const useCreateSalesOrder = () => {
 export const useUpdateSalesOrder = () => {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<SalesOrderUpdateResponse, Error, { id: number; data: UpdateSalesOrderRequest }>({
     mutationFn: ({ id, data }: { id: number; data: UpdateSalesOrderRequest }) =>
       salesOrdersApi.update(id, data),
-    onSuccess: () => {
+    onSuccess: (data, variables) => {
+      // Invalidate all sales orders queries (list)
       queryClient.invalidateQueries({ queryKey: ['salesOrders'] });
+      
+      // Invalidate the specific sales order query to force refetch
+      queryClient.invalidateQueries({ queryKey: ['salesOrders', variables.id] });
+      
+      // If documents were regenerated, invalidate invoices and delivery notes
+      if (data.regenerated && (data.regenerated.invoices > 0 || data.regenerated.deliveryNotes > 0)) {
+        queryClient.invalidateQueries({ queryKey: ['invoices'] });
+        queryClient.invalidateQueries({ queryKey: ['delivery-notes'] });
+      }
+      
+      // Show success message
       toast.success('Pedido actualizado exitosamente');
+      
+      // Show additional info if documents were updated
+      if (data.regenerated) {
+        toast.info(data.regenerated.message, {
+          description: 'Los documentos mantienen sus números originales',
+          duration: 5000,
+        });
+      }
     },
     onError: (error: unknown) => {
       const err = error as { response?: { data?: { message?: string } } };

@@ -4,7 +4,8 @@ import type {
   SalesOrder, 
   SalesOrderListDto, 
   CreateSalesOrderRequest, 
-  UpdateSalesOrderRequest 
+  UpdateSalesOrderRequest,
+  SalesOrderUpdateResponse
 } from '@/types/salesOrder';
 import type { Invoice } from '@/types/invoice';
 import type { DeliveryNote } from '@/types/deliveryNote';
@@ -42,8 +43,9 @@ export const salesOrdersApi = {
     return data;
   },
 
-  update: async (id: number, orderData: UpdateSalesOrderRequest): Promise<void> => {
-    await apiClient.put(`/sales-orders/${id}`, orderData);
+  update: async (id: number, orderData: UpdateSalesOrderRequest): Promise<SalesOrderUpdateResponse> => {
+    const { data } = await apiClient.put<SalesOrderUpdateResponse>(`/sales-orders/${id}`, orderData);
+    return data;
   },
 
   cancel: async (id: number): Promise<void> => {

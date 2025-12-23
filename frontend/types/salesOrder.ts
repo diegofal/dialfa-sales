@@ -28,6 +28,14 @@ export interface SalesOrder {
   } | null;
 }
 
+export interface SalesOrderUpdateResponse extends SalesOrder {
+  regenerated?: {
+    invoices: number;
+    deliveryNotes: number;
+    message: string;
+  };
+}
+
 export interface SalesOrderItem {
   id: number;
   articleId: number;

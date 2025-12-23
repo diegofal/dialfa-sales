@@ -9,7 +9,7 @@ import { useCreateSalesOrder, useGenerateInvoice, useGenerateDeliveryNote } from
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { useQuickCartTabs, QuickCartItem } from '@/lib/hooks/useQuickCartTabs';
-import { Alert } from '@/components/ui/alert';
+import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { ShoppingCart, User, X, Trash2, Pencil, Search, Plus, FileText, AlertTriangle, Truck, Eye } from 'lucide-react';
 import { useArticles } from '@/lib/hooks/useArticles';
 import type { Article } from '@/types/article';
@@ -132,6 +132,12 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false);
   const [unsavedChangesAction, setUnsavedChangesAction] = useState<'save' | 'discard' | null>(null);
 
+  // Track unprinted documents that will be regenerated
+  const [hasUnprintedDocs, setHasUnprintedDocs] = useState<{
+    invoice: boolean;
+    deliveryNote: boolean;
+  } | null>(null);
+
   // Search articles for adding
   const { data: articlesResult } = useArticles({
     searchTerm: articleCode,
@@ -167,6 +173,23 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       setHasUnsavedChanges(hasChanges);
     }
   }, [isEditMode, existingOrder, loadedOrderId, items, clientId, notes]);
+
+  // Detect unprinted documents that will be regenerated on save
+  useEffect(() => {
+    if (isEditMode && existingOrder) {
+      const hasUnprintedInvoice = existingOrder.invoice && !existingOrder.invoice.isPrinted && !existingOrder.invoice.isCancelled;
+      const hasUnprintedDeliveryNote = existingOrder.deliveryNote && !existingOrder.deliveryNote.isPrinted;
+      
+      if (hasUnprintedInvoice || hasUnprintedDeliveryNote) {
+        setHasUnprintedDocs({
+          invoice: !!hasUnprintedInvoice,
+          deliveryNote: !!hasUnprintedDeliveryNote,
+        });
+      } else {
+        setHasUnprintedDocs(null);
+      }
+    }
+  }, [isEditMode, existingOrder]);
 
   // Load existing order data into form when in edit mode
   useEffect(() => {
@@ -1026,6 +1049,23 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
         </CardContent>
       </Card>
 
+      {/* Warning Alert for Unprinted Documents Update */}
+      {hasUnprintedDocs && hasUnsavedChanges && (
+        <Alert className="border-amber-500 bg-amber-50 dark:bg-amber-950/30">
+          <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-500" />
+          <AlertTitle className="text-amber-900 dark:text-amber-100">
+            Documentos serán actualizados
+          </AlertTitle>
+          <AlertDescription className="text-amber-800 dark:text-amber-200">
+            Este pedido tiene {hasUnprintedDocs.invoice && 'una factura'}
+            {hasUnprintedDocs.invoice && hasUnprintedDocs.deliveryNote && ' y '}
+            {hasUnprintedDocs.deliveryNote && 'un remito'} no impreso(s).
+            Al guardar, se actualizarán automáticamente con la nueva información.
+            Los números de documento se mantendrán sin cambios.
+          </AlertDescription>
+        </Alert>
+      )}
+
       {/* Fixed Action Buttons */}
       <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t z-50">
         <div className="container max-w-7xl mx-auto px-6 py-4">
@@ -1085,6 +1125,16 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                 >
                   <Eye className="mr-2 h-4 w-4" />
                   Ver Factura
+                </Button>
+              )}
+              {isEditMode && permissions.canEdit && (
+                <Button
+                  onClick={handleSubmit}
+                  disabled={!clientId || items.length === 0 || updateOrderMutation.isPending || !hasUnsavedChanges}
+                  size="lg"
+                  variant={hasUnsavedChanges ? "default" : "outline"}
+                >
+                  {updateOrderMutation.isPending ? 'Guardando...' : hasUnsavedChanges ? 'Guardar Cambios' : 'Sin cambios'}
                 </Button>
               )}
               {!isEditMode && (
