@@ -100,8 +100,10 @@ export async function GET(request: NextRequest) {
         if (!aStarts && bStarts) return 1;
 
         // Fall back to display order and alphabetical
-        if (a.displayOrder !== b.displayOrder) {
-          return a.displayOrder - b.displayOrder;
+        const aOrder = a.displayOrder ?? 999999;
+        const bOrder = b.displayOrder ?? 999999;
+        if (aOrder !== bOrder) {
+          return aOrder - bOrder;
         }
         return aCode.localeCompare(bCode);
       });
