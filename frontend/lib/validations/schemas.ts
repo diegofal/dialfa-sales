@@ -40,7 +40,7 @@ export const updateCategorySchema = createCategorySchema.partial().required({ co
 export const createClientSchema = z.object({
   code: z.string().min(1, 'El código es requerido').max(20, 'El código no puede exceder 20 caracteres'),
   businessName: z.string().min(1, 'La razón social es requerida').max(200, 'La razón social no puede exceder 200 caracteres'),
-  cuit: z.string().max(11).optional().nullable(),
+  cuit: z.string().max(13).optional().nullable(), // 11 digits + 2 hyphens = 13 characters max
   taxConditionId: z.coerce.number().int().min(1, 'Debe seleccionar una condición de IVA'),
   address: z.string().max(200).optional().nullable(),
   city: z.string().max(100).optional().nullable(),

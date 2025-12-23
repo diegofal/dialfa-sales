@@ -29,6 +29,16 @@ class ModernArticle:
     is_discontinued: bool
     location: Optional[str]
     notes: Optional[str]
+    # Additional fields that exist in production database
+    display_order: Optional[str]
+    historical_price1: Optional[float]
+    series: Optional[int]
+    size: Optional[str]
+    supplier_id: Optional[int]
+    thickness: Optional[str]
+    type: Optional[str]
+    weight_kg: Optional[float]
+    is_active: bool
     created_at: datetime
     updated_at: datetime
 
@@ -50,6 +60,7 @@ class ModernClient:
     transporter_id: Optional[int]
     credit_limit: Optional[float]
     current_balance: float
+    seller_id: Optional[int]  # Additional field from production database
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -105,6 +116,8 @@ class ModernInvoice:
     is_cancelled: bool
     cancelled_at: Optional[datetime]
     cancellation_reason: Optional[str]
+    is_credit_note: bool  # Additional field from production database
+    is_quotation: bool  # Additional field from production database
     notes: Optional[str]
     created_at: datetime
     updated_at: datetime

@@ -3,7 +3,10 @@
  */
 export function mapArticleToDTO(article: unknown) {
   const a = article as Record<string, unknown>;
-  const categories = a.categories as { name?: string } | undefined;
+  const categories = a.categories as { 
+    name?: string;
+    default_discount_percent?: unknown;
+  } | undefined;
   
   return {
     id: parseInt(String((a.id as bigint | number))),
@@ -11,6 +14,9 @@ export function mapArticleToDTO(article: unknown) {
     description: a.description as string,
     categoryId: parseInt(String((a.category_id as bigint | number))),
     categoryName: categories?.name || '',
+    categoryDefaultDiscount: categories?.default_discount_percent 
+      ? parseFloat(String(categories.default_discount_percent))
+      : 0,
     unitPrice: parseFloat(String(a.unit_price)),
     stock: parseFloat(String(a.stock)),
     minimumStock: parseFloat(String(a.minimum_stock)),
@@ -37,6 +43,7 @@ export function mapArticleToDTO(article: unknown) {
  */
 export function mapCategoryToDTO(category: unknown) {
   const c = category as Record<string, unknown>;
+  const articles = c.articles as unknown[] | undefined;
   
   return {
     id: parseInt(String((c.id as bigint | number))),
@@ -45,6 +52,8 @@ export function mapCategoryToDTO(category: unknown) {
     description: c.description as string | null,
     defaultDiscountPercent: parseFloat(String(c.default_discount_percent)),
     isActive: c.is_active as boolean,
+    isDeleted: !!c.deleted_at,
+    articlesCount: articles?.length || 0,
     createdAt: c.created_at as Date,
     updatedAt: c.updated_at as Date,
   };

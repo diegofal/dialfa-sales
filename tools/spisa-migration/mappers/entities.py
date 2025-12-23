@@ -133,9 +133,19 @@ def map_article(legacy: LegacyArticulo) -> ModernArticle:
         unit_price=float(legacy.preciounitario),
         cost_price=None,
         minimum_stock=0.0,
-        is_discontinued=False,
+        is_discontinued=legacy.discontinuado if legacy.discontinuado is not None else False,
         location=None,
         notes=None,
+        # Additional fields from production database
+        display_order=legacy.orden.strip() if legacy.orden else None,
+        type=legacy.tipo.strip() if legacy.tipo else None,
+        series=legacy.serie,
+        thickness=legacy.espesor.strip() if legacy.espesor else None,
+        size=legacy.size.strip() if legacy.size else None,
+        supplier_id=legacy.proveedor,
+        weight_kg=float(legacy.peso) if legacy.peso else None,
+        historical_price1=float(legacy.precio_unitario_historico_1) if legacy.precio_unitario_historico_1 else None,
+        is_active=not legacy.discontinuado if legacy.discontinuado is not None else True,
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow()
     )
@@ -162,6 +172,7 @@ def map_client(legacy: LegacyCliente) -> ModernClient:
         transporter_id=legacy.IdTransportista,
         credit_limit=None,
         current_balance=float(legacy.Saldo),
+        seller_id=legacy.IdVendedor,  # Additional field from production database
         is_active=True,
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow()
@@ -254,6 +265,8 @@ def map_invoice(legacy: LegacyFactura) -> ModernInvoice:
         is_cancelled=legacy.FueCancelada,
         cancelled_at=datetime.utcnow() if legacy.FueCancelada else None,
         cancellation_reason='Migrated as cancelled' if legacy.FueCancelada else None,
+        is_credit_note=legacy.EsNotaDeCredito,  # Additional field from production database
+        is_quotation=legacy.Cotizacion,  # Additional field from production database
         notes=legacy.Observaciones.strip() if legacy.Observaciones else None,
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow()

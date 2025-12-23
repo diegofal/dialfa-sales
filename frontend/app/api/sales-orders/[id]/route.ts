@@ -194,11 +194,30 @@ export async function PUT(
         // Get created items with article info for updating documents
         const createdItems = await tx.sales_order_items.findMany({
           where: { sales_order_id: id },
-          include: { articles: true },
+          include: { 
+            articles: {
+              include: {
+                categories: true  // Include categories for discount info
+              }
+            }
+          },
         });
 
         // Update invoices if any exist (instead of regenerating)
         for (const invoice of unprintedInvoices) {
+          // Get existing invoice items to preserve discount percentages
+          const existingInvoiceItems = await tx.invoice_items.findMany({
+            where: { invoice_id: invoice.id },
+          });
+
+          // Create a map of article_id to discount_percent from existing invoice
+          const existingDiscounts = new Map(
+            existingInvoiceItems.map(item => [
+              item.article_id.toString(),
+              parseFloat(item.discount_percent.toString())
+            ])
+          );
+
           // Delete old invoice items
           await tx.invoice_items.deleteMany({
             where: { invoice_id: invoice.id },
@@ -214,7 +233,15 @@ export async function PUT(
           const newInvoiceItems = createdItems.map((item) => {
             const unitPriceUsd = parseFloat(item.unit_price.toString());
             const unitPriceArs = unitPriceUsd * usdExchangeRate;
-            const discountPercent = parseFloat(item.discount_percent.toString());
+            
+            // PRESERVE existing discount or use category default for new items
+            const articleIdStr = item.article_id.toString();
+            const discountPercent = existingDiscounts.has(articleIdStr)
+              ? existingDiscounts.get(articleIdStr)!
+              : (item.articles.categories?.default_discount_percent 
+                  ? parseFloat(item.articles.categories.default_discount_percent.toString())
+                  : 0);
+            
             const quantity = item.quantity;
             
             const subtotal = unitPriceArs * quantity;

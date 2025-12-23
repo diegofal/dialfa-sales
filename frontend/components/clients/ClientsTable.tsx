@@ -27,6 +27,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Pencil, Trash2 } from 'lucide-react';
 import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
+import { formatCuit } from '@/lib/utils';
 
 interface ClientsTableProps {
   clients: ClientDto[];
@@ -112,7 +113,7 @@ export default function ClientsTable({
                   <TableCell className="font-medium">{client.code}</TableCell>
                   <TableCell>{client.businessName}</TableCell>
                   <TableCell className="font-mono text-sm">
-                    {client.cuit || '-'}
+                    {formatCuit(client.cuit) || '-'}
                   </TableCell>
                   <TableCell>{client.city || '-'}</TableCell>
                   <TableCell>

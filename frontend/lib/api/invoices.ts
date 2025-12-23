@@ -114,5 +114,9 @@ export const invoicesApi = {
     const { data } = await apiClient.get<StockMovement[]>(`/invoices/${id}/stock-movements`);
     return data;
   },
+
+  delete: async (id: number): Promise<void> => {
+    await apiClient.delete(`/invoices/${id}`);
+  },
 };
 

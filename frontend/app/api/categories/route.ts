@@ -33,6 +33,18 @@ export async function GET(request: NextRequest) {
     const [categories, total] = await Promise.all([
       prisma.categories.findMany({
         where,
+        include: {
+          _count: {
+            select: {
+              articles: {
+                where: {
+                  deleted_at: null,
+                  is_active: true,
+                },
+              },
+            },
+          },
+        },
         orderBy: {
           code: 'asc',
         },
@@ -43,7 +55,10 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Map to DTO format (snake_case to camelCase)
-    const mappedCategories = categories.map(mapCategoryToDTO);
+    const mappedCategories = categories.map(c => ({
+      ...mapCategoryToDTO(c),
+      articlesCount: c._count?.articles || 0,
+    }));
 
     return NextResponse.json({
       data: mappedCategories,

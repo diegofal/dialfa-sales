@@ -57,7 +57,11 @@ export function CategoryDialog({ isOpen, onClose, categoryId }: CategoryDialogPr
       setValue('code', category.code);
       setValue('name', category.name);
       setValue('description', category.description || '');
-      setValue('defaultDiscountPercent', category.defaultDiscountPercent);
+      // Asegurar que el descuento sea un número válido
+      const discountValue = typeof category.defaultDiscountPercent === 'number' 
+        ? category.defaultDiscountPercent 
+        : parseFloat(String(category.defaultDiscountPercent || 0));
+      setValue('defaultDiscountPercent', discountValue);
     } else if (!isEditing) {
       reset();
     }

@@ -2,8 +2,17 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { ClientLookup } from '@/components/articles/ClientLookup';
 import { useCreateSalesOrder, useGenerateInvoice, useGenerateDeliveryNote } from '@/lib/hooks/useSalesOrders';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -27,6 +36,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { formatCuit } from '@/lib/utils';
 
 interface OrderItemFormData {
   articleId: number;
@@ -165,7 +175,17 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   useEffect(() => {
     if (isEditMode && existingOrder && loadedOrderId === existingOrder.id) {
       // Check if anything changed
-      const itemsChanged = items.length !== (existingOrder.items?.length || 0);
+      const itemsCountChanged = items.length !== (existingOrder.items?.length || 0);
+      
+      // Check if quantities changed
+      const quantitiesChanged = items.some(item => {
+        const originalItem = existingOrder.items?.find(i => i.articleId === item.article.id);
+        return originalItem && originalItem.quantity !== item.quantity;
+      });
+      
+      // Check if any items are different
+      const itemsChanged = itemsCountChanged || quantitiesChanged;
+      
       const clientChanged = clientId !== existingOrder.clientId;
       const notesChanged = (notes || '') !== (existingOrder.notes || '');
 
@@ -212,6 +232,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
               description: item.articleDescription,
               unitPrice: item.unitPrice,
               stock: item.stock || 0,
+              categoryDefaultDiscount: 0, // No usado en pedidos
             } as Article,
             quantity: item.quantity,
           });
@@ -437,7 +458,10 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
           quantity: updatedItems[existingIndex].quantity + qty,
         };
       } else {
-        updatedItems = [...localItems, { article: articleToAdd!, quantity: qty }];
+        updatedItems = [...localItems, { 
+          article: articleToAdd!, 
+          quantity: qty
+        }];
       }
 
       setLocalItems(updatedItems);
@@ -488,7 +512,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       // In edit mode, update local state
       const updatedItems = localItems.map(item =>
         item.article.id === editingItemId
-          ? { article, quantity: item.quantity }
+          ? { article, quantity: item.quantity, discountPercent: item.discountPercent }
           : item
       );
       setLocalItems(updatedItems);
@@ -620,7 +644,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
           articleId: item.article.id,
           quantity: item.quantity,
           unitPrice: prices[item.article.id] ?? item.article.unitPrice,
-          discountPercent: 0,
+          discountPercent: 0, // Los pedidos no manejan descuentos
         })),
       };
 
@@ -747,155 +771,202 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       )}
 
       {/* Client and General Info Section */}
-      <Card>
-        <CardContent className="pt-4">
-          <div>
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Información del Cliente</CardTitle>
+          </CardHeader>
+          <CardContent>
             {clientId && clientName ? (
-              <div className="flex items-center gap-2">
-                <div className="flex-1 flex items-center gap-2 p-2 bg-primary/10 border border-primary/20 rounded">
-                  <User className="h-4 w-4 text-primary" />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate">{clientName}</div>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <User className="h-5 w-5 text-primary" />
+                    <div>
+                      <p className="text-sm font-medium">{clientName}</p>
+                      {existingOrder && (
+                        <p className="text-xs text-muted-foreground font-mono">CUIT: {formatCuit(existingOrder.clientCuit)}</p>
+                      )}
+                    </div>
                   </div>
+                  {!isReadOnly && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={handleClearClient}
+                      className="h-8 w-8"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
                 </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleClearClient}
-                >
-                  <X className="h-4 w-4" />
-                </Button>
               </div>
             ) : (
               <ClientLookup onSelectClient={handleSelectClient} />
             )}
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
 
-      {/* Articles Section */}
-      <Card className="flex-1">
-        <CardContent className="pt-4">
-          <div className="space-y-3">
-
-            {/* Quick Article Lookup */}
-            {!isReadOnly && (
-              <div className="p-3 border rounded-lg bg-muted/30">
-                <div className="flex items-start gap-2">
-                  <div className="flex-1 relative">
-                    <div className="relative">
-                      <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                      <Input
-                        ref={codeInputRef}
-                        value={articleCode}
-                        onChange={(e) => {
-                          setArticleCode(e.target.value.toUpperCase());
-                          setShowCodeResults(true);
-                          setSelectedArticle(null);
-                        }}
-                        onKeyDown={handleCodeKeyDown}
-                        onFocus={() => articleCode && setShowCodeResults(true)}
-                        onBlur={() => setTimeout(() => setShowCodeResults(false), 200)}
-                        placeholder="Buscar artículo..."
-                        className="pl-7 uppercase text-sm h-9"
-                      />
-                    </div>
-
-                    {/* Search Results Dropdown */}
-                    {showCodeResults && articleCode && articles.length > 0 && (
-                      <Card className="absolute z-[60] w-full mt-1 max-h-[280px] overflow-auto shadow-xl">
-                        <div className="p-1">
-                          {articles.map((article, index) => (
-                            <button
-                              key={article.id}
-                              ref={index === selectedIndex ? selectedItemRef : null}
-                              onClick={() => handleSelectArticle(article, index)}
-                              className={`w-full text-left p-2.5 rounded transition-colors ${index === selectedIndex ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'
-                                }`}
-                            >
-                              <div className="flex justify-between items-start gap-3">
-                                <div className="flex-1 min-w-0">
-                                  <div className="font-semibold text-sm font-mono">
-                                    {article.code}
-                                  </div>
-                                  <div className={`text-xs truncate mt-0.5 ${index === selectedIndex ? 'text-primary-foreground/90' : 'text-muted-foreground'}`}>
-                                    {article.description}
-                                  </div>
-                                </div>
-                                <div className="text-right flex-shrink-0">
-                                  <div className="text-sm font-bold">
-                                    {formatCurrency(article.unitPrice)}
-                                  </div>
-                                  <div className={`text-xs font-medium mt-0.5 ${index === selectedIndex
-                                      ? 'text-primary-foreground'
-                                      : getStockStatusClass(article.stock)
-                                    }`}>
-                                    Stock: {article.stock}
-                                  </div>
-                                </div>
-                              </div>
-                            </button>
-                          ))}
-                        </div>
-                        <div className="px-3 py-2 bg-muted/50 text-xs text-muted-foreground border-t">
-                          ↑↓ Navegar | Enter/Tab Seleccionar
-                        </div>
-                      </Card>
-                    )}
-                  </div>
-
-                  <div className="w-20">
-                    <Input
-                      ref={quantityInputRef}
-                      type="number"
-                      min="1"
-                      value={quantity}
-                      onChange={(e) => setQuantity(e.target.value)}
-                      onKeyDown={handleQuantityKeyDown}
-                      onFocus={(e) => e.target.select()}
-                      placeholder="Cant."
-                      className="text-center text-sm h-9"
-                    />
-                  </div>
-
-                  <div className="pt-0">
-                    <Button
-                      size="sm"
-                      onClick={handleAddArticle}
-                      disabled={!selectedArticle && !articleCode}
-                      className="h-9"
-                    >
-                      <Plus className="h-4 w-4" />
-                    </Button>
-                  </div>
+        <Card>
+          <CardHeader>
+            <CardTitle>Información del Pedido</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Número de Pedido</p>
+                <p className="font-medium">{existingOrder?.orderNumber || 'Borrador'}</p>
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm text-muted-foreground">Estado</p>
+                <div>
+                  {existingOrder ? (
+                    existingOrder.invoice && !existingOrder.invoice.isCancelled ? (
+                      <Badge className={existingOrder.invoice.isPrinted ? "bg-green-600" : "bg-blue-600"}>
+                        {existingOrder.invoice.isPrinted ? "Facturado e Impreso" : "Facturado"}
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary">Pendiente</Badge>
+                    )
+                  ) : (
+                    <Badge variant="outline">Nuevo</Badge>
+                  )}
                 </div>
               </div>
-            )}
+            </div>
 
-            {/* Items List */}
-            <div className="space-y-2 max-h-[600px] overflow-y-auto">
-              {items.length === 0 ? (
-                <div className="border border-dashed rounded-lg p-6 text-center text-muted-foreground">
-                  <ShoppingCart className="h-8 w-8 mx-auto mb-2 opacity-30" />
-                  <p className="text-sm">No hay artículos agregados</p>
-                  <p className="text-xs mt-1">Usa el buscador para agregar</p>
-                </div>
-              ) : (
-                items.map((item) => {
-                  const hasStockIssue = item.quantity > item.article.stock;
-                  return (
-                    <div
-                      key={item.article.id}
-                      className={`border rounded-lg p-2.5 transition-colors ${hasStockIssue
-                          ? 'border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/30 hover:bg-red-100 dark:hover:bg-red-950/50'
-                          : 'bg-card hover:bg-accent/5'
-                        }`}
-                    >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="flex-1 min-w-0">
-                          {editingItemId === item.article.id ? (
-                            <div className="relative">
-                              <div className="flex items-center gap-2 mb-2">
+            <div className="space-y-2">
+              <Label htmlFor="orderNotes">Observaciones</Label>
+              <textarea
+                id="orderNotes"
+                className="w-full min-h-[80px] p-2 text-sm bg-background border rounded-md resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                placeholder="Notas adicionales para el pedido..."
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                disabled={isReadOnly}
+              />
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Articles Section */}
+      <Card>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+          <div>
+            <CardTitle>Items</CardTitle>
+            <CardDescription>{items.length} artículo(s)</CardDescription>
+          </div>
+          {!isReadOnly && (
+            <div className="flex items-center gap-2 max-w-md flex-1 ml-4">
+              <div className="relative flex-1">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  ref={codeInputRef}
+                  value={articleCode}
+                  onChange={(e) => {
+                    setArticleCode(e.target.value.toUpperCase());
+                    setShowCodeResults(true);
+                    setSelectedArticle(null);
+                  }}
+                  onKeyDown={handleCodeKeyDown}
+                  onFocus={() => articleCode && setShowCodeResults(true)}
+                  onBlur={() => setTimeout(() => setShowCodeResults(false), 200)}
+                  placeholder="Buscar código o descripción..."
+                  className="pl-9 uppercase h-9"
+                />
+                
+                {/* Search Results Dropdown */}
+                {showCodeResults && articleCode && articles.length > 0 && (
+                  <Card className="absolute z-[60] w-full mt-1 max-h-[300px] overflow-auto shadow-xl">
+                    <div className="p-1">
+                      {articles.map((article, index) => (
+                        <button
+                          key={article.id}
+                          ref={index === selectedIndex ? selectedItemRef : null}
+                          onClick={() => handleSelectArticle(article, index)}
+                          className={`w-full text-left p-2 rounded transition-colors ${
+                            index === selectedIndex 
+                              ? 'bg-primary text-primary-foreground' 
+                              : 'hover:bg-accent hover:text-accent-foreground'
+                          }`}
+                        >
+                          <div className="flex justify-between items-start gap-3">
+                            <div className="flex-1 min-w-0">
+                              <div className="font-semibold text-sm font-mono">{article.code}</div>
+                              <div className={`text-xs truncate ${index === selectedIndex ? 'text-primary-foreground/90' : 'text-muted-foreground'}`}>
+                                {article.description}
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-sm font-bold">{formatCurrency(article.unitPrice)}</div>
+                              <div className={`text-xs ${index === selectedIndex ? 'text-primary-foreground' : getStockStatusClass(article.stock)}`}>
+                                Stock: {article.stock}
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </Card>
+                )}
+              </div>
+              <div className="w-20">
+                <Input
+                  ref={quantityInputRef}
+                  type="number"
+                  min="1"
+                  value={quantity}
+                  onChange={(e) => setQuantity(e.target.value)}
+                  onKeyDown={handleQuantityKeyDown}
+                  onFocus={(e) => e.target.select()}
+                  placeholder="Cant."
+                  className="text-center h-9"
+                />
+              </div>
+              <Button
+                size="sm"
+                onClick={handleAddArticle}
+                disabled={!selectedArticle && !articleCode}
+                className="h-9"
+              >
+                <Plus className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
+        </CardHeader>
+        <CardContent>
+          {items.length === 0 ? (
+            <div className="border border-dashed rounded-lg p-12 text-center text-muted-foreground">
+              <ShoppingCart className="h-12 w-12 mx-auto mb-4 opacity-20" />
+              <p>No hay artículos en este pedido</p>
+              {!isReadOnly && <p className="text-sm mt-1">Usa el buscador para agregar artículos</p>}
+            </div>
+          ) : (
+            <div className="border rounded-md">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[150px]">Código</TableHead>
+                    <TableHead>Descripción</TableHead>
+                    <TableHead className="text-right w-[100px]">Cantidad</TableHead>
+                    <TableHead className="text-right w-[140px]">Precio Unit.</TableHead>
+                    <TableHead className="text-right w-[140px]">Total</TableHead>
+                    {!isReadOnly && <TableHead className="w-[50px]"></TableHead>}
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {items.map((item) => {
+                    const hasStockIssue = item.quantity > item.article.stock;
+                    return (
+                      <TableRow 
+                        key={item.article.id}
+                        className={hasStockIssue ? "bg-red-50 dark:bg-red-950/20" : ""}
+                      >
+                        <TableCell>
+                          <div className="space-y-1">
+                            {editingItemId === item.article.id ? (
+                              <div className="relative">
                                 <Input
                                   ref={editInputRef}
                                   value={editCode}
@@ -904,150 +975,123 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                                     setShowEditResults(true);
                                   }}
                                   onKeyDown={handleEditKeyDown}
-                                  onFocus={() => editCode && setShowEditResults(true)}
-                                  onBlur={() => setTimeout(() => setShowEditResults(false), 200)}
-                                  className="h-7 text-sm font-mono uppercase"
-                                  placeholder="Buscar código..."
+                                  className="h-8 text-xs font-mono uppercase"
                                   autoFocus
                                 />
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-7 w-7"
-                                  onClick={handleCancelEdit}
-                                >
-                                  <X className="h-3.5 w-3.5" />
-                                </Button>
-                              </div>
-
-                              {/* Edit Search Results */}
-                              {showEditResults && editCode && editArticles.length > 0 && (
-                                <Card className="absolute z-[70] w-full mt-1 max-h-[200px] overflow-auto shadow-xl">
-                                  <div className="p-1">
-                                    {editArticles.map((article, index) => (
-                                      <button
-                                        key={article.id}
-                                        ref={index === selectedEditIndex ? selectedEditItemRef : null}
-                                        onClick={() => handleSelectEditArticle(article)}
-                                        className={`w-full text-left p-2 rounded transition-colors ${index === selectedEditIndex ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'
+                                {showEditResults && editCode && editArticles.length > 0 && (
+                                  <Card className="absolute z-[70] w-[300px] mt-1 shadow-xl">
+                                    <div className="p-1">
+                                      {editArticles.map((article, index) => (
+                                        <button
+                                          key={article.id}
+                                          onClick={() => handleSelectEditArticle(article)}
+                                          className={`w-full text-left p-2 rounded text-xs ${
+                                            index === selectedEditIndex ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'
                                           }`}
-                                      >
-                                        <div className="flex justify-between items-start gap-2">
-                                          <div className="flex-1 min-w-0">
-                                            <div className="font-semibold text-xs font-mono">
-                                              {article.code}
-                                            </div>
-                                            <div className={`text-xs truncate ${index === selectedEditIndex ? 'text-primary-foreground/90' : 'text-muted-foreground'}`}>
-                                              {article.description}
-                                            </div>
-                                          </div>
-                                          <div className="text-xs">
-                                            {formatCurrency(article.unitPrice)}
-                                          </div>
-                                        </div>
-                                      </button>
-                                    ))}
-                                  </div>
-                                  <div className="px-2 py-1 bg-muted/50 text-xs text-muted-foreground border-t">
-                                    ↑↓ Enter Esc
-                                  </div>
-                                </Card>
-                              )}
-                            </div>
-                          ) : (
-                            <div className="grid grid-cols-[2fr_3fr_1fr_1.5fr_auto] gap-2 items-center">
-                              {/* Column 1: Code with Stock */}
-                              <div className="flex flex-col gap-0.5">
-                                <div className="flex items-center gap-1.5">
-                                  <div className="font-medium text-sm font-mono">
-                                    {item.article.code}
-                                  </div>
-                                  {!isReadOnly && (
-                                    <Button
-                                      variant="ghost"
-                                      size="icon"
-                                      className="h-4 w-4 p-0"
-                                      onClick={() => handleEditItem(item.article.id, item.article.code)}
-                                    >
-                                      <Pencil className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                                    </Button>
-                                  )}
-                                </div>
-                                <div className="text-xs text-muted-foreground flex items-center gap-1">
-                                  <span>(Stock: <span className={getStockStatusClass(item.article.stock)}>{item.article.stock}</span>)</span>
-                                  {item.quantity > item.article.stock && (
-                                    <div title={`Stock insuficiente: solicitado ${item.quantity}, disponible ${item.article.stock}`}>
-                                      <AlertTriangle
-                                        className="h-3 w-3 text-red-600 flex-shrink-0"
-                                      />
+                                        >
+                                          <div className="font-mono font-bold">{article.code}</div>
+                                          <div className="truncate opacity-80">{article.description}</div>
+                                        </button>
+                                      ))}
                                     </div>
-                                  )}
-                                </div>
+                                  </Card>
+                                )}
                               </div>
-
-                              {/* Column 2: Description */}
-                              <div className="text-xs text-muted-foreground truncate">
-                                {item.article.description}
+                            ) : (
+                              <div className="flex items-center gap-1.5">
+                                <span className="font-mono font-medium">{item.article.code}</span>
+                                {!isReadOnly && (
+                                  <Button
+                                    variant="ghost"
+                                    size="icon"
+                                    className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
+                                    onClick={() => handleEditItem(item.article.id, item.article.code)}
+                                  >
+                                    <Pencil className="h-3 w-3" />
+                                  </Button>
+                                )}
                               </div>
-
-                              {/* Column 3: Quantity */}
-                              <div>
-                                <Input
-                                  type="number"
-                                  min="1"
-                                  value={item.quantity}
-                                  onChange={(e) => handleUpdateQuantity(item.article.id, parseInt(e.target.value) || 1)}
-                                  className="h-8 text-sm text-center"
-                                  onFocus={(e) => e.target.select()}
-                                  disabled={isReadOnly}
-                                />
-                              </div>
-
-                              {/* Column 4: Price */}
-                              <div>
-                                <Input
-                                  type="number"
-                                  min="0"
-                                  step="0.01"
-                                  value={prices[item.article.id] ?? item.article.unitPrice}
-                                  onChange={(e) => handleUpdateUnitPrice(item.article.id, parseFloat(e.target.value) || 0)}
-                                  className="h-8 text-sm text-right"
-                                  onFocus={(e) => e.target.select()}
-                                  disabled={isReadOnly}
-                                />
-                              </div>
-
-                              {/* Delete Button */}
-                              {!isReadOnly && (
-                                <Button
-                                  variant="ghost"
-                                  size="icon"
-                                  className="h-8 w-8"
-                                  onClick={() => handleRemoveItem(item.article.id)}
-                                >
-                                  <Trash2 className="h-4 w-4 text-red-600" />
-                                </Button>
-                              )}
+                            )}
+                            <div className="text-[10px] text-muted-foreground flex items-center gap-1">
+                              <span>Stock: <span className={getStockStatusClass(item.article.stock)}>{item.article.stock}</span></span>
+                              {hasStockIssue && <AlertTriangle className="h-3 w-3 text-red-600" />}
                             </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })
-              )}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <p className="text-sm line-clamp-1" title={item.article.description}>
+                            {item.article.description}
+                          </p>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Input
+                            type="number"
+                            min="1"
+                            value={item.quantity}
+                            onChange={(e) => handleUpdateQuantity(item.article.id, parseInt(e.target.value) || 1)}
+                            className="h-8 w-20 ml-auto text-right text-sm"
+                            disabled={isReadOnly}
+                          />
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <span className="font-medium">
+                            {formatCurrency(prices[item.article.id] ?? item.article.unitPrice)}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right font-bold">
+                          {formatCurrency(calculateLineTotal(item))}
+                        </TableCell>
+                        {!isReadOnly && (
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => handleRemoveItem(item.article.id)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        )}
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
             </div>
-
-            {/* Total */}
-            {items.length > 0 && (
-              <div className="flex justify-between items-center p-2.5 bg-muted/50 rounded-lg">
-                <span className="text-sm font-medium">Total</span>
-                <span className="text-2xl font-bold">{formatCurrency(calculateTotal())}</span>
-              </div>
-            )}
-          </div>
+          )}
         </CardContent>
       </Card>
+
+      {/* Totals Section */}
+      {items.length > 0 && (
+        <div className="flex justify-end">
+          <Card className="w-full md:w-[400px]">
+            <CardHeader className="py-4">
+              <CardTitle className="text-lg">Resumen del Pedido</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2 pb-6">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Subtotal</span>
+                <span>{formatCurrency(calculateTotal())}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">IVA (Estimado)</span>
+                <span>{formatCurrency(calculateTotal() * 0.21)}</span>
+              </div>
+              <div className="border-t pt-2 mt-2 flex justify-between items-center">
+                <span className="font-bold">Total Final</span>
+                <span className="text-2xl font-bold text-primary">
+                  {formatCurrency(calculateTotal() * 1.21)}
+                </span>
+              </div>
+              <p className="text-[10px] text-muted-foreground text-right italic">
+                * El IVA se calcula formalmente al generar la factura
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       {/* Warning Alert for Unprinted Documents Update */}
       {hasUnprintedDocs && hasUnsavedChanges && (

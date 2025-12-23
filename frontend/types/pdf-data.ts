@@ -1,7 +1,14 @@
 // Types for PDF generation data structures
 import { Decimal } from '@prisma/client/runtime/library';
 
-interface InvoiceItem {
+interface InvoiceItemForPDF {
+  quantity: number;
+  article_description: string;
+  unit_price_ars: number | string | Decimal;
+  line_total: number | string | Decimal;
+}
+
+interface SalesOrderItem {
   quantity: number;
   articles?: {
     description: string;
@@ -24,7 +31,7 @@ interface Client {
 
 interface SalesOrder {
   clients?: Client;
-  sales_order_items?: InvoiceItem[];
+  sales_order_items?: SalesOrderItem[];
 }
 
 export interface InvoiceData {
@@ -34,6 +41,7 @@ export interface InvoiceData {
   tax_amount?: number | string | Decimal;
   total_amount?: number | string | Decimal;
   sales_orders?: SalesOrder;
+  invoice_items?: InvoiceItemForPDF[];
 }
 
 interface DeliveryNoteItem {

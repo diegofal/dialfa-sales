@@ -19,6 +19,16 @@ class LegacyArticulo:
     descripcion: str
     cantidad: float
     preciounitario: float
+    # Additional fields found in production database
+    orden: Optional[str]  # display_order
+    discontinuado: Optional[bool]  # is_discontinued
+    tipo: Optional[str]  # type
+    serie: Optional[int]  # series
+    espesor: Optional[str]  # thickness
+    size: Optional[str]  # size
+    proveedor: Optional[int]  # supplier_id
+    peso: Optional[float]  # weight_kg
+    precio_unitario_historico_1: Optional[float]  # historical_price1
 
 
 @dataclass
@@ -34,6 +44,7 @@ class LegacyCliente:
     IdOperatoria: int
     Saldo: float
     IdTransportista: Optional[int]
+    IdVendedor: Optional[int]  # seller_id - additional field
 
 
 @dataclass
@@ -73,6 +84,8 @@ class LegacyFactura:
     FueImpresa: bool
     ValorDolar: Optional[float]
     FueCancelada: bool
+    EsNotaDeCredito: bool  # is_credit_note - additional field
+    Cotizacion: bool  # is_quotation - additional field
 
 
 @dataclass

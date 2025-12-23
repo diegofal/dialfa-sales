@@ -9,7 +9,7 @@ import { usePagination } from '@/lib/hooks/usePagination';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { InvoicesTable } from '@/components/invoices/InvoicesTable';
-import { useInvoices, useCancelInvoice } from '@/lib/hooks/useInvoices';
+import { useInvoices, useCancelInvoice, useDeleteInvoice } from '@/lib/hooks/useInvoices';
 import { useRouter } from 'next/navigation';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { PDFPreviewModal } from '@/components/print/PDFPreviewModal';
@@ -36,6 +36,7 @@ export default function InvoicesPage() {
   });
 
   const cancelInvoiceMutation = useCancelInvoice();
+  const deleteInvoiceMutation = useDeleteInvoice();
 
   // Print System Hooks
   const {
@@ -74,6 +75,10 @@ export default function InvoicesPage() {
 
   const handleCancelInvoice = (id: number) => {
     cancelInvoiceMutation.mutate({ id });
+  };
+
+  const handleDeleteInvoice = (id: number) => {
+    deleteInvoiceMutation.mutate(id);
   };
 
   const handlePrintClick = async (id: number) => {
@@ -259,6 +264,7 @@ export default function InvoicesPage() {
                 onViewInvoice={handleViewInvoice}
                 onViewSalesOrder={handleViewSalesOrder}
                 onCancelInvoice={handleCancelInvoice}
+                onDeleteInvoice={handleDeleteInvoice}
                 onPrintInvoice={handlePrintClick}
                 currentSortBy={pagination.sortBy}
                 currentSortDescending={pagination.sortDescending}

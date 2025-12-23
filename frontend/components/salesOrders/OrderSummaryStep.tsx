@@ -5,6 +5,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Badge } from '@/components/ui/badge';
 import { useClients } from '@/lib/hooks/useClients';
 import type { SalesOrderFormData, SalesOrderItemFormData } from '@/types/salesOrder';
+import { formatCuit } from '@/lib/utils';
 
 interface OrderSummaryStepProps {
   formData: SalesOrderFormData;
@@ -67,7 +68,7 @@ export function OrderSummaryStep({ formData }: OrderSummaryStepProps) {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">CUIT</p>
-              <p className="font-medium">{selectedClient?.cuit}</p>
+              <p className="font-medium font-mono">{formatCuit(selectedClient?.cuit)}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Domicilio</p>

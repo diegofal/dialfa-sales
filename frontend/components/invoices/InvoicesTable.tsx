@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Eye, XCircle, Printer } from 'lucide-react';
+import { Eye, XCircle, Printer, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -31,6 +31,7 @@ interface InvoicesTableProps {
   onViewInvoice: (id: number) => void;
   onViewSalesOrder?: (id: number) => void;
   onCancelInvoice?: (id: number) => void;
+  onDeleteInvoice?: (id: number) => void;
   onPrintInvoice?: (id: number) => void;
   currentSortBy?: string;
   currentSortDescending?: boolean;
@@ -42,12 +43,14 @@ export function InvoicesTable({
   onViewInvoice,
   onViewSalesOrder,
   onCancelInvoice,
+  onDeleteInvoice,
   onPrintInvoice,
   currentSortBy,
   currentSortDescending,
   onSort,
 }: InvoicesTableProps) {
   const [invoiceToCancel, setInvoiceToCancel] = useState<number | null>(null);
+  const [invoiceToDelete, setInvoiceToDelete] = useState<number | null>(null);
 
   const getStatusBadge = (invoice: InvoiceListDto) => {
     if (invoice.isCancelled) {
@@ -75,6 +78,13 @@ export function InvoicesTable({
     if (invoiceToCancel && onCancelInvoice) {
       onCancelInvoice(invoiceToCancel);
       setInvoiceToCancel(null);
+    }
+  };
+
+  const handleDeleteConfirm = () => {
+    if (invoiceToDelete && onDeleteInvoice) {
+      onDeleteInvoice(invoiceToDelete);
+      setInvoiceToDelete(null);
     }
   };
 
@@ -176,7 +186,7 @@ export function InvoicesTable({
                           <Printer className="h-4 w-4" />
                         </Button>
                       )}
-                      {!invoice.isCancelled && !invoice.isPrinted && onCancelInvoice && (
+                      {!invoice.isCancelled && invoice.isPrinted && onCancelInvoice && (
                         <Button
                           variant={ACTION_BUTTON_CONFIG.cancel.variant}
                           size={ACTION_BUTTON_CONFIG.cancel.size}
@@ -184,6 +194,17 @@ export function InvoicesTable({
                           title={ACTION_BUTTON_CONFIG.cancel.title}
                         >
                           <XCircle className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {!invoice.isCancelled && !invoice.isPrinted && onDeleteInvoice && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setInvoiceToDelete(invoice.id)}
+                          title="Eliminar Factura"
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        >
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       )}
                     </div>
@@ -204,7 +225,7 @@ export function InvoicesTable({
           <AlertDialogHeader>
             <AlertDialogTitle>¿Cancelar factura?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción marcará la factura como CANCELADA y restaurará el stock si la factura estaba impresa.
+              Esta acción marcará la factura como CANCELADA y restaurará el stock automáticamente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -213,6 +234,32 @@ export function InvoicesTable({
             </AlertDialogCancel>
             <AlertDialogAction onClick={handleCancelConfirm}>
               Sí, cancelar factura
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog
+        open={!!invoiceToDelete}
+        onOpenChange={() => setInvoiceToDelete(null)}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar factura?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción eliminará la factura permanentemente. Como la factura no ha sido impresa, no hay cambios en el stock que revertir.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>
+              No, volver
+            </AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={handleDeleteConfirm}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Sí, eliminar factura
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

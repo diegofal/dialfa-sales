@@ -82,20 +82,22 @@
         "columns": {
             "cantidad": {
                 "x": 58,
-                "align": "right"
+                "align": "left"
             },
             "descripcion": {
                 "x": 94,
-                "width": 300,
+                "width": 220,
                 "align": "left"
             },
             "precioUnitario": {
-                "x": 461,
-                "align": "right"
+                "x": 415,
+                "align": "right",
+                "maxWidth": 80
             },
             "precioTotal": {
-                "x": 540,
-                "align": "right"
+                "x": 555,
+                "align": "right",
+                "maxWidth": 80
             }
         }
     }

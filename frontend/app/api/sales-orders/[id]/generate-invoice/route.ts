@@ -21,7 +21,11 @@ export async function POST(
         clients: true,
         sales_order_items: {
           include: {
-            articles: true,
+            articles: {
+              include: {
+                categories: true, // Incluir categorías para obtener default_discount_percent
+              }
+            },
           },
         },
         invoices: {
@@ -112,7 +116,10 @@ export async function POST(
     const invoiceItemsData = salesOrder.sales_order_items.map((item) => {
       const unitPriceUsd = parseFloat(item.unit_price.toString());
       const unitPriceArs = unitPriceUsd * usdExchangeRate;
-      const discountPercent = parseFloat(item.discount_percent.toString());
+      // Obtener descuento de la categoría del artículo
+      const discountPercent = item.articles.categories?.default_discount_percent 
+        ? parseFloat(item.articles.categories.default_discount_percent.toString())
+        : 0;
       const quantity = item.quantity;
       
       // Calculate line total: (price * quantity) - discount
