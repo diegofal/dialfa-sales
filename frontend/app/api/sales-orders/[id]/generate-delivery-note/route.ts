@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { OPERATIONS } from '@/lib/constants/operations';
+import { logActivity } from '@/lib/services/activityLogger';
 
 /**
  * Generate a delivery note from a sales order (automatically copies all items)
@@ -165,6 +167,19 @@ export async function POST(
         createdAt: item.created_at.toISOString(),
       })),
     };
+
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.DELIVERY_CREATE,
+      description: `Remito ${deliveryNumber} generado desde pedido ${salesOrder.order_number}`,
+      entityType: 'delivery_note',
+      entityId: deliveryNote.id,
+      details: { 
+        deliveryNumber,
+        orderNumber: salesOrder.order_number
+      }
+    });
 
     return NextResponse.json(response, { status: 201 });
   } catch (error) {

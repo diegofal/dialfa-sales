@@ -4,6 +4,8 @@ import * as fs from 'fs/promises'
 import * as path from 'path'
 import { prisma } from '@/lib/db'
 import { uploadCertificateFile, getFileExtension, isAllowedFileType } from '@/lib/storage/supabase'
+import { OPERATIONS } from '@/lib/constants/operations'
+import { logActivity } from '@/lib/services/activityLogger'
 
 const CERTIFICATES_SOURCE_DIR = 'G:\\Shared drives\\Dialfa\\CERTIFICADOS DIALFA'
 
@@ -268,6 +270,15 @@ export async function POST(request: NextRequest) {
         })
       }
     }
+    
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.CERTIFICATE_SYNC,
+      description: `Sincronización de certificados completada: ${stats.newUploaded} nuevos, ${stats.coladasUpdated} actualizados`,
+      entityType: 'certificate',
+      details: stats
+    });
     
     return NextResponse.json({ success: true, stats })
   } catch (error) {

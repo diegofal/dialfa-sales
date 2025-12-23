@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db';
 import { mapDeliveryNoteToDTO } from '@/lib/utils/mapper';
 import { updateDeliveryNoteSchema } from '@/lib/validations/schemas';
 import { z } from 'zod';
+import { OPERATIONS } from '@/lib/constants/operations';
+import { logActivity } from '@/lib/services/activityLogger';
 
 export async function GET(
   request: NextRequest,
@@ -100,6 +102,16 @@ export async function PUT(
     // Map to DTO format
     const mappedDeliveryNote = mapDeliveryNoteToDTO(deliveryNote);
 
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.DELIVERY_UPDATE,
+      description: `Remito ${existingDeliveryNote.delivery_number} actualizado`,
+      entityType: 'delivery_note',
+      entityId: id,
+      details: { deliveryNumber: existingDeliveryNote.delivery_number }
+    });
+
     return NextResponse.json(mappedDeliveryNote);
   } catch (error) {
     console.error('Error updating delivery note:', error);
@@ -147,6 +159,16 @@ export async function DELETE(
         deleted_at: now,
         updated_at: now,
       },
+    });
+
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.DELIVERY_DELETE,
+      description: `Remito ${existingDeliveryNote.delivery_number} eliminado`,
+      entityType: 'delivery_note',
+      entityId: id,
+      details: { deliveryNumber: existingDeliveryNote.delivery_number }
     });
 
     return NextResponse.json(

@@ -6,11 +6,15 @@ export const OPERATIONS = {
   
   // Facturas
   INVOICE_CREATE: 'INVOICE_CREATE',
+  INVOICE_UPDATE: 'INVOICE_UPDATE',
+  INVOICE_DELETE: 'INVOICE_DELETE',
   INVOICE_PRINT: 'INVOICE_PRINT',
   INVOICE_CANCEL: 'INVOICE_CANCEL',
   
   // Remitos
   DELIVERY_CREATE: 'DELIVERY_CREATE',
+  DELIVERY_UPDATE: 'DELIVERY_UPDATE',
+  DELIVERY_DELETE: 'DELIVERY_DELETE',
   DELIVERY_PRINT: 'DELIVERY_PRINT',
   
   // Stock
@@ -25,6 +29,15 @@ export const OPERATIONS = {
   ARTICLE_CREATE: 'ARTICLE_CREATE',
   ARTICLE_UPDATE: 'ARTICLE_UPDATE',
   ARTICLE_DELETE: 'ARTICLE_DELETE',
+  
+  // Categorías
+  CATEGORY_CREATE: 'CATEGORY_CREATE',
+  CATEGORY_UPDATE: 'CATEGORY_UPDATE',
+  CATEGORY_DELETE: 'CATEGORY_DELETE',
+  
+  // Certificados
+  CERTIFICATE_SYNC: 'CERTIFICATE_SYNC',
+  CERTIFICATE_DELETE: 'CERTIFICATE_DELETE',
   
   // Usuarios
   USER_CREATE: 'USER_CREATE',
@@ -42,9 +55,13 @@ export const OPERATION_LABELS: Record<string, string> = {
   ORDER_UPDATE: 'Modificar Pedido',
   ORDER_DELETE: 'Eliminar Pedido',
   INVOICE_CREATE: 'Crear Factura',
+  INVOICE_UPDATE: 'Modificar Factura',
+  INVOICE_DELETE: 'Eliminar Factura',
   INVOICE_PRINT: 'Imprimir Factura',
   INVOICE_CANCEL: 'Anular Factura',
   DELIVERY_CREATE: 'Crear Remito',
+  DELIVERY_UPDATE: 'Modificar Remito',
+  DELIVERY_DELETE: 'Eliminar Remito',
   DELIVERY_PRINT: 'Imprimir Remito',
   STOCK_ADJUST: 'Ajuste de Stock',
   CLIENT_CREATE: 'Crear Cliente',
@@ -53,6 +70,11 @@ export const OPERATION_LABELS: Record<string, string> = {
   ARTICLE_CREATE: 'Crear Artículo',
   ARTICLE_UPDATE: 'Modificar Artículo',
   ARTICLE_DELETE: 'Eliminar Artículo',
+  CATEGORY_CREATE: 'Crear Categoría',
+  CATEGORY_UPDATE: 'Modificar Categoría',
+  CATEGORY_DELETE: 'Eliminar Categoría',
+  CERTIFICATE_SYNC: 'Sincronizar Certificados',
+  CERTIFICATE_DELETE: 'Eliminar Certificado',
   USER_CREATE: 'Crear Usuario',
   USER_UPDATE: 'Modificar Usuario',
   USER_DEACTIVATE: 'Desactivar Usuario',

@@ -4,6 +4,8 @@ import { mapInvoiceToDTO } from '@/lib/utils/mapper';
 import { updateInvoiceSchema } from '@/lib/validations/schemas';
 import { z } from 'zod';
 import { STOCK_MOVEMENT_TYPES } from '@/lib/constants/stockMovementTypes';
+import { OPERATIONS } from '@/lib/constants/operations';
+import { logActivity } from '@/lib/services/activityLogger';
 
 export async function GET(
   request: NextRequest,
@@ -298,6 +300,20 @@ export async function PUT(
       },
     };
 
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.INVOICE_UPDATE,
+      description: `Factura ${existingInvoice.invoice_number} actualizada`,
+      entityType: 'invoice',
+      entityId: id,
+      details: { 
+        invoiceNumber: existingInvoice.invoice_number,
+        wasCancelled: updateData.is_cancelled,
+        wasPrinted: isPrintingNow
+      }
+    });
+
     return NextResponse.json(serializedInvoice);
   } catch (error) {
     console.error('Error updating invoice:', error);
@@ -386,6 +402,16 @@ export async function DELETE(
           },
         });
       }
+    });
+
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.INVOICE_DELETE,
+      description: `Factura ${existingInvoice.invoice_number} eliminada`,
+      entityType: 'invoice',
+      entityId: id,
+      details: { invoiceNumber: existingInvoice.invoice_number }
     });
 
     return NextResponse.json(

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { mapInvoiceToDTO } from '@/lib/utils/mapper';
+import { OPERATIONS } from '@/lib/constants/operations';
+import { logActivity } from '@/lib/services/activityLogger';
 
 /**
  * Generate an invoice from a sales order
@@ -205,6 +207,20 @@ export async function POST(
 
     // Map to DTO format
     const mappedInvoice = mapInvoiceToDTO(result);
+
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.INVOICE_CREATE,
+      description: `Factura ${invoiceNumber} generada desde pedido ${salesOrder.order_number}`,
+      entityType: 'invoice',
+      entityId: result.id,
+      details: { 
+        invoiceNumber,
+        orderNumber: salesOrder.order_number,
+        totalAmount: Number(totalAmount)
+      }
+    });
 
     return NextResponse.json(mappedInvoice, { status: 201 });
   } catch (error) {

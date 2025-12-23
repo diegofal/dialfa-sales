@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db';
 import { mapCategoryToDTO } from '@/lib/utils/mapper';
 import { updateCategorySchema } from '@/lib/validations/schemas';
 import { z } from 'zod';
+import { OPERATIONS } from '@/lib/constants/operations';
+import { logActivity } from '@/lib/services/activityLogger';
 
 export async function GET(
   request: NextRequest,
@@ -91,6 +93,16 @@ export async function PUT(
     // Convert BigInt to string and map to DTO format
     const mappedCategory = mapCategoryToDTO(category);
     
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.CATEGORY_UPDATE,
+      description: `Categoría ${category.name} (${category.code}) actualizada`,
+      entityType: 'category',
+      entityId: id,
+      details: { code: category.code, name: category.name }
+    });
+    
     return NextResponse.json(mappedCategory);
   } catch (error) {
     console.error('Error updating category:', error);
@@ -136,6 +148,16 @@ export async function DELETE(
         deleted_at: new Date(),
         updated_at: new Date(),
       },
+    });
+
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.CATEGORY_DELETE,
+      description: `Categoría ${existingCategory.name} (${existingCategory.code}) eliminada`,
+      entityType: 'category',
+      entityId: id,
+      details: { code: existingCategory.code, name: existingCategory.name }
     });
 
     return NextResponse.json(

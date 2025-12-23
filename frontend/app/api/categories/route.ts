@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db';
 import { mapCategoryToDTO } from '@/lib/utils/mapper';
 import { createCategorySchema } from '@/lib/validations/schemas';
 import { z } from 'zod';
+import { OPERATIONS } from '@/lib/constants/operations';
+import { logActivity } from '@/lib/services/activityLogger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -100,6 +102,16 @@ export async function POST(request: NextRequest) {
 
     // Map to DTO format
     const mappedCategory = mapCategoryToDTO(category);
+
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.CATEGORY_CREATE,
+      description: `Categoría ${category.name} (${category.code}) creada`,
+      entityType: 'category',
+      entityId: category.id,
+      details: { code: category.code, name: category.name }
+    });
 
     return NextResponse.json(mappedCategory, { status: 201 });
   } catch (error) {

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { getCertificateSignedUrl, deleteCertificateFile } from '@/lib/storage/supabase'
+import { OPERATIONS } from '@/lib/constants/operations'
+import { logActivity } from '@/lib/services/activityLogger'
 
 /**
  * GET /api/certificates/[id]
@@ -108,6 +110,16 @@ export async function DELETE(
       where: { id: certificateId },
       data: { deleted_at: new Date() }
     })
+
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.CERTIFICATE_DELETE,
+      description: `Certificado ${certificate.file_name} eliminado`,
+      entityType: 'certificate',
+      entityId: certificate.id,
+      details: { fileName: certificate.file_name }
+    });
 
     return NextResponse.json({ success: true })
   } catch (error) {
