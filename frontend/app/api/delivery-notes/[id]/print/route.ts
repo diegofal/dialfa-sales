@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { pdfService } from '@/lib/services/PDFService';
 import { loadTemplate } from '@/lib/print-templates/template-loader';
+import { OPERATIONS } from '@/lib/constants/operations';
+import { logActivity } from '@/lib/services/activityLogger';
 
 export async function POST(
     request: NextRequest,
@@ -62,6 +64,16 @@ export async function POST(
                 }
             });
         }
+
+        // Log activity
+        await logActivity({
+            request,
+            operation: OPERATIONS.DELIVERY_PRINT,
+            description: `Remito ${deliveryNote.delivery_number} impreso`,
+            entityType: 'delivery_note',
+            entityId: deliveryNoteId,
+            details: { deliveryNumber: deliveryNote.delivery_number }
+        });
 
         // 4. Return PDF
         return new NextResponse(new Uint8Array(pdfBuffer), {

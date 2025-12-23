@@ -9,13 +9,15 @@ import {
   FolderTree,
   Package, 
   Truck,
-  TrendingUp,
   Settings,
   FileCheck,
+  UserCog,
+  History,
 } from 'lucide-react';
 import PedidosMenuItem from './PedidosMenuItem';
 import FacturasMenuItem from './FacturasMenuItem';
 import RemitosMenuItem from './RemitosMenuItem';
+import { useAuthStore } from '@/store/authStore';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
@@ -26,12 +28,13 @@ const navigation = [
 
 const navigationAfterRemitos = [
   { name: 'Certificados', href: '/dashboard/certificates', icon: FileCheck },
-  { name: 'Reportes', href: '/dashboard/reports', icon: TrendingUp },
   { name: 'Configuración', href: '/dashboard/settings', icon: Settings },
 ];
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const user = useAuthStore((state) => state.user);
+  const isAdmin = user?.role?.toLowerCase() === 'admin';
 
   return (
     <div className="flex h-full w-64 flex-col border-r bg-card">
@@ -85,6 +88,38 @@ export default function Sidebar() {
             </Link>
           );
         })}
+
+        {isAdmin && (
+          <div className="mt-6 pt-4 border-t border-muted">
+            <p className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+              Administración
+            </p>
+            <Link
+              href="/dashboard/users"
+              className={cn(
+                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                pathname.startsWith('/dashboard/users')
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+              )}
+            >
+              <UserCog className="h-5 w-5" />
+              Usuarios
+            </Link>
+            <Link
+              href="/dashboard/activity"
+              className={cn(
+                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                pathname.startsWith('/dashboard/activity')
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+              )}
+            >
+              <History className="h-5 w-5" />
+              Actividad
+            </Link>
+          </div>
+        )}
       </nav>
     </div>
   );

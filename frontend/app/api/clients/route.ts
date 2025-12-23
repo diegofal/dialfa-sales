@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db';
 import { mapClientToDTO } from '@/lib/utils/mapper';
 import { createClientSchema } from '@/lib/validations/schemas';
 import { z } from 'zod';
+import { OPERATIONS } from '@/lib/constants/operations';
+import { logActivity } from '@/lib/services/activityLogger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -110,6 +112,16 @@ export async function POST(request: NextRequest) {
 
     // Map to DTO format
     const mappedClient = mapClientToDTO(client);
+
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.CLIENT_CREATE,
+      description: `Cliente ${client.business_name} (${client.code}) creado`,
+      entityType: 'client',
+      entityId: client.id,
+      details: { code: client.code, businessName: client.business_name }
+    });
 
     return NextResponse.json(mappedClient, { status: 201 });
   } catch (error) {

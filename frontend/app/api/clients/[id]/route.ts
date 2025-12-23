@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db';
 import { mapClientToDTO } from '@/lib/utils/mapper';
 import { updateClientSchema } from '@/lib/validations/schemas';
 import { z } from 'zod';
+import { OPERATIONS } from '@/lib/constants/operations';
+import { logActivity } from '@/lib/services/activityLogger';
 
 export async function GET(
   request: NextRequest,
@@ -116,6 +118,16 @@ export async function PUT(
     // Map to DTO format
     const mappedClient = mapClientToDTO(client);
 
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.CLIENT_UPDATE,
+      description: `Cliente ${client.business_name} (${client.code}) actualizado`,
+      entityType: 'client',
+      entityId: id,
+      details: { code: client.code, businessName: client.business_name }
+    });
+
     return NextResponse.json(mappedClient);
   } catch (error) {
     console.error('Error updating client:', error);
@@ -161,6 +173,16 @@ export async function DELETE(
         deleted_at: new Date(),
         updated_at: new Date(),
       },
+    });
+
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.CLIENT_DELETE,
+      description: `Cliente ${existingClient.business_name} (${existingClient.code}) eliminado`,
+      entityType: 'client',
+      entityId: id,
+      details: { code: existingClient.code, businessName: existingClient.business_name }
     });
 
     return NextResponse.json(

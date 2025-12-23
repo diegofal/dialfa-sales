@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db';
 import { mapArticleToDTO } from '@/lib/utils/mapper';
 import { updateArticleSchema } from '@/lib/validations/schemas';
 import { z } from 'zod';
+import { OPERATIONS } from '@/lib/constants/operations';
+import { logActivity } from '@/lib/services/activityLogger';
 
 export async function GET(
   request: NextRequest,
@@ -96,6 +98,16 @@ export async function PUT(
     // Map to DTO format
     const mappedArticle = mapArticleToDTO(article);
 
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.ARTICLE_UPDATE,
+      description: `Artículo ${article.description} (${article.code}) actualizado`,
+      entityType: 'article',
+      entityId: id,
+      details: { code: article.code, description: article.description }
+    });
+
     return NextResponse.json(mappedArticle);
   } catch (error) {
     console.error('Error updating article:', error);
@@ -141,6 +153,16 @@ export async function DELETE(
         deleted_at: new Date(),
         updated_at: new Date(),
       },
+    });
+
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.ARTICLE_DELETE,
+      description: `Artículo ${existingArticle.description} (${existingArticle.code}) eliminado`,
+      entityType: 'article',
+      entityId: id,
+      details: { code: existingArticle.code, description: existingArticle.description }
     });
 
     return NextResponse.json(

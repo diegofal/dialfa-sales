@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db';
 import { pdfService } from '@/lib/services/PDFService';
 import { loadTemplate } from '@/lib/print-templates/template-loader';
 import { STOCK_MOVEMENT_TYPES } from '@/lib/constants/stockMovementTypes';
+import { OPERATIONS } from '@/lib/constants/operations';
+import { logActivity } from '@/lib/services/activityLogger';
 
 export async function POST(
     request: NextRequest,
@@ -108,6 +110,16 @@ export async function POST(
                     updated_at: now,
                 }
             });
+        });
+
+        // Log activity
+        await logActivity({
+            request,
+            operation: OPERATIONS.INVOICE_PRINT,
+            description: `Factura ${invoice.invoice_number} impresa`,
+            entityType: 'invoice',
+            entityId: invoiceId,
+            details: { invoiceNumber: invoice.invoice_number }
         });
 
         // 4. Retornar PDF

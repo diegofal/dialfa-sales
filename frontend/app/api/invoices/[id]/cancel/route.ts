@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { STOCK_MOVEMENT_TYPES } from '@/lib/constants/stockMovementTypes';
+import { OPERATIONS } from '@/lib/constants/operations';
+import { logActivity } from '@/lib/services/activityLogger';
 
 export async function POST(
   request: NextRequest,
@@ -109,6 +111,16 @@ export async function POST(
           },
         });
       }
+    });
+
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.INVOICE_CANCEL,
+      description: `Factura ${existingInvoice.invoice_number} anulada`,
+      entityType: 'invoice',
+      entityId: id,
+      details: { invoiceNumber: existingInvoice.invoice_number }
     });
 
     return NextResponse.json(

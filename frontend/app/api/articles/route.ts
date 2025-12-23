@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db';
 import { mapArticleToDTO } from '@/lib/utils/mapper';
 import { createArticleSchema } from '@/lib/validations/schemas';
 import { z } from 'zod';
+import { OPERATIONS } from '@/lib/constants/operations';
+import { logActivity } from '@/lib/services/activityLogger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -168,6 +170,16 @@ export async function POST(request: NextRequest) {
 
     // Map to DTO format
     const mappedArticle = mapArticleToDTO(article);
+
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.ARTICLE_CREATE,
+      description: `Artículo ${article.description} (${article.code}) creado`,
+      entityType: 'article',
+      entityId: article.id,
+      details: { code: article.code, description: article.description }
+    });
 
     return NextResponse.json(mappedArticle, { status: 201 });
   } catch (error) {

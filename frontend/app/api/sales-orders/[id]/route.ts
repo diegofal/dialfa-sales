@@ -4,6 +4,8 @@ import { mapSalesOrderToDTO } from '@/lib/utils/mapper';
 import { updateSalesOrderSchema } from '@/lib/validations/schemas';
 import { z } from 'zod';
 import { STOCK_MOVEMENT_TYPES } from '@/lib/constants/stockMovementTypes';
+import { OPERATIONS } from '@/lib/constants/operations';
+import { logActivity } from '@/lib/services/activityLogger';
 
 export async function GET(
   request: NextRequest,
@@ -213,6 +215,16 @@ export async function PUT(
         })),
       };
 
+      // Log activity
+      await logActivity({
+        request,
+        operation: OPERATIONS.ORDER_UPDATE,
+        description: `Pedido ${serializedSalesOrder.order_number} actualizado para cliente ${serializedSalesOrder.clients.business_name}`,
+        entityType: 'sales_order',
+        entityId: id,
+        details: { total: Number(serializedSalesOrder.total), itemsCount: serializedSalesOrder.sales_order_items.length }
+      });
+
       return NextResponse.json(serializedSalesOrder);
     } else {
       // Update only the sales order fields without items
@@ -256,6 +268,16 @@ export async function PUT(
           },
         })),
       };
+
+      // Log activity
+      await logActivity({
+        request,
+        operation: OPERATIONS.ORDER_UPDATE,
+        description: `Pedido ${serializedSalesOrder.order_number} actualizado para cliente ${serializedSalesOrder.clients.business_name}`,
+        entityType: 'sales_order',
+        entityId: id,
+        details: { total: Number(serializedSalesOrder.total), itemsCount: serializedSalesOrder.sales_order_items.length }
+      });
 
       return NextResponse.json(serializedSalesOrder);
     }
@@ -417,6 +439,20 @@ export async function DELETE(
           updated_at: now,
         },
       });
+    });
+
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.ORDER_DELETE,
+      description: `Pedido ${existingSalesOrder.order_number} eliminado`,
+      entityType: 'sales_order',
+      entityId: id,
+      details: { 
+        orderNumber: existingSalesOrder.order_number,
+        affectedInvoices: cancelledInvoices.length,
+        affectedDeliveryNotes: affectedDeliveryNoteIds.length 
+      }
     });
 
     return NextResponse.json(

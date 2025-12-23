@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db';
 import { mapDeliveryNoteToDTO } from '@/lib/utils/mapper';
 import { createDeliveryNoteSchema } from '@/lib/validations/schemas';
 import { z } from 'zod';
+import { OPERATIONS } from '@/lib/constants/operations';
+import { logActivity } from '@/lib/services/activityLogger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -225,6 +227,16 @@ export async function POST(request: NextRequest) {
 
     // Map to DTO format
     const mappedDeliveryNote = mapDeliveryNoteToDTO(deliveryNote);
+
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.DELIVERY_CREATE,
+      description: `Remito ${deliveryNote.delivery_number} creado para pedido ${deliveryNote.sales_orders.order_number}`,
+      entityType: 'delivery_note',
+      entityId: deliveryNote.id,
+      details: { deliveryNumber: deliveryNote.delivery_number, orderNumber: deliveryNote.sales_orders.order_number }
+    });
 
     return NextResponse.json(mappedDeliveryNote, { status: 201 });
   } catch (error) {

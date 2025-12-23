@@ -12,7 +12,7 @@ import {
 import { ClickableTableRow } from '@/components/ui/clickable-table-row';
 import { SortableTableHead } from '@/components/ui/sortable-table-head';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Trash2 } from 'lucide-react';
+import { Pencil, Trash2, Package } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,6 +25,8 @@ import {
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
 import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
+import { useState } from 'react';
+import StockAdjustDialog from './StockAdjustDialog';
 
 interface ArticlesTableProps {
   articles: Article[];
@@ -36,6 +38,8 @@ interface ArticlesTableProps {
 }
 
 export function ArticlesTable({ articles, onEdit, onDelete, currentSortBy, currentSortDescending, onSort }: ArticlesTableProps) {
+  const [adjustingArticle, setAdjustingArticle] = useState<Article | null>(null);
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-AR', {
       style: 'currency',
@@ -126,6 +130,18 @@ export function ArticlesTable({ articles, onEdit, onDelete, currentSortBy, curre
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
                     <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAdjustingArticle(article);
+                      }}
+                      title="Ajustar Stock"
+                    >
+                      <Package className="h-4 w-4" />
+                    </Button>
+
+                    <Button
                       variant={ACTION_BUTTON_CONFIG.edit.variant}
                       size={ACTION_BUTTON_CONFIG.edit.size}
                       onClick={() => onEdit(article)}
@@ -167,6 +183,17 @@ export function ArticlesTable({ articles, onEdit, onDelete, currentSortBy, curre
           )}
         </TableBody>
       </Table>
+
+      {adjustingArticle && (
+        <StockAdjustDialog
+          isOpen={!!adjustingArticle}
+          onClose={() => setAdjustingArticle(null)}
+          articleId={adjustingArticle.id}
+          articleCode={adjustingArticle.code}
+          articleDescription={adjustingArticle.description}
+          currentStock={adjustingArticle.stock}
+        />
+      )}
     </div>
   );
 }

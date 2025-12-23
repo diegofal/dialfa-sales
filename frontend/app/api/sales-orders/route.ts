@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db';
 import { mapSalesOrderToDTO } from '@/lib/utils/mapper';
 import { createSalesOrderSchema } from '@/lib/validations/schemas';
 import { z } from 'zod';
+import { OPERATIONS } from '@/lib/constants/operations';
+import { logActivity } from '@/lib/services/activityLogger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -198,6 +200,16 @@ export async function POST(request: NextRequest) {
 
     // Map to DTO format
     const mappedSalesOrder = mapSalesOrderToDTO(result);
+
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.ORDER_CREATE,
+      description: `Pedido ${result.order_number} creado para cliente ${result.clients.business_name}`,
+      entityType: 'sales_order',
+      entityId: result.id,
+      details: { total: Number(result.total), itemsCount: result.sales_order_items.length }
+    });
 
     return NextResponse.json(mappedSalesOrder, { status: 201 });
   } catch (error) {

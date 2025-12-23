@@ -3,6 +3,8 @@ import { prisma } from '@/lib/db';
 import { mapInvoiceToDTO } from '@/lib/utils/mapper';
 import { createInvoiceSchema } from '@/lib/validations/schemas';
 import { z } from 'zod';
+import { OPERATIONS } from '@/lib/constants/operations';
+import { logActivity } from '@/lib/services/activityLogger';
 
 export async function GET(request: NextRequest) {
   try {
@@ -250,6 +252,16 @@ export async function POST(request: NextRequest) {
 
     // Map to DTO format
     const mappedInvoice = mapInvoiceToDTO(result);
+
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.INVOICE_CREATE,
+      description: `Factura ${result.invoice_number} creada para pedido ${result.sales_orders.order_number}`,
+      entityType: 'invoice',
+      entityId: result.id,
+      details: { totalAmount: Number(result.total_amount), orderNumber: result.sales_orders.order_number }
+    });
 
     return NextResponse.json(mappedInvoice, { status: 201 });
   } catch (error) {

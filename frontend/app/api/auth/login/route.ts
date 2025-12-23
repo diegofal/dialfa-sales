@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import bcrypt from 'bcryptjs';
 import { prisma } from '@/lib/db';
 import { createToken, setAuthCookie } from '@/lib/auth/jwt';
+import { OPERATIONS } from '@/lib/constants/operations';
+import { logActivity } from '@/lib/services/activityLogger';
 
 export async function POST(request: NextRequest) {
   try {
@@ -56,12 +58,22 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       username: user.username,
       email: user.email,
-      role: user.role,
+      role: user.role.toLowerCase(), // Normalize role to lowercase
       fullName: user.full_name,
     });
 
     // Set auth cookie
     await setAuthCookie(token);
+
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.LOGIN,
+      description: `Usuario ${user.username} inició sesión`,
+      entityType: 'user',
+      entityId: user.id,
+      username: user.username, // Pass username explicitly since middleware skips this route
+    });
 
     // Return user data (without password hash)
     return NextResponse.json({
@@ -70,7 +82,7 @@ export async function POST(request: NextRequest) {
         username: user.username,
         email: user.email,
         fullName: user.full_name,
-        role: user.role,
+        role: user.role.toLowerCase(), // Normalize role to lowercase
       },
       token,
     });

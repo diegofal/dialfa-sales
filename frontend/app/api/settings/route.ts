@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
+import { OPERATIONS } from '@/lib/constants/operations';
+import { logActivity } from '@/lib/services/activityLogger';
 
 // Validation schema for updating settings
 const updateSettingsSchema = z.object({
@@ -61,6 +63,15 @@ export async function PUT(request: NextRequest) {
         usd_exchange_rate: validatedData.usdExchangeRate,
         updated_at: new Date(),
       },
+    });
+
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.SETTINGS_UPDATE,
+      description: `Cotización USD actualizada a ${validatedData.usdExchangeRate}`,
+      entityType: 'settings',
+      details: { usdExchangeRate: validatedData.usdExchangeRate }
     });
 
     return NextResponse.json({
