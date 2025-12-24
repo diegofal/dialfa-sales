@@ -26,12 +26,19 @@ class PostgresWriter:
         self.pool: asyncpg.Pool = None
         
     async def connect(self):
-        """Create connection pool."""
+        """Create connection pool with robust settings for long migrations."""
         self.pool = await asyncpg.create_pool(
             self.dsn,
             min_size=2,
             max_size=10,
-            command_timeout=600
+            command_timeout=600,
+            # Add connection stability settings
+            server_settings={
+                'application_name': 'spisa_migration',
+                'statement_timeout': '600000',  # 10 minutes in milliseconds
+            },
+            # Increase connection attempt timeout
+            timeout=30,
         )
         logger.info("Connected to PostgreSQL")
         
@@ -171,6 +178,7 @@ class PostgresWriter:
         ]
         
         info = {}
+        # Acquire connection once for all queries
         async with self.pool.acquire() as conn:
             for table in tables:
                 try:

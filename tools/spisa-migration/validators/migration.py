@@ -166,13 +166,14 @@ class MigrationValidator:
             """),
         ]
         
-        for check_name, query in checks:
-            async with self.pg_writer.pool.acquire() as conn:
+        # Acquire connection once for all validation checks
+        async with self.pg_writer.pool.acquire() as conn:
+            for check_name, query in checks:
                 count = await conn.fetchval(query)
-            
-            if count > 0:
-                result.issues.append(f"{check_name}: Found {count} orphaned records")
-                result.is_valid = False
+                
+                if count > 0:
+                    result.issues.append(f"{check_name}: Found {count} orphaned records")
+                    result.is_valid = False
         
         return result
     

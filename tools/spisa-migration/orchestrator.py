@@ -1,5 +1,6 @@
 """Migration orchestrator with parallel waves."""
 import asyncio
+import asyncpg
 import logging
 from datetime import datetime
 from typing import List, Set
@@ -720,84 +721,68 @@ class MigrationOrchestrator:
         return result
     
     async def _update_invoice_totals(self) -> EntityMigrationResult:
-        """Calculate and update invoice totals from invoice_items."""
+        """Calculate and update invoice totals from invoice_items using a single SQL statement."""
         start = time.time()
         result = EntityMigrationResult(entity_name="Invoice Totals Update")
         
         try:
-            # Get all invoices with their client's tax condition
-            invoices_query = """
-                SELECT 
-                    i.id as invoice_id,
-                    i.sales_order_id,
-                    so.client_id,
-                    c.tax_condition_id
-                FROM invoices i
-                JOIN sales_orders so ON i.sales_order_id = so.id
-                JOIN clients c ON so.client_id = c.id
-                ORDER BY i.id
+            # Use a single UPDATE statement with CTEs for maximum efficiency
+            # This updates ALL invoices in one transaction instead of 32,839 individual updates
+            update_sql = """
+                WITH item_totals AS (
+                    SELECT 
+                        invoice_id,
+                        COALESCE(SUM(line_total), 0) as subtotal
+                    FROM invoice_items
+                    GROUP BY invoice_id
+                ),
+                invoice_tax AS (
+                    SELECT 
+                        i.id as invoice_id,
+                        it.subtotal,
+                        CASE 
+                            WHEN c.tax_condition_id = 1 THEN it.subtotal * 0.21
+                            ELSE 0
+                        END as tax_amount
+                    FROM invoices i
+                    JOIN sales_orders so ON i.sales_order_id = so.id
+                    JOIN clients c ON so.client_id = c.id
+                    LEFT JOIN item_totals it ON i.id = it.invoice_id
+                )
+                UPDATE invoices
+                SET 
+                    net_amount = COALESCE(itax.subtotal, 0),
+                    tax_amount = COALESCE(itax.tax_amount, 0),
+                    total_amount = COALESCE(itax.subtotal, 0) + COALESCE(itax.tax_amount, 0),
+                    updated_at = NOW()
+                FROM invoice_tax itax
+                WHERE invoices.id = itax.invoice_id
             """
-            invoices = await self.pg_writer.fetch_all(invoices_query)
             
-            if not invoices:
-                logger.info("No invoices found to update")
-                return result
+            logger.info("Updating invoice totals with single SQL statement...")
             
-            # Get all invoice items with totals
-            items_query = """
-                SELECT 
-                    invoice_id,
-                    SUM(line_total) as subtotal
-                FROM invoice_items
-                GROUP BY invoice_id
-            """
-            items_totals = await self.pg_writer.fetch_all(items_query)
-            totals_by_invoice = {item['invoice_id']: item['subtotal'] for item in items_totals}
-            
-            # Tax conditions: 1=Responsable Inscripto (21% IVA), 2=Monotributista (no IVA), 3=Exento (no IVA)
-            # This is a simplification - adjust based on actual business rules
-            
-            updates_count = 0
-            for invoice in invoices:
-                invoice_id = invoice['invoice_id']
-                subtotal = float(totals_by_invoice.get(invoice_id, 0))
-                tax_condition_id = invoice['tax_condition_id']
-                
-                # Calculate tax based on tax condition
-                # Responsable Inscripto (typically ID=1) pays 21% IVA
-                if tax_condition_id == 1:
-                    tax_rate = 0.21
-                else:
-                    tax_rate = 0.0  # Monotributista, Exento, etc.
-                
-                tax_amount = subtotal * tax_rate
-                total_amount = subtotal + tax_amount
-                
-                # Update invoice
-                update_sql = """
-                    UPDATE invoices 
-                    SET 
-                        net_amount = $1,
-                        tax_amount = $2,
-                        total_amount = $3,
-                        updated_at = $4
-                    WHERE id = $5
-                """
-                
-                async with self.pg_writer.pool.acquire() as conn:
-                    await conn.execute(
-                        update_sql,
-                        subtotal,
-                        tax_amount,
-                        total_amount,
-                        datetime.utcnow(),
-                        invoice_id
-                    )
-                
-                updates_count += 1
-            
-            result.migrated_count = updates_count
-            logger.info(f"Updated totals for {updates_count} invoices")
+            # Execute with retry logic for network issues
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    async with self.pg_writer.pool.acquire() as conn:
+                        # Increase statement timeout for this operation
+                        await conn.execute("SET statement_timeout = '600s'")
+                        affected_rows = await conn.execute(update_sql)
+                        
+                        # Parse affected rows from result (format: "UPDATE 32839")
+                        updates_count = int(affected_rows.split()[-1]) if affected_rows else 0
+                        result.migrated_count = updates_count
+                        logger.info(f"Updated totals for {updates_count} invoices")
+                        break
+                        
+                except (asyncpg.exceptions.ConnectionDoesNotExistError, ConnectionResetError) as e:
+                    if attempt < max_retries - 1:
+                        wait_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s
+                        logger.warning(f"Connection lost, retrying in {wait_time}s... (attempt {attempt + 1}/{max_retries})")
+                        await asyncio.sleep(wait_time)
+                    else:
+                        raise
             
         except Exception as e:
             logger.exception("Failed to update invoice totals")
@@ -809,66 +794,55 @@ class MigrationOrchestrator:
         return result
     
     async def _update_sales_order_totals(self) -> EntityMigrationResult:
-        """Calculate and update sales order totals from sales_order_items."""
+        """Calculate and update sales order totals from sales_order_items using a single SQL statement."""
         start = time.time()
         result = EntityMigrationResult(entity_name="Sales Order Totals Update")
         
         try:
-            # Get all sales orders
-            orders_query = """
-                SELECT id, special_discount_percent
-                FROM sales_orders
-                WHERE deleted_at IS NULL
-                ORDER BY id
+            # Use a single UPDATE statement for all sales orders
+            # This is much more efficient than 39,336 individual updates
+            update_sql = """
+                WITH item_totals AS (
+                    SELECT 
+                        sales_order_id,
+                        COALESCE(SUM(quantity * unit_price), 0) as subtotal_without_discounts
+                    FROM sales_order_items
+                    GROUP BY sales_order_id
+                )
+                UPDATE sales_orders
+                SET 
+                    total = COALESCE(it.subtotal_without_discounts, 0) * 
+                            (1 - COALESCE(sales_orders.special_discount_percent, 0) / 100),
+                    updated_at = NOW()
+                FROM item_totals it
+                WHERE sales_orders.id = it.sales_order_id
+                AND sales_orders.deleted_at IS NULL
             """
-            orders = await self.pg_writer.fetch_all(orders_query)
             
-            if not orders:
-                logger.info("No sales orders found to update")
-                return result
+            logger.info("Updating sales order totals with single SQL statement...")
             
-            # Get all order items with totals (WITHOUT discounts - just quantity * unit_price)
-            items_query = """
-                SELECT 
-                    sales_order_id,
-                    SUM(quantity * unit_price) as subtotal_without_discounts
-                FROM sales_order_items
-                GROUP BY sales_order_id
-            """
-            items_totals = await self.pg_writer.fetch_all(items_query)
-            totals_by_order = {item['sales_order_id']: item['subtotal_without_discounts'] for item in items_totals}
-            
-            updates_count = 0
-            for order in orders:
-                order_id = order['id']
-                subtotal = float(totals_by_order.get(order_id, 0))
-                special_discount_percent = float(order['special_discount_percent'])
-                
-                # Apply special discount to get final total (special discount is applied AFTER item discounts in the UI)
-                # BUT the "total" field in sales_orders should be the raw subtotal (quantity * price) for display purposes
-                total = subtotal * (1 - special_discount_percent / 100)
-                
-                # Update sales order
-                update_sql = """
-                    UPDATE sales_orders 
-                    SET 
-                        total = $1,
-                        updated_at = $2
-                    WHERE id = $3
-                """
-                
-                async with self.pg_writer.pool.acquire() as conn:
-                    await conn.execute(
-                        update_sql,
-                        total,
-                        datetime.utcnow(),
-                        order_id
-                    )
-                
-                updates_count += 1
-            
-            result.migrated_count = updates_count
-            logger.info(f"Updated totals for {updates_count} sales orders")
+            # Execute with retry logic for network issues
+            max_retries = 3
+            for attempt in range(max_retries):
+                try:
+                    async with self.pg_writer.pool.acquire() as conn:
+                        # Increase statement timeout for this operation
+                        await conn.execute("SET statement_timeout = '600s'")
+                        affected_rows = await conn.execute(update_sql)
+                        
+                        # Parse affected rows from result (format: "UPDATE 39336")
+                        updates_count = int(affected_rows.split()[-1]) if affected_rows else 0
+                        result.migrated_count = updates_count
+                        logger.info(f"Updated totals for {updates_count} sales orders")
+                        break
+                        
+                except (asyncpg.exceptions.ConnectionDoesNotExistError, ConnectionResetError) as e:
+                    if attempt < max_retries - 1:
+                        wait_time = 2 ** attempt  # Exponential backoff: 1s, 2s, 4s
+                        logger.warning(f"Connection lost, retrying in {wait_time}s... (attempt {attempt + 1}/{max_retries})")
+                        await asyncio.sleep(wait_time)
+                    else:
+                        raise
             
         except Exception as e:
             logger.exception("Failed to update sales order totals")

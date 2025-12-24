@@ -13,6 +13,8 @@ import {
   FileCheck,
   UserCog,
   History,
+  MessageSquare,
+  MessagesSquare,
 } from 'lucide-react';
 import PedidosMenuItem from './PedidosMenuItem';
 import FacturasMenuItem from './FacturasMenuItem';
@@ -28,6 +30,7 @@ const navigation = [
 
 const navigationAfterRemitos = [
   { name: 'Certificados', href: '/dashboard/certificates', icon: FileCheck },
+  { name: 'Feedback', href: '/dashboard/feedback', icon: MessageSquare },
   { name: 'Configuración', href: '/dashboard/settings', icon: Settings },
 ];
 
@@ -117,6 +120,18 @@ export default function Sidebar() {
             >
               <History className="h-5 w-5" />
               Actividad
+            </Link>
+            <Link
+              href="/dashboard/feedback/admin"
+              className={cn(
+                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                pathname.startsWith('/dashboard/feedback/admin')
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+              )}
+            >
+              <MessagesSquare className="h-5 w-5" />
+              Gestión Feedback
             </Link>
           </div>
         )}
