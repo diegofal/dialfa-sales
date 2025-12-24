@@ -13,6 +13,7 @@ interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isAdmin: () => boolean;
+  isVendedor: () => boolean;
   setAuth: (user: User) => void;
   clearAuth: () => void;
   hydrated: boolean;
@@ -25,6 +26,7 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isAuthenticated: false,
       isAdmin: () => get().user?.role?.toLowerCase() === 'admin',
+      isVendedor: () => get().user?.role?.toLowerCase() === 'vendedor',
       hydrated: false,
 
       setAuth: (user) => {

@@ -25,6 +25,9 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Checkbox } from '@/components/ui/checkbox';
+import { useAuthStore } from '@/store/authStore';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Info } from 'lucide-react';
 
 const articleSchema = z.object({
   code: z.string().min(1, 'El código es requerido').max(50, 'Máximo 50 caracteres'),
@@ -51,6 +54,11 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
   const createMutation = useCreateArticle();
   const updateMutation = useUpdateArticle();
   const { data: categories, isLoading: categoriesLoading } = useCategories({ activeOnly: true });
+  const { isAdmin, isVendedor } = useAuthStore();
+
+  // Los vendedores no pueden crear ni editar artículos (solo pueden ajustar stock)
+  const canEdit = isAdmin();
+  const isVendedorUser = isVendedor();
 
   const {
     register,
@@ -139,12 +147,22 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
           <DialogTitle>{isEditing ? 'Editar Artículo' : 'Nuevo Artículo'}</DialogTitle>
         </DialogHeader>
 
+        {!canEdit && (
+          <Alert>
+            <Info className="h-4 w-4" />
+            <AlertDescription>
+              Solo los administradores pueden {isEditing ? 'editar' : 'crear'} artículos. 
+              Los vendedores solo pueden ajustar el stock desde la tabla de artículos.
+            </AlertDescription>
+          </Alert>
+        )}
+
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
             {/* Code */}
             <div className="space-y-2">
               <Label htmlFor="code">Código *</Label>
-              <Input id="code" {...register('code')} />
+              <Input id="code" {...register('code')} disabled={!canEdit} />
               {errors.code && (
                 <p className="text-sm text-red-500">{errors.code.message}</p>
               )}
@@ -156,6 +174,7 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
               <Select
                 value={categoryId > 0 ? categoryId.toString() : ''}
                 onValueChange={(value) => setValue('categoryId', parseInt(value))}
+                disabled={!canEdit}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccione una categoría" />
@@ -183,7 +202,7 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
           {/* Description */}
           <div className="space-y-2">
             <Label htmlFor="description">Descripción *</Label>
-            <Textarea id="description" {...register('description')} rows={2} />
+            <Textarea id="description" {...register('description')} rows={2} disabled={!canEdit} />
             {errors.description && (
               <p className="text-sm text-red-500">{errors.description.message}</p>
             )}
@@ -198,22 +217,29 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
                 type="number"
                 step="0.01"
                 {...register('unitPrice', { valueAsNumber: true })}
+                disabled={!canEdit}
               />
               {errors.unitPrice && (
                 <p className="text-sm text-red-500">{errors.unitPrice.message}</p>
               )}
             </div>
 
-            {/* Stock */}
+            {/* Stock - Vendedores no pueden editar aquí, deben usar el botón de ajuste */}
             <div className="space-y-2">
               <Label htmlFor="stock">Stock Actual *</Label>
               <Input
                 id="stock"
                 type="number"
                 {...register('stock', { valueAsNumber: true })}
+                disabled={!canEdit}
               />
               {errors.stock && (
                 <p className="text-sm text-red-500">{errors.stock.message}</p>
+              )}
+              {isVendedorUser && (
+                <p className="text-[10px] text-muted-foreground">
+                  Use el botón de ajuste de stock en la tabla
+                </p>
               )}
             </div>
 
@@ -224,6 +250,7 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
                 id="minimumStock"
                 type="number"
                 {...register('minimumStock', { valueAsNumber: true })}
+                disabled={!canEdit}
               />
               {errors.minimumStock && (
                 <p className="text-sm text-red-500">{errors.minimumStock.message}</p>
@@ -234,7 +261,7 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
           {/* Location */}
           <div className="space-y-2">
             <Label htmlFor="location">Ubicación</Label>
-            <Input id="location" {...register('location')} placeholder="Ej: Depósito A - Estante 3" />
+            <Input id="location" {...register('location')} placeholder="Ej: Depósito A - Estante 3" disabled={!canEdit} />
             {errors.location && (
               <p className="text-sm text-red-500">{errors.location.message}</p>
             )}
@@ -243,7 +270,7 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
           {/* Notes */}
           <div className="space-y-2">
             <Label htmlFor="notes">Notas</Label>
-            <Textarea id="notes" {...register('notes')} rows={3} />
+            <Textarea id="notes" {...register('notes')} rows={3} disabled={!canEdit} />
             {errors.notes && (
               <p className="text-sm text-red-500">{errors.notes.message}</p>
             )}
@@ -255,6 +282,7 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
               id="isDiscontinued"
               checked={isDiscontinued}
               onCheckedChange={(checked) => setValue('isDiscontinued', checked as boolean)}
+              disabled={!canEdit}
             />
             <Label htmlFor="isDiscontinued" className="font-normal cursor-pointer">
               Producto descontinuado
@@ -263,14 +291,16 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
-              Cancelar
+              {canEdit ? 'Cancelar' : 'Cerrar'}
             </Button>
-            <Button
-              type="submit"
-              disabled={createMutation.isPending || updateMutation.isPending}
-            >
-              {isEditing ? 'Actualizar' : 'Crear'}
-            </Button>
+            {canEdit && (
+              <Button
+                type="submit"
+                disabled={createMutation.isPending || updateMutation.isPending}
+              >
+                {isEditing ? 'Actualizar' : 'Crear'}
+              </Button>
+            )}
           </div>
         </form>
       </DialogContent>

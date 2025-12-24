@@ -46,7 +46,7 @@ export default function StockAdjustDialog({
   const queryClient = useQueryClient();
 
   const adjustStockMutation = useMutation({
-    mutationFn: async (data: { articleId: string; quantityChange: number; reason: string; notes: string }) => {
+    mutationFn: async (data: { articleId: number; quantity: number; reason: string; notes: string }) => {
       const response = await fetch('/api/stock-movements/adjust', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -85,8 +85,8 @@ export default function StockAdjustDialog({
     }
 
     adjustStockMutation.mutate({
-      articleId: String(articleId),
-      quantityChange: qty,
+      articleId: articleId,
+      quantity: qty,
       reason: STOCK_ADJUSTMENT_REASONS[reason as keyof typeof STOCK_ADJUSTMENT_REASONS],
       notes,
     });

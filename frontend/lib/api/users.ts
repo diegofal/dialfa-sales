@@ -39,3 +39,4 @@ export async function deactivateUser(id: number): Promise<void> {
   if (!response.ok) throw new Error('Failed to deactivate user');
 }
 
+

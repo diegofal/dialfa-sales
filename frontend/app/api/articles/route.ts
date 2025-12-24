@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { logActivity } from '@/lib/services/activityLogger';
 import { ChangeTracker } from '@/lib/services/changeTracker';
+import { getUserFromRequest } from '@/lib/auth/roles';
 
 export async function GET(request: NextRequest) {
   try {
@@ -135,6 +136,15 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
+
+    // Verificar permisos: solo admin puede crear artículos
+    const user = getUserFromRequest(request);
+    if (user.role?.toLowerCase() !== 'admin') {
+      return NextResponse.json(
+        { error: 'Forbidden', message: 'Solo los administradores pueden crear artículos' },
+        { status: 403 }
+      );
+    }
 
     // Validate input
     const validatedData = createArticleSchema.parse(body);

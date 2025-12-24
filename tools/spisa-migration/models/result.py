@@ -42,3 +42,4 @@ class MigrationResult:
         return 0.0
 
 
+

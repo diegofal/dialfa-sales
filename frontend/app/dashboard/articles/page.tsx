@@ -14,6 +14,7 @@ import { ArticlesTable } from '@/components/articles/ArticlesTable';
 import { ArticleDialog } from '@/components/articles/ArticleDialog';
 import { StockMovementsTable } from '@/components/articles/StockMovementsTable';
 import { Article } from '@/types/article';
+import { useAuthStore } from '@/store/authStore';
 import {
   Select,
   SelectContent,
@@ -28,12 +29,15 @@ export default function ArticlesPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const { isAdmin } = useAuthStore();
   
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [stockFilter, setStockFilter] = useState<string>('all');
+
+  const canCreateEdit = isAdmin();
   
   // Get initial tab from URL or default to 'articles'
   const [currentTab, setCurrentTab] = useState<string>(() => {
@@ -125,10 +129,12 @@ export default function ArticlesPage() {
             Gestión de artículos e inventario
           </p>
         </div>
-        <Button onClick={handleNewArticle}>
-          <Plus className="h-4 w-4 mr-2" />
-          Nuevo Artículo
-        </Button>
+        {canCreateEdit && (
+          <Button onClick={handleNewArticle}>
+            <Plus className="h-4 w-4 mr-2" />
+            Nuevo Artículo
+          </Button>
+        )}
       </div>
 
       <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">

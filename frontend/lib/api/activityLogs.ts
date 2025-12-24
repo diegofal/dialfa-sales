@@ -20,3 +20,4 @@ export async function getActivityLogs(filters: ActivityLogsFilters = {}): Promis
   return response.json();
 }
 
+

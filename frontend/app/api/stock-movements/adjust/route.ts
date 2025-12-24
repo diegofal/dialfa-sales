@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     // 3. Log activity
     const activityLogId = await logActivity({
       request,
-      operation: OPERATIONS.STOCK_ADJUST,
+      operation: OPERATIONS.ARTICLE_STOCK_ADJUST,
       description: `Ajuste de stock para ${article.description}: ${quantity > 0 ? '+' : ''}${quantity} unidades (${reason})`,
       entityType: 'article',
       entityId: article.id,

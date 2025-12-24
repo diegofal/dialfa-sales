@@ -27,6 +27,7 @@ import {
 import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
 import { useState } from 'react';
 import StockAdjustDialog from './StockAdjustDialog';
+import { useAuthStore } from '@/store/authStore';
 
 interface ArticlesTableProps {
   articles: Article[];
@@ -39,6 +40,9 @@ interface ArticlesTableProps {
 
 export function ArticlesTable({ articles, onEdit, onDelete, currentSortBy, currentSortDescending, onSort }: ArticlesTableProps) {
   const [adjustingArticle, setAdjustingArticle] = useState<Article | null>(null);
+  const { isAdmin } = useAuthStore();
+
+  const canEdit = isAdmin();
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-AR', {
@@ -93,8 +97,9 @@ export function ArticlesTable({ articles, onEdit, onDelete, currentSortBy, curre
             articles.map((article) => (
               <ClickableTableRow
                 key={article.id}
-                onRowClick={() => onEdit(article)}
-                aria-label={`Editar artículo ${article.code} - ${article.description}`}
+                onRowClick={() => canEdit && onEdit(article)}
+                aria-label={`${canEdit ? 'Editar' : 'Ver'} artículo ${article.code} - ${article.description}`}
+                className={!canEdit ? 'cursor-default' : ''}
               >
                 <TableCell className="font-medium">{article.code}</TableCell>
                 <TableCell>
@@ -129,6 +134,7 @@ export function ArticlesTable({ articles, onEdit, onDelete, currentSortBy, curre
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
+                    {/* Todos pueden ajustar stock */}
                     <Button
                       variant="outline"
                       size="sm"
@@ -141,41 +147,47 @@ export function ArticlesTable({ articles, onEdit, onDelete, currentSortBy, curre
                       <Package className="h-4 w-4" />
                     </Button>
 
-                    <Button
-                      variant={ACTION_BUTTON_CONFIG.edit.variant}
-                      size={ACTION_BUTTON_CONFIG.edit.size}
-                      onClick={() => onEdit(article)}
-                      title={ACTION_BUTTON_CONFIG.edit.title}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
+                    {/* Solo admins pueden editar */}
+                    {canEdit && (
+                      <Button
+                        variant={ACTION_BUTTON_CONFIG.edit.variant}
+                        size={ACTION_BUTTON_CONFIG.edit.size}
+                        onClick={() => onEdit(article)}
+                        title={ACTION_BUTTON_CONFIG.edit.title}
+                      >
+                        <Pencil className="h-4 w-4" />
+                      </Button>
+                    )}
 
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
-                        <Button
-                          variant={ACTION_BUTTON_CONFIG.delete.variant}
-                          size={ACTION_BUTTON_CONFIG.delete.size}
-                          title={ACTION_BUTTON_CONFIG.delete.title}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Esta acción eliminará el artículo &quot;{article.description}&quot;. Los datos
-                            permanecerán en el sistema pero no se mostrarán.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                          <AlertDialogAction onClick={() => onDelete(article.id)}>
-                            Eliminar
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
+                    {/* Solo admins pueden eliminar */}
+                    {canEdit && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant={ACTION_BUTTON_CONFIG.delete.variant}
+                            size={ACTION_BUTTON_CONFIG.delete.size}
+                            title={ACTION_BUTTON_CONFIG.delete.title}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta acción eliminará el artículo &quot;{article.description}&quot;. Los datos
+                              permanecerán en el sistema pero no se mostrarán.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction onClick={() => onDelete(article.id)}>
+                              Eliminar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
                   </div>
                 </TableCell>
               </ClickableTableRow>

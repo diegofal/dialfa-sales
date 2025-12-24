@@ -29,6 +29,7 @@ export const OPERATIONS = {
   ARTICLE_CREATE: 'ARTICLE_CREATE',
   ARTICLE_UPDATE: 'ARTICLE_UPDATE',
   ARTICLE_DELETE: 'ARTICLE_DELETE',
+  ARTICLE_STOCK_ADJUST: 'ARTICLE_STOCK_ADJUST',
   
   // Categorías
   CATEGORY_CREATE: 'CATEGORY_CREATE',
@@ -70,6 +71,7 @@ export const OPERATION_LABELS: Record<string, string> = {
   ARTICLE_CREATE: 'Crear Artículo',
   ARTICLE_UPDATE: 'Modificar Artículo',
   ARTICLE_DELETE: 'Eliminar Artículo',
+  ARTICLE_STOCK_ADJUST: 'Ajuste de Stock de Artículo',
   CATEGORY_CREATE: 'Crear Categoría',
   CATEGORY_UPDATE: 'Modificar Categoría',
   CATEGORY_DELETE: 'Eliminar Categoría',

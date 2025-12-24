@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { logActivity } from '@/lib/services/activityLogger';
 import { ChangeTracker } from '@/lib/services/changeTracker';
+import { getUserFromRequest } from '@/lib/auth/roles';
 
 export async function GET(
   request: NextRequest,
@@ -50,6 +51,15 @@ export async function PUT(
     const { id: idStr } = await params;
     const id = BigInt(idStr);
     const body = await request.json();
+
+    // Verificar permisos: solo admin puede actualizar artículos
+    const user = getUserFromRequest(request);
+    if (user.role?.toLowerCase() !== 'admin') {
+      return NextResponse.json(
+        { error: 'Forbidden', message: 'Solo los administradores pueden editar artículos. Los vendedores pueden ajustar stock usando la función específica.' },
+        { status: 403 }
+      );
+    }
 
     // Check if article exists and is not deleted
     const existingArticle = await prisma.articles.findUnique({
@@ -145,6 +155,15 @@ export async function DELETE(
   try {
     const { id: idStr } = await params;
     const id = BigInt(idStr);
+
+    // Verificar permisos: solo admin puede eliminar artículos
+    const user = getUserFromRequest(request);
+    if (user.role?.toLowerCase() !== 'admin') {
+      return NextResponse.json(
+        { error: 'Forbidden', message: 'Solo los administradores pueden eliminar artículos' },
+        { status: 403 }
+      );
+    }
 
     // Check if article exists and is not already deleted
     const existingArticle = await prisma.articles.findUnique({
