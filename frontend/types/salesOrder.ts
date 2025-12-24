@@ -2,6 +2,7 @@ export interface SalesOrder {
   id: number;
   clientId: number;
   clientBusinessName: string;
+  clientCuit: string;
   orderNumber: string;
   orderDate: string;
   deliveryDate?: string;
@@ -25,6 +26,7 @@ export interface SalesOrder {
     id: number;
     deliveryNumber: string;
     deliveryDate: string;
+    isPrinted: boolean;
   } | null;
 }
 

@@ -6,7 +6,7 @@ import { Prisma } from '@prisma/client';
 export async function GET(request: NextRequest) {
   try {
     const { authorized, error } = requireAdmin(request);
-    if (!authorized) return error;
+    if (!authorized) return error!;
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');

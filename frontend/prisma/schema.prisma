@@ -367,6 +367,8 @@ model certificates {
   deleted_at      DateTime? @db.Timestamptz(6)
   created_by      Int?
 
+  certificate_coladas certificate_coladas[]
+
   @@index([category], map: "IX_certificates_category")
 }
 
@@ -379,6 +381,8 @@ model coladas {
   created_at    DateTime @default(now()) @db.Timestamptz(6)
   updated_at    DateTime @updatedAt @db.Timestamptz(6)
 
+  certificate_coladas certificate_coladas[]
+
   @@index([colada_number], map: "IX_coladas_colada_number")
 }
 
@@ -387,6 +391,9 @@ model certificate_coladas {
   certificate_id BigInt
   colada_id      BigInt
   created_at     DateTime @default(now()) @db.Timestamptz(6)
+
+  certificates certificates @relation(fields: [certificate_id], references: [id])
+  colada       coladas      @relation(fields: [colada_id], references: [id])
 
   @@unique([certificate_id, colada_id], map: "UQ_certificate_coladas")
   @@index([certificate_id], map: "IX_certificate_coladas_certificate_id")

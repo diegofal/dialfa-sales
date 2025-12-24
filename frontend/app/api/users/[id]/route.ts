@@ -12,7 +12,7 @@ export async function GET(
 ) {
   try {
     const { authorized, error } = requireAdmin(request);
-    if (!authorized) return error;
+    if (!authorized) return error!;
 
     const { id } = await params;
     const user = await prisma.users.findUnique({
@@ -42,7 +42,7 @@ export async function PUT(
 ) {
   try {
     const { authorized, error } = requireAdmin(request);
-    if (!authorized) return error;
+    if (!authorized) return error!;
 
     const { id } = await params;
     const body = await request.json();
@@ -106,7 +106,7 @@ export async function DELETE(
 ) {
   try {
     const { authorized, error } = requireAdmin(request);
-    if (!authorized) return error;
+    if (!authorized) return error!;
 
     const { id } = await params;
     const userId = parseInt(id);

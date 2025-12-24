@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { mapInvoiceToDTO } from '@/lib/utils/mapper';
 import { z } from 'zod';
+import { OPERATIONS } from '@/lib/constants/operations';
+import { logActivity } from '@/lib/services/activityLogger';
+import { ChangeTracker } from '@/lib/services/changeTracker';
 
 const updateInvoiceItemsSchema = z.object({
   items: z.array(z.object({
@@ -23,7 +26,14 @@ export async function PUT(
 
     const invoice = await prisma.invoices.findUnique({
       where: { id: invoiceId },
-      include: { invoice_items: true },
+      include: { 
+        invoice_items: true,
+        sales_orders: {
+          include: {
+            clients: true,
+          },
+        },
+      },
     });
 
     if (!invoice || invoice.deleted_at) {
@@ -37,6 +47,9 @@ export async function PUT(
     if (invoice.is_cancelled) {
       return NextResponse.json({ error: 'Cannot edit cancelled invoices' }, { status: 400 });
     }
+
+    const tracker = new ChangeTracker();
+    await tracker.trackBefore('invoice', invoiceId);
 
     const usdExchangeRate = parseFloat(String(invoice.usd_exchange_rate || 1000));
     const TAX_RATE = 0.21;
@@ -93,7 +106,27 @@ export async function PUT(
       });
     });
 
+    await tracker.trackAfter('invoice', invoiceId);
+
     const mappedInvoice = mapInvoiceToDTO(updatedInvoice);
+
+    const activityLogId = await logActivity({
+      request,
+      operation: OPERATIONS.INVOICE_UPDATE,
+      description: `Descuentos actualizados en factura ${invoice.invoice_number}`,
+      entityType: 'invoice',
+      entityId: invoiceId,
+      details: {
+        invoiceNumber: invoice.invoice_number,
+        itemsUpdated: validatedData.items.length,
+        newTotal: Number(updatedInvoice.total_amount),
+      },
+    });
+
+    if (activityLogId) {
+      await tracker.saveChanges(activityLogId);
+    }
+
     return NextResponse.json(mappedInvoice);
   } catch (error) {
     console.error('Error updating invoice items:', error);

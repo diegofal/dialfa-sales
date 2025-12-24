@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
             select: {
               certificate_coladas: {
                 where: {
-                  certificate: {
+                  certificates: {
                     deleted_at: null
                   }
                 }

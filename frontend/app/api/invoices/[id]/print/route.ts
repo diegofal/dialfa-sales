@@ -5,6 +5,7 @@ import { loadTemplate } from '@/lib/print-templates/template-loader';
 import { STOCK_MOVEMENT_TYPES } from '@/lib/constants/stockMovementTypes';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { logActivity } from '@/lib/services/activityLogger';
+import { ChangeTracker } from '@/lib/services/changeTracker';
 
 export async function POST(
     request: NextRequest,
@@ -62,6 +63,9 @@ export async function POST(
         );
 
         // 3. Marcar como impreso y ejecutar lógica de negocio (crear movimientos de stock)
+        const tracker = new ChangeTracker();
+        await tracker.trackBefore('invoice', invoiceId);
+        
         const now = new Date();
         const isPrintingNow = !invoice.is_printed; // Only create movements if printing for the first time
 
@@ -77,6 +81,8 @@ export async function POST(
 
                 if (salesOrder) {
                     for (const item of salesOrder.sales_order_items) {
+                        await tracker.trackBefore('article', item.article_id);
+                        
                         // Create negative stock movement (debit from stock)
                         await tx.stock_movements.create({
                             data: {
@@ -101,6 +107,8 @@ export async function POST(
                                 updated_at: now,
                             },
                         });
+                        
+                        await tracker.trackAfter('article', item.article_id);
                     }
                 }
             }
@@ -116,8 +124,10 @@ export async function POST(
             });
         });
 
+        await tracker.trackAfter('invoice', invoiceId);
+
         // Log activity
-        await logActivity({
+        const activityLogId = await logActivity({
             request,
             operation: OPERATIONS.INVOICE_PRINT,
             description: `Factura ${invoice.invoice_number} impresa`,
@@ -125,6 +135,10 @@ export async function POST(
             entityId: invoiceId,
             details: { invoiceNumber: invoice.invoice_number }
         });
+
+        if (activityLogId) {
+            await tracker.saveChanges(activityLogId);
+        }
 
         // 4. Retornar PDF
         return new NextResponse(new Uint8Array(pdfBuffer), {

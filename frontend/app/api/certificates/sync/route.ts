@@ -277,7 +277,7 @@ export async function POST(request: NextRequest) {
       operation: OPERATIONS.CERTIFICATE_SYNC,
       description: `Sincronización de certificados completada: ${stats.newUploaded} nuevos, ${stats.coladasUpdated} actualizados`,
       entityType: 'certificate',
-      details: stats
+      details: stats as unknown as Record<string, unknown>
     });
     
     return NextResponse.json({ success: true, stats })

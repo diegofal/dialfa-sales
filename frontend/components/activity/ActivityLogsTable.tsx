@@ -27,12 +27,14 @@ import { ActivityChangesDetail } from './ActivityChangesDetail';
 
 export default function ActivityLogsTable() {
   const [page, setPage] = useState(1);
+  const [limit, setLimit] = useState(50);
   const [operation, setOperation] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
-
+  
   const { data, isLoading } = useActivityLogs({
     page,
+    limit,
     operation: operation === 'all' ? undefined : operation,
     search: search || undefined,
   });
@@ -157,11 +159,13 @@ export default function ActivityLogsTable() {
         </Table>
       </div>
 
-      {data && data.pagination.totalPages > 1 && (
+      {data && data.pagination.total > limit && (
         <Pagination
           currentPage={page}
-          totalPages={data.pagination.totalPages}
+          totalCount={data.pagination.total}
+          pageSize={limit}
           onPageChange={setPage}
+          onPageSizeChange={setLimit}
         />
       )}
     </div>

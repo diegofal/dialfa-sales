@@ -7,8 +7,8 @@ interface Change {
   id: number;
   entityType: string;
   entityLabel: string;
-  beforeState: any;
-  afterState: any;
+  beforeState: Record<string, unknown> | null;
+  afterState: Record<string, unknown> | null;
 }
 
 interface Props {
@@ -19,12 +19,6 @@ interface Props {
 export function ActivityChangesDetail({ activityLogId, isExpanded }: Props) {
   const [changes, setChanges] = useState<Change[]>([]);
   const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (isExpanded && changes.length === 0) {
-      fetchChanges();
-    }
-  }, [isExpanded, activityLogId]);
 
   const fetchChanges = async () => {
     setLoading(true);
@@ -38,6 +32,13 @@ export function ActivityChangesDetail({ activityLogId, isExpanded }: Props) {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (isExpanded && changes.length === 0) {
+      fetchChanges();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isExpanded, activityLogId]);
 
   if (!isExpanded) return null;
 

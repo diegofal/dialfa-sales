@@ -4,6 +4,7 @@ import { pdfService } from '@/lib/services/PDFService';
 import { loadTemplate } from '@/lib/print-templates/template-loader';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { logActivity } from '@/lib/services/activityLogger';
+import { ChangeTracker } from '@/lib/services/changeTracker';
 
 export async function POST(
     request: NextRequest,
@@ -51,6 +52,9 @@ export async function POST(
         );
 
         // 3. Mark as printed (only if it's the first time)
+        const tracker = new ChangeTracker();
+        await tracker.trackBefore('delivery_note', deliveryNoteId);
+        
         const now = new Date();
         const isPrintingNow = !deliveryNote.is_printed;
 
@@ -65,8 +69,10 @@ export async function POST(
             });
         }
 
+        await tracker.trackAfter('delivery_note', deliveryNoteId);
+
         // Log activity
-        await logActivity({
+        const activityLogId = await logActivity({
             request,
             operation: OPERATIONS.DELIVERY_PRINT,
             description: `Remito ${deliveryNote.delivery_number} impreso`,
@@ -74,6 +80,10 @@ export async function POST(
             entityId: deliveryNoteId,
             details: { deliveryNumber: deliveryNote.delivery_number }
         });
+
+        if (activityLogId) {
+            await tracker.saveChanges(activityLogId);
+        }
 
         // 4. Return PDF
         return new NextResponse(new Uint8Array(pdfBuffer), {

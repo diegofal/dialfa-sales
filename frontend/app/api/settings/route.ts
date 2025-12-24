@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { logActivity } from '@/lib/services/activityLogger';
+import { ChangeTracker } from '@/lib/services/changeTracker';
 
 // Validation schema for updating settings
 const updateSettingsSchema = z.object({
@@ -50,6 +51,17 @@ export async function PUT(request: NextRequest) {
     // Validate input
     const validatedData = updateSettingsSchema.parse(body);
 
+    const tracker = new ChangeTracker();
+    
+    // Check if settings exist
+    const existingSettings = await prisma.system_settings.findUnique({
+      where: { id: 1 },
+    });
+
+    if (existingSettings) {
+      await tracker.trackBefore('settings', 1);
+    }
+
     // Update settings
     const settings = await prisma.system_settings.upsert({
       where: { id: 1 },
@@ -65,14 +77,25 @@ export async function PUT(request: NextRequest) {
       },
     });
 
+    if (existingSettings) {
+      await tracker.trackAfter('settings', 1);
+    } else {
+      tracker.trackCreate('settings', 1, settings as unknown as Record<string, unknown>);
+    }
+
     // Log activity
-    await logActivity({
+    const activityLogId = await logActivity({
       request,
       operation: OPERATIONS.SETTINGS_UPDATE,
       description: `Cotización USD actualizada a ${validatedData.usdExchangeRate}`,
       entityType: 'settings',
+      entityId: 1,
       details: { usdExchangeRate: validatedData.usdExchangeRate }
     });
+
+    if (activityLogId) {
+      await tracker.saveChanges(activityLogId);
+    }
 
     return NextResponse.json({
       id: settings.id,

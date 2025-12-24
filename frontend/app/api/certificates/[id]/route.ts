@@ -19,8 +19,7 @@ export async function GET(
 
     const certificate = await prisma.certificates.findUnique({
       where: { 
-        id: certificateId,
-        deleted_at: null
+        id: certificateId
       },
       include: {
         certificate_coladas: {
@@ -30,8 +29,8 @@ export async function GET(
         }
       }
     })
-
-    if (!certificate) {
+    
+    if (!certificate || certificate.deleted_at) {
       return NextResponse.json(
         { error: 'Certificate not found' },
         { status: 404 }

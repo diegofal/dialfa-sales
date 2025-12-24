@@ -1,5 +1,6 @@
 import { NextRequest } from 'next/server';
 import { prisma } from '@/lib/db';
+import type { Prisma } from '@prisma/client';
 
 interface LogActivityParams {
   request: NextRequest;
@@ -7,7 +8,7 @@ interface LogActivityParams {
   description: string;
   entityType?: string;
   entityId?: bigint | number;
-  details?: any;
+  details?: Record<string, unknown>;
   username?: string; // Add optional username override
 }
 
@@ -38,7 +39,7 @@ export async function logActivity(params: LogActivityParams): Promise<bigint | n
         description: params.description,
         entity_type: params.entityType || null,
         entity_id: params.entityId ? BigInt(params.entityId) : null,
-        details: params.details || null,
+        details: (params.details as Prisma.InputJsonValue) ?? undefined,
         ip_address: ipAddress,
       },
     });

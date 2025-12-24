@@ -76,7 +76,7 @@ export default function UserDialog({ user, isOpen, onClose }: UserDialogProps) {
           toast.success('Usuario actualizado correctamente');
           onClose();
         },
-        onError: (error: any) => toast.error(error.message),
+        onError: (error: Error) => toast.error(error.message),
       });
     } else {
       if (!formData.password) {
@@ -88,7 +88,7 @@ export default function UserDialog({ user, isOpen, onClose }: UserDialogProps) {
           toast.success('Usuario creado correctamente');
           onClose();
         },
-        onError: (error: any) => toast.error(error.message),
+        onError: (error: Error) => toast.error(error.message),
       });
     }
   };

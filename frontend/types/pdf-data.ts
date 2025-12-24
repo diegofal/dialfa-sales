@@ -5,6 +5,7 @@ interface InvoiceItemForPDF {
   quantity: number;
   article_description: string;
   unit_price_ars: number | string | Decimal;
+  discount_percent?: number | string | Decimal;
   line_total: number | string | Decimal;
 }
 

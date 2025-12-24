@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { STOCK_MOVEMENT_TYPES } from '@/lib/constants/stockMovementTypes';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { logActivity } from '@/lib/services/activityLogger';
+import { ChangeTracker } from '@/lib/services/changeTracker';
 import { z } from 'zod';
 
 const adjustStockSchema = z.object({
@@ -25,6 +26,9 @@ export async function POST(request: NextRequest) {
     if (!article || article.deleted_at) {
       return NextResponse.json({ error: 'Article not found' }, { status: 404 });
     }
+
+    const tracker = new ChangeTracker();
+    await tracker.trackBefore('article', BigInt(articleId));
 
     const now = new Date();
     const movementType = quantity >= 0 ? STOCK_MOVEMENT_TYPES.CREDIT : STOCK_MOVEMENT_TYPES.DEBIT;
@@ -58,8 +62,10 @@ export async function POST(request: NextRequest) {
       return { movement, updatedArticle };
     });
 
+    await tracker.trackAfter('article', BigInt(articleId));
+
     // 3. Log activity
-    await logActivity({
+    const activityLogId = await logActivity({
       request,
       operation: OPERATIONS.STOCK_ADJUST,
       description: `Ajuste de stock para ${article.description}: ${quantity > 0 ? '+' : ''}${quantity} unidades (${reason})`,
@@ -73,6 +79,10 @@ export async function POST(request: NextRequest) {
         newStock: Number(result.updatedArticle.stock),
       },
     });
+
+    if (activityLogId) {
+      await tracker.saveChanges(activityLogId);
+    }
 
     return NextResponse.json({
       message: 'Stock adjusted successfully',

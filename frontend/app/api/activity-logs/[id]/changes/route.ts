@@ -8,7 +8,7 @@ export async function GET(
 ) {
   try {
     const { authorized, error } = requireAdmin(request);
-    if (!authorized) return error;
+    if (!authorized) return error!;
 
     const { id } = await params;
     const activityLogId = BigInt(id);

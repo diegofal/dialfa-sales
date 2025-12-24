@@ -1,14 +1,15 @@
 import { prisma } from '@/lib/db';
+import type { Prisma } from '@prisma/client';
 
 type EntityKey = 'sales_order' | 'invoice' | 'delivery_note' | 'client' | 
-                 'article' | 'category' | 'certificate' | 'user';
+                 'article' | 'category' | 'certificate' | 'user' | 'settings';
 
 interface TrackedChange {
   entityType: EntityKey;
   entityId: bigint | number;
   entityLabel: string;
-  beforeState: any;
-  afterState: any;
+  beforeState: Record<string, unknown> | null;
+  afterState: Record<string, unknown> | null;
 }
 
 export class ChangeTracker {
@@ -60,7 +61,7 @@ export class ChangeTracker {
   trackCreate(
     entityType: EntityKey,
     entityId: bigint | number,
-    afterState: any
+    afterState: Record<string, unknown>
   ): void {
     this.changes.push({
       entityType,
@@ -77,7 +78,7 @@ export class ChangeTracker {
   trackDelete(
     entityType: EntityKey,
     entityId: bigint | number,
-    beforeState: any
+    beforeState: Record<string, unknown>
   ): void {
     this.changes.push({
       entityType,
@@ -100,8 +101,8 @@ export class ChangeTracker {
         entity_type: change.entityType,
         entity_id: BigInt(change.entityId),
         entity_label: change.entityLabel,
-        before_state: change.beforeState,
-        after_state: change.afterState,
+        before_state: (change.beforeState as Prisma.InputJsonValue) ?? undefined,
+        after_state: (change.afterState as Prisma.InputJsonValue) ?? undefined,
       })),
     });
     
@@ -111,7 +112,7 @@ export class ChangeTracker {
   private async fetchEntityState(
     entityType: EntityKey,
     entityId: bigint | number
-  ): Promise<any> {
+  ): Promise<Record<string, unknown> | null> {
     const id = BigInt(entityId);
     
     switch (entityType) {
@@ -154,31 +155,36 @@ export class ChangeTracker {
       case 'user':
         return await prisma.users.findUnique({ where: { id: Number(id) } });
       
+      case 'settings':
+        return await prisma.system_settings.findUnique({ where: { id: Number(id) } });
+      
       default:
         return null;
     }
   }
   
-  private generateLabel(entityType: EntityKey, state: any): string {
+  private generateLabel(entityType: EntityKey, state: Record<string, unknown> | null): string {
     if (!state) return `${entityType} (eliminado)`;
     
     switch (entityType) {
       case 'sales_order':
-        return `Pedido ${state.order_number}`;
+        return `Pedido ${(state as { order_number?: string }).order_number || 'N/A'}`;
       case 'invoice':
-        return `Factura ${state.invoice_number}`;
+        return `Factura ${(state as { invoice_number?: string }).invoice_number || 'N/A'}`;
       case 'delivery_note':
-        return `Remito ${state.delivery_number}`;
+        return `Remito ${(state as { delivery_number?: string }).delivery_number || 'N/A'}`;
       case 'client':
-        return `Cliente ${state.business_name}`;
+        return `Cliente ${(state as { business_name?: string }).business_name || 'N/A'}`;
       case 'article':
-        return `Artículo ${state.code} - ${state.description}`;
+        return `Artículo ${(state as { code?: string; description?: string }).code || 'N/A'} - ${(state as { description?: string }).description || 'N/A'}`;
       case 'category':
-        return `Categoría ${state.name}`;
+        return `Categoría ${(state as { name?: string }).name || 'N/A'}`;
       case 'certificate':
-        return `Certificado ${state.file_name}`;
+        return `Certificado ${(state as { file_name?: string }).file_name || 'N/A'}`;
       case 'user':
-        return `Usuario ${state.username}`;
+        return `Usuario ${(state as { username?: string }).username || 'N/A'}`;
+      case 'settings':
+        return `Configuración del Sistema`;
       default:
         return entityType;
     }

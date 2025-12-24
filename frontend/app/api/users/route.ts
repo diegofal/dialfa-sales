@@ -9,7 +9,7 @@ import { ChangeTracker } from '@/lib/services/changeTracker';
 export async function GET(request: NextRequest) {
   try {
     const { authorized, error } = requireAdmin(request);
-    if (!authorized) return error;
+    if (!authorized) return error!;
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');
@@ -56,7 +56,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const { authorized, error } = requireAdmin(request);
-    if (!authorized) return error;
+    if (!authorized) return error!;
 
     const body = await request.json();
     const { username, email, fullName, role, password } = body;
