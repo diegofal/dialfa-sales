@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
     // Admins can see all feedback, users can only see their own
     const isAdmin = session.role?.toLowerCase() === 'admin';
     
-    const where: any = {};
+    const where: { user_id?: number; status?: string; type?: string } = {};
     if (!isAdmin) {
       where.user_id = session.userId;
     }

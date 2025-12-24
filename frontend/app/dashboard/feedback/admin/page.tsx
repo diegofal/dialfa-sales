@@ -14,7 +14,7 @@ import { Feedback, FeedbackType, FeedbackStatus, FeedbackPriority } from '@/type
 import { Bug, Lightbulb, Sparkles, MessageSquare, Loader2, AlertCircle, Trash2 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 
-const feedbackTypes: { value: FeedbackType; label: string; icon: any; color: string }[] = [
+const feedbackTypes: { value: FeedbackType; label: string; icon: React.ElementType; color: string }[] = [
   { value: 'bug', label: 'Error', icon: Bug, color: 'bg-red-500' },
   { value: 'improvement', label: 'Mejora', icon: Lightbulb, color: 'bg-yellow-500' },
   { value: 'feature', label: 'Nueva Funcionalidad', icon: Sparkles, color: 'bg-blue-500' },

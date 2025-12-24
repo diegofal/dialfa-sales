@@ -26,7 +26,14 @@ export async function PATCH(
     const body = await request.json();
     const { status, priority, adminNotes } = body;
 
-    const updateData: any = {
+    const updateData: {
+      updated_at: Date;
+      status?: string;
+      resolved_at?: Date;
+      resolved_by?: number;
+      priority?: string | null;
+      admin_notes?: string | null;
+    } = {
       updated_at: new Date(),
     };
 

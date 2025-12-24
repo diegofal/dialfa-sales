@@ -13,7 +13,7 @@ import { toast } from 'sonner';
 import { FeedbackType } from '@/types/feedback';
 import { Bug, Lightbulb, Sparkles, MessageSquare, Send, Loader2 } from 'lucide-react';
 
-const feedbackTypes: { value: FeedbackType; label: string; icon: any; color: string }[] = [
+const feedbackTypes: { value: FeedbackType; label: string; icon: React.ElementType; color: string }[] = [
   { value: 'bug', label: 'Error', icon: Bug, color: 'bg-red-500' },
   { value: 'improvement', label: 'Mejora', icon: Lightbulb, color: 'bg-yellow-500' },
   { value: 'feature', label: 'Nueva Funcionalidad', icon: Sparkles, color: 'bg-blue-500' },
@@ -67,7 +67,6 @@ export default function FeedbackPage() {
     }
   };
 
-  const selectedType = feedbackTypes.find(t => t.value === formData.type);
 
   return (
     <div className="space-y-6">
@@ -192,7 +191,7 @@ export default function FeedbackPage() {
               <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>Aún no has enviado ningún feedback</p>
               <p className="text-sm mt-2">
-                Haz clic en "Enviar Feedback" para comenzar
+                Haz clic en &quot;Enviar Feedback&quot; para comenzar
               </p>
             </div>
           ) : (
