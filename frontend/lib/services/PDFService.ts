@@ -55,7 +55,6 @@ export class PDFService {
                     const items: PDFItem[] = invoice.invoice_items.map((item) => {
                         const unitPriceArs = Number(item.unit_price_ars || 0);
                         const discountPercent = Number(item.discount_percent || 0);
-                        const quantity = Number(item.quantity || 0);
                         
                         // Calculate unit price with discount applied
                         const unitPriceWithDiscount = unitPriceArs * (1 - discountPercent / 100);
