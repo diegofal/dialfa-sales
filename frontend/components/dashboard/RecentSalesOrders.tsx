@@ -189,9 +189,6 @@ export function RecentSalesOrders({ limit = 5 }: RecentSalesOrdersProps) {
                       <Clock className="h-3 w-3" />
                       {formatDate(order.createdAt)}
                     </span>
-                    <span>
-                      {order.itemsCount} {order.itemsCount === 1 ? 'artículo' : 'artículos'}
-                    </span>
                   </div>
                 </div>
                 

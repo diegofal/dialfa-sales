@@ -120,7 +120,6 @@ export function mapSalesOrderToDTO(order: unknown) {
     total: parseFloat(String(o.total)),
     notes: o.notes as string | null,
     specialDiscountPercent: parseFloat(String(o.special_discount_percent)),
-    itemsCount: salesOrderItems.length,
     isDeleted: !!o.deleted_at,
     // For permission calculations
     hasInvoice: !!invoice && !(invoice.is_cancelled as boolean),

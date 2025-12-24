@@ -10,7 +10,6 @@ export interface SalesOrder {
   total: number;
   specialDiscountPercent: number;
   notes?: string;
-  itemsCount: number;
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
@@ -58,7 +57,6 @@ export interface SalesOrderListDto {
   clientBusinessName: string;
   status: string;
   total: number;
-  itemsCount: number;
   // For permission calculations
   hasInvoice: boolean;
   invoicePrinted: boolean;

@@ -119,7 +119,6 @@ export function InvoicesTable({
                 Cliente
               </SortableTableHead>
               <SortableTableHead>N° Pedido</SortableTableHead>
-              <SortableTableHead align="right">Items</SortableTableHead>
               <SortableTableHead
                 sortKey="TotalAmount"
                 currentSortBy={currentSortBy}
@@ -136,7 +135,7 @@ export function InvoicesTable({
           <TableBody>
             {invoices.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={8} className="text-center text-muted-foreground">
+                <TableCell colSpan={7} className="text-center text-muted-foreground">
                   No se encontraron facturas
                 </TableCell>
               </TableRow>
@@ -151,7 +150,6 @@ export function InvoicesTable({
                   <TableCell>{formatDate(invoice.invoiceDate)}</TableCell>
                   <TableCell>{invoice.clientBusinessName}</TableCell>
                   <TableCell>{invoice.salesOrderNumber}</TableCell>
-                  <TableCell className="text-right">{invoice.itemsCount}</TableCell>
                   <TableCell className="text-right font-medium">
                     {formatCurrency(invoice.totalAmount)}
                   </TableCell>

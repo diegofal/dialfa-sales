@@ -91,9 +91,6 @@ export function SalesOrdersTable({
               <SortableTableHead sortKey="Status" currentSortBy={currentSortBy} currentSortDescending={currentSortDescending} onSort={onSort}>
                 Estado
               </SortableTableHead>
-              <SortableTableHead sortKey="ItemsCount" currentSortBy={currentSortBy} currentSortDescending={currentSortDescending} onSort={onSort} align="right">
-                Items
-              </SortableTableHead>
               <SortableTableHead sortKey="Total" currentSortBy={currentSortBy} currentSortDescending={currentSortDescending} onSort={onSort} align="right">
                 Total
               </SortableTableHead>
@@ -103,7 +100,7 @@ export function SalesOrdersTable({
           <TableBody>
             {orders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
+                <TableCell colSpan={6} className="text-center text-muted-foreground">
                   No se encontraron pedidos
                 </TableCell>
               </TableRow>
@@ -118,7 +115,6 @@ export function SalesOrdersTable({
                   <TableCell>{formatDate(order.orderDate)}</TableCell>
                   <TableCell>{order.clientBusinessName}</TableCell>
                   <TableCell>{getStatusBadge(order.status)}</TableCell>
-                  <TableCell className="text-right">{order.itemsCount}</TableCell>
                   <TableCell className="text-right font-medium">
                     {formatCurrency(order.total)}
                   </TableCell>

@@ -67,11 +67,7 @@ export async function GET(request: NextRequest) {
 
     // Map to DTO format (snake_case to camelCase)
     const mappedDeliveryNotes = deliveryNotes.map((dn) => {
-      const mapped = mapDeliveryNoteToDTO(dn);
-      return {
-        ...mapped,
-        itemsCount: (dn.delivery_note_items || []).length,
-      };
+      return mapDeliveryNoteToDTO(dn);
     });
 
     return NextResponse.json({

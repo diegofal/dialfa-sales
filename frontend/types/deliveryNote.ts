@@ -38,7 +38,6 @@ export interface DeliveryNoteListDto {
   clientBusinessName: string;
   transporterName: string | null;
   packagesCount: number | null;
-  itemsCount: number;
   isPrinted: boolean;
   printedAt: string | null;
 }

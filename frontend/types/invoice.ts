@@ -50,7 +50,6 @@ export interface InvoiceListDto {
   totalAmount: number;
   isPrinted: boolean;
   isCancelled: boolean;
-  itemsCount: number;
 }
 
 export interface CreateInvoiceRequest {
