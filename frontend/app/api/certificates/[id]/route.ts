@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db'
 import { getCertificateSignedUrl, deleteCertificateFile } from '@/lib/storage/supabase'
 import { OPERATIONS } from '@/lib/constants/operations'
 import { logActivity } from '@/lib/services/activityLogger'
+import { ChangeTracker } from '@/lib/services/changeTracker'
 
 /**
  * GET /api/certificates/[id]
@@ -105,6 +106,10 @@ export async function DELETE(
       // Continue with soft delete even if storage delete fails
     }
 
+    // Track deletion
+    const tracker = new ChangeTracker();
+    tracker.trackDelete('certificate', certificateId, certificate);
+
     // Soft delete in database
     await prisma.certificates.update({
       where: { id: certificateId },
@@ -112,7 +117,7 @@ export async function DELETE(
     })
 
     // Log activity
-    await logActivity({
+    const activityLogId = await logActivity({
       request,
       operation: OPERATIONS.CERTIFICATE_DELETE,
       description: `Certificado ${certificate.file_name} eliminado`,
@@ -120,6 +125,10 @@ export async function DELETE(
       entityId: certificate.id,
       details: { fileName: certificate.file_name }
     });
+
+    if (activityLogId) {
+      await tracker.saveChanges(activityLogId);
+    }
 
     return NextResponse.json({ success: true })
   } catch (error) {

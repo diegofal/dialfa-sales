@@ -22,17 +22,32 @@ import { Pagination } from '@/components/ui/pagination';
 import { OPERATION_LABELS, OPERATIONS } from '@/lib/constants/operations';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { ChevronDown, ChevronRight } from 'lucide-react';
+import { ActivityChangesDetail } from './ActivityChangesDetail';
 
 export default function ActivityLogsTable() {
   const [page, setPage] = useState(1);
   const [operation, setOperation] = useState<string>('all');
   const [search, setSearch] = useState('');
+  const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
 
   const { data, isLoading } = useActivityLogs({
     page,
     operation: operation === 'all' ? undefined : operation,
     search: search || undefined,
   });
+
+  const toggleRow = (logId: number) => {
+    setExpandedRows(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(logId)) {
+        newSet.delete(logId);
+      } else {
+        newSet.add(logId);
+      }
+      return newSet;
+    });
+  };
 
   return (
     <div className="space-y-4">
@@ -94,20 +109,49 @@ export default function ActivityLogsTable() {
                 </TableCell>
               </TableRow>
             ) : (
-              data?.data.map((log) => (
-                <TableRow key={log.id}>
-                  <TableCell className="whitespace-nowrap">
-                    {format(new Date(log.created_at), "dd/MM/yyyy HH:mm", { locale: es })}
-                  </TableCell>
-                  <TableCell className="font-medium">{log.username}</TableCell>
-                  <TableCell>
-                    <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-800">
-                      {OPERATION_LABELS[log.operation] || log.operation}
-                    </span>
-                  </TableCell>
-                  <TableCell>{log.description}</TableCell>
-                </TableRow>
-              ))
+              data?.data.map((log) => {
+                const isExpanded = expandedRows.has(log.id);
+                
+                return (
+                  <>
+                    <TableRow 
+                      key={log.id}
+                      className="cursor-pointer hover:bg-muted/50"
+                      onClick={() => toggleRow(log.id)}
+                    >
+                      <TableCell className="whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          {isExpanded ? (
+                            <ChevronDown className="h-4 w-4" />
+                          ) : (
+                            <ChevronRight className="h-4 w-4" />
+                          )}
+                          {format(new Date(log.created_at), "dd/MM/yyyy HH:mm", { locale: es })}
+                        </div>
+                      </TableCell>
+                      <TableCell className="font-medium">{log.username}</TableCell>
+                      <TableCell>
+                        <span className="inline-flex items-center rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-medium text-slate-800">
+                          {OPERATION_LABELS[log.operation] || log.operation}
+                        </span>
+                      </TableCell>
+                      <TableCell>{log.description}</TableCell>
+                    </TableRow>
+                    
+                    {/* FILA EXPANDIDA CON DETALLES */}
+                    {isExpanded && (
+                      <TableRow>
+                        <TableCell colSpan={4} className="p-0">
+                          <ActivityChangesDetail 
+                            activityLogId={log.id} 
+                            isExpanded={isExpanded}
+                          />
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </>
+                );
+              })
             )}
           </TableBody>
         </Table>

@@ -5,6 +5,7 @@ import { updateClientSchema } from '@/lib/validations/schemas';
 import { z } from 'zod';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { logActivity } from '@/lib/services/activityLogger';
+import { ChangeTracker } from '@/lib/services/changeTracker';
 
 export async function GET(
   request: NextRequest,
@@ -86,6 +87,10 @@ export async function PUT(
     // Validate input
     const validatedData = updateClientSchema.parse(body);
 
+    // Track before state
+    const tracker = new ChangeTracker();
+    await tracker.trackBefore('client', id);
+
     // Convert camelCase to snake_case for Prisma
     const client = await prisma.clients.update({
       where: { id },
@@ -118,8 +123,11 @@ export async function PUT(
     // Map to DTO format
     const mappedClient = mapClientToDTO(client);
 
+    // Track after state
+    await tracker.trackAfter('client', id);
+
     // Log activity
-    await logActivity({
+    const activityLogId = await logActivity({
       request,
       operation: OPERATIONS.CLIENT_UPDATE,
       description: `Cliente ${client.business_name} (${client.code}) actualizado`,
@@ -127,6 +135,10 @@ export async function PUT(
       entityId: id,
       details: { code: client.code, businessName: client.business_name }
     });
+
+    if (activityLogId) {
+      await tracker.saveChanges(activityLogId);
+    }
 
     return NextResponse.json(mappedClient);
   } catch (error) {
@@ -166,6 +178,10 @@ export async function DELETE(
       );
     }
 
+    // Track deletion
+    const tracker = new ChangeTracker();
+    tracker.trackDelete('client', id, existingClient);
+
     // Soft delete: mark as deleted
     await prisma.clients.update({
       where: { id },
@@ -176,7 +192,7 @@ export async function DELETE(
     });
 
     // Log activity
-    await logActivity({
+    const activityLogId = await logActivity({
       request,
       operation: OPERATIONS.CLIENT_DELETE,
       description: `Cliente ${existingClient.business_name} (${existingClient.code}) eliminado`,
@@ -184,6 +200,10 @@ export async function DELETE(
       entityId: id,
       details: { code: existingClient.code, businessName: existingClient.business_name }
     });
+
+    if (activityLogId) {
+      await tracker.saveChanges(activityLogId);
+    }
 
     return NextResponse.json(
       { message: 'Client deleted successfully' },

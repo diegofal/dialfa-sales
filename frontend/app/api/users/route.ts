@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/auth/roles';
 import bcrypt from 'bcryptjs';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { logActivity } from '@/lib/services/activityLogger';
+import { ChangeTracker } from '@/lib/services/changeTracker';
 
 export async function GET(request: NextRequest) {
   try {
@@ -89,6 +90,10 @@ export async function POST(request: NextRequest) {
         updated_at: now,
       },
     });
+
+    // Track creation
+    const tracker = new ChangeTracker();
+    tracker.trackCreate('user', user.id, user);
 
     await logActivity({
       request,

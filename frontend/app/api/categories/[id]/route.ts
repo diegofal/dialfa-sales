@@ -5,6 +5,7 @@ import { updateCategorySchema } from '@/lib/validations/schemas';
 import { z } from 'zod';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { logActivity } from '@/lib/services/activityLogger';
+import { ChangeTracker } from '@/lib/services/changeTracker';
 
 export async function GET(
   request: NextRequest,
@@ -77,6 +78,10 @@ export async function PUT(
     // Validate input
     const validatedData = updateCategorySchema.parse(body);
 
+    // Track before state
+    const tracker = new ChangeTracker();
+    await tracker.trackBefore('category', id);
+
     // Convert camelCase to snake_case for Prisma
     const category = await prisma.categories.update({
       where: { id },
@@ -93,8 +98,11 @@ export async function PUT(
     // Convert BigInt to string and map to DTO format
     const mappedCategory = mapCategoryToDTO(category);
     
+    // Track after state
+    await tracker.trackAfter('category', id);
+    
     // Log activity
-    await logActivity({
+    const activityLogId = await logActivity({
       request,
       operation: OPERATIONS.CATEGORY_UPDATE,
       description: `Categoría ${category.name} (${category.code}) actualizada`,
@@ -102,6 +110,10 @@ export async function PUT(
       entityId: id,
       details: { code: category.code, name: category.name }
     });
+
+    if (activityLogId) {
+      await tracker.saveChanges(activityLogId);
+    }
     
     return NextResponse.json(mappedCategory);
   } catch (error) {
@@ -141,6 +153,10 @@ export async function DELETE(
       );
     }
 
+    // Track deletion
+    const tracker = new ChangeTracker();
+    tracker.trackDelete('category', id, existingCategory);
+
     // Soft delete: mark as deleted
     await prisma.categories.update({
       where: { id },
@@ -151,7 +167,7 @@ export async function DELETE(
     });
 
     // Log activity
-    await logActivity({
+    const activityLogId = await logActivity({
       request,
       operation: OPERATIONS.CATEGORY_DELETE,
       description: `Categoría ${existingCategory.name} (${existingCategory.code}) eliminada`,
@@ -159,6 +175,10 @@ export async function DELETE(
       entityId: id,
       details: { code: existingCategory.code, name: existingCategory.name }
     });
+
+    if (activityLogId) {
+      await tracker.saveChanges(activityLogId);
+    }
 
     return NextResponse.json(
       { message: 'Category deleted successfully' },

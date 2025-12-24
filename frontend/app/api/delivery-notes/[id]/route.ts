@@ -5,6 +5,7 @@ import { updateDeliveryNoteSchema } from '@/lib/validations/schemas';
 import { z } from 'zod';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { logActivity } from '@/lib/services/activityLogger';
+import { ChangeTracker } from '@/lib/services/changeTracker';
 
 export async function GET(
   request: NextRequest,
@@ -75,6 +76,10 @@ export async function PUT(
     // Validate input
     const validatedData = updateDeliveryNoteSchema.parse(body);
 
+    // Track before state
+    const tracker = new ChangeTracker();
+    await tracker.trackBefore('delivery_note', id);
+
     const now = new Date();
 
     // Update delivery note
@@ -102,8 +107,11 @@ export async function PUT(
     // Map to DTO format
     const mappedDeliveryNote = mapDeliveryNoteToDTO(deliveryNote);
 
+    // Track after state
+    await tracker.trackAfter('delivery_note', id);
+
     // Log activity
-    await logActivity({
+    const activityLogId = await logActivity({
       request,
       operation: OPERATIONS.DELIVERY_UPDATE,
       description: `Remito ${existingDeliveryNote.delivery_number} actualizado`,
@@ -111,6 +119,10 @@ export async function PUT(
       entityId: id,
       details: { deliveryNumber: existingDeliveryNote.delivery_number }
     });
+
+    if (activityLogId) {
+      await tracker.saveChanges(activityLogId);
+    }
 
     return NextResponse.json(mappedDeliveryNote);
   } catch (error) {
@@ -150,6 +162,10 @@ export async function DELETE(
       );
     }
 
+    // Track deletion
+    const tracker = new ChangeTracker();
+    tracker.trackDelete('delivery_note', id, existingDeliveryNote);
+
     const now = new Date();
 
     // Soft delete delivery note
@@ -162,7 +178,7 @@ export async function DELETE(
     });
 
     // Log activity
-    await logActivity({
+    const activityLogId = await logActivity({
       request,
       operation: OPERATIONS.DELIVERY_DELETE,
       description: `Remito ${existingDeliveryNote.delivery_number} eliminado`,
@@ -170,6 +186,10 @@ export async function DELETE(
       entityId: id,
       details: { deliveryNumber: existingDeliveryNote.delivery_number }
     });
+
+    if (activityLogId) {
+      await tracker.saveChanges(activityLogId);
+    }
 
     return NextResponse.json(
       { message: 'Delivery note deleted successfully' },

@@ -5,6 +5,7 @@ import { createCategorySchema } from '@/lib/validations/schemas';
 import { z } from 'zod';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { logActivity } from '@/lib/services/activityLogger';
+import { ChangeTracker } from '@/lib/services/changeTracker';
 
 export async function GET(request: NextRequest) {
   try {
@@ -103,8 +104,12 @@ export async function POST(request: NextRequest) {
     // Map to DTO format
     const mappedCategory = mapCategoryToDTO(category);
 
+    // Track creation
+    const tracker = new ChangeTracker();
+    tracker.trackCreate('category', category.id, category);
+
     // Log activity
-    await logActivity({
+    const activityLogId = await logActivity({
       request,
       operation: OPERATIONS.CATEGORY_CREATE,
       description: `Categoría ${category.name} (${category.code}) creada`,
@@ -112,6 +117,10 @@ export async function POST(request: NextRequest) {
       entityId: category.id,
       details: { code: category.code, name: category.name }
     });
+
+    if (activityLogId) {
+      await tracker.saveChanges(activityLogId);
+    }
 
     return NextResponse.json(mappedCategory, { status: 201 });
   } catch (error) {

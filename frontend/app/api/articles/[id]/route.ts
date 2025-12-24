@@ -5,6 +5,7 @@ import { updateArticleSchema } from '@/lib/validations/schemas';
 import { z } from 'zod';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { logActivity } from '@/lib/services/activityLogger';
+import { ChangeTracker } from '@/lib/services/changeTracker';
 
 export async function GET(
   request: NextRequest,
@@ -65,6 +66,10 @@ export async function PUT(
     // Validate input
     const validatedData = updateArticleSchema.parse(body);
 
+    // Track before state
+    const tracker = new ChangeTracker();
+    await tracker.trackBefore('article', id);
+
     // Convert camelCase to snake_case for Prisma
     const article = await prisma.articles.update({
       where: { id },
@@ -98,8 +103,11 @@ export async function PUT(
     // Map to DTO format
     const mappedArticle = mapArticleToDTO(article);
 
+    // Track after state
+    await tracker.trackAfter('article', id);
+
     // Log activity
-    await logActivity({
+    const activityLogId = await logActivity({
       request,
       operation: OPERATIONS.ARTICLE_UPDATE,
       description: `Artículo ${article.description} (${article.code}) actualizado`,
@@ -107,6 +115,10 @@ export async function PUT(
       entityId: id,
       details: { code: article.code, description: article.description }
     });
+
+    if (activityLogId) {
+      await tracker.saveChanges(activityLogId);
+    }
 
     return NextResponse.json(mappedArticle);
   } catch (error) {
@@ -146,6 +158,10 @@ export async function DELETE(
       );
     }
 
+    // Track deletion
+    const tracker = new ChangeTracker();
+    tracker.trackDelete('article', id, existingArticle);
+
     // Soft delete: mark as deleted
     await prisma.articles.update({
       where: { id },
@@ -156,7 +172,7 @@ export async function DELETE(
     });
 
     // Log activity
-    await logActivity({
+    const activityLogId = await logActivity({
       request,
       operation: OPERATIONS.ARTICLE_DELETE,
       description: `Artículo ${existingArticle.description} (${existingArticle.code}) eliminado`,
@@ -164,6 +180,10 @@ export async function DELETE(
       entityId: id,
       details: { code: existingArticle.code, description: existingArticle.description }
     });
+
+    if (activityLogId) {
+      await tracker.saveChanges(activityLogId);
+    }
 
     return NextResponse.json(
       { message: 'Article deleted successfully' },

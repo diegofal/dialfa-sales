@@ -5,6 +5,7 @@ import { createClientSchema } from '@/lib/validations/schemas';
 import { z } from 'zod';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { logActivity } from '@/lib/services/activityLogger';
+import { ChangeTracker } from '@/lib/services/changeTracker';
 
 export async function GET(request: NextRequest) {
   try {
@@ -113,8 +114,12 @@ export async function POST(request: NextRequest) {
     // Map to DTO format
     const mappedClient = mapClientToDTO(client);
 
+    // Track creation
+    const tracker = new ChangeTracker();
+    tracker.trackCreate('client', client.id, client);
+
     // Log activity
-    await logActivity({
+    const activityLogId = await logActivity({
       request,
       operation: OPERATIONS.CLIENT_CREATE,
       description: `Cliente ${client.business_name} (${client.code}) creado`,
@@ -122,6 +127,10 @@ export async function POST(request: NextRequest) {
       entityId: client.id,
       details: { code: client.code, businessName: client.business_name }
     });
+
+    if (activityLogId) {
+      await tracker.saveChanges(activityLogId);
+    }
 
     return NextResponse.json(mappedClient, { status: 201 });
   } catch (error) {

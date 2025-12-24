@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { logActivity } from '@/lib/services/activityLogger';
+import { ChangeTracker } from '@/lib/services/changeTracker';
 
 /**
  * Generate a delivery note from a sales order (automatically copies all items)
@@ -168,8 +169,12 @@ export async function POST(
       })),
     };
 
+    // Track creation
+    const tracker = new ChangeTracker();
+    tracker.trackCreate('delivery_note', deliveryNote.id, deliveryNote);
+
     // Log activity
-    await logActivity({
+    const activityLogId = await logActivity({
       request,
       operation: OPERATIONS.DELIVERY_CREATE,
       description: `Remito ${deliveryNumber} generado desde pedido ${salesOrder.order_number}`,
@@ -180,6 +185,10 @@ export async function POST(
         orderNumber: salesOrder.order_number
       }
     });
+
+    if (activityLogId) {
+      await tracker.saveChanges(activityLogId);
+    }
 
     return NextResponse.json(response, { status: 201 });
   } catch (error) {

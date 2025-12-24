@@ -14,8 +14,9 @@ interface LogActivityParams {
 /**
  * Logs a business operation to the activity_logs table.
  * Does not throw errors to avoid breaking the main operation.
+ * Returns the ID of the created activity log for tracking changes.
  */
-export async function logActivity(params: LogActivityParams): Promise<void> {
+export async function logActivity(params: LogActivityParams): Promise<bigint | null> {
   try {
     const userIdStr = params.request.headers.get('x-user-id');
     const headerUsername = params.request.headers.get('x-user-name');
@@ -29,7 +30,7 @@ export async function logActivity(params: LogActivityParams): Promise<void> {
                       params.request.headers.get('x-real-ip') || 
                       null;
 
-    await prisma.activity_logs.create({
+    const log = await prisma.activity_logs.create({
       data: {
         user_id: userId,
         username,
@@ -41,9 +42,11 @@ export async function logActivity(params: LogActivityParams): Promise<void> {
         ip_address: ipAddress,
       },
     });
+    
+    return log.id;
   } catch (error) {
     console.error('Failed to log activity:', error);
-    // Silent fail
+    return null;
   }
 }
 

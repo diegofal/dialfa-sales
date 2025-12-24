@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/auth/roles';
 import bcrypt from 'bcryptjs';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { logActivity } from '@/lib/services/activityLogger';
+import { ChangeTracker } from '@/lib/services/changeTracker';
 
 export async function GET(
   request: NextRequest,
@@ -47,6 +48,10 @@ export async function PUT(
     const body = await request.json();
     const { username, email, fullName, role, password, isActive } = body;
 
+    // Track before state
+    const tracker = new ChangeTracker();
+    await tracker.trackBefore('user', parseInt(id));
+
     const existingUser = await prisma.users.findUnique({
       where: { id: parseInt(id) },
     });
@@ -73,6 +78,9 @@ export async function PUT(
       where: { id: parseInt(id) },
       data: updateData,
     });
+
+    // Track after state
+    await tracker.trackAfter('user', parseInt(id));
 
     await logActivity({
       request,
@@ -110,6 +118,10 @@ export async function DELETE(
     if (!user) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
+
+    // Track deletion (deactivation)
+    const tracker = new ChangeTracker();
+    tracker.trackDelete('user', userId, user);
 
     // Soft delete by setting is_active to false
     await prisma.users.update({

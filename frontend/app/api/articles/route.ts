@@ -5,6 +5,7 @@ import { createArticleSchema } from '@/lib/validations/schemas';
 import { z } from 'zod';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { logActivity } from '@/lib/services/activityLogger';
+import { ChangeTracker } from '@/lib/services/changeTracker';
 
 export async function GET(request: NextRequest) {
   try {
@@ -171,8 +172,12 @@ export async function POST(request: NextRequest) {
     // Map to DTO format
     const mappedArticle = mapArticleToDTO(article);
 
+    // Track creation
+    const tracker = new ChangeTracker();
+    tracker.trackCreate('article', article.id, article);
+
     // Log activity
-    await logActivity({
+    const activityLogId = await logActivity({
       request,
       operation: OPERATIONS.ARTICLE_CREATE,
       description: `Artículo ${article.description} (${article.code}) creado`,
@@ -180,6 +185,10 @@ export async function POST(request: NextRequest) {
       entityId: article.id,
       details: { code: article.code, description: article.description }
     });
+
+    if (activityLogId) {
+      await tracker.saveChanges(activityLogId);
+    }
 
     return NextResponse.json(mappedArticle, { status: 201 });
   } catch (error) {

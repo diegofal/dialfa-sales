@@ -394,19 +394,35 @@ model certificate_coladas {
 }
 
 model activity_logs {
-  id          BigInt   @id @default(autoincrement())
-  user_id     Int?
-  username    String   @db.VarChar(50)
-  operation   String   @db.VarChar(50)
-  description String   @db.VarChar(500)
-  entity_type String?  @db.VarChar(50)
-  entity_id   BigInt?
-  details     Json?
-  ip_address  String?  @db.VarChar(50)
-  created_at  DateTime @default(now()) @db.Timestamptz(6)
+  id               BigInt             @id @default(autoincrement())
+  user_id          Int?
+  username         String             @db.VarChar(50)
+  operation        String             @db.VarChar(50)
+  description      String             @db.VarChar(500)
+  entity_type      String?            @db.VarChar(50)
+  entity_id        BigInt?
+  details          Json?
+  ip_address       String?            @db.VarChar(50)
+  created_at       DateTime           @default(now()) @db.Timestamptz(6)
+  activity_changes activity_changes[]
 
   @@index([user_id])
   @@index([operation])
   @@index([entity_type])
   @@index([created_at])
+}
+
+model activity_changes {
+  id              BigInt        @id @default(autoincrement())
+  activity_log_id BigInt
+  entity_type     String        @db.VarChar(50)
+  entity_id       BigInt?
+  entity_label    String?       @db.VarChar(200)
+  before_state    Json?
+  after_state     Json?
+  created_at      DateTime      @default(now()) @db.Timestamptz(6)
+  activity_logs   activity_logs @relation(fields: [activity_log_id], references: [id], onDelete: Cascade)
+
+  @@index([activity_log_id])
+  @@index([entity_type])
 }

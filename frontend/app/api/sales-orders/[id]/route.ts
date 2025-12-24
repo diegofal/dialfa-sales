@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { STOCK_MOVEMENT_TYPES } from '@/lib/constants/stockMovementTypes';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { logActivity } from '@/lib/services/activityLogger';
+import { ChangeTracker } from '@/lib/services/changeTracker';
 
 export async function GET(
   request: NextRequest,
@@ -125,6 +126,12 @@ export async function PUT(
     // Validate input
     const validatedData = updateSalesOrderSchema.parse(body);
 
+    // Create tracker
+    const tracker = new ChangeTracker();
+    
+    // Track before state
+    await tracker.trackBefore('sales_order', id);
+
     const now = new Date();
 
     // Check for unprinted invoices and delivery notes that need updating
@@ -144,6 +151,14 @@ export async function PUT(
         deleted_at: null,
       },
     });
+    
+    // Track invoices and delivery notes before
+    for (const invoice of unprintedInvoices) {
+      await tracker.trackBefore('invoice', invoice.id);
+    }
+    for (const deliveryNote of unprintedDeliveryNotes) {
+      await tracker.trackBefore('delivery_note', deliveryNote.id);
+    }
 
     // If items are included, update them in transaction
     if (validatedData.items && validatedData.items.length > 0) {
@@ -364,8 +379,17 @@ export async function PUT(
         regenerated: updateInfo,
       };
 
+      // Track after state
+      await tracker.trackAfter('sales_order', id);
+      for (const invoice of unprintedInvoices) {
+        await tracker.trackAfter('invoice', invoice.id);
+      }
+      for (const deliveryNote of unprintedDeliveryNotes) {
+        await tracker.trackAfter('delivery_note', deliveryNote.id);
+      }
+
       // Log activity
-      await logActivity({
+      const activityLogId = await logActivity({
         request,
         operation: OPERATIONS.ORDER_UPDATE,
         description: `Pedido ${serializedSalesOrder.order_number} actualizado para cliente ${serializedSalesOrder.clients.business_name}`,
@@ -373,6 +397,10 @@ export async function PUT(
         entityId: id,
         details: { total: Number(serializedSalesOrder.total), itemsCount: serializedSalesOrder.sales_order_items.length }
       });
+
+      if (activityLogId) {
+        await tracker.saveChanges(activityLogId);
+      }
 
       return NextResponse.json(serializedSalesOrder);
     } else {
@@ -418,8 +446,11 @@ export async function PUT(
         })),
       };
 
+      // Track after state (second branch without items)
+      await tracker.trackAfter('sales_order', id);
+
       // Log activity
-      await logActivity({
+      const activityLogId = await logActivity({
         request,
         operation: OPERATIONS.ORDER_UPDATE,
         description: `Pedido ${serializedSalesOrder.order_number} actualizado para cliente ${serializedSalesOrder.clients.business_name}`,
@@ -427,6 +458,10 @@ export async function PUT(
         entityId: id,
         details: { total: Number(serializedSalesOrder.total), itemsCount: serializedSalesOrder.sales_order_items.length }
       });
+
+      if (activityLogId) {
+        await tracker.saveChanges(activityLogId);
+      }
 
       return NextResponse.json(serializedSalesOrder);
     }
@@ -480,6 +515,10 @@ export async function DELETE(
         { status: 404 }
       );
     }
+
+    // Track deletion
+    const tracker = new ChangeTracker();
+    tracker.trackDelete('sales_order', id, existingSalesOrder);
 
     const now = new Date();
 
@@ -591,7 +630,7 @@ export async function DELETE(
     });
 
     // Log activity
-    await logActivity({
+    const activityLogId = await logActivity({
       request,
       operation: OPERATIONS.ORDER_DELETE,
       description: `Pedido ${existingSalesOrder.order_number} eliminado`,
@@ -603,6 +642,10 @@ export async function DELETE(
         affectedDeliveryNotes: affectedDeliveryNoteIds.length 
       }
     });
+
+    if (activityLogId) {
+      await tracker.saveChanges(activityLogId);
+    }
 
     return NextResponse.json(
       { 

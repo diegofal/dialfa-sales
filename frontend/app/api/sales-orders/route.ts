@@ -5,6 +5,7 @@ import { createSalesOrderSchema } from '@/lib/validations/schemas';
 import { z } from 'zod';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { logActivity } from '@/lib/services/activityLogger';
+import { ChangeTracker } from '@/lib/services/changeTracker';
 
 export async function GET(request: NextRequest) {
   try {
@@ -201,8 +202,12 @@ export async function POST(request: NextRequest) {
     // Map to DTO format
     const mappedSalesOrder = mapSalesOrderToDTO(result);
 
+    // Track creation
+    const tracker = new ChangeTracker();
+    tracker.trackCreate('sales_order', result.id, result);
+
     // Log activity
-    await logActivity({
+    const activityLogId = await logActivity({
       request,
       operation: OPERATIONS.ORDER_CREATE,
       description: `Pedido ${result.order_number} creado para cliente ${result.clients.business_name}`,
@@ -210,6 +215,10 @@ export async function POST(request: NextRequest) {
       entityId: result.id,
       details: { total: Number(result.total), itemsCount: result.sales_order_items.length }
     });
+
+    if (activityLogId) {
+      await tracker.saveChanges(activityLogId);
+    }
 
     return NextResponse.json(mappedSalesOrder, { status: 201 });
   } catch (error) {

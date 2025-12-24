@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { STOCK_MOVEMENT_TYPES } from '@/lib/constants/stockMovementTypes';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { logActivity } from '@/lib/services/activityLogger';
+import { ChangeTracker } from '@/lib/services/changeTracker';
 
 export async function POST(
   request: NextRequest,
@@ -31,6 +32,10 @@ export async function POST(
         { status: 400 }
       );
     }
+
+    // Track before state
+    const tracker = new ChangeTracker();
+    await tracker.trackBefore('invoice', id);
 
     const now = new Date();
     const isCancellingPrintedInvoice = existingInvoice.is_printed;
@@ -113,8 +118,11 @@ export async function POST(
       }
     });
 
+    // Track after state
+    await tracker.trackAfter('invoice', id);
+
     // Log activity
-    await logActivity({
+    const activityLogId = await logActivity({
       request,
       operation: OPERATIONS.INVOICE_CANCEL,
       description: `Factura ${existingInvoice.invoice_number} anulada`,
@@ -122,6 +130,10 @@ export async function POST(
       entityId: id,
       details: { invoiceNumber: existingInvoice.invoice_number }
     });
+
+    if (activityLogId) {
+      await tracker.saveChanges(activityLogId);
+    }
 
     return NextResponse.json(
       { message: 'Invoice cancelled successfully' },

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/db';
 import { mapInvoiceToDTO } from '@/lib/utils/mapper';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { logActivity } from '@/lib/services/activityLogger';
+import { ChangeTracker } from '@/lib/services/changeTracker';
 
 /**
  * Generate an invoice from a sales order
@@ -208,8 +209,12 @@ export async function POST(
     // Map to DTO format
     const mappedInvoice = mapInvoiceToDTO(result);
 
+    // Track creation
+    const tracker = new ChangeTracker();
+    tracker.trackCreate('invoice', result.id, result);
+
     // Log activity
-    await logActivity({
+    const activityLogId = await logActivity({
       request,
       operation: OPERATIONS.INVOICE_CREATE,
       description: `Factura ${invoiceNumber} generada desde pedido ${salesOrder.order_number}`,
@@ -221,6 +226,10 @@ export async function POST(
         totalAmount: Number(totalAmount)
       }
     });
+
+    if (activityLogId) {
+      await tracker.saveChanges(activityLogId);
+    }
 
     return NextResponse.json(mappedInvoice, { status: 201 });
   } catch (error) {

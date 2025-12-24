@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { STOCK_MOVEMENT_TYPES } from '@/lib/constants/stockMovementTypes';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { logActivity } from '@/lib/services/activityLogger';
+import { ChangeTracker } from '@/lib/services/changeTracker';
 
 export async function GET(
   request: NextRequest,
@@ -104,6 +105,10 @@ export async function PUT(
 
     // Validate input
     const validatedData = updateInvoiceSchema.parse(body);
+
+    // Track before state
+    const tracker = new ChangeTracker();
+    await tracker.trackBefore('invoice', id);
 
     const now = new Date();
 
@@ -300,8 +305,11 @@ export async function PUT(
       },
     };
 
+    // Track after state
+    await tracker.trackAfter('invoice', id);
+
     // Log activity
-    await logActivity({
+    const activityLogId = await logActivity({
       request,
       operation: OPERATIONS.INVOICE_UPDATE,
       description: `Factura ${existingInvoice.invoice_number} actualizada`,
@@ -313,6 +321,10 @@ export async function PUT(
         wasPrinted: isPrintingNow
       }
     });
+
+    if (activityLogId) {
+      await tracker.saveChanges(activityLogId);
+    }
 
     return NextResponse.json(serializedInvoice);
   } catch (error) {
@@ -367,6 +379,10 @@ export async function DELETE(
       );
     }
 
+    // Track deletion
+    const tracker = new ChangeTracker();
+    tracker.trackDelete('invoice', id, existingInvoice);
+
     const now = new Date();
 
     // Soft delete invoice and update sales order status in transaction
@@ -405,7 +421,7 @@ export async function DELETE(
     });
 
     // Log activity
-    await logActivity({
+    const activityLogId = await logActivity({
       request,
       operation: OPERATIONS.INVOICE_DELETE,
       description: `Factura ${existingInvoice.invoice_number} eliminada`,
@@ -413,6 +429,10 @@ export async function DELETE(
       entityId: id,
       details: { invoiceNumber: existingInvoice.invoice_number }
     });
+
+    if (activityLogId) {
+      await tracker.saveChanges(activityLogId);
+    }
 
     return NextResponse.json(
       { message: 'Invoice deleted successfully' },
