@@ -28,6 +28,7 @@ import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
 import { useState } from 'react';
 import StockAdjustDialog from './StockAdjustDialog';
 import { useAuthStore } from '@/store/authStore';
+import { SparklineWithTooltip } from '@/components/ui/sparkline';
 
 interface ArticlesTableProps {
   articles: Article[];
@@ -82,6 +83,8 @@ export function ArticlesTable({ articles, onEdit, onDelete, currentSortBy, curre
             <SortableTableHead sortKey="MinimumStock" currentSortBy={currentSortBy} currentSortDescending={currentSortDescending} onSort={onSort} align="right">
               Stock Mín.
             </SortableTableHead>
+            <SortableTableHead>Tendencia</SortableTableHead>
+            <SortableTableHead>ABC</SortableTableHead>
             <SortableTableHead>Estado</SortableTableHead>
             <SortableTableHead align="right">Acciones</SortableTableHead>
           </TableRow>
@@ -89,7 +92,7 @@ export function ArticlesTable({ articles, onEdit, onDelete, currentSortBy, curre
         <TableBody>
           {articles.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={8} className="text-center text-muted-foreground">
+              <TableCell colSpan={10} className="text-center text-muted-foreground">
                 No hay artículos para mostrar
               </TableCell>
             </TableRow>
@@ -121,6 +124,57 @@ export function ArticlesTable({ articles, onEdit, onDelete, currentSortBy, curre
                 </TableCell>
                 <TableCell className="text-right text-muted-foreground">
                   {article.minimumStock}
+                </TableCell>
+                <TableCell>
+                  {article.salesTrend && article.salesTrend.length > 0 ? (
+                    <SparklineWithTooltip
+                      data={article.salesTrend}
+                      labels={article.salesTrendLabels}
+                      width={Math.min(180, Math.max(80, article.salesTrend.length * 10))}
+                      height={40}
+                      color={
+                        article.abcClass === 'A'
+                          ? 'rgb(34, 197, 94)' // green-500
+                          : article.abcClass === 'B'
+                          ? 'rgb(59, 130, 246)' // blue-500
+                          : 'rgb(107, 114, 128)' // gray-500
+                      }
+                      fillColor={
+                        article.abcClass === 'A'
+                          ? 'rgba(34, 197, 94, 0.1)'
+                          : article.abcClass === 'B'
+                          ? 'rgba(59, 130, 246, 0.1)'
+                          : 'rgba(107, 114, 128, 0.1)'
+                      }
+                      formatValue={(v) => `${v} unidades`}
+                    />
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Sin datos</span>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {article.abcClass ? (
+                    <Badge
+                      variant={
+                        article.abcClass === 'A'
+                          ? 'default'
+                          : article.abcClass === 'B'
+                          ? 'secondary'
+                          : 'outline'
+                      }
+                      className={
+                        article.abcClass === 'A'
+                          ? 'bg-green-600 hover:bg-green-700 text-white'
+                          : article.abcClass === 'B'
+                          ? 'bg-blue-600 hover:bg-blue-700 text-white'
+                          : 'bg-gray-600 hover:bg-gray-700 text-white'
+                      }
+                    >
+                      {article.abcClass}
+                    </Badge>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">N/A</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <div className="flex flex-col gap-1">

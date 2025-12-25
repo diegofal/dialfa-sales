@@ -7,8 +7,14 @@ import { toast } from 'sonner';
 export function useArticles(params: PaginationParams & {
   activeOnly?: boolean;
   lowStockOnly?: boolean;
+  hasStockOnly?: boolean;
+  zeroStockOnly?: boolean;
   categoryId?: number;
   searchTerm?: string;
+  includeABC?: boolean;
+  abcFilter?: string;
+  salesSort?: string;
+  trendMonths?: number;
 } = {}) {
   return useQuery({
     queryKey: ['articles', params],

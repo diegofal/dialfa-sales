@@ -16,6 +16,9 @@ export interface Article {
   updatedAt: string;
   isLowStock: boolean;
   stockStatus: string;
+  abcClass?: 'A' | 'B' | 'C' | null;
+  salesTrend?: number[];
+  salesTrendLabels?: string[];
 }
 
 export interface ArticleFormData {

@@ -6,8 +6,14 @@ export const articlesApi = {
   getAll: async (params: PaginationParams & {
     activeOnly?: boolean;
     lowStockOnly?: boolean;
+    hasStockOnly?: boolean;
+    zeroStockOnly?: boolean;
     categoryId?: number;
     searchTerm?: string;
+    includeABC?: boolean;
+    abcFilter?: string;
+    salesSort?: string;
+    trendMonths?: number;
   } = {}): Promise<PagedResult<Article>> => {
     const apiParams = {
       page: params.pageNumber || 1,
@@ -15,6 +21,13 @@ export const articlesApi = {
       search: params.searchTerm,
       categoryId: params.categoryId,
       isActive: params.activeOnly,
+      includeABC: params.includeABC,
+      abcFilter: params.abcFilter,
+      salesSort: params.salesSort,
+      trendMonths: params.trendMonths,
+      lowStockOnly: params.lowStockOnly,
+      hasStockOnly: params.hasStockOnly,
+      zeroStockOnly: params.zeroStockOnly,
     };
     
     const { data } = await apiClient.get<PagedResult<Article>>('/articles', { 

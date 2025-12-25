@@ -7,6 +7,8 @@ import { OPERATIONS } from '@/lib/constants/operations';
 import { logActivity } from '@/lib/services/activityLogger';
 import { ChangeTracker } from '@/lib/services/changeTracker';
 import { getUserFromRequest } from '@/lib/auth/roles';
+import { calculateABCClassification } from '@/lib/services/abcClassification';
+import { calculateSalesTrends } from '@/lib/services/salesTrends';
 
 export async function GET(request: NextRequest) {
   try {
@@ -16,6 +18,13 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get('search') || '';
     const categoryId = searchParams.get('categoryId');
     const isActive = searchParams.get('isActive');
+    const includeABC = searchParams.get('includeABC') === 'true';
+    const abcFilter = searchParams.get('abcFilter'); // 'A', 'B', 'C', or null
+    const salesSort = searchParams.get('salesSort'); // 'most', 'least', or null
+    const trendMonths = parseInt(searchParams.get('trendMonths') || '12');
+    const lowStockOnly = searchParams.get('lowStockOnly') === 'true';
+    const hasStockOnly = searchParams.get('hasStockOnly') === 'true';
+    const zeroStockOnly = searchParams.get('zeroStockOnly') === 'true';
 
     const skip = (page - 1) * limit;
 
@@ -40,10 +49,138 @@ export async function GET(request: NextRequest) {
       where.is_active = isActive === 'true';
     }
 
-    // If searching, try to find exact match first
-    let exactMatch = null;
-    if (search) {
-      exactMatch = await prisma.articles.findFirst({
+    // Stock filters
+    if (hasStockOnly) {
+      where.stock = { gt: 0 };
+    } else if (zeroStockOnly) {
+      where.stock = { equals: 0 };
+    }
+    // Note: lowStockOnly is handled in frontend since it requires comparison between fields
+
+    // Get ABC classification and trends if requested
+    let abcMap: Map<string, 'A' | 'B' | 'C'> | null = null;
+    let trendsData: { data: Map<string, number[]>; labels: string[] } | null = null;
+    
+    if (includeABC || abcFilter || salesSort) {
+      try {
+        [abcMap, trendsData] = await Promise.all([
+          calculateABCClassification(),
+          calculateSalesTrends(trendMonths),
+        ]);
+      } catch (error) {
+        console.error('Error getting ABC/Trends classification:', error);
+        // Continue without ABC/Trends in case of error
+      }
+    }
+
+    // Get ALL articles first (without pagination) if we need to filter/sort by ABC, sales, or lowStock
+    const needsFullDataset = abcFilter || salesSort || lowStockOnly;
+    
+    let allArticles = [];
+    if (needsFullDataset) {
+      allArticles = await prisma.articles.findMany({
+        where,
+        include: {
+          categories: true,
+        },
+      });
+    }
+
+    // Map articles and add ABC/trends data
+    const enrichArticle = (article: any) => {
+      const dto = mapArticleToDTO(article);
+      
+      if (abcMap) {
+        dto.abcClass = abcMap.get(article.id.toString()) || null;
+      }
+      
+      if (trendsData) {
+        dto.salesTrend = trendsData.data.get(article.id.toString()) || [];
+        dto.salesTrendLabels = trendsData.labels;
+      }
+      
+      return dto;
+    };
+
+    let finalArticles = [];
+    let totalCount = 0;
+
+    if (needsFullDataset) {
+      // Filter by ABC if specified
+      let filtered = allArticles;
+      if (abcFilter && abcMap) {
+        filtered = filtered.filter((article) => {
+          const abc = abcMap.get(article.id.toString());
+          return abc === abcFilter;
+        });
+      }
+
+      // Filter by low stock if specified (stock > 0 AND stock < minimum_stock)
+      if (lowStockOnly) {
+        filtered = filtered.filter((article) => {
+          const stock = Number(article.stock);
+          const minStock = Number(article.minimum_stock);
+          return stock > 0 && stock < minStock;
+        });
+      }
+
+      // Map to DTOs
+      let mappedArticles = filtered.map(enrichArticle);
+
+      // Sort by sales if specified
+      if (salesSort && trendsData) {
+        mappedArticles.sort((a, b) => {
+          const aSales = a.salesTrend?.reduce((sum: number, val: number) => sum + val, 0) || 0;
+          const bSales = b.salesTrend?.reduce((sum: number, val: number) => sum + val, 0) || 0;
+          
+          if (salesSort === 'most') {
+            return bSales - aSales; // Descendente
+          } else if (salesSort === 'least') {
+            return aSales - bSales; // Ascendente
+          }
+          return 0;
+        });
+      } else {
+        // Default sorting by display_order and code
+        mappedArticles.sort((a, b) => {
+          const aOrder = a.displayOrder ?? 999999;
+          const bOrder = b.displayOrder ?? 999999;
+          if (aOrder !== bOrder) {
+            return aOrder - bOrder;
+          }
+          return a.code.localeCompare(b.code);
+        });
+      }
+
+      totalCount = mappedArticles.length;
+      
+      // Apply pagination after filtering/sorting
+      finalArticles = mappedArticles.slice(skip, skip + limit);
+    } else {
+      // Normal flow: paginate first, then enrich
+      const [articles, total] = await Promise.all([
+        prisma.articles.findMany({
+          where,
+          include: {
+            categories: true,
+          },
+          orderBy: [
+            { display_order: 'asc' },
+            { code: 'asc' },
+          ],
+          skip,
+          take: limit,
+        }),
+        prisma.articles.count({ where }),
+      ]);
+
+      finalArticles = articles.map(enrichArticle);
+      totalCount = total;
+    }
+
+    // Handle exact match for search
+    if (search && !needsFullDataset) {
+      const exactMatch = await prisma.articles.findFirst({
         where: {
           ...where,
           code: { equals: search, mode: 'insensitive' },
@@ -52,58 +189,35 @@ export async function GET(request: NextRequest) {
           categories: true,
         },
       });
-    }
 
-    // Get articles with category
-    const [articles, total] = await Promise.all([
-      prisma.articles.findMany({
-        where,
-        include: {
-          categories: true,
-        },
-        orderBy: [
-          { display_order: 'asc' },
-          { code: 'asc' },
-        ],
-        skip,
-        take: limit,
-      }),
-      prisma.articles.count({ where }),
-    ]);
-
-    // Map to DTO format (snake_case to camelCase)
-    let mappedArticles = articles.map(mapArticleToDTO);
-
-    // If there's an exact match, ensure it's first and not duplicated
-    if (exactMatch) {
-      const exactMatchDTO = mapArticleToDTO(exactMatch);
-      // Remove exact match if it's already in the results
-      mappedArticles = mappedArticles.filter(a => a.id !== exactMatchDTO.id);
-      // Add it at the beginning
-      mappedArticles.unshift(exactMatchDTO);
-      // Trim to limit
-      if (mappedArticles.length > limit) {
-        mappedArticles = mappedArticles.slice(0, limit);
+      if (exactMatch) {
+        const exactMatchDTO = enrichArticle(exactMatch);
+        // Remove if already in results
+        finalArticles = finalArticles.filter(a => a.id !== exactMatchDTO.id);
+        // Add at beginning
+        finalArticles.unshift(exactMatchDTO);
+        // Trim to limit
+        if (finalArticles.length > limit) {
+          finalArticles = finalArticles.slice(0, limit);
+        }
       }
     }
 
-    // If search term provided, sort remaining items by relevance
-    if (search && mappedArticles.length > 1) {
+    // Sort by search relevance if needed
+    if (search && finalArticles.length > 1 && !salesSort) {
       const searchUpper = search.toUpperCase();
-      const first = mappedArticles[0]; // Keep first item (exact match) in place
-      const rest = mappedArticles.slice(1);
+      const first = finalArticles[0];
+      const rest = finalArticles.slice(1);
       
       rest.sort((a, b) => {
         const aCode = a.code.toUpperCase();
         const bCode = b.code.toUpperCase();
 
-        // Starts with priority
         const aStarts = aCode.startsWith(searchUpper);
         const bStarts = bCode.startsWith(searchUpper);
         if (aStarts && !bStarts) return -1;
         if (!aStarts && bStarts) return 1;
 
-        // Fall back to display order and alphabetical
         const aOrder = a.displayOrder ?? 999999;
         const bOrder = b.displayOrder ?? 999999;
         if (aOrder !== bOrder) {
@@ -112,16 +226,16 @@ export async function GET(request: NextRequest) {
         return aCode.localeCompare(bCode);
       });
 
-      mappedArticles = [first, ...rest];
+      finalArticles = [first, ...rest];
     }
 
     return NextResponse.json({
-      data: mappedArticles,
+      data: finalArticles,
       pagination: {
         page,
         limit,
-        total,
-        totalPages: Math.ceil(total / limit),
+        total: totalCount,
+        totalPages: Math.ceil(totalCount / limit),
       },
     });
   } catch (error) {

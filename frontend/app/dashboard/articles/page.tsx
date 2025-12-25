@@ -36,6 +36,9 @@ export default function ArticlesPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [stockFilter, setStockFilter] = useState<string>('all');
+  const [abcFilter, setAbcFilter] = useState<string>('all');
+  const [salesSortFilter, setSalesSortFilter] = useState<string>('none');
+  const [trendMonths, setTrendMonths] = useState<number>(12);
 
   const canCreateEdit = isAdmin();
   
@@ -80,10 +83,16 @@ export default function ArticlesPage() {
     searchTerm: searchTerm || undefined,
     categoryId: categoryFilter !== 'all' ? parseInt(categoryFilter) : undefined,
     lowStockOnly: stockFilter === 'low' ? true : undefined,
+    hasStockOnly: stockFilter === 'available' ? true : undefined,
+    zeroStockOnly: stockFilter === 'zero' ? true : undefined,
     pageNumber: pagination.pageNumber,
     pageSize: pagination.pageSize,
     sortBy: pagination.sortBy,
     sortDescending: pagination.sortDescending,
+    includeABC: true,
+    abcFilter: abcFilter !== 'all' ? abcFilter : undefined,
+    salesSort: salesSortFilter !== 'none' ? salesSortFilter : undefined,
+    trendMonths,
   });
 
   const { data: movementsData, isLoading: isLoadingMovements } = useStockMovements({
@@ -117,6 +126,8 @@ export default function ArticlesPage() {
   const activeFiltersCount = [
     categoryFilter !== 'all',
     stockFilter !== 'all',
+    abcFilter !== 'all',
+    salesSortFilter !== 'none',
     searchTerm.length > 0,
   ].filter(Boolean).length;
 
@@ -196,7 +207,57 @@ export default function ArticlesPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Todos</SelectItem>
-                  <SelectItem value="low">Stock Bajo</SelectItem>
+                  <SelectItem value="available">📦 Con Stock (&gt;0)</SelectItem>
+                  <SelectItem value="low">⚠️ Stock Bajo</SelectItem>
+                  <SelectItem value="zero">🚫 Sin Stock (=0)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* ABC Filter */}
+            <div className="space-y-2 md:w-[180px]">
+              <label className="text-sm font-medium">Clasificación ABC</label>
+              <Select value={abcFilter} onValueChange={setAbcFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Todas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todas</SelectItem>
+                  <SelectItem value="A">🟢 Clase A (Top 80%)</SelectItem>
+                  <SelectItem value="B">🔵 Clase B (80-95%)</SelectItem>
+                  <SelectItem value="C">⚫ Clase C (95-100%)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Sales Sort Filter */}
+            <div className="space-y-2 md:w-[200px]">
+              <label className="text-sm font-medium">Ordenar por Ventas</label>
+              <Select value={salesSortFilter} onValueChange={setSalesSortFilter}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Sin orden" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin orden específico</SelectItem>
+                  <SelectItem value="most">📈 Más vendidos primero</SelectItem>
+                  <SelectItem value="least">📉 Menos vendidos primero</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Trend Months Filter */}
+            <div className="space-y-2 md:w-[180px]">
+              <label className="text-sm font-medium">Tendencia (meses)</label>
+              <Select value={trendMonths.toString()} onValueChange={(v) => setTrendMonths(parseInt(v))}>
+                <SelectTrigger>
+                  <SelectValue placeholder="12 meses" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="3">3 meses</SelectItem>
+                  <SelectItem value="6">6 meses</SelectItem>
+                  <SelectItem value="12">12 meses</SelectItem>
+                  <SelectItem value="18">18 meses</SelectItem>
+                  <SelectItem value="24">24 meses</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -209,6 +270,8 @@ export default function ArticlesPage() {
                   setSearchTerm('');
                   setCategoryFilter('all');
                   setStockFilter('all');
+                  setAbcFilter('all');
+                  setSalesSortFilter('none');
                   setPage(1);
                 }}
               >
@@ -224,6 +287,25 @@ export default function ArticlesPage() {
               <Badge variant="secondary" className="text-sm py-1.5 px-3">
                 Total: {data.pagination.total} artículos
               </Badge>
+              {abcFilter !== 'all' && (
+                <Badge 
+                  variant="outline" 
+                  className={`text-sm py-1.5 px-3 ${
+                    abcFilter === 'A' 
+                      ? 'border-green-500 text-green-700 dark:text-green-400' 
+                      : abcFilter === 'B' 
+                      ? 'border-blue-500 text-blue-700 dark:text-blue-400' 
+                      : 'border-gray-500 text-gray-700 dark:text-gray-400'
+                  }`}
+                >
+                  Clase {abcFilter}: {data.pagination.total} artículos
+                </Badge>
+              )}
+              {salesSortFilter !== 'none' && (
+                <Badge variant="outline" className="text-sm py-1.5 px-3">
+                  {salesSortFilter === 'most' ? '📈 Más vendidos' : '📉 Menos vendidos'}
+                </Badge>
+              )}
               {stockFilter === 'low' && (
                 <Badge variant="destructive" className="text-sm py-1.5 px-3">
                   {data.data.filter((a) => a.isLowStock).length} con stock bajo
