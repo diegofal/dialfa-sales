@@ -19,6 +19,7 @@ export interface Article {
   abcClass?: 'A' | 'B' | 'C' | null;
   salesTrend?: number[];
   salesTrendLabels?: string[];
+  lastSaleDate?: string | null; // ISO date string
 }
 
 export interface ArticleFormData {

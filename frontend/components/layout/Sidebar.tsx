@@ -15,6 +15,7 @@ import {
   History,
   MessageSquare,
   MessagesSquare,
+  ShoppingCart,
 } from 'lucide-react';
 import PedidosMenuItem from './PedidosMenuItem';
 import FacturasMenuItem from './FacturasMenuItem';
@@ -72,6 +73,37 @@ export default function Sidebar() {
         
         {/* Remitos with expandable sub-items */}
         <RemitosMenuItem />
+
+        {/* Proveedores section */}
+        <div className="mt-4 mb-2">
+          <p className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Compras
+          </p>
+          <Link
+            href="/dashboard/suppliers"
+            className={cn(
+              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+              pathname.startsWith('/dashboard/suppliers')
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+            )}
+          >
+            <Truck className="h-5 w-5" />
+            Proveedores
+          </Link>
+          <Link
+            href="/dashboard/supplier-orders"
+            className={cn(
+              'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+              pathname.startsWith('/dashboard/supplier-orders')
+                ? 'bg-primary text-primary-foreground'
+                : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+            )}
+          >
+            <ShoppingCart className="h-5 w-5" />
+            Pedidos a Proveedores
+          </Link>
+        </div>
         
         {navigationAfterRemitos.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');

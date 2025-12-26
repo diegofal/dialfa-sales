@@ -13,13 +13,26 @@ export interface ArticleSalesTrend {
   totalSales: number;
 }
 
-let salesTrendCache: {
-  data: Map<string, Map<number, number[]>> | null; // Map de articleId -> Map de months -> trend data
+export interface LastSaleDateData {
+  articleId: string;
+  lastSaleDate: Date | null;
+}
+
+const salesTrendCache: {
+  data: Map<number, Map<string, number[]>> | null; // Map de months -> (Map de articleId -> trend data)
   labels: Map<number, string[]> | null; // Map de months -> labels
   timestamp: number | null;
 } = {
   data: null,
   labels: null,
+  timestamp: null,
+};
+
+const lastSaleDateCache: {
+  data: Map<string, Date | null> | null; // Map de articleId -> last sale date
+  timestamp: number | null;
+} = {
+  data: null,
   timestamp: null,
 };
 
@@ -221,5 +234,77 @@ export function getSalesTrendsCacheInfo(monthsToShow: number = 12) {
     monthsTracked: monthsToShow,
     labels: salesTrendCache.labels?.get(monthsToShow) || [],
   };
+}
+
+/**
+ * Calcula la fecha de la última venta para todos los artículos
+ * Retorna un mapa de articleId -> última fecha de venta (o null si nunca se vendió)
+ */
+export async function calculateLastSaleDates(
+  forceRefresh = false
+): Promise<Map<string, Date | null>> {
+  // Verificar caché
+  const now = Date.now();
+  if (
+    !forceRefresh &&
+    lastSaleDateCache.data &&
+    lastSaleDateCache.timestamp &&
+    now - lastSaleDateCache.timestamp < CACHE_DURATION
+  ) {
+    console.log('Last Sale Dates: Using cached data');
+    return lastSaleDateCache.data;
+  }
+
+  console.log('Last Sale Dates: Calculating fresh data...');
+  const startTime = Date.now();
+
+  try {
+    // Obtener la última fecha de venta por artículo
+    // Agrupamos por article_id y obtenemos el max(invoice_date)
+    const lastSales = await prisma.$queryRaw<Array<{
+      article_id: bigint;
+      last_sale_date: Date | null;
+    }>>`
+      SELECT 
+        ii.article_id,
+        MAX(i.invoice_date) as last_sale_date
+      FROM invoice_items ii
+      INNER JOIN invoices i ON ii.invoice_id = i.id
+      WHERE i.is_printed = true 
+        AND i.is_cancelled = false
+        AND i.deleted_at IS NULL
+      GROUP BY ii.article_id
+    `;
+
+    // Convertir a Map
+    const lastSaleDateMap = new Map<string, Date | null>();
+    lastSales.forEach((row) => {
+      lastSaleDateMap.set(
+        row.article_id.toString(),
+        row.last_sale_date
+      );
+    });
+
+    // Actualizar caché
+    lastSaleDateCache.data = lastSaleDateMap;
+    lastSaleDateCache.timestamp = now;
+
+    const duration = Date.now() - startTime;
+    console.log(
+      `Last Sale Dates: Calculated for ${lastSaleDateMap.size} articles in ${duration}ms`
+    );
+
+    return lastSaleDateMap;
+  } catch (error) {
+    console.error('Error calculating last sale dates:', error);
+    throw error;
+  }
+}
+
+/**
+ * Fuerza el recálculo de las últimas fechas de venta
+ */
+export async function refreshLastSaleDates(): Promise<void> {
+  await calculateLastSaleDates(true);
 }
 

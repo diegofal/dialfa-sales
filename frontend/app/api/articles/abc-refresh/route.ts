@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     const beforeInfo = getABCCacheInfo();
     
-    console.log('ABC Refresh requested by:', user.username);
+    console.log('ABC Refresh requested by:', user.email || `User ID: ${user.userId}`);
     await refreshABCClassification();
     
     const afterInfo = getABCCacheInfo();

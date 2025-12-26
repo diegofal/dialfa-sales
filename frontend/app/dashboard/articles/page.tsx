@@ -2,17 +2,22 @@
 
 import { useState, useEffect } from 'react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { Plus, Search, Filter, Package, History } from 'lucide-react';
+import { Plus, Search, Filter, Package, History, ShoppingCart } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { usePagination } from '@/lib/hooks/usePagination';
 import { useArticles, useDeleteArticle } from '@/lib/hooks/useArticles';
 import { useCategories } from '@/lib/hooks/useCategories';
 import { useStockMovements } from '@/lib/hooks/useStockMovements';
+import { useSupplierOrderDraft } from '@/lib/hooks/useSupplierOrderDraft';
+import { useUpdateSupplierOrderStatus } from '@/lib/hooks/useSupplierOrders';
 import { ArticlesTable } from '@/components/articles/ArticlesTable';
 import { ArticleDialog } from '@/components/articles/ArticleDialog';
 import { StockMovementsTable } from '@/components/articles/StockMovementsTable';
+import { SupplierOrderPanel } from '@/components/articles/SupplierOrderPanel';
 import { Article } from '@/types/article';
 import { useAuthStore } from '@/store/authStore';
 import {
@@ -24,6 +29,7 @@ import {
 } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { toast } from 'sonner';
 
 export default function ArticlesPage() {
   const router = useRouter();
@@ -39,6 +45,15 @@ export default function ArticlesPage() {
   const [abcFilter, setAbcFilter] = useState<string>('all');
   const [salesSortFilter, setSalesSortFilter] = useState<string>('none');
   const [trendMonths, setTrendMonths] = useState<number>(12);
+  const [supplierOrderTrendMonths, setSupplierOrderTrendMonths] = useState<number>(12);
+
+  // Supplier order mode
+  const [supplierOrderMode, setSupplierOrderMode] = useState(false);
+  const [selectedArticleIds, setSelectedArticleIds] = useState<Set<number>>(new Set());
+  
+  // Supplier order draft hook with trendMonths
+  const supplierOrder = useSupplierOrderDraft(supplierOrderTrendMonths);
+  const updateStatusMutation = useUpdateSupplierOrderStatus();
 
   const canCreateEdit = isAdmin();
   
@@ -123,6 +138,62 @@ export default function ArticlesPage() {
     }
   };
 
+  const handleToggleSelect = (article: Article) => {
+    setSelectedArticleIds((prev) => {
+      const updated = new Set(prev);
+      if (updated.has(article.id)) {
+        // Remove from both sets
+        updated.delete(article.id);
+        supplierOrder.removeItem(article.id);
+      } else {
+        // Add to both
+        updated.add(article.id);
+        const suggestedQty = supplierOrder.getSuggestedQuantity(article);
+        supplierOrder.addItem(article, suggestedQty);
+      }
+      return updated;
+    });
+  };
+
+  const handleSupplierOrderModeToggle = (checked: boolean) => {
+    setSupplierOrderMode(checked);
+    if (!checked) {
+      // Clear selection when turning off
+      setSelectedArticleIds(new Set());
+      supplierOrder.clear();
+    }
+  };
+
+  const handleCreateSupplierOrder = async () => {
+    if (supplierOrder.getTotalItems() === 0) {
+      toast.error('Agrega al menos un artículo para crear el pedido');
+      return;
+    }
+    
+    if (!supplierOrder.currentDraftId) {
+      toast.error('Error: No hay borrador activo');
+      return;
+    }
+    
+    try {
+      // Change status from draft to confirmed
+      await updateStatusMutation.mutateAsync({
+        id: supplierOrder.currentDraftId,
+        status: 'confirmed',
+      });
+      
+      // Clear the draft and redirect
+      supplierOrder.clear();
+      setSupplierOrderMode(false);
+      setSelectedArticleIds(new Set());
+      
+      toast.success('Pedido confirmado exitosamente');
+      router.push(`/dashboard/supplier-orders/${supplierOrder.currentDraftId}`);
+    } catch (error) {
+      toast.error('Error al confirmar el pedido');
+    }
+  };
+
   const activeFiltersCount = [
     categoryFilter !== 'all',
     stockFilter !== 'all',
@@ -140,12 +211,28 @@ export default function ArticlesPage() {
             Gestión de artículos e inventario
           </p>
         </div>
-        {canCreateEdit && (
-          <Button onClick={handleNewArticle}>
-            <Plus className="h-4 w-4 mr-2" />
-            Nuevo Artículo
-          </Button>
-        )}
+        <div className="flex items-center gap-4">
+          {canCreateEdit && (
+            <>
+              {/* Supplier Order Mode Toggle */}
+              <div className="flex items-center gap-2 px-3 py-2 border rounded-md">
+                <Label htmlFor="supplier-mode" className="text-sm cursor-pointer">
+                  Pedido a Proveedor
+                </Label>
+                <Switch
+                  id="supplier-mode"
+                  checked={supplierOrderMode}
+                  onCheckedChange={handleSupplierOrderModeToggle}
+                />
+              </div>
+              
+              <Button onClick={handleNewArticle} disabled={supplierOrderMode}>
+                <Plus className="h-4 w-4 mr-2" />
+                Nuevo Artículo
+              </Button>
+            </>
+          )}
+        </div>
       </div>
 
       <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
@@ -328,6 +415,9 @@ export default function ArticlesPage() {
                 currentSortBy={pagination.sortBy}
                 currentSortDescending={pagination.sortDescending}
                 onSort={setSorting}
+                selectionMode={supplierOrderMode}
+                selectedIds={selectedArticleIds}
+                onToggleSelect={handleToggleSelect}
               />
               <div className="mt-4">
                 <Pagination
@@ -342,6 +432,34 @@ export default function ArticlesPage() {
           ) : (
             <div className="text-center py-12 text-muted-foreground">
               No se encontraron artículos
+            </div>
+          )}
+
+          {/* Supplier Order Panel */}
+          {supplierOrderMode && (
+            <div className="mt-6">
+              <SupplierOrderPanel
+                items={supplierOrder.getItems()}
+                totalEstimatedTime={supplierOrder.getTotalEstimatedTime()}
+                trendMonths={supplierOrderTrendMonths}
+                onTrendMonthsChange={setSupplierOrderTrendMonths}
+                onQuantityChange={supplierOrder.updateQuantity}
+                onRemove={(articleId) => {
+                  supplierOrder.removeItem(articleId);
+                  setSelectedArticleIds((prev) => {
+                    const updated = new Set(prev);
+                    updated.delete(articleId);
+                    return updated;
+                  });
+                }}
+                onClear={() => {
+                  supplierOrder.clear();
+                  setSelectedArticleIds(new Set());
+                }}
+                onCreateOrder={handleCreateSupplierOrder}
+                isSaving={supplierOrder.isSaving}
+                isLoading={supplierOrder.isLoading}
+              />
             </div>
           )}
         </TabsContent>

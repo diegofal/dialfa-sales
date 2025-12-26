@@ -8,7 +8,30 @@ import { logActivity } from '@/lib/services/activityLogger';
 import { ChangeTracker } from '@/lib/services/changeTracker';
 import { getUserFromRequest } from '@/lib/auth/roles';
 import { calculateABCClassification } from '@/lib/services/abcClassification';
-import { calculateSalesTrends } from '@/lib/services/salesTrends';
+import { calculateSalesTrends, calculateLastSaleDates } from '@/lib/services/salesTrends';
+
+// Type for articles with categories included
+type ArticleWithCategory = {
+  id: bigint;
+  code: string;
+  description: string;
+  category_id: bigint;
+  stock: unknown;
+  minimum_stock: unknown;
+  categories: {
+    name?: string;
+    default_discount_percent?: unknown;
+  };
+  [key: string]: unknown;
+};
+
+// Type for enriched article DTO
+type EnrichedArticleDTO = ReturnType<typeof mapArticleToDTO> & {
+  abcClass?: string | null;
+  salesTrend?: number[];
+  salesTrendLabels?: string[];
+  lastSaleDate?: string | null;
+};
 
 export async function GET(request: NextRequest) {
   try {
@@ -25,6 +48,8 @@ export async function GET(request: NextRequest) {
     const lowStockOnly = searchParams.get('lowStockOnly') === 'true';
     const hasStockOnly = searchParams.get('hasStockOnly') === 'true';
     const zeroStockOnly = searchParams.get('zeroStockOnly') === 'true';
+    const ids = searchParams.get('ids'); // Comma-separated list of IDs
+    const includeTrends = searchParams.get('includeTrends') === 'true';
 
     const skip = (page - 1) * limit;
 
@@ -33,6 +58,12 @@ export async function GET(request: NextRequest) {
     const where: Record<string, any> = {
       deleted_at: null,
     };
+
+    // Filter by specific IDs if provided
+    if (ids) {
+      const idArray = ids.split(',').map(id => BigInt(id.trim()));
+      where.id = { in: idArray };
+    }
 
     if (search) {
       where.OR = [
@@ -60,35 +91,37 @@ export async function GET(request: NextRequest) {
     // Get ABC classification and trends if requested
     let abcMap: Map<string, 'A' | 'B' | 'C'> | null = null;
     let trendsData: { data: Map<string, number[]>; labels: string[] } | null = null;
+    let lastSaleDates: Map<string, Date | null> | null = null;
     
-    if (includeABC || abcFilter || salesSort) {
+    if (includeABC || abcFilter || salesSort || includeTrends) {
       try {
-        [abcMap, trendsData] = await Promise.all([
+        [abcMap, trendsData, lastSaleDates] = await Promise.all([
           calculateABCClassification(),
           calculateSalesTrends(trendMonths),
+          calculateLastSaleDates(),
         ]);
       } catch (error) {
-        console.error('Error getting ABC/Trends classification:', error);
-        // Continue without ABC/Trends in case of error
+        console.error('Error getting ABC/Trends/LastSale classification:', error);
+        // Continue without ABC/Trends/LastSale in case of error
       }
     }
 
     // Get ALL articles first (without pagination) if we need to filter/sort by ABC, sales, or lowStock
     const needsFullDataset = abcFilter || salesSort || lowStockOnly;
     
-    let allArticles = [];
+    let allArticles: ArticleWithCategory[] = [];
     if (needsFullDataset) {
       allArticles = await prisma.articles.findMany({
         where,
         include: {
           categories: true,
         },
-      });
+      }) as ArticleWithCategory[];
     }
 
     // Map articles and add ABC/trends data
-    const enrichArticle = (article: any) => {
-      const dto = mapArticleToDTO(article);
+    const enrichArticle = (article: ArticleWithCategory): EnrichedArticleDTO => {
+      const dto = mapArticleToDTO(article) as EnrichedArticleDTO;
       
       if (abcMap) {
         dto.abcClass = abcMap.get(article.id.toString()) || null;
@@ -98,11 +131,16 @@ export async function GET(request: NextRequest) {
         dto.salesTrend = trendsData.data.get(article.id.toString()) || [];
         dto.salesTrendLabels = trendsData.labels;
       }
+
+      if (lastSaleDates) {
+        const lastSale = lastSaleDates.get(article.id.toString());
+        dto.lastSaleDate = lastSale ? lastSale.toISOString() : null;
+      }
       
       return dto;
     };
 
-    let finalArticles = [];
+    let finalArticles: EnrichedArticleDTO[] = [];
     let totalCount = 0;
 
     if (needsFullDataset) {
@@ -125,7 +163,7 @@ export async function GET(request: NextRequest) {
       }
 
       // Map to DTOs
-      let mappedArticles = filtered.map(enrichArticle);
+      const mappedArticles = filtered.map(enrichArticle);
 
       // Sort by sales if specified
       if (salesSort && trendsData) {

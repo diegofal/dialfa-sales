@@ -29,6 +29,7 @@ import { useState } from 'react';
 import StockAdjustDialog from './StockAdjustDialog';
 import { useAuthStore } from '@/store/authStore';
 import { SparklineWithTooltip } from '@/components/ui/sparkline';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface ArticlesTableProps {
   articles: Article[];
@@ -37,9 +38,23 @@ interface ArticlesTableProps {
   currentSortBy?: string;
   currentSortDescending?: boolean;
   onSort?: (sortBy: string, sortDescending: boolean) => void;
+  // Supplier order mode
+  selectionMode?: boolean;
+  selectedIds?: Set<number>;
+  onToggleSelect?: (article: Article) => void;
 }
 
-export function ArticlesTable({ articles, onEdit, onDelete, currentSortBy, currentSortDescending, onSort }: ArticlesTableProps) {
+export function ArticlesTable({ 
+  articles, 
+  onEdit, 
+  onDelete, 
+  currentSortBy, 
+  currentSortDescending, 
+  onSort,
+  selectionMode = false,
+  selectedIds = new Set(),
+  onToggleSelect,
+}: ArticlesTableProps) {
   const [adjustingArticle, setAdjustingArticle] = useState<Article | null>(null);
   const { isAdmin } = useAuthStore();
 
@@ -67,6 +82,11 @@ export function ArticlesTable({ articles, onEdit, onDelete, currentSortBy, curre
       <Table>
         <TableHeader>
           <TableRow>
+            {selectionMode && (
+              <SortableTableHead className="w-12">
+                <span className="sr-only">Seleccionar</span>
+              </SortableTableHead>
+            )}
             <SortableTableHead sortKey="Code" currentSortBy={currentSortBy} currentSortDescending={currentSortDescending} onSort={onSort}>
               Código
             </SortableTableHead>
@@ -85,6 +105,7 @@ export function ArticlesTable({ articles, onEdit, onDelete, currentSortBy, curre
             </SortableTableHead>
             <SortableTableHead>Tendencia</SortableTableHead>
             <SortableTableHead>ABC</SortableTableHead>
+            <SortableTableHead>Última Venta</SortableTableHead>
             <SortableTableHead>Estado</SortableTableHead>
             <SortableTableHead align="right">Acciones</SortableTableHead>
           </TableRow>
@@ -100,10 +121,26 @@ export function ArticlesTable({ articles, onEdit, onDelete, currentSortBy, curre
             articles.map((article) => (
               <ClickableTableRow
                 key={article.id}
-                onRowClick={() => canEdit && onEdit(article)}
+                onRowClick={() => {
+                  if (selectionMode && onToggleSelect) {
+                    onToggleSelect(article);
+                  } else if (canEdit) {
+                    onEdit(article);
+                  }
+                }}
                 aria-label={`${canEdit ? 'Editar' : 'Ver'} artículo ${article.code} - ${article.description}`}
-                className={!canEdit ? 'cursor-default' : ''}
+                className={`${!canEdit && !selectionMode ? 'cursor-default' : ''} ${
+                  selectionMode && selectedIds.has(article.id) ? 'bg-primary/10' : ''
+                }`}
               >
+                {selectionMode && (
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <Checkbox
+                      checked={selectedIds.has(article.id)}
+                      onCheckedChange={() => onToggleSelect && onToggleSelect(article)}
+                    />
+                  </TableCell>
+                )}
                 <TableCell className="font-medium">{article.code}</TableCell>
                 <TableCell>
                   <div className="max-w-md">
@@ -177,6 +214,19 @@ export function ArticlesTable({ articles, onEdit, onDelete, currentSortBy, curre
                   )}
                 </TableCell>
                 <TableCell>
+                  {article.lastSaleDate ? (
+                    <span className="text-sm">
+                      {new Date(article.lastSaleDate).toLocaleDateString('es-AR', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric'
+                      })}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Nunca vendido</span>
+                  )}
+                </TableCell>
+                <TableCell>
                   <div className="flex flex-col gap-1">
                     {getStockBadge(article)}
                     {article.isDiscontinued && (
@@ -188,59 +238,64 @@ export function ArticlesTable({ articles, onEdit, onDelete, currentSortBy, curre
                 </TableCell>
                 <TableCell className="text-right">
                   <div className="flex justify-end gap-2">
-                    {/* Todos pueden ajustar stock */}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setAdjustingArticle(article);
-                      }}
-                      title="Ajustar Stock"
-                    >
-                      <Package className="h-4 w-4" />
-                    </Button>
+                    {/* Hide stock adjust and edit buttons in selection mode */}
+                    {!selectionMode && (
+                      <>
+                        {/* Todos pueden ajustar stock */}
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setAdjustingArticle(article);
+                          }}
+                          title="Ajustar Stock"
+                        >
+                          <Package className="h-4 w-4" />
+                        </Button>
 
-                    {/* Solo admins pueden editar */}
-                    {canEdit && (
-                      <Button
-                        variant={ACTION_BUTTON_CONFIG.edit.variant}
-                        size={ACTION_BUTTON_CONFIG.edit.size}
-                        onClick={() => onEdit(article)}
-                        title={ACTION_BUTTON_CONFIG.edit.title}
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
-                    )}
-
-                    {/* Solo admins pueden eliminar */}
-                    {canEdit && (
-                      <AlertDialog>
-                        <AlertDialogTrigger asChild>
+                        {/* Solo admins pueden editar */}
+                        {canEdit && (
                           <Button
-                            variant={ACTION_BUTTON_CONFIG.delete.variant}
-                            size={ACTION_BUTTON_CONFIG.delete.size}
-                            title={ACTION_BUTTON_CONFIG.delete.title}
+                            variant={ACTION_BUTTON_CONFIG.edit.variant}
+                            size={ACTION_BUTTON_CONFIG.edit.size}
+                            onClick={() => onEdit(article)}
+                            title={ACTION_BUTTON_CONFIG.edit.title}
                           >
-                            <Trash2 className="h-4 w-4" />
+                            <Pencil className="h-4 w-4" />
                           </Button>
-                        </AlertDialogTrigger>
-                        <AlertDialogContent>
-                          <AlertDialogHeader>
-                            <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
-                            <AlertDialogDescription>
-                              Esta acción eliminará el artículo &quot;{article.description}&quot;. Los datos
-                              permanecerán en el sistema pero no se mostrarán.
-                            </AlertDialogDescription>
-                          </AlertDialogHeader>
-                          <AlertDialogFooter>
-                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                            <AlertDialogAction onClick={() => onDelete(article.id)}>
-                              Eliminar
-                            </AlertDialogAction>
-                          </AlertDialogFooter>
-                        </AlertDialogContent>
-                      </AlertDialog>
+                        )}
+
+                        {/* Solo admins pueden eliminar */}
+                        {canEdit && (
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant={ACTION_BUTTON_CONFIG.delete.variant}
+                                size={ACTION_BUTTON_CONFIG.delete.size}
+                                title={ACTION_BUTTON_CONFIG.delete.title}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Esta acción eliminará el artículo &quot;{article.description}&quot;. Los datos
+                                  permanecerán en el sistema pero no se mostrarán.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction onClick={() => onDelete(article.id)}>
+                                  Eliminar
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        )}
+                      </>
                     )}
                   </div>
                 </TableCell>
