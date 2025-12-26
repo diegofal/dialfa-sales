@@ -93,16 +93,23 @@ export async function GET(request: NextRequest) {
     let trendsData: { data: Map<string, number[]>; labels: string[] } | null = null;
     let lastSaleDates: Map<string, Date | null> | null = null;
     
+    // Siempre cargar lastSaleDates porque se muestra en todas las vistas
+    try {
+      lastSaleDates = await calculateLastSaleDates();
+    } catch (error) {
+      console.error('Error getting LastSale dates:', error);
+    }
+    
+    // ABC y trends solo si se solicitan
     if (includeABC || abcFilter || salesSort || includeTrends) {
       try {
-        [abcMap, trendsData, lastSaleDates] = await Promise.all([
+        [abcMap, trendsData] = await Promise.all([
           calculateABCClassification(),
           calculateSalesTrends(trendMonths),
-          calculateLastSaleDates(),
         ]);
       } catch (error) {
-        console.error('Error getting ABC/Trends/LastSale classification:', error);
-        // Continue without ABC/Trends/LastSale in case of error
+        console.error('Error getting ABC/Trends classification:', error);
+        // Continue without ABC/Trends in case of error
       }
     }
 

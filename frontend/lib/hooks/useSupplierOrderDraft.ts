@@ -52,6 +52,7 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
             params: {
               ids: articleIds.join(','),
               includeTrends: 'true',
+              includeLastSaleDate: 'true',
               trendMonths: trendMonths,
             }
           })
@@ -61,11 +62,12 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
               articlesMap.set(article.id, article);
             });
 
+            // Preservar el orden original de latestDraft.items
             const itemsMap = new Map<number, SupplierOrderItem>();
             latestDraft.items?.forEach((item: SupplierOrderItemDto) => {
               const fullArticle = articlesMap.get(item.articleId);
               
-              const article: Article = fullArticle || {
+              const article: Article = fullArticle ? fullArticle : {
                 id: item.articleId,
                 code: item.articleCode,
                 description: item.articleDescription,
@@ -85,15 +87,20 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
                 stockStatus: '',
                 salesTrend: [],
                 salesTrendLabels: [],
-              };
+                lastSaleDate: null,
+              } as Article;
+
+              // Recalcular avgMonthlySales y estimatedSaleTime con el salesTrend ACTUAL
+              const avgSales = calculateAvgMonthlySales(article.salesTrend);
+              const saleTime = calculateEstimatedSaleTime(item.quantity, avgSales);
 
               itemsMap.set(item.articleId, {
                 article,
                 quantity: item.quantity,
                 currentStock: item.currentStock,
                 minimumStock: item.minimumStock,
-                avgMonthlySales: item.avgMonthlySales || 0,
-                estimatedSaleTime: item.estimatedSaleTime || 0,
+                avgMonthlySales: avgSales,
+                estimatedSaleTime: saleTime,
               });
             });
             
@@ -102,7 +109,7 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
           })
           .catch((error) => {
             console.error('Error loading article sales trends:', error);
-            // Fallback: load without trends
+            // Fallback: load without trends (salesTrend vacío, así avgSales será 0)
             const itemsMap = new Map<number, SupplierOrderItem>();
             latestDraft.items?.forEach((item: SupplierOrderItemDto) => {
               const article: Article = {
@@ -125,15 +132,20 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
                 stockStatus: '',
                 salesTrend: [],
                 salesTrendLabels: [],
-              };
+                lastSaleDate: null,
+              } as Article;
+
+              // Sin salesTrend, avgSales será 0 y saleTime será Infinity
+              const avgSales = calculateAvgMonthlySales(article.salesTrend);
+              const saleTime = calculateEstimatedSaleTime(item.quantity, avgSales);
 
               itemsMap.set(item.articleId, {
                 article,
                 quantity: item.quantity,
                 currentStock: item.currentStock,
                 minimumStock: item.minimumStock,
-                avgMonthlySales: item.avgMonthlySales || 0,
-                estimatedSaleTime: item.estimatedSaleTime || 0,
+                avgMonthlySales: avgSales,
+                estimatedSaleTime: saleTime,
               });
             });
             

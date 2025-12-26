@@ -98,27 +98,30 @@ export async function calculateSalesTrends(
       const monthKey = `${monthData.year}-${monthData.month.toString().padStart(2, '0')}`;
 
       // Query para obtener ventas del mes
-      const salesData = await prisma.invoice_items.groupBy({
-        by: ['article_id'],
-        where: {
-          invoices: {
-            is_printed: true,
-            is_cancelled: false,
-            invoice_date: {
-              gte: startDate,
-              lte: endDate,
-            },
-          },
-        },
-        _sum: {
-          quantity: true,
-        },
-      });
+      // Usamos sales_order_items como fuente de verdad
+      const salesData = await prisma.$queryRaw<Array<{
+        article_id: bigint;
+        total_quantity: number;
+      }>>`
+        SELECT 
+          soi.article_id,
+          SUM(soi.quantity) as total_quantity
+        FROM sales_order_items soi
+        INNER JOIN sales_orders so ON soi.sales_order_id = so.id
+        INNER JOIN invoices i ON i.sales_order_id = so.id
+        WHERE i.is_printed = true
+          AND i.is_cancelled = false
+          AND i.invoice_date >= ${startDate}
+          AND i.invoice_date <= ${endDate}
+          AND so.deleted_at IS NULL
+          AND i.deleted_at IS NULL
+        GROUP BY soi.article_id
+      `;
 
       // Almacenar en estructura de datos
       for (const item of salesData) {
         const articleId = item.article_id.toString();
-        const quantity = Number(item._sum.quantity || 0);
+        const quantity = Number(item.total_quantity || 0);
 
         if (!salesByMonth.has(articleId)) {
           salesByMonth.set(articleId, new Map());
@@ -260,20 +263,23 @@ export async function calculateLastSaleDates(
 
   try {
     // Obtener la última fecha de venta por artículo
-    // Agrupamos por article_id y obtenemos el max(invoice_date)
+    // Los artículos vendidos están en sales_order_items, no en invoice_items
+    // Hacemos JOIN: sales_order_items -> sales_orders -> invoices
     const lastSales = await prisma.$queryRaw<Array<{
       article_id: bigint;
       last_sale_date: Date | null;
     }>>`
       SELECT 
-        ii.article_id,
+        soi.article_id,
         MAX(i.invoice_date) as last_sale_date
-      FROM invoice_items ii
-      INNER JOIN invoices i ON ii.invoice_id = i.id
+      FROM sales_order_items soi
+      INNER JOIN sales_orders so ON soi.sales_order_id = so.id
+      INNER JOIN invoices i ON i.sales_order_id = so.id
       WHERE i.is_printed = true 
         AND i.is_cancelled = false
         AND i.deleted_at IS NULL
-      GROUP BY ii.article_id
+        AND so.deleted_at IS NULL
+      GROUP BY soi.article_id
     `;
 
     // Convertir a Map
