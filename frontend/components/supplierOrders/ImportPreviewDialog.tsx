@@ -22,7 +22,7 @@ import { CheckCircle2, AlertCircle, XCircle, Download } from 'lucide-react';
 import { ImportResult, MatchedArticle } from '@/lib/services/proformaImport/types';
 import { useCreateSupplierOrder } from '@/lib/hooks/useSupplierOrders';
 import { toast } from 'sonner';
-import { calculateAvgMonthlySales, calculateEstimatedSaleTime } from '@/lib/utils/salesCalculations';
+import { calculateWeightedAvgSales, calculateEstimatedSaleTime } from '@/lib/utils/salesCalculations';
 
 interface ImportPreviewDialogProps {
   open: boolean;
@@ -59,7 +59,7 @@ export function ImportPreviewDialog({
       const orderData = {
         items: matchedItems.map((item) => {
           // Calculate sales metrics from article
-          const avgMonthlySales = calculateAvgMonthlySales(item.article!.salesTrend || []);
+          const avgMonthlySales = calculateWeightedAvgSales(item.article!.salesTrend || []);
           const estimatedSaleTime = calculateEstimatedSaleTime(
             item.extractedItem.quantity, 
             avgMonthlySales

@@ -7,21 +7,8 @@ export interface SupplierOrderItem {
   quantity: number;
   currentStock: number;
   minimumStock: number;
-  avgMonthlySales: number;
-  estimatedSaleTime: number; // in months
-  // Métricas adicionales
-  avgSales3Months?: number;
-  avgSales6Months?: number;
-  avgSalesWeighted?: number;
-  avgSalesEma?: number;
-  avgSalesRecent6Weighted?: number;
-  avgSalesMedian?: number;
-  estTime3Months?: number;
-  estTime6Months?: number;
-  estTimeWeighted?: number;
-  estTimeEma?: number;
-  estTimeRecent6Weighted?: number;
-  estTimeMedian?: number;
+  avgMonthlySales: number; // WMA - Weighted Moving Average
+  estimatedSaleTime: number; // in months, based on WMA
 }
 
 export interface SupplierOrder {
