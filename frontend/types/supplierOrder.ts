@@ -9,6 +9,19 @@ export interface SupplierOrderItem {
   minimumStock: number;
   avgMonthlySales: number;
   estimatedSaleTime: number; // in months
+  // Métricas adicionales
+  avgSales3Months?: number;
+  avgSales6Months?: number;
+  avgSalesWeighted?: number;
+  avgSalesEma?: number;
+  avgSalesRecent6Weighted?: number;
+  avgSalesMedian?: number;
+  estTime3Months?: number;
+  estTime6Months?: number;
+  estTimeWeighted?: number;
+  estTimeEma?: number;
+  estTimeRecent6Weighted?: number;
+  estTimeMedian?: number;
 }
 
 export interface SupplierOrder {

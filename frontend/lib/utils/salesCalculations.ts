@@ -1,5 +1,6 @@
 /**
  * Calculate the average monthly sales from a sales trend array
+ * MÉTODO 1: Promedio Simple (actual)
  */
 export function calculateAvgMonthlySales(salesTrend?: number[]): number {
   if (!salesTrend || salesTrend.length === 0) {
@@ -8,6 +9,100 @@ export function calculateAvgMonthlySales(salesTrend?: number[]): number {
   
   const totalSales = salesTrend.reduce((sum, value) => sum + value, 0);
   return totalSales / salesTrend.length;
+}
+
+/**
+ * MÉTODO 2: Promedio de últimos N meses
+ */
+export function calculateRecentAvgSales(
+  salesTrend?: number[], 
+  recentMonths: number = 6
+): number {
+  if (!salesTrend || salesTrend.length === 0) {
+    return 0;
+  }
+  
+  const recentData = salesTrend.slice(-Math.min(recentMonths, salesTrend.length));
+  const totalSales = recentData.reduce((sum, value) => sum + value, 0);
+  
+  return totalSales / recentData.length;
+}
+
+/**
+ * MÉTODO 3: Weighted Moving Average (WMA) - Más peso a meses recientes
+ */
+export function calculateWeightedAvgSales(salesTrend?: number[]): number {
+  if (!salesTrend || salesTrend.length === 0) {
+    return 0;
+  }
+  
+  let weightedSum = 0;
+  let totalWeight = 0;
+  
+  salesTrend.forEach((value, index) => {
+    const weight = index + 1; // Mes más antiguo peso 1, más reciente peso N
+    weightedSum += value * weight;
+    totalWeight += weight;
+  });
+  
+  return totalWeight > 0 ? weightedSum / totalWeight : 0;
+}
+
+/**
+ * MÉTODO 4: Exponential Moving Average (EMA)
+ */
+export function calculateEmaAvgSales(salesTrend?: number[], alpha: number = 0.3): number {
+  if (!salesTrend || salesTrend.length === 0) {
+    return 0;
+  }
+  
+  let ema = salesTrend[0];
+  for (let i = 1; i < salesTrend.length; i++) {
+    ema = alpha * salesTrend[i] + (1 - alpha) * ema;
+  }
+  
+  return ema;
+}
+
+/**
+ * MÉTODO 5: Últimos N meses + WMA combinado
+ */
+export function calculateRecentWeightedAvgSales(
+  salesTrend?: number[], 
+  recentMonths: number = 6
+): number {
+  if (!salesTrend || salesTrend.length === 0) {
+    return 0;
+  }
+  
+  const recentData = salesTrend.slice(-Math.min(recentMonths, salesTrend.length));
+  
+  let weightedSum = 0;
+  let totalWeight = 0;
+  
+  recentData.forEach((value, index) => {
+    const weight = index + 1;
+    weightedSum += value * weight;
+    totalWeight += weight;
+  });
+  
+  return totalWeight > 0 ? weightedSum / totalWeight : 0;
+}
+
+/**
+ * MÉTODO 6: Mediana (resistente a outliers)
+ */
+export function calculateMedianSales(salesTrend?: number[]): number {
+  if (!salesTrend || salesTrend.length === 0) {
+    return 0;
+  }
+  
+  const sorted = [...salesTrend].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  
+  return sorted.length % 2 !== 0
+    ? sorted[mid]
+    : (sorted[mid - 1] + sorted[mid]) / 2;
 }
 
 /**

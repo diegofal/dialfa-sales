@@ -11912,23 +11912,22 @@ Lines added: 1, lines removed: 1
 
 ---
 
-
-
----
-
-
-
----
-
-
-
----
-
 <tool-use data-tool-type="write" data-tool-name="search_replace">
 
-<details><summary>Tool use: **search_replace**</summary>
+<details><summary>Tool use: **search_replace** • Edit file: D:\dialfa new\spisa-new\frontend\lib\hooks\useSupplierOrderDraft.ts</summary>
 
-Status: **loading**
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -134,5 +134,5 @@
+                  salesTrendLabels: [],
+                  lastSaleDate: null,
+-               };
++               } as Article;
+  
+                // Sin salesTrend, avgSales será 0 y saleTime será Infinity
+```
 
 </details>
 
@@ -11936,9 +11935,2437 @@ Status: **loading**
 
 ---
 
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 1 file</summary>
+      
+Lint paths:
 
+- `D:\dialfa new\spisa-new\frontend\lib\hooks\useSupplierOrderDraft.ts`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
 
 ---
+
+¡Excelente! Ahora voy a revertir el cambio temporal del caché que había hecho antes (de 30 segundos a 24 horas):
+
+---
+
+The string to replace was not found in the file.
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\dialfa new\spisa-new\frontend\lib\services\salesTrends.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+Ah, ya está en 24 horas. Perfecto, no necesito cambiar nada entonces.
+
+## ✅ Resumen de Cambios Implementados:
+
+### 🔧 **Problema identificado:**
+Cuando se carga un draft de pedido existente y el usuario cambia el selector de "Tendencia de ventas" (por ejemplo, de 12 a 24 meses), los campos `avgMonthlySales` y `estimatedSaleTime` mostraban valores VIEJOS (del draft guardado con 12 meses), pero el gráfico de `salesTrend` mostraba datos NUEVOS (de 24 meses). Esto causaba inconsistencias como:
+- Gráfico con tendencia visible → pero "sin ventas" en el promedio
+
+### ✅ **Solución implementada:**
+Ahora **siempre se recalculan** `avgMonthlySales` y `estimatedSaleTime` usando el `salesTrend` ACTUAL del artículo recién cargado, en lugar de usar los valores guardados en el draft. Esto garantiza consistencia entre:
+- El gráfico de tendencia
+- El promedio mensual de ventas
+- El tiempo estimado de venta
+
+### 📝 **Cambios realizados:**
+
+1. **En `useSupplierOrderDraft.ts` (líneas ~92-99)**:
+   ```typescript
+   // ANTES: Usaba valores viejos del draft
+   avgMonthlySales: item.avgMonthlySales || 0,
+   estimatedSaleTime: item.estimatedSaleTime || 0,
+   
+   // AHORA: Recalcula con salesTrend actual
+   const avgSales = calculateAvgMonthlySales(article.salesTrend);
+   const saleTime = calculateEstimatedSaleTime(item.quantity, avgSales);
+   ```
+
+2. **También actualizado el fallback (catch block)** para usar la misma lógica de recálculo
+
+3. **Ya había agregado previamente**:
+   - `includeLastSaleDate: 'true'` en el API call
+   - `lastSaleDate` field en los objetos Article
+
+Ahora recarga la aplicación y los datos deberían ser consistentes entre el gráfico y los campos calculados! 🎉
+
+---
+
+_**User (2025-12-25 19:29Z)**_
+
+miremos este caso. hay un pico de ventas y despues casi flat) dice que el tiempo est de venta son 10.9 meses pero no lo veo. Que alternativa matematica tenemos para que esto sea mas accurate? 
+
+---
+
+_**Agent (model claude-4.5-sonnet-thinking, mode Ask)**_
+
+<think><details><summary>Thought Process</summary>
+El usuario muestra un caso donde:
+- Hay un pico de ventas en feb 24 (396 unidades)
+- Después hay una tendencia casi flat (muy bajas ventas)
+- El tiempo estimado de venta es ~10.9 meses para 200 unidades
+- La última venta fue 22/11/2024
+- Venta Prom/Mes es 18.3
+
+El problema es que el promedio simple de ventas incluye ese pico de febrero 2024, lo que eleva artificialmente el promedio mensual. Si febrero tuvo 396 unidades y después los meses tuvieron ventas muy bajas o nulas, el promedio simple de 18.3 unidades/mes no refleja la realidad actual.
+
+Alternativas matemáticas para hacer esto más preciso:
+
+1. **Media Ponderada por Tiempo (Weighted Moving Average)**: Dar más peso a los meses recientes
+2. **Media Ponderada Exponencial (Exponential Moving Average - EMA)**: Decae exponencialmente hacia el pasado
+3. **Mediana en lugar de Media**: Menos sensible a outliers
+4. **Descartar outliers**: Identificar y remover picos anormales
+5. **Usar solo los últimos N meses**: Por ejemplo, últimos 3 o 6 meses
+6. **Calcular tendencia lineal**: Ver si las ventas están aumentando o disminuyendo
+7. **Media truncada**: Eliminar el X% más alto y más bajo
+
+La más común y efectiva para este caso sería:
+- **Weighted Moving Average con decay**: Dar más peso a meses recientes
+- **Usar solo últimos 3-6 meses**: Ignorar el pico viejo
+
+Déjame revisar el código actual de cálculo.</details></think>
+
+---
+
+Excelente observación. El problema es que el **promedio simple** incluye ese pico de febrero 2024 (396 unidades), lo que infla artificialmente el promedio mensual a 18.3 unidades/mes, cuando la realidad actual es que las ventas son casi nulas.
+
+Déjame revisar el cálculo actual:
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\dialfa new\spisa-new\frontend\lib\utils\salesCalculations.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+Exacto, el cálculo actual (líneas 4-11) usa un **promedio simple**, que es sensible a outliers como ese pico de 396 unidades.
+
+## 📊 Alternativas Matemáticas Más Precisas:
+
+### 1. **Weighted Moving Average (WMA) - Más peso a meses recientes** ⭐ Recomendada
+```typescript
+export function calculateAvgMonthlySales(salesTrend?: number[]): number {
+  if (!salesTrend || salesTrend.length === 0) {
+    return 0;
+  }
+  
+  // Dar más peso a meses recientes (peso lineal: 1, 2, 3, ..., N)
+  let weightedSum = 0;
+  let totalWeight = 0;
+  
+  salesTrend.forEach((value, index) => {
+    const weight = index + 1; // Mes más antiguo peso 1, más reciente peso N
+    weightedSum += value * weight;
+    totalWeight += weight;
+  });
+  
+  return totalWeight > 0 ? weightedSum / totalWeight : 0;
+}
+```
+
+### 2. **Exponential Moving Average (EMA) - Decaimiento exponencial** ⭐ Muy recomendada
+```typescript
+export function calculateAvgMonthlySales(salesTrend?: number[]): number {
+  if (!salesTrend || salesTrend.length === 0) {
+    return 0;
+  }
+  
+  // EMA con factor de suavizado (alpha)
+  // Alpha más alto = más peso a datos recientes
+  const alpha = 0.3; // Valor típico entre 0.1 y 0.5
+  
+  let ema = salesTrend[0];
+  for (let i = 1; i < salesTrend.length; i++) {
+    ema = alpha * salesTrend[i] + (1 - alpha) * ema;
+  }
+  
+  return ema;
+}
+```
+
+### 3. **Solo últimos N meses** 🎯 Más simple y efectiva
+```typescript
+export function calculateAvgMonthlySales(
+  salesTrend?: number[], 
+  recentMonths: number = 6 // Configurable: últimos 6 meses por defecto
+): number {
+  if (!salesTrend || salesTrend.length === 0) {
+    return 0;
+  }
+  
+  // Tomar solo los últimos N meses (más recientes)
+  const recentData = salesTrend.slice(-recentMonths);
+  const totalSales = recentData.reduce((sum, value) => sum + value, 0);
+  
+  return totalSales / recentData.length;
+}
+```
+
+### 4. **Mediana en lugar de Media** - Resistente a outliers
+```typescript
+export function calculateAvgMonthlySales(salesTrend?: number[]): number {
+  if (!salesTrend || salesTrend.length === 0) {
+    return 0;
+  }
+  
+  // Ordenar y tomar mediana
+  const sorted = [...salesTrend].sort((a, b) => a - b);
+  const mid = Math.floor(sorted.length / 2);
+  
+  return sorted.length % 2 !== 0
+    ? sorted[mid]
+    : (sorted[mid - 1] + sorted[mid]) / 2;
+}
+```
+
+### 5. **Combinación: Últimos N meses + WMA** ⭐⭐ La mejor opción
+```typescript
+export function calculateAvgMonthlySales(
+  salesTrend?: number[], 
+  recentMonths: number = 6
+): number {
+  if (!salesTrend || salesTrend.length === 0) {
+    return 0;
+  }
+  
+  // Tomar solo los últimos N meses
+  const recentData = salesTrend.slice(-Math.min(recentMonths, salesTrend.length));
+  
+  // Aplicar pesos lineales (más peso a los más recientes)
+  let weightedSum = 0;
+  let totalWeight = 0;
+  
+  recentData.forEach((value, index) => {
+    const weight = index + 1;
+    weightedSum += value * weight;
+    totalWeight += weight;
+  });
+  
+  return totalWeight > 0 ? weightedSum / totalWeight : 0;
+}
+```
+
+## 💡 Mi Recomendación:
+
+Para tu caso específico, sugiero **Opción 3 o 5**:
+- **Usar solo los últimos 3-6 meses** (más simple y comprensible)
+- O **combinar últimos N meses + pesos** (más sofisticado pero más preciso)
+
+En tu ejemplo:
+- **Con promedio simple (actual)**: 18.3 unidades/mes (incluye pico de 396)
+- **Con últimos 3 meses**: Probablemente ~0-5 unidades/mes
+- **Con últimos 6 meses**: Probablemente ~5-10 unidades/mes
+- **Tiempo estimado más realista**: 20-40 meses (no 10.9)
+
+¿Cuál prefieres que implemente? La opción 3 (últimos N meses) es la más fácil de entender para los usuarios y muy efectiva.
+
+---
+
+_**User (2025-12-25 19:29Z)**_
+
+agrega varias columnas una por cada caso. 
+
+---
+
+_**Agent (model claude-4.5-sonnet-thinking, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+El usuario quiere que agregue varias columnas, una por cada método de cálculo de promedio de ventas, para que pueda compararlos y decidir cuál es mejor. Esto es una excelente forma de evaluar qué método funciona mejor en la práctica.
+
+Voy a:
+1. Modificar `salesCalculations.ts` para incluir todas las variantes
+2. Modificar el tipo `SupplierOrderItem` para incluir múltiples métricas
+3. Actualizar `SupplierOrderPanel.tsx` para mostrar todas las columnas
+4. Actualizar `useSupplierOrderDraft.ts` para calcular todos los valores
+
+Empecemos:</details></think>
+
+---
+
+Perfecto! Voy a implementar todas las variantes para que puedas compararlas y decidir cuál funciona mejor. Agregaré columnas para cada método de cálculo.
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: D:\dialfa new\spisa-new\frontend\lib\utils\salesCalculations.ts</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -1,4 +1,5 @@
+  /**
+   * Calculate the average monthly sales from a sales trend array
++  * MÉTODO 1: Promedio Simple (actual)
+   */
+  export function calculateAvgMonthlySales(salesTrend?: number[]): number {
+```
+
+**Chunk 2**
+Lines added: 94, lines removed: undefined
+
+```diff
+@@ -10,4 +11,98 @@
+    return totalSales / salesTrend.length;
+  }
++ 
++ /**
++  * MÉTODO 2: Promedio de últimos N meses
++  */
++ export function calculateRecentAvgSales(
++   salesTrend?: number[], 
++   recentMonths: number = 6
++ ): number {
++   if (!salesTrend || salesTrend.length === 0) {
++     return 0;
++   }
++   
++   const recentData = salesTrend.slice(-Math.min(recentMonths, salesTrend.length));
++   const totalSales = recentData.reduce((sum, value) =&gt; sum + value, 0);
++   
++   return totalSales / recentData.length;
++ }
++ 
++ /**
++  * MÉTODO 3: Weighted Moving Average (WMA) - Más peso a meses recientes
++  */
++ export function calculateWeightedAvgSales(salesTrend?: number[]): number {
++   if (!salesTrend || salesTrend.length === 0) {
++     return 0;
++   }
++   
++   let weightedSum = 0;
++   let totalWeight = 0;
++   
++   salesTrend.forEach((value, index) =&gt; {
++     const weight = index + 1; // Mes más antiguo peso 1, más reciente peso N
++     weightedSum += value * weight;
++     totalWeight += weight;
++   });
++   
++   return totalWeight &gt; 0 ? weightedSum / totalWeight : 0;
++ }
++ 
++ /**
++  * MÉTODO 4: Exponential Moving Average (EMA)
++  */
++ export function calculateEmaAvgSales(salesTrend?: number[], alpha: number = 0.3): number {
++   if (!salesTrend || salesTrend.length === 0) {
++     return 0;
++   }
++   
++   let ema = salesTrend[0];
++   for (let i = 1; i &lt; salesTrend.length; i++) {
++     ema = alpha * salesTrend[i] + (1 - alpha) * ema;
++   }
++   
++   return ema;
++ }
++ 
++ /**
++  * MÉTODO 5: Últimos N meses + WMA combinado
++  */
++ export function calculateRecentWeightedAvgSales(
++   salesTrend?: number[], 
++   recentMonths: number = 6
++ ): number {
++   if (!salesTrend || salesTrend.length === 0) {
++     return 0;
++   }
++   
++   const recentData = salesTrend.slice(-Math.min(recentMonths, salesTrend.length));
++   
++   let weightedSum = 0;
++   let totalWeight = 0;
++   
++   recentData.forEach((value, index) =&gt; {
++     const weight = index + 1;
++     weightedSum += value * weight;
++     totalWeight += weight;
++   });
++   
++   return totalWeight &gt; 0 ? weightedSum / totalWeight : 0;
++ }
++ 
++ /**
++  * MÉTODO 6: Mediana (resistente a outliers)
++  */
++ export function calculateMedianSales(salesTrend?: number[]): number {
++   if (!salesTrend || salesTrend.length === 0) {
++     return 0;
++   }
++   
++   const sorted = [...salesTrend].sort((a, b) =&gt; a - b);
++   const mid = Math.floor(sorted.length / 2);
++   
++   return sorted.length % 2 !== 0
++     ? sorted[mid]
++     : (sorted[mid - 1] + sorted[mid]) / 2;
++ }
+  
+  /**
+```
+
+</details>
+
+</tool-use>
+
+---
+
+Ahora voy a modificar el tipo `SupplierOrderItem` para incluir todas las métricas:
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\dialfa new\spisa-new\frontend\types\supplierOrder.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: D:\dialfa new\spisa-new\frontend\types\supplierOrder.ts</summary>
+
+**Chunk 1**
+Lines added: 13, lines removed: undefined
+
+```diff
+@@ -10,4 +10,17 @@
+    avgMonthlySales: number;
+    estimatedSaleTime: number; // in months
++   // Métricas adicionales
++   avgSales3Months?: number;
++   avgSales6Months?: number;
++   avgSalesWeighted?: number;
++   avgSalesEma?: number;
++   avgSalesRecent6Weighted?: number;
++   avgSalesMedian?: number;
++   estTime3Months?: number;
++   estTime6Months?: number;
++   estTimeWeighted?: number;
++   estTimeEma?: number;
++   estTimeRecent6Weighted?: number;
++   estTimeMedian?: number;
+  }
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+Ahora voy a actualizar el hook `useSupplierOrderDraft` para calcular todas las métricas:
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\dialfa new\spisa-new\frontend\lib\hooks\useSupplierOrderDraft.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: D:\dialfa new\spisa-new\frontend\lib\hooks\useSupplierOrderDraft.ts</summary>
+
+**Chunk 1**
+Lines added: 5, lines removed: undefined
+
+```diff
+@@ -6,4 +6,9 @@
+    calculateEstimatedSaleTime,
+    calculateWeightedAvgSaleTime,
++   calculateRecentAvgSales,
++   calculateWeightedAvgSales,
++   calculateEmaAvgSales,
++   calculateRecentWeightedAvgSales,
++   calculateMedianSales,
+  } from '@/lib/utils/salesCalculations';
+  import { useCreateSupplierOrder, useUpdateSupplierOrder, useSupplierOrders } from './useSupplierOrders';
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: D:\dialfa new\spisa-new\frontend\lib\hooks\useSupplierOrderDraft.ts</summary>
+
+**Chunk 1**
+Lines added: 7, lines removed: 2
+
+```diff
+@@ -96,7 +96,12 @@
+                } as Article;
+  
+-               // Recalcular avgMonthlySales y estimatedSaleTime con el salesTrend ACTUAL
++               // Recalcular TODAS las métricas con el salesTrend ACTUAL
+                const avgSales = calculateAvgMonthlySales(article.salesTrend);
+-               const saleTime = calculateEstimatedSaleTime(item.quantity, avgSales);
++               const avgSales3 = calculateRecentAvgSales(article.salesTrend, 3);
++               const avgSales6 = calculateRecentAvgSales(article.salesTrend, 6);
++               const avgSalesWeighted = calculateWeightedAvgSales(article.salesTrend);
++               const avgSalesEma = calculateEmaAvgSales(article.salesTrend);
++               const avgSalesRecent6Weighted = calculateRecentWeightedAvgSales(article.salesTrend, 6);
++               const avgSalesMedian = calculateMedianSales(article.salesTrend);
+  
+                itemsMap.set(item.articleId, {
+```
+
+**Chunk 2**
+Lines added: 14, lines removed: 1
+
+```diff
+@@ -106,5 +111,18 @@
+                  minimumStock: item.minimumStock,
+                  avgMonthlySales: avgSales,
+-                 estimatedSaleTime: saleTime,
++                 estimatedSaleTime: calculateEstimatedSaleTime(item.quantity, avgSales),
++                 // Métricas adicionales
++                 avgSales3Months: avgSales3,
++                 avgSales6Months: avgSales6,
++                 avgSalesWeighted: avgSalesWeighted,
++                 avgSalesEma: avgSalesEma,
++                 avgSalesRecent6Weighted: avgSalesRecent6Weighted,
++                 avgSalesMedian: avgSalesMedian,
++                 estTime3Months: calculateEstimatedSaleTime(item.quantity, avgSales3),
++                 estTime6Months: calculateEstimatedSaleTime(item.quantity, avgSales6),
++                 estTimeWeighted: calculateEstimatedSaleTime(item.quantity, avgSalesWeighted),
++                 estTimeEma: calculateEstimatedSaleTime(item.quantity, avgSalesEma),
++                 estTimeRecent6Weighted: calculateEstimatedSaleTime(item.quantity, avgSalesRecent6Weighted),
++                 estTimeMedian: calculateEstimatedSaleTime(item.quantity, avgSalesMedian),
+                });
+              });
+```
+
+</details>
+
+</tool-use>
+
+---
+
+Ahora también en el fallback:
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\dialfa new\spisa-new\frontend\lib\hooks\useSupplierOrderDraft.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: D:\dialfa new\spisa-new\frontend\lib\hooks\useSupplierOrderDraft.ts</summary>
+
+**Chunk 1**
+Lines added: 7, lines removed: 2
+
+```diff
+@@ -159,7 +159,12 @@
+                } as Article;
+  
+-               // Sin salesTrend, avgSales será 0 y saleTime será Infinity
++               // Sin salesTrend, todas las métricas serán 0 / Infinity
+                const avgSales = calculateAvgMonthlySales(article.salesTrend);
+-               const saleTime = calculateEstimatedSaleTime(item.quantity, avgSales);
++               const avgSales3 = calculateRecentAvgSales(article.salesTrend, 3);
++               const avgSales6 = calculateRecentAvgSales(article.salesTrend, 6);
++               const avgSalesWeighted = calculateWeightedAvgSales(article.salesTrend);
++               const avgSalesEma = calculateEmaAvgSales(article.salesTrend);
++               const avgSalesRecent6Weighted = calculateRecentWeightedAvgSales(article.salesTrend, 6);
++               const avgSalesMedian = calculateMedianSales(article.salesTrend);
+  
+                itemsMap.set(item.articleId, {
+```
+
+**Chunk 2**
+Lines added: 13, lines removed: 1
+
+```diff
+@@ -169,5 +174,17 @@
+                  minimumStock: item.minimumStock,
+                  avgMonthlySales: avgSales,
+-                 estimatedSaleTime: saleTime,
++                 estimatedSaleTime: calculateEstimatedSaleTime(item.quantity, avgSales),
++                 avgSales3Months: avgSales3,
++                 avgSales6Months: avgSales6,
++                 avgSalesWeighted: avgSalesWeighted,
++                 avgSalesEma: avgSalesEma,
++                 avgSalesRecent6Weighted: avgSalesRecent6Weighted,
++                 avgSalesMedian: avgSalesMedian,
++                 estTime3Months: calculateEstimatedSaleTime(item.quantity, avgSales3),
++                 estTime6Months: calculateEstimatedSaleTime(item.quantity, avgSales6),
++                 estTimeWeighted: calculateEstimatedSaleTime(item.quantity, avgSalesWeighted),
++                 estTimeEma: calculateEstimatedSaleTime(item.quantity, avgSalesEma),
++                 estTimeRecent6Weighted: calculateEstimatedSaleTime(item.quantity, avgSalesRecent6Weighted),
++                 estTimeMedian: calculateEstimatedSaleTime(item.quantity, avgSalesMedian),
+                });
+              });
+```
+
+</details>
+
+</tool-use>
+
+---
+
+Ahora necesito actualizar `addItem` también:
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\dialfa new\spisa-new\frontend\lib\hooks\useSupplierOrderDraft.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: D:\dialfa new\spisa-new\frontend\lib\hooks\useSupplierOrderDraft.ts</summary>
+
+**Chunk 1**
+Lines added: 6, lines removed: 1
+
+```diff
+@@ -269,5 +269,10 @@
+    const addItem = useCallback((article: Article, quantity: number = 1) =&gt; {
+      const avgSales = calculateAvgMonthlySales(article.salesTrend);
+-     const saleTime = calculateEstimatedSaleTime(quantity, avgSales);
++     const avgSales3 = calculateRecentAvgSales(article.salesTrend, 3);
++     const avgSales6 = calculateRecentAvgSales(article.salesTrend, 6);
++     const avgSalesWeighted = calculateWeightedAvgSales(article.salesTrend);
++     const avgSalesEma = calculateEmaAvgSales(article.salesTrend);
++     const avgSalesRecent6Weighted = calculateRecentWeightedAvgSales(article.salesTrend, 6);
++     const avgSalesMedian = calculateMedianSales(article.salesTrend);
+  
+      setItems((prev) =&gt; {
+```
+
+**Chunk 2**
+Lines added: 7, lines removed: 2
+
+```diff
+@@ -277,9 +282,14 @@
+        if (existing) {
+          const newQty = existing.quantity + quantity;
+-         const newSaleTime = calculateEstimatedSaleTime(newQty, avgSales);
+          updated.set(article.id, {
+            ...existing,
+            quantity: newQty,
+-           estimatedSaleTime: newSaleTime,
++           estimatedSaleTime: calculateEstimatedSaleTime(newQty, avgSales),
++           estTime3Months: calculateEstimatedSaleTime(newQty, avgSales3),
++           estTime6Months: calculateEstimatedSaleTime(newQty, avgSales6),
++           estTimeWeighted: calculateEstimatedSaleTime(newQty, avgSalesWeighted),
++           estTimeEma: calculateEstimatedSaleTime(newQty, avgSalesEma),
++           estTimeRecent6Weighted: calculateEstimatedSaleTime(newQty, avgSalesRecent6Weighted),
++           estTimeMedian: calculateEstimatedSaleTime(newQty, avgSalesMedian),
+          });
+        } else {
+```
+
+**Chunk 3**
+Lines added: 13, lines removed: 1
+
+```diff
+@@ -290,5 +300,17 @@
+            minimumStock: Number(article.minimumStock),
+            avgMonthlySales: avgSales,
+-           estimatedSaleTime: saleTime,
++           estimatedSaleTime: calculateEstimatedSaleTime(quantity, avgSales),
++           avgSales3Months: avgSales3,
++           avgSales6Months: avgSales6,
++           avgSalesWeighted: avgSalesWeighted,
++           avgSalesEma: avgSalesEma,
++           avgSalesRecent6Weighted: avgSalesRecent6Weighted,
++           avgSalesMedian: avgSalesMedian,
++           estTime3Months: calculateEstimatedSaleTime(quantity, avgSales3),
++           estTime6Months: calculateEstimatedSaleTime(quantity, avgSales6),
++           estTimeWeighted: calculateEstimatedSaleTime(quantity, avgSalesWeighted),
++           estTimeEma: calculateEstimatedSaleTime(quantity, avgSalesEma),
++           estTimeRecent6Weighted: calculateEstimatedSaleTime(quantity, avgSalesRecent6Weighted),
++           estTimeMedian: calculateEstimatedSaleTime(quantity, avgSalesMedian),
+          });
+        }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+Ahora necesito actualizar también `updateQuantity`:
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "const updateQuantity" in "D:\dialfa new\spisa-new\frontend\lib\hooks\useSupplierOrderDraft.ts" • 3 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `.\useSupplierOrderDraft.ts` | `const updateQuantity = useCallback((articleId: number, quantity: number) => \{` | L332 |
+| `.\useQuickCartTabs.ts` | `const updateQuantity = (articleId: number, quantity: number) => \{` | L272 |
+| `.\useQuickCart.ts` | `const updateQuantity = (articleId: number, quantity: number) => \{` | L90 |
+
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: D:\dialfa new\spisa-new\frontend\lib\hooks\useSupplierOrderDraft.ts</summary>
+
+**Chunk 1**
+Lines added: 7, lines removed: 2
+
+```diff
+@@ -340,9 +340,14 @@
+        const item = updated.get(articleId);
+        if (item) {
+-         const newSaleTime = calculateEstimatedSaleTime(quantity, item.avgMonthlySales);
+          updated.set(articleId, {
+            ...item,
+            quantity,
+-           estimatedSaleTime: newSaleTime,
++           estimatedSaleTime: calculateEstimatedSaleTime(quantity, item.avgMonthlySales),
++           estTime3Months: calculateEstimatedSaleTime(quantity, item.avgSales3Months || 0),
++           estTime6Months: calculateEstimatedSaleTime(quantity, item.avgSales6Months || 0),
++           estTimeWeighted: calculateEstimatedSaleTime(quantity, item.avgSalesWeighted || 0),
++           estTimeEma: calculateEstimatedSaleTime(quantity, item.avgSalesEma || 0),
++           estTimeRecent6Weighted: calculateEstimatedSaleTime(quantity, item.avgSalesRecent6Weighted || 0),
++           estTimeMedian: calculateEstimatedSaleTime(quantity, item.avgSalesMedian || 0),
+          });
+          debouncedSave(updated);
+```
+
+</details>
+
+</tool-use>
+
+---
+
+Ahora voy a actualizar el componente `SupplierOrderPanel` para mostrar todas las columnas nuevas:
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\dialfa new\spisa-new\frontend\components\articles\SupplierOrderPanel.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+Voy a agregar las nuevas columnas después de "Tiempo Est. Venta":
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: D:\dialfa new\spisa-new\frontend\components\articles\SupplierOrderPanel.tsx</summary>
+
+**Chunk 1**
+Lines added: 14, lines removed: 2
+
+```diff
+@@ -430,6 +430,18 @@
+                  &lt;TableHead className="text-right"&gt;Stock Mín.&lt;/TableHead&gt;
+                  &lt;TableHead&gt;Tendencia&lt;/TableHead&gt;
+-                 &lt;TableHead className="text-right"&gt;Venta Prom/Mes&lt;/TableHead&gt;
+-                 &lt;TableHead className="text-right"&gt;Tiempo Est. Venta&lt;/TableHead&gt;
++                 &lt;TableHead className="text-right"&gt;Prom Simple&lt;/TableHead&gt;
++                 &lt;TableHead className="text-right"&gt;Prom 3M&lt;/TableHead&gt;
++                 &lt;TableHead className="text-right"&gt;Prom 6M&lt;/TableHead&gt;
++                 &lt;TableHead className="text-right"&gt;WMA&lt;/TableHead&gt;
++                 &lt;TableHead className="text-right"&gt;EMA&lt;/TableHead&gt;
++                 &lt;TableHead className="text-right"&gt;6M+WMA&lt;/TableHead&gt;
++                 &lt;TableHead className="text-right"&gt;Mediana&lt;/TableHead&gt;
++                 &lt;TableHead className="text-right"&gt;T.Est Simple&lt;/TableHead&gt;
++                 &lt;TableHead className="text-right"&gt;T.Est 3M&lt;/TableHead&gt;
++                 &lt;TableHead className="text-right"&gt;T.Est 6M&lt;/TableHead&gt;
++                 &lt;TableHead className="text-right"&gt;T.Est WMA&lt;/TableHead&gt;
++                 &lt;TableHead className="text-right"&gt;T.Est EMA&lt;/TableHead&gt;
++                 &lt;TableHead className="text-right"&gt;T.Est 6M+WMA&lt;/TableHead&gt;
++                 &lt;TableHead className="text-right"&gt;T.Est Mediana&lt;/TableHead&gt;
+                  &lt;TableHead&gt;Última Venta&lt;/TableHead&gt;
+                  &lt;TableHead className="text-right"&gt;Precio Unit.&lt;/TableHead&gt;
+```
+
+</details>
+
+</tool-use>
+
+---
+
+Ahora necesito agregar las celdas correspondientes en el TableBody. Déjame encontrar dónde están las celdas de "Venta Prom/Mes" y "Tiempo Est. Venta":
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\dialfa new\spisa-new\frontend\components\articles\SupplierOrderPanel.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+Voy a crear una función helper para renderizar las celdas y reemplazar las líneas 514-527:
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: D:\dialfa new\spisa-new\frontend\components\articles\SupplierOrderPanel.tsx</summary>
+
+**Chunk 1**
+Lines added: 106, lines removed: 4
+
+```diff
+@@ -512,18 +512,120 @@
+                      )}
+                    &lt;/TableCell&gt;
++                   
++                   {/* Promedio Simple */}
+                    &lt;TableCell className="text-right"&gt;
+                      {item.avgMonthlySales &gt; 0 ? (
+-                       &lt;span&gt;{item.avgMonthlySales.toFixed(1)}&lt;/span&gt;
++                       &lt;span className="text-sm"&gt;{item.avgMonthlySales.toFixed(1)}&lt;/span&gt;
+                      ) : item.article.salesTrend &amp;&amp; item.article.salesTrend.length &gt; 0 ? (
+-                       &lt;span className="text-muted-foreground text-xs"&gt;0.0 (sin ventas)&lt;/span&gt;
++                       &lt;span className="text-muted-foreground text-xs"&gt;0.0&lt;/span&gt;
++                     ) : (
++                       &lt;span className="text-muted-foreground text-xs"&gt;-&lt;/span&gt;
++                     )}
++                   &lt;/TableCell&gt;
++                   
++                   {/* Prom 3M */}
++                   &lt;TableCell className="text-right"&gt;
++                     {(item.avgSales3Months ?? 0) &gt; 0 ? (
++                       &lt;span className="text-sm"&gt;{item.avgSales3Months!.toFixed(1)}&lt;/span&gt;
++                     ) : (
++                       &lt;span className="text-muted-foreground text-xs"&gt;0.0&lt;/span&gt;
++                     )}
++                   &lt;/TableCell&gt;
++                   
++                   {/* Prom 6M */}
++                   &lt;TableCell className="text-right"&gt;
++                     {(item.avgSales6Months ?? 0) &gt; 0 ? (
++                       &lt;span className="text-sm"&gt;{item.avgSales6Months!.toFixed(1)}&lt;/span&gt;
+                      ) : (
+-                       &lt;span className="text-muted-foreground text-xs"&gt;Sin datos&lt;/span&gt;
++                       &lt;span className="text-muted-foreground text-xs"&gt;0.0&lt;/span&gt;
++                     )}
++                   &lt;/TableCell&gt;
++                   
++                   {/* WMA */}
++                   &lt;TableCell className="text-right"&gt;
++                     {(item.avgSalesWeighted ?? 0) &gt; 0 ? (
++                       &lt;span className="text-sm"&gt;{item.avgSalesWeighted!.toFixed(1)}&lt;/span&gt;
++                     ) : (
++                       &lt;span className="text-muted-foreground text-xs"&gt;0.0&lt;/span&gt;
++                     )}
++                   &lt;/TableCell&gt;
++                   
++                   {/* EMA */}
++                   &lt;TableCell className="text-right"&gt;
++                     {(item.avgSalesEma ?? 0) &gt; 0 ? (
++                       &lt;span className="text-sm"&gt;{item.avgSalesEma!.toFixed(1)}&lt;/span&gt;
++                     ) : (
++                       &lt;span className="text-muted-foreground text-xs"&gt;0.0&lt;/span&gt;
++                     )}
++                   &lt;/TableCell&gt;
++                   
++                   {/* 6M+WMA */}
++                   &lt;TableCell className="text-right"&gt;
++                     {(item.avgSalesRecent6Weighted ?? 0) &gt; 0 ? (
++                       &lt;span className="text-sm"&gt;{item.avgSalesRecent6Weighted!.toFixed(1)}&lt;/span&gt;
++                     ) : (
++                       &lt;span className="text-muted-foreground text-xs"&gt;0.0&lt;/span&gt;
++                     )}
++                   &lt;/TableCell&gt;
++                   
++                   {/* Mediana */}
++                   &lt;TableCell className="text-right"&gt;
++                     {(item.avgSalesMedian ?? 0) &gt; 0 ? (
++                       &lt;span className="text-sm"&gt;{item.avgSalesMedian!.toFixed(1)}&lt;/span&gt;
++                     ) : (
++                       &lt;span className="text-muted-foreground text-xs"&gt;0.0&lt;/span&gt;
+                      )}
+                    &lt;/TableCell&gt;
++                   
++                   {/* T.Est Simple */}
+                    &lt;TableCell className="text-right"&gt;
+-                     &lt;Badge variant={isFinite(item.estimatedSaleTime) &amp;&amp; item.estimatedSaleTime &gt; 0 ? 'secondary' : 'outline'}&gt;
++                     &lt;Badge variant={isFinite(item.estimatedSaleTime) &amp;&amp; item.estimatedSaleTime &gt; 0 ? 'secondary' : 'outline'} className="text-xs"&gt;
+                        {formatSaleTime(item.estimatedSaleTime)}
+                      &lt;/Badge&gt;
+                    &lt;/TableCell&gt;
++                   
++                   {/* T.Est 3M */}
++                   &lt;TableCell className="text-right"&gt;
++                     &lt;Badge variant={isFinite(item.estTime3Months ?? Infinity) &amp;&amp; (item.estTime3Months ?? 0) &gt; 0 ? 'secondary' : 'outline'} className="text-xs"&gt;
++                       {formatSaleTime(item.estTime3Months ?? Infinity)}
++                     &lt;/Badge&gt;
++                   &lt;/TableCell&gt;
++                   
++                   {/* T.Est 6M */}
++                   &lt;TableCell className="text-right"&gt;
++                     &lt;Badge variant={isFinite(item.estTime6Months ?? Infinity) &amp;&amp; (item.estTime6Months ?? 0) &gt; 0 ? 'secondary' : 'outline'} className="text-xs"&gt;
++                       {formatSaleTime(item.estTime6Months ?? Infinity)}
++                     &lt;/Badge&gt;
++                   &lt;/TableCell&gt;
++                   
++                   {/* T.Est WMA */}
++                   &lt;TableCell className="text-right"&gt;
++                     &lt;Badge variant={isFinite(item.estTimeWeighted ?? Infinity) &amp;&amp; (item.estTimeWeighted ?? 0) &gt; 0 ? 'secondary' : 'outline'} className="text-xs"&gt;
++                       {formatSaleTime(item.estTimeWeighted ?? Infinity)}
++                     &lt;/Badge&gt;
++                   &lt;/TableCell&gt;
++                   
++                   {/* T.Est EMA */}
++                   &lt;TableCell className="text-right"&gt;
++                     &lt;Badge variant={isFinite(item.estTimeEma ?? Infinity) &amp;&amp; (item.estTimeEma ?? 0) &gt; 0 ? 'secondary' : 'outline'} className="text-xs"&gt;
++                       {formatSaleTime(item.estTimeEma ?? Infinity)}
++                     &lt;/Badge&gt;
++                   &lt;/TableCell&gt;
++                   
++                   {/* T.Est 6M+WMA */}
++                   &lt;TableCell className="text-right"&gt;
++                     &lt;Badge variant={isFinite(item.estTimeRecent6Weighted ?? Infinity) &amp;&amp; (item.estTimeRecent6Weighted ?? 0) &gt; 0 ? 'secondary' : 'outline'} className="text-xs"&gt;
++                       {formatSaleTime(item.estTimeRecent6Weighted ?? Infinity)}
++                     &lt;/Badge&gt;
++                   &lt;/TableCell&gt;
++                   
++                   {/* T.Est Mediana */}
++                   &lt;TableCell className="text-right"&gt;
++                     &lt;Badge variant={isFinite(item.estTimeMedian ?? Infinity) &amp;&amp; (item.estTimeMedian ?? 0) &gt; 0 ? 'secondary' : 'outline'} className="text-xs"&gt;
++                       {formatSaleTime(item.estTimeMedian ?? Infinity)}
++                     &lt;/Badge&gt;
++                   &lt;/TableCell&gt;
++                   
++                   {/* Última Venta */}
+                    &lt;TableCell&gt;
+                      {item.article.lastSaleDate ? (
+```
+
+</details>
+
+</tool-use>
+
+---
+
+Perfecto! Ahora déjame verificar los lints:
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 4 files</summary>
+      
+Lint paths:
+
+- `D:\dialfa new\spisa-new\frontend\lib\utils\salesCalculations.ts`
+- `D:\dialfa new\spisa-new\frontend\types\supplierOrder.ts`
+- `D:\dialfa new\spisa-new\frontend\lib\hooks\useSupplierOrderDraft.ts`
+- `D:\dialfa new\spisa-new\frontend\components\articles\SupplierOrderPanel.tsx`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+¡Excelente! Ahora voy a crear un resumen de lo implementado:
+
+## ✅ Implementación Completada: Comparación de Métodos de Cálculo
+
+He agregado **6 métodos diferentes** para calcular promedios de ventas y tiempos estimados, cada uno con su propia columna en la tabla de Pedido a Proveedores:
+
+### 📊 **Métodos Implementados:**
+
+1. **Promedio Simple** (actual): 
+   - Media aritmética de todos los meses
+   - Sensible a outliers como picos de venta
+
+2. **Prom 3M** (Últimos 3 meses):
+   - Solo considera los 3 meses más recientes
+   - Muy responsive a cambios recientes
+
+3. **Prom 6M** (Últimos 6 meses):
+   - Balance entre histórico y tendencia actual
+   - Menos afectado por picos antiguos
+
+4. **WMA** (Weighted Moving Average):
+   - Peso lineal creciente (1, 2, 3, ..., N)
+   - Más peso a meses recientes
+
+5. **EMA** (Exponential Moving Average):
+   - Decaimiento exponencial (α = 0.3)
+   - Muy común en análisis financiero
+
+6. **6M+WMA** (Últimos 6 meses + WMA):
+   - Combinación: solo últimos 6 meses con pesos
+   - Balance óptimo entre actualidad y estabilidad
+
+7. **Mediana**:
+   - Valor central de la distribución
+   - Muy resistente a outliers extremos
+
+### 📈 **Para tu caso específico (BSS1503/4):**
+
+Con el pico de 396 unidades en feb/24 y ventas casi nulas después:
+- **Promedio Simple**: ~18.3 u/mes → ~10.9 meses
+- **Prom 3M**: ~0-1 u/mes → ∞ Infinito o 200+ meses
+- **Prom 6M**: ~5-8 u/mes → ~25-40 meses
+- **6M+WMA**: ~3-5 u/mes → ~40-60 meses (probablemente el más realista)
+
+### 🎯 **Recomendación:**
+
+Después de ver los resultados en la tabla, probablemente querrás usar **6M+WMA** o **Prom 6M** como métrica principal, ya que son las más balanceadas y dan estimaciones realistas sin ignorar completamente el historial.
+
+Ahora recarga la aplicación y verás todas las columnas comparativas! 🎉
+
+---
+
+_**User (2025-12-25 19:29Z)**_
+
+1) precio unitario lo quiero a la izq de promedio simple. 2) quiero que en el hover de cada titulo (screenshot) haya una breve explicacion de que es cada cosa.  Cual es la dif entre prom y t est? 
+
+---
+
+_**Agent (model claude-4.5-sonnet-thinking, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+El usuario quiere:
+1. Mover "Precio Unit." a la izquierda de "Prom Simple"
+2. Agregar tooltips en el hover de cada título con explicaciones
+3. Entender la diferencia entre "Prom" (promedio) y "T.Est" (tiempo estimado)
+
+La diferencia:
+- **Prom** = Promedio de ventas mensuales (unidades/mes)
+- **T.Est** = Tiempo Estimado de Venta = Cantidad a pedir / Promedio mensual = Cuántos meses tardará en venderse esa cantidad
+
+Por ejemplo:
+- Si pides 200 unidades
+- Y vendes 10 unidades/mes en promedio
+- T.Est = 200/10 = 20 meses
+
+Necesito:
+1. Reordenar las columnas en el TableHeader y TableBody
+2. Agregar tooltips con `title` o un componente Tooltip de shadcn/ui</details></think>
+
+---
+
+Perfecto! Voy a:
+1. Mover "Precio Unit." antes de "Prom Simple"
+2. Agregar tooltips explicativos en cada header
+
+**La diferencia entre Prom y T.Est:**
+- **Prom** (Promedio): Cuántas unidades vendes por mes en promedio
+- **T.Est** (Tiempo Estimado): Cuántos meses tardarás en vender la cantidad que estás pidiendo
+  - Fórmula: `T.Est = Cantidad / Promedio`
+  - Ejemplo: Si pides 200 unidades y vendes 10/mes → T.Est = 20 meses
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\dialfa new\spisa-new\frontend\components\articles\SupplierOrderPanel.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+Necesito importar el Tooltip de shadcn/ui:
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: D:\dialfa new\spisa-new\frontend\components\articles\SupplierOrderPanel.tsx</summary>
+
+**Chunk 1**
+Lines added: 6, lines removed: undefined
+
+```diff
+@@ -21,4 +21,10 @@
+    TableRow,
+  } from '@/components/ui/table';
++ import {
++   Tooltip,
++   TooltipContent,
++   TooltipProvider,
++   TooltipTrigger,
++ } from '@/components/ui/tooltip';
+  import { Trash2, ShoppingCart, AlertTriangle, CheckCircle2, Loader2, Clock, Download } from 'lucide-react';
+  import { formatSaleTime } from '@/lib/utils/salesCalculations';
+```
+
+</details>
+
+</tool-use>
+
+---
+
+Ahora voy a crear un componente helper para los headers con tooltip y actualizar el orden de las columnas:
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\dialfa new\spisa-new\frontend\components\articles\SupplierOrderPanel.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: D:\dialfa new\spisa-new\frontend\components\articles\SupplierOrderPanel.tsx</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -426,5 +426,5 @@
+  
+          {/* Table */}
+-         &lt;div className="rounded-md border"&gt;
++         &lt;div className="rounded-md border overflow-x-auto"&gt;
+            &lt;Table&gt;
+              &lt;TableHeader&gt;
+```
+
+**Chunk 2**
+Lines added: 377, lines removed: 263
+
+```diff
+@@ -436,265 +436,379 @@
+                  &lt;TableHead className="text-right"&gt;Stock Mín.&lt;/TableHead&gt;
+                  &lt;TableHead&gt;Tendencia&lt;/TableHead&gt;
+-                 &lt;TableHead className="text-right"&gt;Prom Simple&lt;/TableHead&gt;
+-                 &lt;TableHead className="text-right"&gt;Prom 3M&lt;/TableHead&gt;
+-                 &lt;TableHead className="text-right"&gt;Prom 6M&lt;/TableHead&gt;
+-                 &lt;TableHead className="text-right"&gt;WMA&lt;/TableHead&gt;
+-                 &lt;TableHead className="text-right"&gt;EMA&lt;/TableHead&gt;
+-                 &lt;TableHead className="text-right"&gt;6M+WMA&lt;/TableHead&gt;
+-                 &lt;TableHead className="text-right"&gt;Mediana&lt;/TableHead&gt;
+-                 &lt;TableHead className="text-right"&gt;T.Est Simple&lt;/TableHead&gt;
+-                 &lt;TableHead className="text-right"&gt;T.Est 3M&lt;/TableHead&gt;
+-                 &lt;TableHead className="text-right"&gt;T.Est 6M&lt;/TableHead&gt;
+-                 &lt;TableHead className="text-right"&gt;T.Est WMA&lt;/TableHead&gt;
+-                 &lt;TableHead className="text-right"&gt;T.Est EMA&lt;/TableHead&gt;
+-                 &lt;TableHead className="text-right"&gt;T.Est 6M+WMA&lt;/TableHead&gt;
+-                 &lt;TableHead className="text-right"&gt;T.Est Mediana&lt;/TableHead&gt;
+-                 &lt;TableHead&gt;Última Venta&lt;/TableHead&gt;
+-                 &lt;TableHead className="text-right"&gt;Precio Unit.&lt;/TableHead&gt;
+-                 &lt;TableHead className="w-12"&gt;&lt;/TableHead&gt;
+-               &lt;/TableRow&gt;
+-             &lt;/TableHeader&gt;
+-             &lt;TableBody&gt;
+-               {items.map((item) =&gt; (
+-                 &lt;TableRow key={item.article.id}&gt;
+-                   &lt;TableCell className="font-medium font-mono"&gt;
+-                     {item.article.code}
+-                   &lt;/TableCell&gt;
+-                   &lt;TableCell&gt;
+-                     &lt;div className="max-w-md truncate"&gt;{item.article.description}&lt;/div&gt;
+-                   &lt;/TableCell&gt;
+-                   &lt;TableCell className="text-right"&gt;
+-                     &lt;Input
+-                       type="number"
+-                       min="1"
+-                       value={item.quantity}
+-                       onChange={(e) =&gt; {
+-                         const newQty = parseInt(e.target.value) || 1;
+-                         onQuantityChange(item.article.id, newQty);
+-                       }}
+-                       className="w-24 h-8 text-right"
+-                       onFocus={(e) =&gt; e.target.select()}
+-                     /&gt;
+-                   &lt;/TableCell&gt;
+-                   &lt;TableCell className="text-right"&gt;
+-                     &lt;span
+-                       className={
+-                         item.currentStock &lt; item.minimumStock
+-                           ? 'text-red-600 font-semibold'
+-                           : ''
+-                       }
+-                     &gt;
+-                       {item.currentStock.toFixed(0)}
+-                     &lt;/span&gt;
+-                   &lt;/TableCell&gt;
+-                   &lt;TableCell className="text-right text-muted-foreground"&gt;
+-                     {item.minimumStock.toFixed(0)}
+-                   &lt;/TableCell&gt;
+-                   &lt;TableCell&gt;
+-                     {item.article.salesTrend &amp;&amp; item.article.salesTrend.length &gt; 0 ? (
+-                       &lt;SparklineWithTooltip
+-                         data={item.article.salesTrend}
+-                         labels={item.article.salesTrendLabels}
+-                         width={Math.min(180, Math.max(80, item.article.salesTrend.length * 10))}
+-                         height={40}
+-                         color={
+-                           item.article.abcClass === 'A'
+-                             ? 'rgb(34, 197, 94)' // green-500
+-                             : item.article.abcClass === 'B'
+-                             ? 'rgb(59, 130, 246)' // blue-500
+-                             : 'rgb(107, 114, 128)' // gray-500
+-                         }
+-                         fillColor={
+-                           item.article.abcClass === 'A'
+-                             ? 'rgba(34, 197, 94, 0.1)'
+-                             : item.article.abcClass === 'B'
+-                             ? 'rgba(59, 130, 246, 0.1)'
+-                             : 'rgba(107, 114, 128, 0.1)'
+-                         }
+-                         formatValue={(v) =&gt; &#96;${v} unidades&#96;}
+-                       /&gt;
+-                     ) : (
+-                       &lt;span className="text-xs text-muted-foreground"&gt;Sin datos&lt;/span&gt;
+-                     )}
+-                   &lt;/TableCell&gt;
+-                   
+-                   {/* Promedio Simple */}
+-                   &lt;TableCell className="text-right"&gt;
+-                     {item.avgMonthlySales &gt; 0 ? (
+-                       &lt;span className="text-sm"&gt;{item.avgMonthlySales.toFixed(1)}&lt;/span&gt;
+-                     ) : item.article.salesTrend &amp;&amp; item.article.salesTrend.length &gt; 0 ? (
+-                       &lt;span className="text-muted-foreground text-xs"&gt;0.0&lt;/span&gt;
+-                     ) : (
+-                       &lt;span className="text-muted-foreground text-xs"&gt;-&lt;/span&gt;
+-                     )}
+-                   &lt;/TableCell&gt;
+-                   
+-                   {/* Prom 3M */}
+-                   &lt;TableCell className="text-right"&gt;
+-                     {(item.avgSales3Months ?? 0) &gt; 0 ? (
+-                       &lt;span className="text-sm"&gt;{item.avgSales3Months!.toFixed(1)}&lt;/span&gt;
+-                     ) : (
+-                       &lt;span className="text-muted-foreground text-xs"&gt;0.0&lt;/span&gt;
+-                     )}
+-                   &lt;/TableCell&gt;
+-                   
+-                   {/* Prom 6M */}
+-                   &lt;TableCell className="text-right"&gt;
+-                     {(item.avgSales6Months ?? 0) &gt; 0 ? (
+-                       &lt;span className="text-sm"&gt;{item.avgSales6Months!.toFixed(1)}&lt;/span&gt;
+-                     ) : (
+-                       &lt;span className="text-muted-foreground text-xs"&gt;0.0&lt;/span&gt;
+-                     )}
+-                   &lt;/TableCell&gt;
+-                   
+-                   {/* WMA */}
+-                   &lt;TableCell className="text-right"&gt;
+-                     {(item.avgSalesWeighted ?? 0) &gt; 0 ? (
+-                       &lt;span className="text-sm"&gt;{item.avgSalesWeighted!.toFixed(1)}&lt;/span&gt;
+-                     ) : (
+-                       &lt;span className="text-muted-foreground text-xs"&gt;0.0&lt;/span&gt;
+-                     )}
+-                   &lt;/TableCell&gt;
+-                   
+-                   {/* EMA */}
+-                   &lt;TableCell className="text-right"&gt;
+-                     {(item.avgSalesEma ?? 0) &gt; 0 ? (
+-                       &lt;span className="text-sm"&gt;{item.avgSalesEma!.toFixed(1)}&lt;/span&gt;
+-                     ) : (
+-                       &lt;span className="text-muted-foreground text-xs"&gt;0.0&lt;/span&gt;
+-                     )}
+-                   &lt;/TableCell&gt;
+-                   
+-                   {/* 6M+WMA */}
+-                   &lt;TableCell className="text-right"&gt;
+-                     {(item.avgSalesRecent6Weighted ?? 0) &gt; 0 ? (
+-                       &lt;span className="text-sm"&gt;{item.avgSalesRecent6Weighted!.toFixed(1)}&lt;/span&gt;
+-                     ) : (
+-                       &lt;span className="text-muted-foreground text-xs"&gt;0.0&lt;/span&gt;
+-                     )}
+-                   &lt;/TableCell&gt;
+-                   
+-                   {/* Mediana */}
+-                   &lt;TableCell className="text-right"&gt;
+-                     {(item.avgSalesMedian ?? 0) &gt; 0 ? (
+-                       &lt;span className="text-sm"&gt;{item.avgSalesMedian!.toFixed(1)}&lt;/span&gt;
+-                     ) : (
+-                       &lt;span className="text-muted-foreground text-xs"&gt;0.0&lt;/span&gt;
+-                     )}
+-                   &lt;/TableCell&gt;
+-                   
+-                   {/* T.Est Simple */}
+-                   &lt;TableCell className="text-right"&gt;
+-                     &lt;Badge variant={isFinite(item.estimatedSaleTime) &amp;&amp; item.estimatedSaleTime &gt; 0 ? 'secondary' : 'outline'} className="text-xs"&gt;
+-                       {formatSaleTime(item.estimatedSaleTime)}
+-                     &lt;/Badge&gt;
+-                   &lt;/TableCell&gt;
+-                   
+-                   {/* T.Est 3M */}
+-                   &lt;TableCell className="text-right"&gt;
+-                     &lt;Badge variant={isFinite(item.estTime3Months ?? Infinity) &amp;&amp; (item.estTime3Months ?? 0) &gt; 0 ? 'secondary' : 'outline'} className="text-xs"&gt;
+-                       {formatSaleTime(item.estTime3Months ?? Infinity)}
+-                     &lt;/Badge&gt;
+-                   &lt;/TableCell&gt;
+-                   
+-                   {/* T.Est 6M */}
+-                   &lt;TableCell className="text-right"&gt;
+-                     &lt;Badge variant={isFinite(item.estTime6Months ?? Infinity) &amp;&amp; (item.estTime6Months ?? 0) &gt; 0 ? 'secondary' : 'outline'} className="text-xs"&gt;
+-                       {formatSaleTime(item.estTime6Months ?? Infinity)}
+-                     &lt;/Badge&gt;
+-                   &lt;/TableCell&gt;
+-                   
+-                   {/* T.Est WMA */}
+-                   &lt;TableCell className="text-right"&gt;
+-                     &lt;Badge variant={isFinite(item.estTimeWeighted ?? Infinity) &amp;&amp; (item.estTimeWeighted ?? 0) &gt; 0 ? 'secondary' : 'outline'} className="text-xs"&gt;
+-                       {formatSaleTime(item.estTimeWeighted ?? Infinity)}
+-                     &lt;/Badge&gt;
+-                   &lt;/TableCell&gt;
+-                   
+-                   {/* T.Est EMA */}
+-                   &lt;TableCell className="text-right"&gt;
+-                     &lt;Badge variant={isFinite(item.estTimeEma ?? Infinity) &amp;&amp; (item.estTimeEma ?? 0) &gt; 0 ? 'secondary' : 'outline'} className="text-xs"&gt;
+-                       {formatSaleTime(item.estTimeEma ?? Infinity)}
+-                     &lt;/Badge&gt;
+-                   &lt;/TableCell&gt;
+-                   
+-                   {/* T.Est 6M+WMA */}
+-                   &lt;TableCell className="text-right"&gt;
+-                     &lt;Badge variant={isFinite(item.estTimeRecent6Weighted ?? Infinity) &amp;&amp; (item.estTimeRecent6Weighted ?? 0) &gt; 0 ? 'secondary' : 'outline'} className="text-xs"&gt;
+-                       {formatSaleTime(item.estTimeRecent6Weighted ?? Infinity)}
+-                     &lt;/Badge&gt;
+-                   &lt;/TableCell&gt;
+-                   
+-                   {/* T.Est Mediana */}
+-                   &lt;TableCell className="text-right"&gt;
+-                     &lt;Badge variant={isFinite(item.estTimeMedian ?? Infinity) &amp;&amp; (item.estTimeMedian ?? 0) &gt; 0 ? 'secondary' : 'outline'} className="text-xs"&gt;
+-                       {formatSaleTime(item.estTimeMedian ?? Infinity)}
+-                     &lt;/Badge&gt;
+-                   &lt;/TableCell&gt;
+-                   
+-                   {/* Última Venta */}
+-                   &lt;TableCell&gt;
+-                     {item.article.lastSaleDate ? (
+-                       &lt;span className="text-sm"&gt;
+-                         {new Date(item.article.lastSaleDate).toLocaleDateString('es-AR', {
+-                           day: '2-digit',
+-                           month: '2-digit',
+-                           year: 'numeric'
+-                         })}
+-                       &lt;/span&gt;
+-                     ) : (
+-                       &lt;span className="text-xs text-muted-foreground"&gt;Nunca&lt;/span&gt;
+-                     )}
+-                   &lt;/TableCell&gt;
+-                   &lt;TableCell className="text-right font-medium"&gt;
+-                     {formatPrice(item.article.unitPrice)}
+-                   &lt;/TableCell&gt;
+-                   &lt;TableCell&gt;
+-                     &lt;Button
+-                       variant="ghost"
+-                       size="icon"
+-                       className="h-8 w-8"
+-                       onClick={() =&gt; onRemove(item.article.id)}
+-                       title="Quitar"
+-                     &gt;
+-                       &lt;Trash2 className="h-4 w-4 text-red-600" /&gt;
+-                     &lt;/Button&gt;
+-                   &lt;/TableCell&gt;
+-                 &lt;/TableRow&gt;
+-               ))}
+-             &lt;/TableBody&gt;
+-           &lt;/Table&gt;
+-         &lt;/div&gt;
+- 
+-         {/* Footer with totals */}
+-         &lt;div className="flex items-center justify-between pt-2 border-t"&gt;
+-           &lt;div className="flex gap-6"&gt;
+-             &lt;div&gt;
+-               &lt;div className="text-xs text-muted-foreground"&gt;Total Artículos&lt;/div&gt;
+-               &lt;div className="text-lg font-semibold"&gt;{totalItems}&lt;/div&gt;
+-             &lt;/div&gt;
+-             &lt;div&gt;
+-               &lt;div className="text-xs text-muted-foreground"&gt;Total Unidades&lt;/div&gt;
+-               &lt;div className="text-lg font-semibold"&gt;{totalQuantity}&lt;/div&gt;
+-             &lt;/div&gt;
+-             &lt;div&gt;
+-               &lt;div className="text-xs text-muted-foreground flex items-center gap-1"&gt;
+-                 Tiempo Prom. Est. Venta
+-                 {!isFinite(totalEstimatedTime) &amp;&amp; (
+-                   &lt;AlertTriangle className="h-3 w-3 text-amber-500" /&gt;
+-                 )}
+-               &lt;/div&gt;
+-               &lt;div className="text-lg font-semibold"&gt;
+-                 &lt;Badge variant="secondary" className="text-sm"&gt;
+-                   {formatSaleTime(totalEstimatedTime)}
+-                 &lt;/Badge&gt;
+-               &lt;/div&gt;
+-             &lt;/div&gt;
+-           &lt;/div&gt;
+-         &lt;/div&gt;
+-       &lt;/div&gt;
+-     &lt;/Card&gt;
+-   );
+- }
+- 
+- 
++                 &lt;TooltipProvider&gt;
++                   &lt;Tooltip&gt;
++                     &lt;TooltipTrigger asChild&gt;
++                       &lt;TableHead className="text-right cursor-help"&gt;Precio Unit.&lt;/TableHead&gt;
++                     &lt;/TooltipTrigger&gt;
++                     &lt;TooltipContent&gt;
++                       &lt;p className="max-w-xs"&gt;Precio unitario del artículo&lt;/p&gt;
++                     &lt;/TooltipContent&gt;
++                   &lt;/Tooltip&gt;
++                   &lt;Tooltip&gt;
++                     &lt;TooltipTrigger asChild&gt;
++                       &lt;TableHead className="text-right cursor-help"&gt;Prom Simple&lt;/TableHead&gt;
++                     &lt;/TooltipTrigger&gt;
++                     &lt;TooltipContent&gt;
++                       &lt;p className="max-w-xs"&gt;Promedio de ventas mensuales (todos los meses)&lt;/p&gt;
++                     &lt;/TooltipContent&gt;
++                   &lt;/Tooltip&gt;
++                   &lt;Tooltip&gt;
++                     &lt;TooltipTrigger asChild&gt;
++                       &lt;TableHead className="text-right cursor-help"&gt;Prom 3M&lt;/TableHead&gt;
++                     &lt;/TooltipTrigger&gt;
++                     &lt;TooltipContent&gt;
++                       &lt;p className="max-w-xs"&gt;Promedio de ventas de los últimos 3 meses. Muy sensible a cambios recientes.&lt;/p&gt;
++                     &lt;/TooltipContent&gt;
++                   &lt;/Tooltip&gt;
++                   &lt;Tooltip&gt;
++                     &lt;TooltipTrigger asChild&gt;
++                       &lt;TableHead className="text-right cursor-help"&gt;Prom 6M&lt;/TableHead&gt;
++                     &lt;/TooltipTrigger&gt;
++                     &lt;TooltipContent&gt;
++                       &lt;p className="max-w-xs"&gt;Promedio de ventas de los últimos 6 meses. Balance entre histórico y actualidad.&lt;/p&gt;
++                     &lt;/TooltipContent&gt;
++                   &lt;/Tooltip&gt;
++                   &lt;Tooltip&gt;
++                     &lt;TooltipTrigger asChild&gt;
++                       &lt;TableHead className="text-right cursor-help"&gt;WMA&lt;/TableHead&gt;
++                     &lt;/TooltipTrigger&gt;
++                     &lt;TooltipContent&gt;
++                       &lt;p className="max-w-xs"&gt;Weighted Moving Average: Promedio con más peso a meses recientes (peso lineal creciente).&lt;/p&gt;
++                     &lt;/TooltipContent&gt;
++                   &lt;/Tooltip&gt;
++                   &lt;Tooltip&gt;
++                     &lt;TooltipTrigger asChild&gt;
++                       &lt;TableHead className="text-right cursor-help"&gt;EMA&lt;/TableHead&gt;
++                     &lt;/TooltipTrigger&gt;
++                     &lt;TooltipContent&gt;
++                       &lt;p className="max-w-xs"&gt;Exponential Moving Average: Promedio con decaimiento exponencial. Común en análisis financiero.&lt;/p&gt;
++                     &lt;/TooltipContent&gt;
++                   &lt;/Tooltip&gt;
++                   &lt;Tooltip&gt;
++                     &lt;TooltipTrigger asChild&gt;
++                       &lt;TableHead className="text-right cursor-help"&gt;6M+WMA&lt;/TableHead&gt;
++                     &lt;/TooltipTrigger&gt;
++                     &lt;TooltipContent&gt;
++                       &lt;p className="max-w-xs"&gt;Promedio ponderado de los últimos 6 meses. Balance óptimo entre actualidad y estabilidad.&lt;/p&gt;
++                     &lt;/TooltipContent&gt;
++                   &lt;/Tooltip&gt;
++                   &lt;Tooltip&gt;
++                     &lt;TooltipTrigger asChild&gt;
++                       &lt;TableHead className="text-right cursor-help"&gt;Mediana&lt;/TableHead&gt;
++                     &lt;/TooltipTrigger&gt;
++                     &lt;TooltipContent&gt;
++                       &lt;p className="max-w-xs"&gt;Valor central de ventas. Muy resistente a picos de venta extremos (outliers).&lt;/p&gt;
++                     &lt;/TooltipContent&gt;
++                   &lt;/Tooltip&gt;
++                   &lt;Tooltip&gt;
++                     &lt;TooltipTrigger asChild&gt;
++                       &lt;TableHead className="text-right cursor-help"&gt;T.Est Simple&lt;/TableHead&gt;
++                     &lt;/TooltipTrigger&gt;
++                     &lt;TooltipContent&gt;
++                       &lt;p className="max-w-xs"&gt;Tiempo estimado para vender la cantidad pedida = Cantidad / Prom Simple&lt;/p&gt;
++                     &lt;/TooltipContent&gt;
++                   &lt;/Tooltip&gt;
++                   &lt;Tooltip&gt;
++                     &lt;TooltipTrigger asChild&gt;
++                       &lt;TableHead className="text-right cursor-help"&gt;T.Est 3M&lt;/TableHead&gt;
++                     &lt;/TooltipTrigger&gt;
++                     &lt;TooltipContent&gt;
++                       &lt;p className="max-w-xs"&gt;Tiempo estimado = Cantidad / Prom 3M&lt;/p&gt;
++                     &lt;/TooltipContent&gt;
++                   &lt;/Tooltip&gt;
++                   &lt;Tooltip&gt;
++                     &lt;TooltipTrigger asChild&gt;
++                       &lt;TableHead className="text-right cursor-help"&gt;T.Est 6M&lt;/TableHead&gt;
++                     &lt;/TooltipTrigger&gt;
++                     &lt;TooltipContent&gt;
++                       &lt;p className="max-w-xs"&gt;Tiempo estimado = Cantidad / Prom 6M&lt;/p&gt;
++                     &lt;/TooltipContent&gt;
++                   &lt;/Tooltip&gt;
++                   &lt;Tooltip&gt;
++                     &lt;TooltipTrigger asChild&gt;
++                       &lt;TableHead className="text-right cursor-help"&gt;T.Est WMA&lt;/TableHead&gt;
++                     &lt;/TooltipTrigger&gt;
++                     &lt;TooltipContent&gt;
++                       &lt;p className="max-w-xs"&gt;Tiempo estimado = Cantidad / WMA&lt;/p&gt;
++                     &lt;/TooltipContent&gt;
++                   &lt;/Tooltip&gt;
++                   &lt;Tooltip&gt;
++                     &lt;TooltipTrigger asChild&gt;
++                       &lt;TableHead className="text-right cursor-help"&gt;T.Est EMA&lt;/TableHead&gt;
++                     &lt;/TooltipTrigger&gt;
++                     &lt;TooltipContent&gt;
++                       &lt;p className="max-w-xs"&gt;Tiempo estimado = Cantidad / EMA&lt;/p&gt;
++                     &lt;/TooltipContent&gt;
++                   &lt;/Tooltip&gt;
++                   &lt;Tooltip&gt;
++                     &lt;TooltipTrigger asChild&gt;
++                       &lt;TableHead className="text-right cursor-help"&gt;T.Est 6M+WMA&lt;/TableHead&gt;
++                     &lt;/TooltipTrigger&gt;
++                     &lt;TooltipContent&gt;
++                       &lt;p className="max-w-xs"&gt;Tiempo estimado = Cantidad / 6M+WMA. Recomendado por su balance.&lt;/p&gt;
++                     &lt;/TooltipContent&gt;
++                   &lt;/Tooltip&gt;
++                   &lt;Tooltip&gt;
++                     &lt;TooltipTrigger asChild&gt;
++                       &lt;TableHead className="text-right cursor-help"&gt;T.Est Mediana&lt;/TableHead&gt;
++                     &lt;/TooltipTrigger&gt;
++                     &lt;TooltipContent&gt;
++                       &lt;p className="max-w-xs"&gt;Tiempo estimado = Cantidad / Mediana&lt;/p&gt;
++                     &lt;/TooltipContent&gt;
++                   &lt;/Tooltip&gt;
++                   &lt;Tooltip&gt;
++                     &lt;TooltipTrigger asChild&gt;
++                       &lt;TableHead className="cursor-help"&gt;Última Venta&lt;/TableHead&gt;
++                     &lt;/TooltipTrigger&gt;
++                     &lt;TooltipContent&gt;
++                       &lt;p className="max-w-xs"&gt;Fecha de la última factura emitida que incluye este artículo&lt;/p&gt;
++                     &lt;/TooltipContent&gt;
++                   &lt;/Tooltip&gt;
++                 &lt;/TooltipProvider&gt;
++                 &lt;TableHead className="w-12"&gt;&lt;/TableHead&gt;
++               &lt;/TableRow&gt;
++             &lt;/TableHeader&gt;
++             &lt;TableBody&gt;
++               {items.map((item) =&gt; (
++                 &lt;TableRow key={item.article.id}&gt;
++                   &lt;TableCell className="font-medium font-mono"&gt;
++                     {item.article.code}
++                   &lt;/TableCell&gt;
++                   &lt;TableCell&gt;
++                     &lt;div className="max-w-md truncate"&gt;{item.article.description}&lt;/div&gt;
++                   &lt;/TableCell&gt;
++                   &lt;TableCell className="text-right"&gt;
++                     &lt;Input
++                       type="number"
++                       min="1"
++                       value={item.quantity}
++                       onChange={(e) =&gt; {
++                         const newQty = parseInt(e.target.value) || 1;
++                         onQuantityChange(item.article.id, newQty);
++                       }}
++                       className="w-24 h-8 text-right"
++                       onFocus={(e) =&gt; e.target.select()}
++                     /&gt;
++                   &lt;/TableCell&gt;
++                   &lt;TableCell className="text-right"&gt;
++                     &lt;span
++                       className={
++                         item.currentStock &lt; item.minimumStock
++                           ? 'text-red-600 font-semibold'
++                           : ''
++                       }
++                     &gt;
++                       {item.currentStock.toFixed(0)}
++                     &lt;/span&gt;
++                   &lt;/TableCell&gt;
++                   &lt;TableCell className="text-right text-muted-foreground"&gt;
++                     {item.minimumStock.toFixed(0)}
++                   &lt;/TableCell&gt;
++                   &lt;TableCell&gt;
++                     {item.article.salesTrend &amp;&amp; item.article.salesTrend.length &gt; 0 ? (
++                       &lt;SparklineWithTooltip
++                         data={item.article.salesTrend}
++                         labels={item.article.salesTrendLabels}
++                         width={Math.min(180, Math.max(80, item.article.salesTrend.length * 10))}
++                         height={40}
++                         color={
++                           item.article.abcClass === 'A'
++                             ? 'rgb(34, 197, 94)' // green-500
++                             : item.article.abcClass === 'B'
++                             ? 'rgb(59, 130, 246)' // blue-500
++                             : 'rgb(107, 114, 128)' // gray-500
++                         }
++                         fillColor={
++                           item.article.abcClass === 'A'
++                             ? 'rgba(34, 197, 94, 0.1)'
++                             : item.article.abcClass === 'B'
++                             ? 'rgba(59, 130, 246, 0.1)'
++                             : 'rgba(107, 114, 128, 0.1)'
++                         }
++                         formatValue={(v) =&gt; &#96;${v} unidades&#96;}
++                       /&gt;
++                     ) : (
++                       &lt;span className="text-xs text-muted-foreground"&gt;Sin datos&lt;/span&gt;
++                     )}
++                   &lt;/TableCell&gt;
++                   
++                   {/* Promedio Simple */}
++                   &lt;TableCell className="text-right"&gt;
++                     {item.avgMonthlySales &gt; 0 ? (
++                       &lt;span className="text-sm"&gt;{item.avgMonthlySales.toFixed(1)}&lt;/span&gt;
++                     ) : item.article.salesTrend &amp;&amp; item.article.salesTrend.length &gt; 0 ? (
++                       &lt;span className="text-muted-foreground text-xs"&gt;0.0&lt;/span&gt;
++                     ) : (
++                       &lt;span className="text-muted-foreground text-xs"&gt;-&lt;/span&gt;
++                     )}
++                   &lt;/TableCell&gt;
++                   
++                   {/* Prom 3M */}
++                   &lt;TableCell className="text-right"&gt;
++                     {(item.avgSales3Months ?? 0) &gt; 0 ? (
++                       &lt;span className="text-sm"&gt;{item.avgSales3Months!.toFixed(1)}&lt;/span&gt;
++                     ) : (
++                       &lt;span className="text-muted-foreground text-xs"&gt;0.0&lt;/span&gt;
++                     )}
++                   &lt;/TableCell&gt;
++                   
++                   {/* Prom 6M */}
++                   &lt;TableCell className="text-right"&gt;
++                     {(item.avgSales6Months ?? 0) &gt; 0 ? (
++                       &lt;span className="text-sm"&gt;{item.avgSales6Months!.toFixed(1)}&lt;/span&gt;
++                     ) : (
++                       &lt;span className="text-muted-foreground text-xs"&gt;0.0&lt;/span&gt;
++                     )}
++                   &lt;/TableCell&gt;
++                   
++                   {/* WMA */}
++                   &lt;TableCell className="text-right"&gt;
++                     {(item.avgSalesWeighted ?? 0) &gt; 0 ? (
++                       &lt;span className="text-sm"&gt;{item.avgSalesWeighted!.toFixed(1)}&lt;/span&gt;
++                     ) : (
++                       &lt;span className="text-muted-foreground text-xs"&gt;0.0&lt;/span&gt;
++                     )}
++                   &lt;/TableCell&gt;
++                   
++                   {/* EMA */}
++                   &lt;TableCell className="text-right"&gt;
++                     {(item.avgSalesEma ?? 0) &gt; 0 ? (
++                       &lt;span className="text-sm"&gt;{item.avgSalesEma!.toFixed(1)}&lt;/span&gt;
++                     ) : (
++                       &lt;span className="text-muted-foreground text-xs"&gt;0.0&lt;/span&gt;
++                     )}
++                   &lt;/TableCell&gt;
++                   
++                   {/* 6M+WMA */}
++                   &lt;TableCell className="text-right"&gt;
++                     {(item.avgSalesRecent6Weighted ?? 0) &gt; 0 ? (
++                       &lt;span className="text-sm"&gt;{item.avgSalesRecent6Weighted!.toFixed(1)}&lt;/span&gt;
++                     ) : (
++                       &lt;span className="text-muted-foreground text-xs"&gt;0.0&lt;/span&gt;
++                     )}
++                   &lt;/TableCell&gt;
++                   
++                   {/* Mediana */}
++                   &lt;TableCell className="text-right"&gt;
++                     {(item.avgSalesMedian ?? 0) &gt; 0 ? (
++                       &lt;span className="text-sm"&gt;{item.avgSalesMedian!.toFixed(1)}&lt;/span&gt;
++                     ) : (
++                       &lt;span className="text-muted-foreground text-xs"&gt;0.0&lt;/span&gt;
++                     )}
++                   &lt;/TableCell&gt;
++                   
++                   {/* T.Est Simple */}
++                   &lt;TableCell className="text-right"&gt;
++                     &lt;Badge variant={isFinite(item.estimatedSaleTime) &amp;&amp; item.estimatedSaleTime &gt; 0 ? 'secondary' : 'outline'} className="text-xs"&gt;
++                       {formatSaleTime(item.estimatedSaleTime)}
++                     &lt;/Badge&gt;
++                   &lt;/TableCell&gt;
++                   
++                   {/* T.Est 3M */}
++                   &lt;TableCell className="text-right"&gt;
++                     &lt;Badge variant={isFinite(item.estTime3Months ?? Infinity) &amp;&amp; (item.estTime3Months ?? 0) &gt; 0 ? 'secondary' : 'outline'} className="text-xs"&gt;
++                       {formatSaleTime(item.estTime3Months ?? Infinity)}
++                     &lt;/Badge&gt;
++                   &lt;/TableCell&gt;
++                   
++                   {/* T.Est 6M */}
++                   &lt;TableCell className="text-right"&gt;
++                     &lt;Badge variant={isFinite(item.estTime6Months ?? Infinity) &amp;&amp; (item.estTime6Months ?? 0) &gt; 0 ? 'secondary' : 'outline'} className="text-xs"&gt;
++                       {formatSaleTime(item.estTime6Months ?? Infinity)}
++                     &lt;/Badge&gt;
++                   &lt;/TableCell&gt;
++                   
++                   {/* T.Est WMA */}
++                   &lt;TableCell className="text-right"&gt;
++                     &lt;Badge variant={isFinite(item.estTimeWeighted ?? Infinity) &amp;&amp; (item.estTimeWeighted ?? 0) &gt; 0 ? 'secondary' : 'outline'} className="text-xs"&gt;
++                       {formatSaleTime(item.estTimeWeighted ?? Infinity)}
++                     &lt;/Badge&gt;
++                   &lt;/TableCell&gt;
++                   
++                   {/* T.Est EMA */}
++                   &lt;TableCell className="text-right"&gt;
++                     &lt;Badge variant={isFinite(item.estTimeEma ?? Infinity) &amp;&amp; (item.estTimeEma ?? 0) &gt; 0 ? 'secondary' : 'outline'} className="text-xs"&gt;
++                       {formatSaleTime(item.estTimeEma ?? Infinity)}
++                     &lt;/Badge&gt;
++                   &lt;/TableCell&gt;
++                   
++                   {/* T.Est 6M+WMA */}
++                   &lt;TableCell className="text-right"&gt;
++                     &lt;Badge variant={isFinite(item.estTimeRecent6Weighted ?? Infinity) &amp;&amp; (item.estTimeRecent6Weighted ?? 0) &gt; 0 ? 'secondary' : 'outline'} className="text-xs"&gt;
++                       {formatSaleTime(item.estTimeRecent6Weighted ?? Infinity)}
++                     &lt;/Badge&gt;
++                   &lt;/TableCell&gt;
++                   
++                   {/* T.Est Mediana */}
++                   &lt;TableCell className="text-right"&gt;
++                     &lt;Badge variant={isFinite(item.estTimeMedian ?? Infinity) &amp;&amp; (item.estTimeMedian ?? 0) &gt; 0 ? 'secondary' : 'outline'} className="text-xs"&gt;
++                       {formatSaleTime(item.estTimeMedian ?? Infinity)}
++                     &lt;/Badge&gt;
++                   &lt;/TableCell&gt;
++                   
++                   {/* Última Venta */}
++                   &lt;TableCell&gt;
++                     {item.article.lastSaleDate ? (
++                       &lt;span className="text-sm"&gt;
++                         {new Date(item.article.lastSaleDate).toLocaleDateString('es-AR', {
++                           day: '2-digit',
++                           month: '2-digit',
++                           year: 'numeric'
++                         })}
++                       &lt;/span&gt;
++                     ) : (
++                       &lt;span className="text-xs text-muted-foreground"&gt;Nunca&lt;/span&gt;
++                     )}
++                   &lt;/TableCell&gt;
++                   &lt;TableCell className="text-right font-medium"&gt;
++                     {formatPrice(item.article.unitPrice)}
++                   &lt;/TableCell&gt;
++                   &lt;TableCell&gt;
++                     &lt;Button
++                       variant="ghost"
++                       size="icon"
++                       className="h-8 w-8"
++                       onClick={() =&gt; onRemove(item.article.id)}
++                       title="Quitar"
++                     &gt;
++                       &lt;Trash2 className="h-4 w-4 text-red-600" /&gt;
++                     &lt;/Button&gt;
++                   &lt;/TableCell&gt;
++                 &lt;/TableRow&gt;
++               ))}
++             &lt;/TableBody&gt;
++           &lt;/Table&gt;
++         &lt;/div&gt;
++ 
++         {/* Footer with totals */}
++         &lt;div className="flex items-center justify-between pt-2 border-t"&gt;
++           &lt;div className="flex gap-6"&gt;
++             &lt;div&gt;
++               &lt;div className="text-xs text-muted-foreground"&gt;Total Artículos&lt;/div&gt;
++               &lt;div className="text-lg font-semibold"&gt;{totalItems}&lt;/div&gt;
++             &lt;/div&gt;
++             &lt;div&gt;
++               &lt;div className="text-xs text-muted-foreground"&gt;Total Unidades&lt;/div&gt;
++               &lt;div className="text-lg font-semibold"&gt;{totalQuantity}&lt;/div&gt;
++             &lt;/div&gt;
++             &lt;div&gt;
++               &lt;div className="text-xs text-muted-foreground flex items-center gap-1"&gt;
++                 Tiempo Prom. Est. Venta
++                 {!isFinite(totalEstimatedTime) &amp;&amp; (
++                   &lt;AlertTriangle className="h-3 w-3 text-amber-500" /&gt;
++                 )}
++               &lt;/div&gt;
++               &lt;div className="text-lg font-semibold"&gt;
++                 &lt;Badge variant="secondary" className="text-sm"&gt;
++                   {formatSaleTime(totalEstimatedTime)}
++                 &lt;/Badge&gt;
++               &lt;/div&gt;
++             &lt;/div&gt;
++           &lt;/div&gt;
++         &lt;/div&gt;
++       &lt;/div&gt;
++     &lt;/Card&gt;
++   );
++ }
++ 
++ 
+```
+
+</details>
+
+</tool-use>
+
+---
+
+Ahora necesito reordenar las celdas en el TableBody para que "Precio Unit." esté antes de "Prom Simple". Déjame encontrar esas celdas:
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\dialfa new\spisa-new\frontend\components\articles\SupplierOrderPanel.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+Ahora necesito agregar la celda de "Precio Unit." después de "Tendencia" y antes de "Prom Simple". Déjame buscar dónde está actualmente la celda de precio:
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "formatPrice.*unitPrice" in "D:\dialfa new\spisa-new\frontend\components\articles\SupplierOrderPanel.tsx" • 4 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `.\SupplierOrderPanel.tsx` | `<td class="text-right">$\{formatPrice(item.article.unitPrice)\}</td>` | L320 |
+| `.\SupplierOrderPanel.tsx` | `<td class="text-right"><strong>$\{formatPrice(item.article.unitPrice * item.quantity)\}</strong></td>` | L321 |
+| `.\SupplierOrderPanel.tsx` | `\{formatPrice(item.article.unitPrice)\}` | L764 |
+| `.\ArticlesTable.tsx` | `\{formatPrice(article.unitPrice)\}` | L155 |
+
+
+</details>
+</tool-use>
+
+---
+
+La celda de precio está en la línea 763-765. Necesito moverla antes de "Prom Simple". Déjame leer esa sección:
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\dialfa new\spisa-new\frontend\components\articles\SupplierOrderPanel.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+Perfecto, ahora voy a mover la celda de "Precio Unit." (líneas 763-765) para que esté después de "Tendencia" (después de línea 633):
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: D:\dialfa new\spisa-new\frontend\components\articles\SupplierOrderPanel.tsx</summary>
+
+**Chunk 1**
+Lines added: 5, lines removed: undefined
+
+```diff
+@@ -632,4 +632,9 @@
+                      )}
+                    &lt;/TableCell&gt;
++                   
++                   {/* Precio Unitario */}
++                   &lt;TableCell className="text-right font-medium"&gt;
++                     {formatPrice(item.article.unitPrice)}
++                   &lt;/TableCell&gt;
+                    
+                    {/* Promedio Simple */}
+```
+
+</details>
+
+</tool-use>
+
+---
+
+Ahora necesito eliminar la celda duplicada de precio que quedó más abajo:
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: D:\dialfa new\spisa-new\frontend\components\articles\SupplierOrderPanel.tsx</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: 3
+
+```diff
+@@ -766,7 +766,6 @@
+                      )}
+                    &lt;/TableCell&gt;
+-                   &lt;TableCell className="text-right font-medium"&gt;
+-                     {formatPrice(item.article.unitPrice)}
+-                   &lt;/TableCell&gt;
++                   
++                   {/* Actions */}
+                    &lt;TableCell&gt;
+                      &lt;Button
+```
+
+</details>
+
+</tool-use>
+
+---
+
+Ahora necesito actualizar también la sección de exportación HTML para que tenga el mismo orden. Déjame buscarlo:
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "<th.*Venta Prom" in "D:\dialfa new\spisa-new\frontend\components\articles\SupplierOrderPanel.tsx" • 1 match</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `.\SupplierOrderPanel.tsx` | `<th class="text-right">Venta Prom/Mes</th>` | L273 |
+
+
+</details>
+</tool-use>
+
+---
+
+El HTML export tiene un formato simplificado (solo las columnas principales). Esto está bien, no necesito cambiarlo porque es para exportar de forma más compacta.
+
+Ahora déjame verificar los lints:
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 1 file</summary>
+      
+Lint paths:
+
+- `D:\dialfa new\spisa-new\frontend\components\articles\SupplierOrderPanel.tsx`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+¡Perfecto! Ahora voy a crear un resumen de los cambios:
+
+## ✅ Cambios Implementados
+
+### 1. **Reordenamiento de columnas**
+- ✅ "Precio Unit." ahora aparece **antes** de todas las columnas de promedios (entre "Tendencia" y "Prom Simple")
+
+### 2. **Tooltips explicativos en headers**
+Cada columna ahora tiene un tooltip al hacer hover que explica:
+
+**Columnas de Promedios:**
+- **Prom Simple**: "Promedio de ventas mensuales (todos los meses)"
+- **Prom 3M**: "Promedio de ventas de los últimos 3 meses. Muy sensible a cambios recientes."
+- **Prom 6M**: "Promedio de ventas de los últimos 6 meses. Balance entre histórico y actualidad."
+- **WMA**: "Weighted Moving Average: Promedio con más peso a meses recientes (peso lineal creciente)."
+- **EMA**: "Exponential Moving Average: Promedio con decaimiento exponencial. Común en análisis financiero."
+- **6M+WMA**: "Promedio ponderado de los últimos 6 meses. Balance óptimo entre actualidad y estabilidad."
+- **Mediana**: "Valor central de ventas. Muy resistente a picos de venta extremos (outliers)."
+
+**Columnas de Tiempo Estimado:**
+- **T.Est Simple**: "Tiempo estimado para vender la cantidad pedida = Cantidad / Prom Simple"
+- **T.Est 3M**: "Tiempo estimado = Cantidad / Prom 3M"
+- **T.Est 6M**: "Tiempo estimado = Cantidad / Prom 6M"
+- **T.Est WMA**: "Tiempo estimado = Cantidad / WMA"
+- **T.Est EMA**: "Tiempo estimado = Cantidad / EMA"
+- **T.Est 6M+WMA**: "Tiempo estimado = Cantidad / 6M+WMA. Recomendado por su balance."
+- **T.Est Mediana**: "Tiempo estimado = Cantidad / Mediana"
+
+**Otras:**
+- **Última Venta**: "Fecha de la última factura emitida que incluye este artículo"
+- **Precio Unit.**: "Precio unitario del artículo"
+
+### 3. **Diferencia entre Prom y T.Est**
+Como preguntaste:
+- **Prom** = ¿Cuántas unidades vendes por mes?
+- **T.Est** = ¿Cuántos meses tardarás en vender lo que pediste?
+- Fórmula: `T.Est = Cantidad Pedida / Promedio Mensual`
+
+Ejemplo práctico:
+- Pides **200 unidades**
+- Vendes **10 unidades/mes** (Prom)
+- **T.Est = 200 / 10 = 20 meses** para vender todo
+
+Ahora recarga y verás los tooltips al hacer hover sobre cada header! 🎯
+
+---
+
+_**User (2025-12-25 19:29Z)**_
+
+quiero que exportar html exporte todo l oque esta en la grilla
+
+---
+
+_**Agent (model claude-4.5-sonnet-thinking, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+El usuario quiere que la exportación a HTML incluya TODAS las columnas que están en la grilla (todos los promedios y todos los tiempos estimados), no solo las columnas principales como está ahora.
+
+Necesito actualizar la función `handleExportToHTML` para incluir todas las columnas nuevas.</details></think>
+
+---
+
+Perfecto, voy a actualizar la función de exportación HTML para que incluya TODAS las columnas que aparecen en la grilla.
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\dialfa new\spisa-new\frontend\components\articles\SupplierOrderPanel.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: D:\dialfa new\spisa-new\frontend\components\articles\SupplierOrderPanel.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+Ahora voy a actualizar la función para incluir TODAS las columnas:
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: D:\dialfa new\spisa-new\frontend\components\articles\SupplierOrderPanel.tsx</summary>
+
+**Chunk 1**
+Lines added: 16, lines removed: 5
+
+```diff
+@@ -270,10 +270,21 @@
+            &lt;th class="text-right"&gt;Stock Actual&lt;/th&gt;
+            &lt;th class="text-right"&gt;Stock Mín.&lt;/th&gt;
+-           &lt;th&gt;Tendencia (${trendMonths} meses)&lt;/th&gt;
+-           &lt;th class="text-right"&gt;Venta Prom/Mes&lt;/th&gt;
+-           &lt;th class="text-right"&gt;Tiempo Est. Venta&lt;/th&gt;
+-           &lt;th&gt;Última Venta&lt;/th&gt;
++           &lt;th&gt;Tendencia&lt;/th&gt;
+            &lt;th class="text-right"&gt;Precio Unit.&lt;/th&gt;
+-           &lt;th class="text-right"&gt;Total&lt;/th&gt;
++           &lt;th class="text-right"&gt;Prom Simple&lt;/th&gt;
++           &lt;th class="text-right"&gt;Prom 3M&lt;/th&gt;
++           &lt;th class="text-right"&gt;Prom 6M&lt;/th&gt;
++           &lt;th class="text-right"&gt;WMA&lt;/th&gt;
++           &lt;th class="text-right"&gt;EMA&lt;/th&gt;
++           &lt;th class="text-right"&gt;6M+WMA&lt;/th&gt;
++           &lt;th class="text-right"&gt;Mediana&lt;/th&gt;
++           &lt;th class="text-right"&gt;T.Est Simple&lt;/th&gt;
++           &lt;th class="text-right"&gt;T.Est 3M&lt;/th&gt;
++           &lt;th class="text-right"&gt;T.Est 6M&lt;/th&gt;
++           &lt;th class="text-right"&gt;T.Est WMA&lt;/th&gt;
++           &lt;th class="text-right"&gt;T.Est EMA&lt;/th&gt;
++           &lt;th class="text-right"&gt;T.Est 6M+WMA&lt;/th&gt;
++           &lt;th class="text-right"&gt;T.Est Mediana&lt;/th&gt;
++           &lt;th&gt;Última Venta&lt;/th&gt;
+          &lt;/tr&gt;
+        &lt;/thead&gt;
+```
+
+**Chunk 2**
+Lines added: 12, lines removed: 1
+
+```diff
+@@ -293,5 +304,16 @@
+                  year: 'numeric'
+                })
+-             : '&lt;span style="color: #9ca3af; font-size: 12px;"&gt;Nunca vendido&lt;/span&gt;';
++             : '&lt;span style="color: #9ca3af; font-size: 12px;"&gt;Nunca&lt;/span&gt;';
++           
++           const formatValue = (val?: number) =&gt; {
++             if (!val || val === 0) return '&lt;span style="color: #9ca3af; font-size: 12px;"&gt;0.0&lt;/span&gt;';
++             return val.toFixed(1);
++           };
++           
++           const formatBadge = (time?: number) =&gt; {
++             const timeValue = time ?? Infinity;
++             const badgeClass = !isFinite(timeValue) || timeValue === 0 ? 'badge-gray' : (abcClass === 'A' ? 'badge-green' : abcClass === 'B' ? 'badge-blue' : 'badge-gray');
++             return &#96;&lt;span class="badge ${badgeClass}"&gt;${formatSaleTimeLocal(timeValue)}&lt;/span&gt;&#96;;
++           };
+            
+            return &#96;
+```
+
+**Chunk 3**
+Lines added: 15, lines removed: 16
+
+```diff
+@@ -303,21 +325,20 @@
+              &lt;td class="text-right" style="color: #9ca3af;"&gt;${item.minimumStock.toFixed(0)}&lt;/td&gt;
+              &lt;td&gt;${sparklineSVG}&lt;/td&gt;
+-             &lt;td class="text-right"&gt;
+-               ${item.avgMonthlySales &gt; 0 
+-                 ? item.avgMonthlySales.toFixed(1) 
+-                 : (item.article.salesTrend &amp;&amp; item.article.salesTrend.length &gt; 0 
+-                   ? '&lt;span style="color: #9ca3af; font-size: 12px;"&gt;0.0 (sin ventas)&lt;/span&gt;'
+-                   : '&lt;span style="color: #9ca3af; font-size: 12px;"&gt;Sin datos&lt;/span&gt;'
+-                 )
+-               }
+-             &lt;/td&gt;
+-             &lt;td class="text-right"&gt;
+-               &lt;span class="badge ${!isFinite(item.estimatedSaleTime) || item.estimatedSaleTime === 0 ? 'badge-gray' : (abcClass === 'A' ? 'badge-green' : abcClass === 'B' ? 'badge-blue' : 'badge-gray')}"&gt;
+-                 ${formatSaleTimeLocal(item.estimatedSaleTime)}
+-               &lt;/span&gt;
+-             &lt;/td&gt;
++             &lt;td class="text-right"&gt;&lt;strong&gt;${formatPrice(item.article.unitPrice)}&lt;/strong&gt;&lt;/td&gt;
++             &lt;td class="text-right"&gt;${item.avgMonthlySales &gt; 0 ? item.avgMonthlySales.toFixed(1) : '&lt;span style="color: #9ca3af; font-size: 12px;"&gt;0.0&lt;/span&gt;'}&lt;/td&gt;
++             &lt;td class="text-right"&gt;${formatValue(item.avgSales3Months)}&lt;/td&gt;
++             &lt;td class="text-right"&gt;${formatValue(item.avgSales6Months)}&lt;/td&gt;
++             &lt;td class="text-right"&gt;${formatValue(item.avgSalesWeighted)}&lt;/td&gt;
++             &lt;td class="text-right"&gt;${formatValue(item.avgSalesEma)}&lt;/td&gt;
++             &lt;td class="text-right"&gt;${formatValue(item.avgSalesRecent6Weighted)}&lt;/td&gt;
++             &lt;td class="text-right"&gt;${formatValue(item.avgSalesMedian)}&lt;/td&gt;
++             &lt;td class="text-right"&gt;${formatBadge(item.estimatedSaleTime)}&lt;/td&gt;
++             &lt;td class="text-right"&gt;${formatBadge(item.estTime3Months)}&lt;/td&gt;
++             &lt;td class="text-right"&gt;${formatBadge(item.estTime6Months)}&lt;/td&gt;
++             &lt;td class="text-right"&gt;${formatBadge(item.estTimeWeighted)}&lt;/td&gt;
++             &lt;td class="text-right"&gt;${formatBadge(item.estTimeEma)}&lt;/td&gt;
++             &lt;td class="text-right"&gt;${formatBadge(item.estTimeRecent6Weighted)}&lt;/td&gt;
++             &lt;td class="text-right"&gt;${formatBadge(item.estTimeMedian)}&lt;/td&gt;
+              &lt;td&gt;${lastSaleDateFormatted}&lt;/td&gt;
+-             &lt;td class="text-right"&gt;${formatPrice(item.article.unitPrice)}&lt;/td&gt;
+-             &lt;td class="text-right"&gt;&lt;strong&gt;${formatPrice(item.article.unitPrice * item.quantity)}&lt;/strong&gt;&lt;/td&gt;
+            &lt;/tr&gt;
+            &#96;;
+```
+
+</details>
+
+</tool-use>
+
+---
+
+Ahora también necesito actualizar el CSS para que la tabla se vea bien con muchas columnas:
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: D:\dialfa new\spisa-new\frontend\components\articles\SupplierOrderPanel.tsx</summary>
+
+**Chunk 1**
+Lines added: 3, lines removed: 2
+
+```diff
+@@ -125,14 +125,15 @@
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+-       padding: 40px;
++       padding: 20px;
+        background: #f5f5f5;
+      }
+      .container {
+-       max-width: 1400px;
++       max-width: 100%;
+        margin: 0 auto;
+        background: white;
+        padding: 30px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
++       overflow-x: auto;
+      }
+      h1 {
+```
+
+**Chunk 2**
+Lines added: 9, lines removed: 5
+
+```diff
+@@ -171,24 +172,28 @@
+      table {
+        width: 100%;
++       min-width: 2000px;
+        border-collapse: collapse;
+        margin-bottom: 20px;
++       font-size: 11px;
+      }
+      th {
+        background: #f3f4f6;
+-       padding: 12px;
++       padding: 8px 6px;
+        text-align: left;
+        font-weight: 600;
+-       font-size: 12px;
++       font-size: 10px;
+        color: #374151;
+        text-transform: uppercase;
+-       letter-spacing: 0.5px;
++       letter-spacing: 0.3px;
+        border-bottom: 2px solid #e5e7eb;
++       white-space: nowrap;
+      }
+      th.text-right { text-align: right; }
+      td {
+-       padding: 12px;
++       padding: 8px 6px;
+        border-bottom: 1px solid #e5e7eb;
+-       font-size: 14px;
++       font-size: 11px;
+        color: #1f2937;
++       white-space: nowrap;
+      }
+      td.text-right { text-align: right; }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 1 file</summary>
+      
+Lint paths:
+
+- `D:\dialfa new\spisa-new\frontend\components\articles\SupplierOrderPanel.tsx`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+¡Perfecto! Ahora la exportación HTML incluye TODAS las columnas. Voy a crear un resumen:
+
+## ✅ Actualización de Exportación HTML
+
+### 📊 **Columnas Incluidas Ahora:**
+
+La exportación HTML ahora incluye **TODAS** las columnas visibles en la grilla:
+
+1. **Básicas:**
+   - Código
+   - Descripción
+   - Cantidad
+   - Stock Actual
+   - Stock Mín.
+   - Tendencia (gráfico sparkline)
+
+2. **Precio:**
+   - Precio Unit.
+
+3. **Promedios (7 métodos):**
+   - Prom Simple
+   - Prom 3M
+   - Prom 6M
+   - WMA
+   - EMA
+   - 6M+WMA
+   - Mediana
+
+4. **Tiempos Estimados (7 métodos):**
+   - T.Est Simple
+   - T.Est 3M
+   - T.Est 6M
+   - T.Est WMA
+   - T.Est EMA
+   - T.Est 6M+WMA
+   - T.Est Mediana
+
+5. **Extra:**
+   - Última Venta
+
+### 🎨 **Optimizaciones de Diseño:**
+
+- **Tabla ancha**: `min-width: 2000px` para acomodar todas las columnas
+- **Scroll horizontal**: El contenedor es scrolleable para ver todas las columnas
+- **Texto más pequeño**: Reducido a `11px` en celdas y `10px` en headers
+- **Padding ajustado**: Reducido a `8px 6px` para compactar
+- **Sin wrap**: `white-space: nowrap` para evitar saltos de línea
+- **100% width**: El contenedor usa todo el ancho disponible
+
+### 📄 **Resultado:**
+
+El HTML exportado ahora es un documento completo con:
+- ✅ Todas las 22 columnas de la grilla
+- ✅ Gráficos de tendencia (sparklines inline SVG)
+- ✅ Badges de colores para tiempos estimados
+- ✅ Formato responsive con scroll horizontal
+- ✅ Listo para imprimir o compartir
+
+Ahora cuando exportes, tendrás el análisis completo de todos los métodos de cálculo en un solo documento HTML! 🎉
+
+---
+
+_**User (2025-12-25 19:29Z)**_
+
+@c:\Users\User\Desktop\pedido-proveedor-2025-12-26T14-51-17.html analiza que variablees mas representativa para los datos que ves. que pensas ?
+
+---
+
+_**Agent (model claude-4.5-sonnet-thinking, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+El usuario me ha compartido un archivo HTML exportado con el pedido a proveedor que contiene todas las columnas con los diferentes métodos de cálculo de promedios y tiempos estimados. Quiere que analice qué variable es más representativa para los datos que veo.
+
+Déjame analizar algunos ejemplos del HTML:
+
+1. **BSS1501** (Bridas S-150 SORF de 1"):
+   - Tiene gráfico de tendencia con un pico claro
+   - Prom Simple: 16.4
+   - Prom 3M: 53.3 (muy alto por pico reciente)
+   - Prom 6M: 26.7
+   - WMA: 21.3
+   - EMA: 24.1
+   - 6M+WMA: 30.5
+   - Mediana: 0.0
+   - T.Est Simple: ~39.6 meses
+   - T.Est 3M: ~12.2 meses (muy optimista)
+   - T.Est 6M: ~24.4 meses
+   - Última venta: 24/10/2025
+
+2. **BSS1502** (Bridas S-150 SORF de 2"):
+   - Tiene gráfico con pico reciente
+   - Prom Simple: 13.3
+   - Prom 3M: 22.3
+   - Prom 6M: 15.8
+   - WMA: 15.0
+   - EMA: 18.4
+   - 6M+WMA: 18.6
+   - Mediana: 6.0
+   - Última venta: 23/12/2025 (muy reciente)
+
+3. **BSS1505** (Bridas S-150 SORF de 5"):
+
+
+Noto una tendencia extremadamente baja con un pico histórico antiguo. Los promedios son casi cero, con un tiempo estimado de venta increíblemente largo. La última venta ocurrió hace poco tiempo, lo que sugiere una demanda muy reducida para este producto.
+
+En contraste, la brida roscada muestra un panorama completamente diferente: ventas consistentes y promedios estables alrededor de 9, con métricas que sugieren un rendimiento comercial sólido y predecible.
+
+Los métodos de cálculo revelan matices importantes: algunos sobreestiman, otros suavizan, pero convergen en un rango estrecho. Para este producto industrial, los promedios de 6 meses y ponderados ofrecen la perspectiva más equilibrada.
+
+La estrategia de análisis prioriza métodos que capturan tendencias recientes sin distorsionar la imagen general del desempeño comercial.</details></think>
+
+---
+
+Excelente pregunta! Déjame analizar los datos del HTML exportado para identificar patrones:
+
+## 📊 Análisis de Casos Representativos:
+
+### 1. **BSS1501** (Bridas S-150 SORF 1") - Con pico de ventas
+```
+Prom Simple: 16.4  → T.Est: 39.6 meses
+Prom 3M:     53.3  → T.Est: 12.2 meses (muy optimista por pico feb/24)
+Prom 6M:     26.7  → T.Est: 24.4 meses
+WMA:         21.3  → T.Est: 30.5 meses
+EMA:         24.1  → T.Est: 27.0 meses
+6M+WMA:      30.5  → T.Est: 21.3 meses ✅
+Mediana:     0.0   → T.Est: ∞ (demasiado conservadora)
+Última venta: 24/10/2025 (reciente)
+```
+
+### 2. **BRS1502** (Brida Roscada 2") - Ventas estables
+```
+Prom Simple: 9.1  → T.Est: 66.1 meses
+Prom 3M:     7.3  → T.Est: 81.8 meses
+Prom 6M:     9.2  → T.Est: 65.5 meses
+WMA:         9.1  → T.Est: 65.7 meses
+EMA:         6.7  → T.Est: 90.0 meses
+6M+WMA:      6.8  → T.Est: 88.7 meses
+Mediana:     9.0  → T.Est: 66.7 meses ✅
+```
+**Todos convergen** → producto predecible
+
+### 3. **BSS1505** (Bridas 5") - Pico antiguo, casi sin ventas
+```
+Prom Simple: 0.3  → T.Est: 1800 meses (sobrestima por pico antiguo)
+Prom 3M:     0.0  → T.Est: ∞
+Prom 6M:     0.2  → T.Est: 2700 meses
+6M+WMA:      0.1  → T.Est: 3150 meses ✅ (realista: producto casi muerto)
+Última venta: 11/09/2025 (hace 3 meses)
+```
+
+## 🎯 **Mi Recomendación: 6M+WMA o Prom 6M**
+
+### **Ventajas de 6M+WMA:**
+✅ **Balance perfecto**: Solo últimos 6 meses (ignora historia antigua)  
+✅ **Ponderación inteligente**: Más peso a meses recientes  
+✅ **Realista con picos**: No sobreestima por picos antiguos  
+✅ **No demasiado volátil**: No se deja engañar por un solo mes  
+
+### **Por qué NO las otras:**
+
+❌ **Prom Simple (16.4)**: Incluye pico de feb/24 que distorsiona  
+❌ **Prom 3M (53.3)**: Demasiado optimista, muy sensible  
+❌ **Mediana (0.0)**: Demasiado pesimista, ignora tendencias  
+❌ **EMA**: Buena, pero más compleja de explicar a usuarios  
+
+## 💡 **Conclusión:**
+
+Para tu negocio B2B con:
+- Productos con ventas irregulares
+- Picos estacionales o por proyectos grandes
+- Necesidad de balance entre actualidad y estabilidad
+
+**Recomiendo: 6M+WMA como métrica principal**
+
+### **Implementación sugerida:**
+1. Usa **6M+WMA** como columna principal de "Venta Prom/Mes"
+2. Mantén **Prom 6M** como secundaria (más simple de entender)
+3. Opcional: Agrega un indicador visual si hay gran diferencia entre métodos (señal de volatilidad)
+
+¿Coincide con tu experiencia viendo los datos reales? ¿Cuál te parece más útil para tomar decisiones de compra?
+
+---
+
+_**User (2025-12-25 19:29Z)**_
+
+quiero que hagas un script en python que analice este archivo y con eso determine cual es la mejor herramienta a utilizar. o cuales. 
+
+---
+
+_**Agent (model claude-4.5-sonnet-thinking, mode Agent)**_
 
 
 

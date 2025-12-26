@@ -20,6 +20,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { Trash2, ShoppingCart, AlertTriangle, CheckCircle2, Loader2, Clock, Download } from 'lucide-react';
 import { formatSaleTime } from '@/lib/utils/salesCalculations';
 import { SparklineWithTooltip } from '@/components/ui/sparkline';
@@ -118,16 +124,17 @@ export function SupplierOrderPanel({
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      padding: 40px;
+      padding: 20px;
       background: #f5f5f5;
     }
     .container {
-      max-width: 1400px;
+      max-width: 100%;
       margin: 0 auto;
       background: white;
       padding: 30px;
       border-radius: 8px;
       box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      overflow-x: auto;
     }
     h1 {
       color: #1f2937;
@@ -164,26 +171,30 @@ export function SupplierOrderPanel({
     }
     table {
       width: 100%;
+      min-width: 2000px;
       border-collapse: collapse;
       margin-bottom: 20px;
+      font-size: 11px;
     }
     th {
       background: #f3f4f6;
-      padding: 12px;
+      padding: 8px 6px;
       text-align: left;
       font-weight: 600;
-      font-size: 12px;
+      font-size: 10px;
       color: #374151;
       text-transform: uppercase;
-      letter-spacing: 0.5px;
+      letter-spacing: 0.3px;
       border-bottom: 2px solid #e5e7eb;
+      white-space: nowrap;
     }
     th.text-right { text-align: right; }
     td {
-      padding: 12px;
+      padding: 8px 6px;
       border-bottom: 1px solid #e5e7eb;
-      font-size: 14px;
+      font-size: 11px;
       color: #1f2937;
+      white-space: nowrap;
     }
     td.text-right { text-align: right; }
     td.code {
@@ -263,12 +274,23 @@ export function SupplierOrderPanel({
           <th class="text-right">Cantidad</th>
           <th class="text-right">Stock Actual</th>
           <th class="text-right">Stock Mín.</th>
-          <th>Tendencia (${trendMonths} meses)</th>
-          <th class="text-right">Venta Prom/Mes</th>
-          <th class="text-right">Tiempo Est. Venta</th>
-          <th>Última Venta</th>
+          <th>Tendencia</th>
           <th class="text-right">Precio Unit.</th>
-          <th class="text-right">Total</th>
+          <th class="text-right">Prom Simple</th>
+          <th class="text-right">Prom 3M</th>
+          <th class="text-right">Prom 6M</th>
+          <th class="text-right">WMA</th>
+          <th class="text-right">EMA</th>
+          <th class="text-right">6M+WMA</th>
+          <th class="text-right">Mediana</th>
+          <th class="text-right">T.Est Simple</th>
+          <th class="text-right">T.Est 3M</th>
+          <th class="text-right">T.Est 6M</th>
+          <th class="text-right">T.Est WMA</th>
+          <th class="text-right">T.Est EMA</th>
+          <th class="text-right">T.Est 6M+WMA</th>
+          <th class="text-right">T.Est Mediana</th>
+          <th>Última Venta</th>
         </tr>
       </thead>
       <tbody>
@@ -286,7 +308,18 @@ export function SupplierOrderPanel({
                 month: '2-digit',
                 year: 'numeric'
               })
-            : '<span style="color: #9ca3af; font-size: 12px;">Nunca vendido</span>';
+            : '<span style="color: #9ca3af; font-size: 12px;">Nunca</span>';
+          
+          const formatValue = (val?: number) => {
+            if (!val || val === 0) return '<span style="color: #9ca3af; font-size: 12px;">0.0</span>';
+            return val.toFixed(1);
+          };
+          
+          const formatBadge = (time?: number) => {
+            const timeValue = time ?? Infinity;
+            const badgeClass = !isFinite(timeValue) || timeValue === 0 ? 'badge-gray' : (abcClass === 'A' ? 'badge-green' : abcClass === 'B' ? 'badge-blue' : 'badge-gray');
+            return `<span class="badge ${badgeClass}">${formatSaleTimeLocal(timeValue)}</span>`;
+          };
           
           return `
           <tr>
@@ -296,23 +329,22 @@ export function SupplierOrderPanel({
             <td class="text-right ${isLowStock ? 'low-stock' : ''}">${item.currentStock.toFixed(0)}</td>
             <td class="text-right" style="color: #9ca3af;">${item.minimumStock.toFixed(0)}</td>
             <td>${sparklineSVG}</td>
-            <td class="text-right">
-              ${item.avgMonthlySales > 0 
-                ? item.avgMonthlySales.toFixed(1) 
-                : (item.article.salesTrend && item.article.salesTrend.length > 0 
-                  ? '<span style="color: #9ca3af; font-size: 12px;">0.0 (sin ventas)</span>'
-                  : '<span style="color: #9ca3af; font-size: 12px;">Sin datos</span>'
-                )
-              }
-            </td>
-            <td class="text-right">
-              <span class="badge ${!isFinite(item.estimatedSaleTime) || item.estimatedSaleTime === 0 ? 'badge-gray' : (abcClass === 'A' ? 'badge-green' : abcClass === 'B' ? 'badge-blue' : 'badge-gray')}">
-                ${formatSaleTimeLocal(item.estimatedSaleTime)}
-              </span>
-            </td>
+            <td class="text-right"><strong>${formatPrice(item.article.unitPrice)}</strong></td>
+            <td class="text-right">${item.avgMonthlySales > 0 ? item.avgMonthlySales.toFixed(1) : '<span style="color: #9ca3af; font-size: 12px;">0.0</span>'}</td>
+            <td class="text-right">${formatValue(item.avgSales3Months)}</td>
+            <td class="text-right">${formatValue(item.avgSales6Months)}</td>
+            <td class="text-right">${formatValue(item.avgSalesWeighted)}</td>
+            <td class="text-right">${formatValue(item.avgSalesEma)}</td>
+            <td class="text-right">${formatValue(item.avgSalesRecent6Weighted)}</td>
+            <td class="text-right">${formatValue(item.avgSalesMedian)}</td>
+            <td class="text-right">${formatBadge(item.estimatedSaleTime)}</td>
+            <td class="text-right">${formatBadge(item.estTime3Months)}</td>
+            <td class="text-right">${formatBadge(item.estTime6Months)}</td>
+            <td class="text-right">${formatBadge(item.estTimeWeighted)}</td>
+            <td class="text-right">${formatBadge(item.estTimeEma)}</td>
+            <td class="text-right">${formatBadge(item.estTimeRecent6Weighted)}</td>
+            <td class="text-right">${formatBadge(item.estTimeMedian)}</td>
             <td>${lastSaleDateFormatted}</td>
-            <td class="text-right">${formatPrice(item.article.unitPrice)}</td>
-            <td class="text-right"><strong>${formatPrice(item.article.unitPrice * item.quantity)}</strong></td>
           </tr>
           `;
         }).join('')}
@@ -419,7 +451,7 @@ export function SupplierOrderPanel({
         )}
 
         {/* Table */}
-        <div className="rounded-md border">
+        <div className="rounded-md border overflow-x-auto">
           <Table>
             <TableHeader>
               <TableRow>
@@ -429,10 +461,136 @@ export function SupplierOrderPanel({
                 <TableHead className="text-right">Stock Actual</TableHead>
                 <TableHead className="text-right">Stock Mín.</TableHead>
                 <TableHead>Tendencia</TableHead>
-                <TableHead className="text-right">Venta Prom/Mes</TableHead>
-                <TableHead className="text-right">Tiempo Est. Venta</TableHead>
-                <TableHead>Última Venta</TableHead>
-                <TableHead className="text-right">Precio Unit.</TableHead>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TableHead className="text-right cursor-help">Precio Unit.</TableHead>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">Precio unitario del artículo</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TableHead className="text-right cursor-help">Prom Simple</TableHead>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">Promedio de ventas mensuales (todos los meses)</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TableHead className="text-right cursor-help">Prom 3M</TableHead>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">Promedio de ventas de los últimos 3 meses. Muy sensible a cambios recientes.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TableHead className="text-right cursor-help">Prom 6M</TableHead>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">Promedio de ventas de los últimos 6 meses. Balance entre histórico y actualidad.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TableHead className="text-right cursor-help">WMA</TableHead>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">Weighted Moving Average: Promedio con más peso a meses recientes (peso lineal creciente).</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TableHead className="text-right cursor-help">EMA</TableHead>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">Exponential Moving Average: Promedio con decaimiento exponencial. Común en análisis financiero.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TableHead className="text-right cursor-help">6M+WMA</TableHead>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">Promedio ponderado de los últimos 6 meses. Balance óptimo entre actualidad y estabilidad.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TableHead className="text-right cursor-help">Mediana</TableHead>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">Valor central de ventas. Muy resistente a picos de venta extremos (outliers).</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TableHead className="text-right cursor-help">T.Est Simple</TableHead>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">Tiempo estimado para vender la cantidad pedida = Cantidad / Prom Simple</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TableHead className="text-right cursor-help">T.Est 3M</TableHead>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">Tiempo estimado = Cantidad / Prom 3M</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TableHead className="text-right cursor-help">T.Est 6M</TableHead>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">Tiempo estimado = Cantidad / Prom 6M</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TableHead className="text-right cursor-help">T.Est WMA</TableHead>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">Tiempo estimado = Cantidad / WMA</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TableHead className="text-right cursor-help">T.Est EMA</TableHead>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">Tiempo estimado = Cantidad / EMA</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TableHead className="text-right cursor-help">T.Est 6M+WMA</TableHead>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">Tiempo estimado = Cantidad / 6M+WMA. Recomendado por su balance.</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TableHead className="text-right cursor-help">T.Est Mediana</TableHead>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">Tiempo estimado = Cantidad / Mediana</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TableHead className="cursor-help">Última Venta</TableHead>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">Fecha de la última factura emitida que incluye este artículo</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
                 <TableHead className="w-12"></TableHead>
               </TableRow>
             </TableHeader>
@@ -499,20 +657,127 @@ export function SupplierOrderPanel({
                       <span className="text-xs text-muted-foreground">Sin datos</span>
                     )}
                   </TableCell>
+                  
+                  {/* Precio Unitario */}
+                  <TableCell className="text-right font-medium">
+                    {formatPrice(item.article.unitPrice)}
+                  </TableCell>
+                  
+                  {/* Promedio Simple */}
                   <TableCell className="text-right">
                     {item.avgMonthlySales > 0 ? (
-                      <span>{item.avgMonthlySales.toFixed(1)}</span>
+                      <span className="text-sm">{item.avgMonthlySales.toFixed(1)}</span>
                     ) : item.article.salesTrend && item.article.salesTrend.length > 0 ? (
-                      <span className="text-muted-foreground text-xs">0.0 (sin ventas)</span>
+                      <span className="text-muted-foreground text-xs">0.0</span>
                     ) : (
-                      <span className="text-muted-foreground text-xs">Sin datos</span>
+                      <span className="text-muted-foreground text-xs">-</span>
                     )}
                   </TableCell>
+                  
+                  {/* Prom 3M */}
                   <TableCell className="text-right">
-                    <Badge variant={isFinite(item.estimatedSaleTime) && item.estimatedSaleTime > 0 ? 'secondary' : 'outline'}>
+                    {(item.avgSales3Months ?? 0) > 0 ? (
+                      <span className="text-sm">{item.avgSales3Months!.toFixed(1)}</span>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">0.0</span>
+                    )}
+                  </TableCell>
+                  
+                  {/* Prom 6M */}
+                  <TableCell className="text-right">
+                    {(item.avgSales6Months ?? 0) > 0 ? (
+                      <span className="text-sm">{item.avgSales6Months!.toFixed(1)}</span>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">0.0</span>
+                    )}
+                  </TableCell>
+                  
+                  {/* WMA */}
+                  <TableCell className="text-right">
+                    {(item.avgSalesWeighted ?? 0) > 0 ? (
+                      <span className="text-sm">{item.avgSalesWeighted!.toFixed(1)}</span>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">0.0</span>
+                    )}
+                  </TableCell>
+                  
+                  {/* EMA */}
+                  <TableCell className="text-right">
+                    {(item.avgSalesEma ?? 0) > 0 ? (
+                      <span className="text-sm">{item.avgSalesEma!.toFixed(1)}</span>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">0.0</span>
+                    )}
+                  </TableCell>
+                  
+                  {/* 6M+WMA */}
+                  <TableCell className="text-right">
+                    {(item.avgSalesRecent6Weighted ?? 0) > 0 ? (
+                      <span className="text-sm">{item.avgSalesRecent6Weighted!.toFixed(1)}</span>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">0.0</span>
+                    )}
+                  </TableCell>
+                  
+                  {/* Mediana */}
+                  <TableCell className="text-right">
+                    {(item.avgSalesMedian ?? 0) > 0 ? (
+                      <span className="text-sm">{item.avgSalesMedian!.toFixed(1)}</span>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">0.0</span>
+                    )}
+                  </TableCell>
+                  
+                  {/* T.Est Simple */}
+                  <TableCell className="text-right">
+                    <Badge variant={isFinite(item.estimatedSaleTime) && item.estimatedSaleTime > 0 ? 'secondary' : 'outline'} className="text-xs">
                       {formatSaleTime(item.estimatedSaleTime)}
                     </Badge>
                   </TableCell>
+                  
+                  {/* T.Est 3M */}
+                  <TableCell className="text-right">
+                    <Badge variant={isFinite(item.estTime3Months ?? Infinity) && (item.estTime3Months ?? 0) > 0 ? 'secondary' : 'outline'} className="text-xs">
+                      {formatSaleTime(item.estTime3Months ?? Infinity)}
+                    </Badge>
+                  </TableCell>
+                  
+                  {/* T.Est 6M */}
+                  <TableCell className="text-right">
+                    <Badge variant={isFinite(item.estTime6Months ?? Infinity) && (item.estTime6Months ?? 0) > 0 ? 'secondary' : 'outline'} className="text-xs">
+                      {formatSaleTime(item.estTime6Months ?? Infinity)}
+                    </Badge>
+                  </TableCell>
+                  
+                  {/* T.Est WMA */}
+                  <TableCell className="text-right">
+                    <Badge variant={isFinite(item.estTimeWeighted ?? Infinity) && (item.estTimeWeighted ?? 0) > 0 ? 'secondary' : 'outline'} className="text-xs">
+                      {formatSaleTime(item.estTimeWeighted ?? Infinity)}
+                    </Badge>
+                  </TableCell>
+                  
+                  {/* T.Est EMA */}
+                  <TableCell className="text-right">
+                    <Badge variant={isFinite(item.estTimeEma ?? Infinity) && (item.estTimeEma ?? 0) > 0 ? 'secondary' : 'outline'} className="text-xs">
+                      {formatSaleTime(item.estTimeEma ?? Infinity)}
+                    </Badge>
+                  </TableCell>
+                  
+                  {/* T.Est 6M+WMA */}
+                  <TableCell className="text-right">
+                    <Badge variant={isFinite(item.estTimeRecent6Weighted ?? Infinity) && (item.estTimeRecent6Weighted ?? 0) > 0 ? 'secondary' : 'outline'} className="text-xs">
+                      {formatSaleTime(item.estTimeRecent6Weighted ?? Infinity)}
+                    </Badge>
+                  </TableCell>
+                  
+                  {/* T.Est Mediana */}
+                  <TableCell className="text-right">
+                    <Badge variant={isFinite(item.estTimeMedian ?? Infinity) && (item.estTimeMedian ?? 0) > 0 ? 'secondary' : 'outline'} className="text-xs">
+                      {formatSaleTime(item.estTimeMedian ?? Infinity)}
+                    </Badge>
+                  </TableCell>
+                  
+                  {/* Última Venta */}
                   <TableCell>
                     {item.article.lastSaleDate ? (
                       <span className="text-sm">
@@ -526,9 +791,8 @@ export function SupplierOrderPanel({
                       <span className="text-xs text-muted-foreground">Nunca</span>
                     )}
                   </TableCell>
-                  <TableCell className="text-right font-medium">
-                    {formatPrice(item.article.unitPrice)}
-                  </TableCell>
+                  
+                  {/* Actions */}
                   <TableCell>
                     <Button
                       variant="ghost"

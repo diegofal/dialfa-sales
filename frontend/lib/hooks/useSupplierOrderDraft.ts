@@ -5,6 +5,11 @@ import {
   calculateAvgMonthlySales,
   calculateEstimatedSaleTime,
   calculateWeightedAvgSaleTime,
+  calculateRecentAvgSales,
+  calculateWeightedAvgSales,
+  calculateEmaAvgSales,
+  calculateRecentWeightedAvgSales,
+  calculateMedianSales,
 } from '@/lib/utils/salesCalculations';
 import { useCreateSupplierOrder, useUpdateSupplierOrder, useSupplierOrders } from './useSupplierOrders';
 import { toast } from 'sonner';
@@ -90,9 +95,14 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
                 lastSaleDate: null,
               } as Article;
 
-              // Recalcular avgMonthlySales y estimatedSaleTime con el salesTrend ACTUAL
+              // Recalcular TODAS las métricas con el salesTrend ACTUAL
               const avgSales = calculateAvgMonthlySales(article.salesTrend);
-              const saleTime = calculateEstimatedSaleTime(item.quantity, avgSales);
+              const avgSales3 = calculateRecentAvgSales(article.salesTrend, 3);
+              const avgSales6 = calculateRecentAvgSales(article.salesTrend, 6);
+              const avgSalesWeighted = calculateWeightedAvgSales(article.salesTrend);
+              const avgSalesEma = calculateEmaAvgSales(article.salesTrend);
+              const avgSalesRecent6Weighted = calculateRecentWeightedAvgSales(article.salesTrend, 6);
+              const avgSalesMedian = calculateMedianSales(article.salesTrend);
 
               itemsMap.set(item.articleId, {
                 article,
@@ -100,7 +110,20 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
                 currentStock: item.currentStock,
                 minimumStock: item.minimumStock,
                 avgMonthlySales: avgSales,
-                estimatedSaleTime: saleTime,
+                estimatedSaleTime: calculateEstimatedSaleTime(item.quantity, avgSales),
+                // Métricas adicionales
+                avgSales3Months: avgSales3,
+                avgSales6Months: avgSales6,
+                avgSalesWeighted: avgSalesWeighted,
+                avgSalesEma: avgSalesEma,
+                avgSalesRecent6Weighted: avgSalesRecent6Weighted,
+                avgSalesMedian: avgSalesMedian,
+                estTime3Months: calculateEstimatedSaleTime(item.quantity, avgSales3),
+                estTime6Months: calculateEstimatedSaleTime(item.quantity, avgSales6),
+                estTimeWeighted: calculateEstimatedSaleTime(item.quantity, avgSalesWeighted),
+                estTimeEma: calculateEstimatedSaleTime(item.quantity, avgSalesEma),
+                estTimeRecent6Weighted: calculateEstimatedSaleTime(item.quantity, avgSalesRecent6Weighted),
+                estTimeMedian: calculateEstimatedSaleTime(item.quantity, avgSalesMedian),
               });
             });
             
@@ -135,9 +158,14 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
                 lastSaleDate: null,
               } as Article;
 
-              // Sin salesTrend, avgSales será 0 y saleTime será Infinity
+              // Sin salesTrend, todas las métricas serán 0 / Infinity
               const avgSales = calculateAvgMonthlySales(article.salesTrend);
-              const saleTime = calculateEstimatedSaleTime(item.quantity, avgSales);
+              const avgSales3 = calculateRecentAvgSales(article.salesTrend, 3);
+              const avgSales6 = calculateRecentAvgSales(article.salesTrend, 6);
+              const avgSalesWeighted = calculateWeightedAvgSales(article.salesTrend);
+              const avgSalesEma = calculateEmaAvgSales(article.salesTrend);
+              const avgSalesRecent6Weighted = calculateRecentWeightedAvgSales(article.salesTrend, 6);
+              const avgSalesMedian = calculateMedianSales(article.salesTrend);
 
               itemsMap.set(item.articleId, {
                 article,
@@ -145,7 +173,19 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
                 currentStock: item.currentStock,
                 minimumStock: item.minimumStock,
                 avgMonthlySales: avgSales,
-                estimatedSaleTime: saleTime,
+                estimatedSaleTime: calculateEstimatedSaleTime(item.quantity, avgSales),
+                avgSales3Months: avgSales3,
+                avgSales6Months: avgSales6,
+                avgSalesWeighted: avgSalesWeighted,
+                avgSalesEma: avgSalesEma,
+                avgSalesRecent6Weighted: avgSalesRecent6Weighted,
+                avgSalesMedian: avgSalesMedian,
+                estTime3Months: calculateEstimatedSaleTime(item.quantity, avgSales3),
+                estTime6Months: calculateEstimatedSaleTime(item.quantity, avgSales6),
+                estTimeWeighted: calculateEstimatedSaleTime(item.quantity, avgSalesWeighted),
+                estTimeEma: calculateEstimatedSaleTime(item.quantity, avgSalesEma),
+                estTimeRecent6Weighted: calculateEstimatedSaleTime(item.quantity, avgSalesRecent6Weighted),
+                estTimeMedian: calculateEstimatedSaleTime(item.quantity, avgSalesMedian),
               });
             });
             
@@ -228,7 +268,12 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
 
   const addItem = useCallback((article: Article, quantity: number = 1) => {
     const avgSales = calculateAvgMonthlySales(article.salesTrend);
-    const saleTime = calculateEstimatedSaleTime(quantity, avgSales);
+    const avgSales3 = calculateRecentAvgSales(article.salesTrend, 3);
+    const avgSales6 = calculateRecentAvgSales(article.salesTrend, 6);
+    const avgSalesWeighted = calculateWeightedAvgSales(article.salesTrend);
+    const avgSalesEma = calculateEmaAvgSales(article.salesTrend);
+    const avgSalesRecent6Weighted = calculateRecentWeightedAvgSales(article.salesTrend, 6);
+    const avgSalesMedian = calculateMedianSales(article.salesTrend);
 
     setItems((prev) => {
       const updated = new Map(prev);
@@ -236,11 +281,16 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
 
       if (existing) {
         const newQty = existing.quantity + quantity;
-        const newSaleTime = calculateEstimatedSaleTime(newQty, avgSales);
         updated.set(article.id, {
           ...existing,
           quantity: newQty,
-          estimatedSaleTime: newSaleTime,
+          estimatedSaleTime: calculateEstimatedSaleTime(newQty, avgSales),
+          estTime3Months: calculateEstimatedSaleTime(newQty, avgSales3),
+          estTime6Months: calculateEstimatedSaleTime(newQty, avgSales6),
+          estTimeWeighted: calculateEstimatedSaleTime(newQty, avgSalesWeighted),
+          estTimeEma: calculateEstimatedSaleTime(newQty, avgSalesEma),
+          estTimeRecent6Weighted: calculateEstimatedSaleTime(newQty, avgSalesRecent6Weighted),
+          estTimeMedian: calculateEstimatedSaleTime(newQty, avgSalesMedian),
         });
       } else {
         updated.set(article.id, {
@@ -249,7 +299,19 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
           currentStock: Number(article.stock),
           minimumStock: Number(article.minimumStock),
           avgMonthlySales: avgSales,
-          estimatedSaleTime: saleTime,
+          estimatedSaleTime: calculateEstimatedSaleTime(quantity, avgSales),
+          avgSales3Months: avgSales3,
+          avgSales6Months: avgSales6,
+          avgSalesWeighted: avgSalesWeighted,
+          avgSalesEma: avgSalesEma,
+          avgSalesRecent6Weighted: avgSalesRecent6Weighted,
+          avgSalesMedian: avgSalesMedian,
+          estTime3Months: calculateEstimatedSaleTime(quantity, avgSales3),
+          estTime6Months: calculateEstimatedSaleTime(quantity, avgSales6),
+          estTimeWeighted: calculateEstimatedSaleTime(quantity, avgSalesWeighted),
+          estTimeEma: calculateEstimatedSaleTime(quantity, avgSalesEma),
+          estTimeRecent6Weighted: calculateEstimatedSaleTime(quantity, avgSalesRecent6Weighted),
+          estTimeMedian: calculateEstimatedSaleTime(quantity, avgSalesMedian),
         });
       }
       
@@ -277,11 +339,16 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
       const updated = new Map(prev);
       const item = updated.get(articleId);
       if (item) {
-        const newSaleTime = calculateEstimatedSaleTime(quantity, item.avgMonthlySales);
         updated.set(articleId, {
           ...item,
           quantity,
-          estimatedSaleTime: newSaleTime,
+          estimatedSaleTime: calculateEstimatedSaleTime(quantity, item.avgMonthlySales),
+          estTime3Months: calculateEstimatedSaleTime(quantity, item.avgSales3Months || 0),
+          estTime6Months: calculateEstimatedSaleTime(quantity, item.avgSales6Months || 0),
+          estTimeWeighted: calculateEstimatedSaleTime(quantity, item.avgSalesWeighted || 0),
+          estTimeEma: calculateEstimatedSaleTime(quantity, item.avgSalesEma || 0),
+          estTimeRecent6Weighted: calculateEstimatedSaleTime(quantity, item.avgSalesRecent6Weighted || 0),
+          estTimeMedian: calculateEstimatedSaleTime(quantity, item.avgSalesMedian || 0),
         });
         debouncedSave(updated);
       }
