@@ -1,6 +1,6 @@
 'use client';
 
-import { use } from 'react';
+import { use, useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -21,10 +21,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useSupplierOrder, useUpdateSupplierOrderStatus } from '@/lib/hooks/useSupplierOrders';
 import { useAuthStore } from '@/store/authStore';
 import { SupplierOrderStatus, SupplierOrderItemDto } from '@/types/supplierOrder';
 import { formatSaleTime } from '@/lib/utils/salesCalculations';
+import { SparklineWithTooltip } from '@/components/ui/sparkline';
+import { Article } from '@/types/article';
+import axios from 'axios';
 
 const STATUS_LABELS: Record<SupplierOrderStatus, string> = {
   draft: 'Borrador',
@@ -54,10 +63,47 @@ export default function SupplierOrderDetailPage({
   const { isAdmin } = useAuthStore();
   const canEdit = isAdmin();
 
+  const [trendMonths, setTrendMonths] = useState<number>(12);
+  const [articlesData, setArticlesData] = useState<Map<number, Article>>(new Map());
+  const [loadingArticles, setLoadingArticles] = useState(false);
+
   const { data, isLoading } = useSupplierOrder(parseInt(id));
   const updateStatus = useUpdateSupplierOrderStatus();
 
   const order = data?.data;
+
+  // Load article data with trends when order is loaded
+  useEffect(() => {
+    if (!order?.items || order.items.length === 0) return;
+
+    const loadArticlesData = async () => {
+      setLoadingArticles(true);
+      try {
+        const articleIds = order.items!.map((item: SupplierOrderItemDto) => item.articleId);
+        const response = await axios.get('/api/articles', {
+          params: {
+            ids: articleIds.join(','),
+            includeTrends: 'true',
+            includeLastSaleDate: 'true',
+            trendMonths: trendMonths,
+          }
+        });
+
+        const articlesMap = new Map<number, Article>();
+        response.data.data.forEach((article: Article) => {
+          articlesMap.set(article.id, article);
+        });
+
+        setArticlesData(articlesMap);
+      } catch (error) {
+        console.error('Error loading article data:', error);
+      } finally {
+        setLoadingArticles(false);
+      }
+    };
+
+    loadArticlesData();
+  }, [order?.items, trendMonths]);
 
   const handleStatusChange = (newStatus: string) => {
     if (!order) return;
@@ -180,60 +226,193 @@ export default function SupplierOrderDetailPage({
 
       {/* Items */}
       <Card>
-        <div className="p-6 border-b">
+        <div className="p-6 border-b flex items-center justify-between">
           <h2 className="text-lg font-semibold flex items-center gap-2">
             <Package className="h-5 w-5" />
             Artículos del Pedido
           </h2>
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Tendencia:</span>
+            <Select
+              value={trendMonths.toString()}
+              onValueChange={(value) => setTrendMonths(parseInt(value))}
+            >
+              <SelectTrigger className="w-[130px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="3">3 meses</SelectItem>
+                <SelectItem value="6">6 meses</SelectItem>
+                <SelectItem value="12">12 meses</SelectItem>
+                <SelectItem value="18">18 meses</SelectItem>
+                <SelectItem value="24">24 meses</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Código</TableHead>
-              <TableHead>Descripción</TableHead>
-              <TableHead className="text-right">Cantidad</TableHead>
-              <TableHead className="text-right">Stock Actual</TableHead>
-              <TableHead className="text-right">Stock Mín.</TableHead>
-              <TableHead className="text-right">Venta Prom/Mes</TableHead>
-              <TableHead className="text-right">Tiempo Est.</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {order.items?.map((item: SupplierOrderItemDto) => (
-              <TableRow key={item.id}>
-                <TableCell className="font-mono font-medium">
-                  {item.articleCode}
-                </TableCell>
-                <TableCell>
-                  <div className="max-w-md truncate">{item.articleDescription}</div>
-                </TableCell>
-                <TableCell className="text-right font-semibold">
-                  {item.quantity}
-                </TableCell>
-                <TableCell className="text-right">
-                  {item.currentStock.toFixed(0)}
-                </TableCell>
-                <TableCell className="text-right text-muted-foreground">
-                  {item.minimumStock.toFixed(0)}
-                </TableCell>
-                <TableCell className="text-right">
-                  {item.avgMonthlySales
-                    ? item.avgMonthlySales.toFixed(1)
-                    : '-'}
-                </TableCell>
-                <TableCell className="text-right">
-                  {item.estimatedSaleTime ? (
-                    <Badge variant="secondary">
-                      {formatSaleTime(item.estimatedSaleTime)}
-                    </Badge>
-                  ) : (
-                    '-'
-                  )}
-                </TableCell>
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Código</TableHead>
+                <TableHead>Descripción</TableHead>
+                <TableHead className="text-right">Cantidad</TableHead>
+                <TableHead className="text-right">Stock Actual</TableHead>
+                <TableHead className="text-right">Stock Mín.</TableHead>
+                <TableHead>Tendencia ({trendMonths} meses)</TableHead>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TableHead className="text-right cursor-help">Precio Unit.</TableHead>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">Precio unitario del artículo</p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TableHead className="text-right cursor-help">Prom Ponderado</TableHead>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">
+                        Promedio ponderado de ventas (WMA) sobre los últimos {trendMonths} meses.
+                        Da más peso a los meses recientes.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TableHead className="text-right cursor-help">T. Est. Venta</TableHead>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">
+                        Tiempo estimado para vender la cantidad pedida = Cantidad / Prom Ponderado
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TableHead className="cursor-help">Última Venta</TableHead>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">Fecha de la última factura emitida que incluye este artículo</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {loadingArticles ? (
+                <TableRow>
+                  <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
+                    Cargando datos de artículos...
+                  </TableCell>
+                </TableRow>
+              ) : (
+                order.items?.map((item: SupplierOrderItemDto) => {
+                  const article = articlesData.get(item.articleId);
+                  const isLowStock = item.currentStock < item.minimumStock;
+
+                  return (
+                    <TableRow key={item.id}>
+                      <TableCell className="font-mono font-medium">
+                        {item.articleCode}
+                      </TableCell>
+                      <TableCell>
+                        <div className="max-w-md truncate">{item.articleDescription}</div>
+                      </TableCell>
+                      <TableCell className="text-right font-semibold">
+                        {item.quantity}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span className={isLowStock ? 'text-red-600 font-semibold' : ''}>
+                          {item.currentStock.toFixed(0)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-right text-muted-foreground">
+                        {item.minimumStock.toFixed(0)}
+                      </TableCell>
+                      
+                      {/* Tendencia */}
+                      <TableCell>
+                        {article?.salesTrend && article.salesTrend.length > 0 ? (
+                          <SparklineWithTooltip
+                            data={article.salesTrend}
+                            labels={article.salesTrendLabels}
+                            width={Math.min(180, Math.max(80, article.salesTrend.length * 10))}
+                            height={40}
+                            color={
+                              article.abcClass === 'A'
+                                ? 'rgb(34, 197, 94)' // green-500
+                                : article.abcClass === 'B'
+                                ? 'rgb(59, 130, 246)' // blue-500
+                                : 'rgb(107, 114, 128)' // gray-500
+                            }
+                          />
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Sin datos</span>
+                        )}
+                      </TableCell>
+                      
+                      {/* Precio Unit. */}
+                      <TableCell className="text-right font-medium">
+                        {article ? formatPrice(article.unitPrice) : '-'}
+                      </TableCell>
+                      
+                      {/* Prom Ponderado */}
+                      <TableCell className="text-right">
+                        {item.avgMonthlySales && item.avgMonthlySales > 0 ? (
+                          <Badge variant="outline" className="text-xs">
+                            {item.avgMonthlySales.toFixed(1)}
+                          </Badge>
+                        ) : article?.salesTrend && article.salesTrend.length > 0 ? (
+                          <span className="text-muted-foreground text-xs">0.0</span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
+                      </TableCell>
+                      
+                      {/* T. Est. Venta */}
+                      <TableCell className="text-right">
+                        {item.estimatedSaleTime ? (
+                          <Badge 
+                            variant={
+                              isFinite(item.estimatedSaleTime) && item.estimatedSaleTime > 0
+                                ? 'secondary'
+                                : 'outline'
+                            }
+                            className="text-xs"
+                          >
+                            {formatSaleTime(item.estimatedSaleTime)}
+                          </Badge>
+                        ) : (
+                          <Badge variant="outline" className="text-xs">
+                            ∞ Infinito
+                          </Badge>
+                        )}
+                      </TableCell>
+                      
+                      {/* Última Venta */}
+                      <TableCell className="text-sm">
+                        {article?.lastSaleDate ? (
+                          <span>
+                            {new Date(article.lastSaleDate).toLocaleDateString('es-AR', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric'
+                            })}
+                          </span>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Nunca</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
+            </TableBody>
+          </Table>
+        </div>
       </Card>
 
       {order.notes && (

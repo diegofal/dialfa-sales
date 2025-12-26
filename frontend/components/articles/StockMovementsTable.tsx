@@ -147,3 +147,5 @@ export function StockMovementsTable({ movements }: StockMovementsTableProps) {
 
 
 
+
+

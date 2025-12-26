@@ -22,3 +22,5 @@ COMMENT ON INDEX idx_invoices_printed_date IS 'Optimizes ABC classification quer
 COMMENT ON INDEX idx_invoice_items_line_total IS 'Optimizes ABC classification query - speeds up revenue aggregation';
 
 
+
+
