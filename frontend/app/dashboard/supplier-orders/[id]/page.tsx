@@ -30,10 +30,11 @@ import {
 import { useSupplierOrder, useUpdateSupplierOrderStatus } from '@/lib/hooks/useSupplierOrders';
 import { useAuthStore } from '@/store/authStore';
 import { SupplierOrderStatus, SupplierOrderItemDto } from '@/types/supplierOrder';
-import { formatSaleTime } from '@/lib/utils/salesCalculations';
+import { formatSaleTime, calculateWeightedAvgSales, calculateEstimatedSaleTime, calculateWeightedAvgSaleTime } from '@/lib/utils/salesCalculations';
 import { SparklineWithTooltip } from '@/components/ui/sparkline';
 import { Article } from '@/types/article';
 import axios from 'axios';
+import { useMemo } from 'react';
 
 const STATUS_LABELS: Record<SupplierOrderStatus, string> = {
   draft: 'Borrador',
@@ -104,6 +105,43 @@ export default function SupplierOrderDetailPage({
 
     loadArticlesData();
   }, [order?.items, trendMonths]);
+
+  // Recalcular métricas dinámicamente basado en salesTrend actual
+  const itemsWithRecalculatedMetrics = useMemo(() => {
+    if (!order?.items || articlesData.size === 0) return order?.items || [];
+
+    return order.items.map((item: SupplierOrderItemDto) => {
+      const article = articlesData.get(item.articleId);
+      
+      if (!article?.salesTrend) {
+        return item; // Sin datos, usar valores originales
+      }
+
+      // Recalcular con WMA dinámico
+      const avgMonthlySales = calculateWeightedAvgSales(article.salesTrend, trendMonths);
+      const estimatedSaleTime = calculateEstimatedSaleTime(item.quantity, avgMonthlySales);
+
+      return {
+        ...item,
+        avgMonthlySales,
+        estimatedSaleTime,
+      };
+    });
+  }, [order?.items, articlesData, trendMonths]);
+
+  // Recalcular tiempo estimado total
+  const recalculatedTotalEstimatedTime = useMemo(() => {
+    if (!itemsWithRecalculatedMetrics || itemsWithRecalculatedMetrics.length === 0) {
+      return order?.estimatedSaleTimeMonths || 0;
+    }
+
+    const itemsForCalc = itemsWithRecalculatedMetrics.map((item: SupplierOrderItemDto) => ({
+      quantity: item.quantity,
+      estimatedSaleTime: item.estimatedSaleTime || Infinity,
+    }));
+
+    return calculateWeightedAvgSaleTime(itemsForCalc);
+  }, [itemsWithRecalculatedMetrics, order?.estimatedSaleTimeMonths]);
 
   const handleStatusChange = (newStatus: string) => {
     if (!order) return;
@@ -212,14 +250,17 @@ export default function SupplierOrderDetailPage({
               <div className="text-sm text-muted-foreground">Total Unidades</div>
               <div className="text-2xl font-bold">{order.totalQuantity}</div>
             </div>
-            {order.estimatedSaleTimeMonths && (
-              <div>
-                <div className="text-sm text-muted-foreground">Tiempo Est. Venta</div>
-                <div className="text-lg font-semibold">
-                  {formatSaleTime(order.estimatedSaleTimeMonths)}
-                </div>
+            <div>
+              <div className="text-sm text-muted-foreground">Tiempo Est. Venta</div>
+              <div className="text-lg font-semibold">
+                {formatSaleTime(recalculatedTotalEstimatedTime)}
               </div>
-            )}
+              {!loadingArticles && articlesData.size > 0 && (
+                <div className="text-xs text-muted-foreground mt-1">
+                  Calculado con WMA ({trendMonths} meses)
+                </div>
+              )}
+            </div>
           </div>
         </Card>
       </div>
@@ -309,7 +350,7 @@ export default function SupplierOrderDetailPage({
                   </TableCell>
                 </TableRow>
               ) : (
-                order.items?.map((item: SupplierOrderItemDto) => {
+                itemsWithRecalculatedMetrics.map((item: SupplierOrderItemDto) => {
                   const article = articlesData.get(item.articleId);
                   const isLowStock = item.currentStock < item.minimumStock;
 

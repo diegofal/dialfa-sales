@@ -63,7 +63,13 @@ export function formatSaleTime(months: number): string {
     return '~1 mes';
   }
   
-  // Round to 1 decimal
+  // Si es >= 12 meses, mostrar también en años
+  if (months >= 12) {
+    const years = months / 12;
+    return `~${months.toFixed(1)} meses (${years.toFixed(1)} años)`;
+  }
+  
+  // Menos de 12 meses, solo mostrar meses
   return `~${months.toFixed(1)} meses`;
 }
 
