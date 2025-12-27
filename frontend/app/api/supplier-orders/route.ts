@@ -11,6 +11,14 @@ interface OrderItemInput {
   minimumStock: number;
   avgMonthlySales?: number | null;
   estimatedSaleTime?: number | null;
+  // Valorización
+  unitWeight?: number | null;
+  proformaUnitPrice?: number | null;
+  proformaTotalPrice?: number | null;
+  dbUnitPrice?: number | null;
+  dbTotalPrice?: number | null;
+  marginAbsolute?: number | null;
+  marginPercent?: number | null;
 }
 
 export async function GET(request: NextRequest) {
@@ -77,6 +85,14 @@ export async function GET(request: NextRequest) {
         avgMonthlySales: item.avg_monthly_sales ? Number(item.avg_monthly_sales) : null,
         estimatedSaleTime: item.estimated_sale_time ? Number(item.estimated_sale_time) : null,
         receivedQuantity: item.received_quantity,
+        // Valorización
+        unitWeight: item.unit_weight ? Number(item.unit_weight) : null,
+        proformaUnitPrice: item.proforma_unit_price ? Number(item.proforma_unit_price) : null,
+        proformaTotalPrice: item.proforma_total_price ? Number(item.proforma_total_price) : null,
+        dbUnitPrice: item.db_unit_price ? Number(item.db_unit_price) : null,
+        dbTotalPrice: item.db_total_price ? Number(item.db_total_price) : null,
+        marginAbsolute: item.margin_absolute ? Number(item.margin_absolute) : null,
+        marginPercent: item.margin_percent ? Number(item.margin_percent) : null,
       })),
     }));
 
@@ -157,6 +173,14 @@ export async function POST(request: NextRequest) {
             minimum_stock: item.minimumStock,
             avg_monthly_sales: item.avgMonthlySales || null,
             estimated_sale_time: item.estimatedSaleTime || null,
+            // Valorización
+            unit_weight: item.unitWeight || null,
+            proforma_unit_price: item.proformaUnitPrice || null,
+            proforma_total_price: item.proformaTotalPrice || null,
+            db_unit_price: item.dbUnitPrice || null,
+            db_total_price: item.dbTotalPrice || null,
+            margin_absolute: item.marginAbsolute || null,
+            margin_percent: item.marginPercent || null,
           })),
         },
       },

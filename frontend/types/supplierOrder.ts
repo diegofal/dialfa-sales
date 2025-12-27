@@ -45,6 +45,14 @@ export interface SupplierOrderItemDto {
   estimatedSaleTime?: number | null;
   receivedQuantity: number;
   createdAt: string;
+  // Valorización
+  unitWeight?: number | null;
+  proformaUnitPrice?: number | null;
+  proformaTotalPrice?: number | null;
+  dbUnitPrice?: number | null;
+  dbTotalPrice?: number | null;
+  marginAbsolute?: number | null;
+  marginPercent?: number | null;
 }
 
 export interface SupplierOrderFormData {

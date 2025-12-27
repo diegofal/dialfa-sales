@@ -165,12 +165,17 @@ export class ArticleMatcher {
           matchingKey: result.key,
           matchedArticle: result.article.code,
         });
+        
+        // Calcular valorización
+        const valuation = this.calculateValuation(item, result.article);
+        
         return {
           extractedItem: item,
           article: result.article,
           confidence: 100,
           matchMethod: 'exact',
           matchingKey: result.key,
+          ...valuation,
           debugInfo,
         };
       }
@@ -191,6 +196,9 @@ export class ArticleMatcher {
       attemptedMatchingKey: attemptedKey,
       reason: noMatchReason,
     });
+    
+    // Calcular valorización sin artículo de BD
+    const valuation = this.calculateValuation(item, null);
 
     return {
       extractedItem: item,
@@ -198,6 +206,7 @@ export class ArticleMatcher {
       confidence: 0,
       matchMethod: 'none',
       matchingKey: attemptedKey || undefined,
+      ...valuation,
       debugInfo: {
         ...debugInfo,
         noMatchReason,
@@ -312,6 +321,60 @@ export class ArticleMatcher {
     // Must be thickness mismatch
     const availableThickness = keysWithTypeSeriesSize.map((k) => k.split('|')[2]);
     return `Type, series, and size match found, but thickness "${thickness}" not available. Available thickness: ${availableThickness.join(', ')}`;
+  }
+
+  /**
+   * Calcula valorización: precios, totales y márgenes
+   */
+  private calculateValuation(
+    item: ExtractedItem,
+    article: ArticleForMatching | null
+  ): {
+    proformaUnitPrice: number;
+    proformaTotalPrice: number;
+    dbUnitPrice: number | null;
+    dbTotalPrice: number | null;
+    marginAbsolute: number | null;
+    marginPercent: number | null;
+    unitWeight: number;
+  } {
+    const proformaUnitPrice = item.unitPrice;
+    const proformaTotalPrice = item.totalPrice || item.unitPrice * item.quantity;
+    const unitWeight = item.unitWeight || 0;
+    
+    // Si no hay artículo en BD, no hay precio ni margen
+    if (!article) {
+      return {
+        proformaUnitPrice,
+        proformaTotalPrice,
+        dbUnitPrice: null,
+        dbTotalPrice: null,
+        marginAbsolute: null,
+        marginPercent: null,
+        unitWeight,
+      };
+    }
+    
+    const dbUnitPrice = article.unitPrice;
+    const dbTotalPrice = dbUnitPrice * item.quantity;
+    
+    // Margen: (Precio DB / Precio Proforma - 1) * 100
+    // Esto da el % de markup/margen sobre el costo de la proforma
+    const marginPercent = proformaUnitPrice > 0 
+      ? ((dbUnitPrice / proformaUnitPrice - 1) * 100) 
+      : null;
+    
+    const marginAbsolute = dbUnitPrice - proformaUnitPrice;
+    
+    return {
+      proformaUnitPrice,
+      proformaTotalPrice,
+      dbUnitPrice,
+      dbTotalPrice,
+      marginAbsolute,
+      marginPercent,
+      unitWeight,
+    };
   }
 
   async cleanup() {

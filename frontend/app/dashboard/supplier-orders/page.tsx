@@ -166,6 +166,9 @@ export default function SupplierOrdersPage() {
                 <TableHead>Fecha</TableHead>
                 <TableHead className="text-right">Artículos</TableHead>
                 <TableHead className="text-right">Cantidad Total</TableHead>
+                <TableHead className="text-right">Total Proforma</TableHead>
+                <TableHead className="text-right">Total DB</TableHead>
+                <TableHead className="text-right">Margen Total</TableHead>
                 <TableHead className="text-right">Tiempo Est. Venta</TableHead>
                 <TableHead>Estado</TableHead>
                 {canEdit && <TableHead className="w-[100px]">Acciones</TableHead>}
@@ -174,6 +177,14 @@ export default function SupplierOrdersPage() {
             <TableBody>
               {orders.map((order) => {
                 const handleRowClick = () => router.push(`/dashboard/supplier-orders/${order.id}`);
+                
+                // Calcular totales de valorización
+                const totalProforma = order.items?.reduce((sum, item) => 
+                  sum + (item.proformaTotalPrice || 0), 0) || 0;
+                const totalDB = order.items?.reduce((sum, item) => 
+                  sum + (item.dbTotalPrice || 0), 0) || 0;
+                const totalMargin = totalDB - totalProforma;
+                const marginPercent = totalProforma > 0 ? ((totalDB / totalProforma - 1) * 100) : 0;
                 
                 return (
                   <TableRow
@@ -197,6 +208,21 @@ export default function SupplierOrdersPage() {
                     </TableCell>
                     <TableCell className="text-right cursor-pointer" onClick={handleRowClick}>
                       {order.totalQuantity}
+                    </TableCell>
+                    <TableCell className="text-right cursor-pointer font-medium" onClick={handleRowClick}>
+                      {totalProforma > 0 ? `$${totalProforma.toFixed(2)}` : '-'}
+                    </TableCell>
+                    <TableCell className="text-right cursor-pointer font-medium" onClick={handleRowClick}>
+                      {totalDB > 0 ? `$${totalDB.toFixed(2)}` : '-'}
+                    </TableCell>
+                    <TableCell className={`text-right cursor-pointer font-semibold ${
+                      totalMargin > 0 ? 'text-green-600' : totalMargin < 0 ? 'text-red-600' : ''
+                    }`} onClick={handleRowClick}>
+                      {totalProforma > 0 ? (
+                        <>
+                          ${totalMargin.toFixed(2)} ({marginPercent.toFixed(1)}%)
+                        </>
+                      ) : '-'}
                     </TableCell>
                     <TableCell className="text-right cursor-pointer" onClick={handleRowClick}>
                       {order.estimatedSaleTimeMonths

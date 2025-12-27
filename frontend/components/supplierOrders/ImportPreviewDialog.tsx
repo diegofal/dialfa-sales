@@ -74,6 +74,14 @@ export function ImportPreviewDialog({
             minimumStock: item.article!.minimumStock,
             avgMonthlySales,
             estimatedSaleTime: isFinite(estimatedSaleTime) ? estimatedSaleTime : undefined,
+            // Valorización
+            unitWeight: item.unitWeight,
+            proformaUnitPrice: item.proformaUnitPrice,
+            proformaTotalPrice: item.proformaTotalPrice,
+            dbUnitPrice: item.dbUnitPrice,
+            dbTotalPrice: item.dbTotalPrice,
+            marginAbsolute: item.marginAbsolute,
+            marginPercent: item.marginPercent,
           };
         }),
       };
@@ -104,7 +112,13 @@ export function ImportPreviewDialog({
       'Descripción Extraída',
       'Cantidad',
       'Tamaño',
-      'Precio Unit',
+      'Peso Unit. (kg)',
+      'P.Unit Proforma (USD)',
+      'Total Proforma (USD)',
+      'P.Unit DB (USD)',
+      'Total DB (USD)',
+      'Margen USD',
+      'Margen %',
       'Tipo Detectado',
       'Serie Detectada',
       'Espesor Detectado',
@@ -127,7 +141,13 @@ export function ImportPreviewDialog({
         `"${item.extractedItem.description}"`,
         item.extractedItem.quantity,
         `"${item.extractedItem.size}"`,
-        item.extractedItem.unitPrice || '',
+        item.unitWeight || 0,
+        item.proformaUnitPrice?.toFixed(2) || '',
+        item.proformaTotalPrice?.toFixed(2) || '',
+        item.dbUnitPrice?.toFixed(2) || '',
+        item.dbTotalPrice?.toFixed(2) || '',
+        item.marginAbsolute?.toFixed(2) || '',
+        item.marginPercent?.toFixed(2) || '',
         `"${item.debugInfo?.extractedType || ''}"`,
         `"${item.debugInfo?.extractedSeries || ''}"`,
         `"${item.debugInfo?.extractedThickness || ''}"`,
@@ -211,7 +231,7 @@ export function ImportPreviewDialog({
 
         <div className="flex-1 overflow-y-auto space-y-6">
           {/* Summary */}
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-5 gap-4">
             <div className="p-4 bg-green-50 rounded-lg border border-green-200">
               <div className="text-2xl font-bold text-green-700">
                 {importResult.summary.matched}
@@ -230,6 +250,18 @@ export function ImportPreviewDialog({
               </div>
               <div className="text-sm text-red-600">Sin Mapear</div>
             </div>
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="text-2xl font-bold text-blue-700">
+                ${importResult.items.reduce((sum, item) => sum + item.proformaTotalPrice, 0).toFixed(2)}
+              </div>
+              <div className="text-sm text-blue-600">Total Proforma</div>
+            </div>
+            <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+              <div className="text-2xl font-bold text-purple-700">
+                ${matchedItems.reduce((sum, item) => sum + (item.dbTotalPrice || 0), 0).toFixed(2)}
+              </div>
+              <div className="text-sm text-purple-600">Total DB (Mapeados)</div>
+            </div>
           </div>
 
           {/* Matched Items */}
@@ -244,33 +276,69 @@ export function ImportPreviewDialog({
                   <Table>
                     <TableHeader className="sticky top-0 bg-background z-10">
                       <TableRow>
-                        <TableHead className="w-[300px]">Descripción Extraída</TableHead>
-                        <TableHead className="text-right w-[100px]">Cant.</TableHead>
-                        <TableHead className="w-[120px]">Tamaño</TableHead>
-                        <TableHead className="w-[400px]">Artículo Mapeado</TableHead>
-                        <TableHead className="w-[150px]">Código</TableHead>
-                        <TableHead className="text-right w-[120px]">Confianza</TableHead>
+                        <TableHead className="w-[250px]">Descripción Extraída</TableHead>
+                        <TableHead className="text-right w-[80px]">Cant.</TableHead>
+                        <TableHead className="w-[100px]">Tamaño</TableHead>
+                        <TableHead className="text-right w-[90px]">Peso Unit.</TableHead>
+                        <TableHead className="text-right w-[100px]">P.U. Proforma</TableHead>
+                        <TableHead className="text-right w-[110px]">Total Proforma</TableHead>
+                        <TableHead className="text-right w-[100px]">P.U. DB</TableHead>
+                        <TableHead className="text-right w-[110px]">Total DB</TableHead>
+                        <TableHead className="text-right w-[100px]">Margen USD</TableHead>
+                        <TableHead className="text-right w-[100px]">Margen %</TableHead>
+                        <TableHead className="w-[120px]">Código</TableHead>
+                        <TableHead className="text-center w-[100px]">Estado</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {matchedItems.map((item, idx) => (
                         <TableRow key={idx}>
-                          <TableCell className="w-[300px]">
+                          <TableCell className="w-[250px] text-sm">
                             {item.extractedItem.description}
                           </TableCell>
-                          <TableCell className="text-right font-semibold w-[100px]">
+                          <TableCell className="text-right font-semibold w-[80px]">
                             {item.extractedItem.quantity}
                           </TableCell>
-                          <TableCell className="font-mono text-sm w-[120px]">
+                          <TableCell className="font-mono text-sm w-[100px]">
                             {item.extractedItem.size}
                           </TableCell>
-                          <TableCell className="w-[400px]">
-                            {item.article?.description || '-'}
+                          <TableCell className="text-right text-sm w-[90px]">
+                            {item.unitWeight > 0 ? `${item.unitWeight.toFixed(2)} kg` : '-'}
                           </TableCell>
-                          <TableCell className="font-mono text-sm w-[150px]">
+                          <TableCell className="text-right font-medium w-[100px]">
+                            ${item.proformaUnitPrice.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right font-medium w-[110px]">
+                            ${item.proformaTotalPrice.toFixed(2)}
+                          </TableCell>
+                          <TableCell className="text-right font-medium w-[100px]">
+                            {item.dbUnitPrice ? `$${item.dbUnitPrice.toFixed(2)}` : '-'}
+                          </TableCell>
+                          <TableCell className="text-right font-medium w-[110px]">
+                            {item.dbTotalPrice ? `$${item.dbTotalPrice.toFixed(2)}` : '-'}
+                          </TableCell>
+                          <TableCell className={`text-right font-semibold w-[100px] ${
+                            item.marginAbsolute && item.marginAbsolute > 0 
+                              ? 'text-green-600' 
+                              : item.marginAbsolute && item.marginAbsolute < 0 
+                              ? 'text-red-600' 
+                              : ''
+                          }`}>
+                            {item.marginAbsolute ? `$${item.marginAbsolute.toFixed(2)}` : '-'}
+                          </TableCell>
+                          <TableCell className={`text-right font-semibold w-[100px] ${
+                            item.marginPercent && item.marginPercent > 0 
+                              ? 'text-green-600' 
+                              : item.marginPercent && item.marginPercent < 0 
+                              ? 'text-red-600' 
+                              : ''
+                          }`}>
+                            {item.marginPercent ? `${item.marginPercent.toFixed(1)}%` : '-'}
+                          </TableCell>
+                          <TableCell className="font-mono text-sm w-[120px]">
                             {item.article?.code || '-'}
                           </TableCell>
-                          <TableCell className="text-right w-[120px]">
+                          <TableCell className="text-center w-[100px]">
                             {getConfidenceBadge(item.confidence)}
                           </TableCell>
                         </TableRow>
@@ -296,18 +364,21 @@ export function ImportPreviewDialog({
                 <Table>
                   <TableHeader>
                     <TableRow>
-                      <TableHead>Descripción Extraída</TableHead>
-                      <TableHead className="text-right">Cantidad</TableHead>
-                      <TableHead>Tamaño</TableHead>
-                      <TableHead className="text-right">Estado</TableHead>
+                      <TableHead className="w-[300px]">Descripción Extraída</TableHead>
+                      <TableHead className="text-right w-[80px]">Cant.</TableHead>
+                      <TableHead className="w-[100px]">Tamaño</TableHead>
+                      <TableHead className="text-right w-[90px]">Peso Unit.</TableHead>
+                      <TableHead className="text-right w-[100px]">P.U. Proforma</TableHead>
+                      <TableHead className="text-right w-[110px]">Total Proforma</TableHead>
+                      <TableHead className="text-right w-[120px]">Estado</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {unmatchedItems.map((item, idx) => (
                       <TableRow key={idx}>
-                        <TableCell>
+                        <TableCell className="w-[300px]">
                           <div className="space-y-1">
-                            <div className="max-w-xs truncate">
+                            <div className="text-sm">
                               {item.extractedItem.description}
                             </div>
                             {item.debugInfo && (
@@ -324,11 +395,22 @@ export function ImportPreviewDialog({
                             )}
                           </div>
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-right font-semibold w-[80px]">
                           {item.extractedItem.quantity}
                         </TableCell>
-                        <TableCell>{item.extractedItem.size || '-'}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="font-mono text-sm w-[100px]">
+                          {item.extractedItem.size || '-'}
+                        </TableCell>
+                        <TableCell className="text-right text-sm w-[90px]">
+                          {item.unitWeight > 0 ? `${item.unitWeight.toFixed(2)} kg` : '-'}
+                        </TableCell>
+                        <TableCell className="text-right font-medium w-[100px]">
+                          ${item.proformaUnitPrice.toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right font-medium w-[110px]">
+                          ${item.proformaTotalPrice.toFixed(2)}
+                        </TableCell>
+                        <TableCell className="text-right w-[120px]">
                           {getConfidenceBadge(item.confidence)}
                         </TableCell>
                       </TableRow>

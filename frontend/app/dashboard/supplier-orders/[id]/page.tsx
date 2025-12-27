@@ -265,6 +265,41 @@ export default function SupplierOrderDetailPage({
         </Card>
       </div>
 
+      {/* Valorización Cards - Mismo formato que modal de importación */}
+      {order.items?.some((item: SupplierOrderItemDto) => item.proformaTotalPrice) && (
+        <div className="grid grid-cols-3 gap-4">
+          <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="text-2xl font-bold text-blue-700">
+              ${order.items.reduce((sum: number, item: SupplierOrderItemDto) => sum + (item.proformaTotalPrice || 0), 0).toFixed(2)}
+            </div>
+            <div className="text-sm text-blue-600">Total Proforma</div>
+          </div>
+          <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+            <div className="text-2xl font-bold text-purple-700">
+              ${order.items.reduce((sum: number, item: SupplierOrderItemDto) => sum + (item.dbTotalPrice || 0), 0).toFixed(2)}
+            </div>
+            <div className="text-sm text-purple-600">Total DB</div>
+          </div>
+          <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+            {(() => {
+              const totalProforma = order.items.reduce((sum: number, item: SupplierOrderItemDto) => sum + (item.proformaTotalPrice || 0), 0);
+              const totalDB = order.items.reduce((sum: number, item: SupplierOrderItemDto) => sum + (item.dbTotalPrice || 0), 0);
+              const margin = totalDB - totalProforma;
+              const marginPercent = totalProforma > 0 ? ((totalDB / totalProforma - 1) * 100) : 0;
+              
+              return (
+                <>
+                  <div className="text-2xl font-bold text-green-700">
+                    ${margin.toFixed(2)} ({marginPercent.toFixed(1)}%)
+                  </div>
+                  <div className="text-sm text-green-600">Margen Total</div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
       {/* Items */}
       <Card>
         <div className="p-6 border-b flex items-center justify-between">
@@ -292,65 +327,78 @@ export default function SupplierOrderDetailPage({
           </div>
         </div>
         <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Código</TableHead>
-                <TableHead>Descripción</TableHead>
-                <TableHead className="text-right">Cantidad</TableHead>
-                <TableHead className="text-right">Stock Actual</TableHead>
-                <TableHead className="text-right">Stock Mín.</TableHead>
-                <TableHead>Tendencia ({trendMonths} meses)</TableHead>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <TableHead className="text-right cursor-help">Precio Unit.</TableHead>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">Precio unitario del artículo</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <TableHead className="text-right cursor-help">Prom Ponderado</TableHead>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">
-                        Promedio ponderado de ventas (WMA) sobre los últimos {trendMonths} meses.
-                        Da más peso a los meses recientes.
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <TableHead className="text-right cursor-help">T. Est. Venta</TableHead>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">
-                        Tiempo estimado para vender la cantidad pedida = Cantidad / Prom Ponderado
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <TableHead className="cursor-help">Última Venta</TableHead>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">Fecha de la última factura emitida que incluye este artículo</p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loadingArticles ? (
+          <TooltipProvider>
+            <Table>
+              <TableHeader>
                 <TableRow>
-                  <TableCell colSpan={10} className="text-center text-muted-foreground py-8">
-                    Cargando datos de artículos...
-                  </TableCell>
+                  <TableHead>Código</TableHead>
+                  <TableHead>Descripción</TableHead>
+                  <TableHead className="text-right">Cantidad</TableHead>
+                  <TableHead className="text-right">Stock Actual</TableHead>
+                  <TableHead className="text-right">Stock Mín.</TableHead>
+                  <TableHead>Tendencia ({trendMonths} meses)</TableHead>
+                  <TableHead className="text-right">Peso Unit.</TableHead>
+                  <TableHead className="text-right">P.U. Proforma</TableHead>
+                  <TableHead className="text-right">Total Proforma</TableHead>
+                  <TableHead className="text-right">
+                    <Tooltip>
+                      <TooltipTrigger className="cursor-help">
+                        Precio Unit.
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">Precio unitario del artículo en BD</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TableHead>
+                  <TableHead className="text-right">Total DB</TableHead>
+                  <TableHead className="text-right">Margen USD</TableHead>
+                  <TableHead className="text-right">Margen %</TableHead>
+                  <TableHead className="text-right">
+                    <Tooltip>
+                      <TooltipTrigger className="cursor-help">
+                        Prom Ponderado
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">
+                          Promedio ponderado de ventas (WMA) sobre los últimos {trendMonths} meses.
+                          Da más peso a los meses recientes.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TableHead>
+                  <TableHead className="text-right">
+                    <Tooltip>
+                      <TooltipTrigger className="cursor-help">
+                        T. Est. Venta
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">
+                          Tiempo estimado para vender la cantidad pedida = Cantidad / Prom Ponderado
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TableHead>
+                  <TableHead>
+                    <Tooltip>
+                      <TooltipTrigger className="cursor-help">
+                        Última Venta
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">Fecha de la última factura emitida que incluye este artículo</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TableHead>
                 </TableRow>
-              ) : (
-                itemsWithRecalculatedMetrics.map((item: SupplierOrderItemDto) => {
+              </TableHeader>
+              <TableBody>
+                {loadingArticles ? (
+                  <TableRow>
+                    <TableCell colSpan={17} className="text-center text-muted-foreground py-8">
+                      Cargando datos de artículos...
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  itemsWithRecalculatedMetrics.map((item: SupplierOrderItemDto) => {
                   const article = articlesData.get(item.articleId);
                   const isLowStock = item.currentStock < item.minimumStock;
 
@@ -395,9 +443,51 @@ export default function SupplierOrderDetailPage({
                         )}
                       </TableCell>
                       
-                      {/* Precio Unit. */}
+                      {/* Peso Unit. */}
+                      <TableCell className="text-right text-sm">
+                        {item.unitWeight ? `${item.unitWeight.toFixed(2)} kg` : '-'}
+                      </TableCell>
+                      
+                      {/* P.U. Proforma */}
                       <TableCell className="text-right font-medium">
-                        {article ? formatPrice(article.unitPrice) : '-'}
+                        {item.proformaUnitPrice ? formatPrice(item.proformaUnitPrice) : '-'}
+                      </TableCell>
+                      
+                      {/* Total Proforma */}
+                      <TableCell className="text-right font-medium">
+                        {item.proformaTotalPrice ? formatPrice(item.proformaTotalPrice) : '-'}
+                      </TableCell>
+                      
+                      {/* Precio Unit. DB */}
+                      <TableCell className="text-right font-medium">
+                        {item.dbUnitPrice ? formatPrice(item.dbUnitPrice) : (article ? formatPrice(article.unitPrice) : '-')}
+                      </TableCell>
+                      
+                      {/* Total DB */}
+                      <TableCell className="text-right font-medium">
+                        {item.dbTotalPrice ? formatPrice(item.dbTotalPrice) : '-'}
+                      </TableCell>
+                      
+                      {/* Margen USD */}
+                      <TableCell className={`text-right font-semibold ${
+                        item.marginAbsolute && item.marginAbsolute > 0 
+                          ? 'text-green-600' 
+                          : item.marginAbsolute && item.marginAbsolute < 0 
+                          ? 'text-red-600' 
+                          : ''
+                      }`}>
+                        {item.marginAbsolute ? formatPrice(item.marginAbsolute) : '-'}
+                      </TableCell>
+                      
+                      {/* Margen % */}
+                      <TableCell className={`text-right font-semibold ${
+                        item.marginPercent && item.marginPercent > 0 
+                          ? 'text-green-600' 
+                          : item.marginPercent && item.marginPercent < 0 
+                          ? 'text-red-600' 
+                          : ''
+                      }`}>
+                        {item.marginPercent ? `${item.marginPercent.toFixed(1)}%` : '-'}
                       </TableCell>
                       
                       {/* Prom Ponderado */}
@@ -451,8 +541,9 @@ export default function SupplierOrderDetailPage({
                   );
                 })
               )}
-            </TableBody>
-          </Table>
+                </TableBody>
+            </Table>
+          </TooltipProvider>
         </div>
       </Card>
 
