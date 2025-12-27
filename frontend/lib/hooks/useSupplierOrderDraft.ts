@@ -48,6 +48,8 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
         
         // Load articles with sales trends
         if (articleIds.length > 0) {
+          console.log('🔍 [Draft] Cargando artículos:', articleIds);
+          
           axios.get('/api/articles', {
             params: {
               ids: articleIds.join(','),
@@ -57,6 +59,13 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
             }
           })
           .then((response) => {
+            console.log('✅ [Draft] Artículos recibidos:', response.data.data.length, 'de', articleIds.length);
+            console.log('📊 [Draft] Artículos:', response.data.data.map((a: Article) => ({
+              id: a.id,
+              code: a.code,
+              price: a.unitPrice
+            })));
+            
             const articlesMap = new Map<number, Article>();
             response.data.data.forEach((article: Article) => {
               articlesMap.set(article.id, article);
@@ -66,6 +75,10 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
             const itemsMap = new Map<number, SupplierOrderItem>();
             latestDraft.items?.forEach((item: SupplierOrderItemDto) => {
               const fullArticle = articlesMap.get(item.articleId);
+              
+              if (!fullArticle) {
+                console.warn(`⚠️ [Draft] Artículo NO encontrado en API - ID: ${item.articleId}, Code: ${item.articleCode}`);
+              }
               
               const article: Article = fullArticle ? fullArticle : {
                 id: item.articleId,

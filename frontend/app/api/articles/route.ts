@@ -62,6 +62,7 @@ export async function GET(request: NextRequest) {
     // Filter by specific IDs if provided
     if (ids) {
       const idArray = ids.split(',').map(id => BigInt(id.trim()));
+      console.log('🔍 [API] Buscando artículos por IDs:', idArray);
       where.id = { in: idArray };
     }
 
@@ -203,6 +204,9 @@ export async function GET(request: NextRequest) {
       finalArticles = mappedArticles.slice(skip, skip + limit);
     } else {
       // Normal flow: paginate first, then enrich
+      // IMPORTANTE: Si se busca por IDs, NO aplicar límite de paginación
+      const shouldPaginate = !ids; // Solo paginar si NO se busca por IDs específicos
+      
       const [articles, total] = await Promise.all([
         prisma.articles.findMany({
           where,
@@ -213,11 +217,21 @@ export async function GET(request: NextRequest) {
             { display_order: 'asc' },
             { code: 'asc' },
           ],
-          skip,
-          take: limit,
+          skip: shouldPaginate ? skip : undefined,
+          take: shouldPaginate ? limit : undefined,
         }),
         prisma.articles.count({ where }),
       ]);
+
+      if (ids) {
+        console.log('✅ [API] Artículos encontrados:', articles.length, 'de', ids.split(',').length, 'solicitados');
+        console.log('📊 [API] Artículos:', articles.map(a => ({
+          id: a.id.toString(),
+          code: a.code,
+          price: a.unit_price,
+          deleted: a.deleted_at
+        })));
+      }
 
       finalArticles = articles.map(enrichArticle);
       totalCount = total;
