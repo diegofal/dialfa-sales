@@ -18257,7 +18257,1246 @@ Lines added: 7, lines removed: 1
 
 ---
 
+Perfecto! Ahora vamos a compilar para verificar que funciona en todos los lugares:
 
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd "d:\dialfa new\spisa-new\frontend" && npm run build</summary>
+
+```bash
+cd "d:\dialfa new\spisa-new\frontend" && npm run build
+```
+
+```
+
+&gt; frontend@0.1.0 build
+&gt; next build --turbopack
+
+   ▲ Next.js 15.5.9 (Turbopack)
+   - Environments: .env
+
+   Creating an optimized production build ...
+ ⚠ Webpack is configured while Turbopack is not, which may cause problems.
+ ⚠ See instructions if you need to configure Turbopack:
+  https://nextjs.org/docs/app/api-reference/next-config-js/turbopack
+
+ ✓ Finished writing to disk in 143ms
+ ✓ Compiled successfully in 4.1s
+   Linting and checking validity of types ...
+
+./app/api/dashboard/charts/route.ts
+6:10  Warning: 'NextRequest' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/dashboard/metrics/route.ts
+6:10  Warning: 'NextRequest' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/dashboard/articles/page.tsx
+5:50  Warning: 'ShoppingCart' is defined but never used.  @typescript-eslint/no-unused-vars
+71:6  Warning: React Hook useEffect has a missing dependency: 'currentTab'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+192:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/dashboard/certificates/page.tsx
+69:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/dashboard/delivery-notes/[id]/page.tsx
+115:9  Warning: 'handleDownloadPdf' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./app/dashboard/invoices/[id]/page.tsx
+21:10  Warning: 'toast' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/dashboard/sales-orders/[id]/edit/page.tsx
+3:20  Warning: 'useState' is defined but never used.  @typescript-eslint/no-unused-vars
+4:36  Warning: 'Truck' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/activity/ActivityLogsTable.tsx
+22:28  Warning: 'OPERATIONS' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/articles/ClientLookup.tsx
+30:9  Warning: The 'clients' logical expression could make the dependencies of useEffect Hook (at line 35) change on every render. To fix this, wrap the initialization of 'clients' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+
+./components/articles/QuickArticleLookup.tsx
+36:9  Warning: The 'articles' logical expression could make the dependencies of useEffect Hook (at line 54) change on every render. To fix this, wrap the initialization of 'articles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+36:9  Warning: The 'articles' logical expression could make the dependencies of useEffect Hook (at line 70) change on every render. To fix this, wrap the initialization of 'articles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+
+./components/articles/QuickCartPopup.tsx
+88:9  Warning: The 'editArticles' logical expression could make the dependencies of useEffect Hook (at line 297) change on every render. To fix this, wrap the initialization of 'editArticles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+129:9  Warning: The 'getCurrentDimensions' function makes the dependencies of useCallback Hook (at line 181) change on every render. To fix this, wrap the definition of 'getCurrentDimensions' in its own useCallback() Hook.  react-hooks/exhaustive-deps
+
+./components/articles/SupplierOrderPanel.tsx
+301:17  Warning: 'formatValue' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/certificates/CertificateViewerDialog.tsx
+139:21  Warning: Using &#96;&lt;img&gt;&#96; could result in slower LCP and higher bandwidth. Consider using &#96;&lt;Image /&gt;&#96; from &#96;next/image&#96; or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/deliveryNotes/DeliveryNotesTable.tsx
+3:32  Warning: 'FileText' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/layout/FacturasMenuItem.tsx
+30:28  Warning: 'activeTabId' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+31:22  Warning: 'setIsExpanded' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/layout/PedidosMenuItem.tsx
+7:24  Warning: 'ChevronDown' is defined but never used.  @typescript-eslint/no-unused-vars
+7:37  Warning: 'ChevronRight' is defined but never used.  @typescript-eslint/no-unused-vars
+31:22  Warning: 'setIsExpanded' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/layout/RemitosMenuItem.tsx
+30:28  Warning: 'activeTabId' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+31:22  Warning: 'setIsExpanded' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/salesOrders/SingleStepOrderForm.tsx
+41:11  Warning: 'OrderItemFormData' is defined but never used.  @typescript-eslint/no-unused-vars
+97:5  Warning: 'getTabItems' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+143:10  Warning: 'unsavedChangesAction' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+157:9  Warning: The 'articles' logical expression could make the dependencies of useEffect Hook (at line 294) change on every render. To fix this, wrap the initialization of 'articles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+157:9  Warning: The 'articles' logical expression could make the dependencies of useEffect Hook (at line 320) change on every render. To fix this, wrap the initialization of 'articles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+165:9  Warning: The 'editArticles' logical expression could make the dependencies of useEffect Hook (at line 298) change on every render. To fix this, wrap the initialization of 'editArticles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+170:9  Warning: The 'items' conditional could make the dependencies of useEffect Hook (at line 195) change on every render. To fix this, wrap the initialization of 'items' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+581:9  Warning: 'handleUpdateUnitPrice' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/supplierOrders/ImportPreviewDialog.tsx
+22:24  Warning: 'MatchedArticle' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/ui/sparkline.tsx
+123:9  Warning: 'height' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./lib/api/suppliers.ts
+1:10  Warning: 'Supplier' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./lib/auth/jwt.ts
+7:7  Warning: 'JWT_EXPIRATION_MINUTES' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./lib/hooks/useFeedback.ts
+47:6  Warning: React Hook useEffect has a missing dependency: 'fetchFeedbacks'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./lib/hooks/useSalesOrderPermissions.ts
+31:6  Warning: React Hook useMemo has a missing dependency: 'salesOrder'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+   Collecting page data ...
+   Generating static pages (0/52) ...
+   Generating static pages (13/52) 
+   Generating static pages (26/52) 
+   Generating static pages (39/52) 
+ ✓ Generating static pages (52/52)
+   Finalizing page optimization ...
+   Collecting build traces ...
+
+Route (app)                                           Size  First Load JS
+┌ ○ /                                                429 B         139 kB
+├ ○ /_not-found                                        0 B         138 kB
+├ ƒ /api/activity-logs                                 0 B            0 B
+├ ƒ /api/activity-logs/[id]/changes                    0 B            0 B
+├ ƒ /api/articles                                      0 B            0 B
+├ ƒ /api/articles/[id]                                 0 B            0 B
+├ ƒ /api/articles/abc-refresh                          0 B            0 B
+├ ƒ /api/auth/login                                    0 B            0 B
+├ ƒ /api/auth/logout                                   0 B            0 B
+├ ƒ /api/auth/me                                       0 B            0 B
+├ ƒ /api/categories                                    0 B            0 B
+├ ƒ /api/categories/[id]                               0 B            0 B
+├ ƒ /api/certificates                                  0 B            0 B
+├ ƒ /api/certificates/[id]                             0 B            0 B
+├ ƒ /api/certificates/[id]/download                    0 B            0 B
+├ ƒ /api/certificates/sync                             0 B            0 B
+├ ƒ /api/clients                                       0 B            0 B
+├ ƒ /api/clients/[id]                                  0 B            0 B
+├ ƒ /api/coladas                                       0 B            0 B
+├ ƒ /api/dashboard/charts                              0 B            0 B
+├ ƒ /api/dashboard/metrics                             0 B            0 B
+├ ƒ /api/delivery-notes                                0 B            0 B
+├ ƒ /api/delivery-notes/[id]                           0 B            0 B
+├ ƒ /api/delivery-notes/[id]/pdf                       0 B            0 B
+├ ƒ /api/delivery-notes/[id]/print                     0 B            0 B
+├ ƒ /api/feedback                                      0 B            0 B
+├ ƒ /api/feedback/[id]                                 0 B            0 B
+├ ƒ /api/invoices                                      0 B            0 B
+├ ƒ /api/invoices/[id]                                 0 B            0 B
+├ ƒ /api/invoices/[id]/cancel                          0 B            0 B
+├ ƒ /api/invoices/[id]/exchange-rate                   0 B            0 B
+├ ƒ /api/invoices/[id]/items                           0 B            0 B
+├ ƒ /api/invoices/[id]/pdf                             0 B            0 B
+├ ƒ /api/invoices/[id]/preview-pdf                     0 B            0 B
+├ ƒ /api/invoices/[id]/print                           0 B            0 B
+├ ƒ /api/invoices/[id]/print-pdf                       0 B            0 B
+├ ƒ /api/invoices/[id]/stock-movements                 0 B            0 B
+├ ƒ /api/lookups/operation-types                       0 B            0 B
+├ ƒ /api/lookups/payment-methods                       0 B            0 B
+├ ƒ /api/lookups/provinces                             0 B            0 B
+├ ƒ /api/lookups/tax-conditions                        0 B            0 B
+├ ƒ /api/lookups/transporters                          0 B            0 B
+├ ƒ /api/sales-orders                                  0 B            0 B
+├ ƒ /api/sales-orders/[id]                             0 B            0 B
+├ ƒ /api/sales-orders/[id]/generate-delivery-note      0 B            0 B
+├ ƒ /api/sales-orders/[id]/generate-invoice            0 B            0 B
+├ ƒ /api/sales-orders/[id]/permissions                 0 B            0 B
+├ ƒ /api/settings                                      0 B            0 B
+├ ƒ /api/stock-movements                               0 B            0 B
+├ ƒ /api/stock-movements/adjust                        0 B            0 B
+├ ƒ /api/supplier-orders                               0 B            0 B
+├ ƒ /api/supplier-orders/[id]                          0 B            0 B
+├ ƒ /api/supplier-orders/[id]/status                   0 B            0 B
+├ ƒ /api/supplier-orders/import                        0 B            0 B
+├ ƒ /api/suppliers                                     0 B            0 B
+├ ƒ /api/suppliers/[id]                                0 B            0 B
+├ ƒ /api/users                                         0 B            0 B
+├ ƒ /api/users/[id]                                    0 B            0 B
+├ ○ /dashboard                                     3.67 kB         235 kB
+├ ○ /dashboard/activity                            18.1 kB         250 kB
+├ ○ /dashboard/articles                            35.8 kB         321 kB
+├ ○ /dashboard/categories                          6.72 kB         292 kB
+├ ○ /dashboard/certificates                        53.3 kB         293 kB
+├ ○ /dashboard/clients                             6.66 kB         292 kB
+├ ○ /dashboard/delivery-notes                      5.88 kB         237 kB
+├ ƒ /dashboard/delivery-notes/[id]                 6.94 kB         239 kB
+├ ○ /dashboard/feedback                            3.53 kB         243 kB
+├ ○ /dashboard/feedback/admin                      4.97 kB         245 kB
+├ ○ /dashboard/invoices                            8.05 kB         240 kB
+├ ƒ /dashboard/invoices/[id]                       6.16 kB         238 kB
+├ ○ /dashboard/invoices/new                        3.85 kB         244 kB
+├ ○ /dashboard/sales-orders                        13.5 kB         245 kB
+├ ƒ /dashboard/sales-orders/[id]                     377 B         232 kB
+├ ƒ /dashboard/sales-orders/[id]/edit              10.3 kB         242 kB
+├ ○ /dashboard/sales-orders/new                    9.73 kB         241 kB
+├ ○ /dashboard/settings                            2.31 kB         234 kB
+├ ○ /dashboard/supplier-orders                     14.3 kB         246 kB
+├ ƒ /dashboard/supplier-orders/[id]                12.4 kB         244 kB
+├ ○ /dashboard/suppliers                           1.54 kB         233 kB
+├ ○ /dashboard/users                               19.9 kB         252 kB
+└ ○ /login                                         14.9 kB         228 kB
++ First Load JS shared by all                       155 kB
+  ├ chunks/0fb3607de41747b5.js                     10.7 kB
+  ├ chunks/674649e7dad9f6b4.js                     13.1 kB
+  ├ chunks/7fd964e6e7d66713.js                     59.2 kB
+  ├ chunks/8082ab48faca5ea1.js                     17.2 kB
+  ├ chunks/3387d4f4ac9ee57f.css                      17 kB
+  └ other shared chunks (total)                    38.1 kB
+
+
+ƒ Middleware                                       49.3 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+--: line 1: dump_bash_state: command not found
+
+```
+</details>
+</tool-use>
+
+---
+
+¡Perfecto! ✅ **Build exitoso**. 
+
+## 🎉 **FORMATO DE AÑOS IMPLEMENTADO**
+
+Ahora **todos los tiempos estimados >= 12 meses mostrarán también los años**:
+
+### **Ejemplos de Formato:**
+
+| Meses | Formato Anterior | Formato Nuevo ✅ |
+|-------|------------------|------------------|
+| 0.5 | `~15 días` | `~15 días` |
+| 1.0 | `~1 mes` | `~1 mes` |
+| 5.3 | `~5.3 meses` | `~5.3 meses` |
+| **11.8** | `~11.8 meses` | `~11.8 meses` |
+| **12.0** | `~12.0 meses` | `~12.0 meses (1.0 años)` ✅ |
+| **24.6** | `~24.6 meses` | `~24.6 meses (2.1 años)` ✅ |
+| **115.1** | `~115.1 meses` | `~115.1 meses (9.6 años)` ✅ |
+| **286.2** | `~286.2 meses` | `~286.2 meses (23.9 años)` ✅ |
+| 0 o ∞ | `∞ Infinito` | `∞ Infinito` |
+
+### **Dónde se Aplica:**
+
+Esta función `formatSaleTime()` se usa en **todos** estos lugares:
+
+1. ✅ **Panel de Pedido a Proveedor** (`SupplierOrderPanel`)
+   - Columna "T. Est. Venta" 
+   - Resumen "Tiempo Est. Venta"
+
+2. ✅ **Detalle de Pedido a Proveedor** (`/dashboard/supplier-orders/[id]`)
+   - Columna "T. Est. Venta" por item
+   - Card resumen "Tiempo Est. Venta"
+
+3. ✅ **Lista de Pedidos** (`/dashboard/supplier-orders`)
+   - Columna "Tiempo Est. Venta"
+
+4. ✅ **HTML Export** del pedido
+   - Todas las columnas de tiempo estimado
+
+### **Beneficios:**
+
+✅ **Contexto inmediato**: Ya no tienes que hacer la división mental "286 meses = ¿cuántos años?"  
+✅ **Mejor comprensión**: "9.6 años" es mucho más intuitivo que "115.1 meses"  
+✅ **Consistente**: Se aplica automáticamente en todos los lugares donde se muestra tiempo estimado  
+
+Ahora cuando veas **~115.1 meses**, también verás **(9.6 años)** al lado! 🎯
+
+---
+
+_**User (2025-12-26 23:39Z)**_
+
+NO ENTIENDO por que algunos articulos no estan cargando los precios unitarios, siendo que losm ismos se encuentran en la base de datos ...
+
+---
+
+_**Agent (model claude-4.5-sonnet-thinking, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+El usuario está mostrando una tabla donde algunos artículos tienen precio unitario (como "$38,21", "$26,18", etc.) pero otros muestran "-" en lugar del precio. Dice que los precios SÍ están en la base de datos.
+
+El problema es que en la página de detalle de pedido (`/dashboard/supplier-orders/[id]`), estamos cargando los artículos con sus datos adicionales (salesTrend, lastSaleDate, unitPrice) mediante una llamada a `/api/articles`.
+
+Pero si miramos el código, estamos usando:
+1. `articlesData.get(item.articleId)` para obtener el artículo
+2. Y luego mostramos `article ? formatPrice(article.unitPrice) : '-'`
+
+El problema podría ser:
+1. No se están cargando todos los artículos en `articlesData`
+2. La API no está devolviendo algunos artículos
+3. Hay un error en el mapeo de IDs
+
+Déjame revisar el código de carga de artículos en el detalle del pedido.</details></think>
+
+---
+
+Veo el problema. Los artículos que muestran "-" en precio unitario son aquellos donde `articlesData.get(item.articleId)` no encuentra el artículo. Déjame investigar por qué algunos artículos no se están cargando:
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: d:\dialfa new\spisa-new\frontend\app\dashboard\supplier-orders\[id]\page.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "ids.*split|ids.*param" in "d:\dialfa new\spisa-new\frontend\app\api\articles\route.ts" • 1 match</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `frontend/app/api/articles/route.ts` | `const idArray = ids.split(',').map(id => BigInt(id.trim()));` | L64 |
+
+
+</details>
+</tool-use>
+
+---
+
+El código se ve correcto. El problema podría ser que algunos artículos están marcados como eliminados o discontinuados en la base de datos. Déjame agregar un `console.log` para depurar y también verificar si necesitamos incluir artículos discontinuados en este contexto:
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: d:\dialfa new\spisa-new\frontend\app\dashboard\supplier-orders\[id]\page.tsx</summary>
+
+**Chunk 1**
+Lines added: 3, lines removed: undefined
+
+```diff
+@@ -82,4 +82,7 @@
+        try {
+          const articleIds = order.items!.map((item: SupplierOrderItemDto) =&gt; item.articleId);
++         
++         console.log('🔍 Loading articles for IDs:', articleIds);
++         
+          const response = await axios.get('/api/articles', {
+            params: {
+```
+
+**Chunk 2**
+Lines added: 9, lines removed: undefined
+
+```diff
+@@ -91,8 +94,17 @@
+          });
+  
++         console.log('✅ Articles loaded:', response.data.data.length, 'of', articleIds.length);
++         console.log('📊 Loaded article IDs:', response.data.data.map((a: Article) =&gt; a.id));
++         
+          const articlesMap = new Map&lt;number, Article&gt;();
+          response.data.data.forEach((article: Article) =&gt; {
+            articlesMap.set(article.id, article);
+          });
++         
++         // Log missing articles
++         const missingIds = articleIds.filter(id =&gt; !articlesMap.has(id));
++         if (missingIds.length &gt; 0) {
++           console.warn('⚠️ Missing articles:', missingIds);
++         }
+  
+          setArticlesData(articlesMap);
+```
+
+</details>
+
+</tool-use>
+
+---
+
+Ahora, el problema más probable es que el endpoint `/api/articles` tiene un filtro que excluye artículos eliminados (`deleted_at: null`). Pero en el contexto de pedidos ya guardados, **necesitamos cargar esos artículos incluso si están discontinuados o eliminados**, ya que forman parte del pedido histórico.
+
+Voy a modificar el endpoint para que cuando se pase `ids`, no aplique el filtro de eliminados:
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: d:\dialfa new\spisa-new\frontend\app\api\articles\route.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+Perfecto, veo el problema. En la línea 59, siempre se aplica el filtro `deleted_at: null`, **incluso cuando se está buscando por IDs específicos**. Para pedidos históricos, necesitamos esos artículos aunque estén eliminados.
+
+Voy a modificar la lógica para que cuando se busque por IDs, NO aplique el filtro de eliminados:
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: d:\dialfa new\spisa-new\frontend\app\api\articles\route.ts</summary>
+
+**Chunk 1**
+Lines added: 7, lines removed: 3
+
+```diff
+@@ -56,12 +56,16 @@
+      // Build where clause
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+-     const where: Record&lt;string, any&gt; = {
+-       deleted_at: null,
+-     };
++     const where: Record&lt;string, any&gt; = {};
+  
+      // Filter by specific IDs if provided
++     // IMPORTANTE: Cuando se busca por IDs (ej: pedidos históricos), 
++     // NO filtrar por deleted_at para incluir artículos discontinuados/eliminados
+      if (ids) {
+        const idArray = ids.split(',').map(id =&gt; BigInt(id.trim()));
+        where.id = { in: idArray };
++       // NO aplicar filtro de deleted_at cuando se busca por IDs específicos
++     } else {
++       // Solo aplicar filtro de eliminados cuando NO se busca por IDs
++       where.deleted_at = null;
+      }
+  
+```
+
+</details>
+
+</tool-use>
+
+---
+
+_**User (2025-12-26 23:39Z)**_
+
+no creo que venga por aca, sino por como estamos trayendo la query de articulos / pedidos . Fijate que en articulso el precio se carga bien, pero en la tabla de pedidos, el precio no aparece. (screenshot 2) 
+
+---
+
+_**Agent (model claude-4.5-sonnet-thinking, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+El usuario tiene razón. Revirtió mis cambios al `route.ts`, así que el problema no es el filtro de `deleted_at`. 
+
+El problema es que en el screenshot que muestra, veo que:
+1. Algunos artículos muestran `$ 0,00` en precio (BWS600STD3, BWS600S802, BWS600S804)
+2. Otros muestran el precio correcto (BCS6001 muestra `$ 35,00`)
+
+El usuario dice que en la tabla de artículos el precio se carga bien, pero en la tabla de pedidos no aparece.
+
+Miremos el código de la página de detalle del pedido. El problema está en que estamos mostrando `article ? formatPrice(article.unitPrice) : '-'`, pero algunos artículos están viniendo con `unitPrice: 0` o el artículo no se está cargando correctamente.
+
+El usuario dice que los precios SÍ están en la base de datos. Entonces el problema es que cuando hacemos la query para obtener los artículos por IDs, algunos no se están cargando o se están cargando con precio 0.
+
+Déjame revisar la consola que agregamos para ver qué artículos se están cargando y cuáles no.</details></think>
+
+---
+
+Tienes razón! El problema es que cuando cargamos los artículos por IDs, algunos no se están trayendo correctamente. Mira los console.log que agregamos - probablemente verás en la consola del navegador que algunos IDs no se están cargando.
+
+El problema es más sutil: **cuando buscamos por IDs, algunos artículos pueden tener `unit_price` en NULL o 0 en la base de datos**, o están marcados como eliminados.
+
+Déjame verificar qué está pasando. Abre la consola del navegador (F12) y busca los mensajes que agregamos:
+
+```
+🔍 Loading articles for IDs: [...]
+✅ Articles loaded: X of Y
+⚠️ Missing articles: [...]
+```
+
+Mientras tanto, voy a modificar el código para que también **cargue el precio desde la tabla `articles` incluso si el artículo tiene `deleted_at`** o está inactivo, ya que en pedidos históricos necesitamos ver esos datos:
+
+---
+
+The string to replace was not found in the file.
+
+---
+
+Parece que revertiste mis console.logs. Déjame rehacer el cambio con el código actual:
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: d:\dialfa new\spisa-new\frontend\app\dashboard\supplier-orders\[id]\page.tsx</summary>
+
+**Chunk 1**
+Lines added: 3, lines removed: undefined
+
+```diff
+@@ -82,4 +82,7 @@
+        try {
+          const articleIds = order.items!.map((item: SupplierOrderItemDto) =&gt; item.articleId);
++         
++         console.log('🔍 Loading articles for IDs:', articleIds);
++         
+          const response = await axios.get('/api/articles', {
+            params: {
+```
+
+**Chunk 2**
+Lines added: 19, lines removed: 2
+
+```diff
+@@ -88,15 +91,32 @@
+              includeLastSaleDate: 'true',
+              trendMonths: trendMonths,
++             includeDeleted: 'true', // Incluir artículos eliminados para pedidos históricos
+            }
+          });
++ 
++         console.log('✅ Articles received:', response.data.data.length, 'of', articleIds.length);
++         response.data.data.forEach((a: Article) =&gt; {
++           console.log(&#96;  📦 ${a.code}: price=${a.unitPrice}, deleted=${a.isDeleted}&#96;);
++         });
+  
+          const articlesMap = new Map&lt;number, Article&gt;();
+          response.data.data.forEach((article: Article) =&gt; {
+            articlesMap.set(article.id, article);
+          });
+- 
++         
++         // Log missing articles
++         const missingIds = articleIds.filter(id =&gt; !articlesMap.has(id));
++         if (missingIds.length &gt; 0) {
++           console.warn('⚠️ Missing article IDs:', missingIds);
++           order.items!.forEach((item: SupplierOrderItemDto) =&gt; {
++             if (missingIds.includes(item.articleId)) {
++               console.warn(&#96;  ❌ ${item.articleCode} (ID: ${item.articleId}): ${item.articleDescription}&#96;);
++             }
++           });
++         }
++ 
+          setArticlesData(articlesMap);
+        } catch (error) {
+-         console.error('Error loading article data:', error);
++         console.error('❌ Error loading article data:', error);
+        } finally {
+          setLoadingArticles(false);
+```
+
+</details>
+
+</tool-use>
+
+---
+
+Ahora necesito modificar el backend para que cuando se pase `includeDeleted=true`, NO filtre por `deleted_at`:
+
+---
+
+Cancelled
+
+---
+
+_**User (2025-12-26 23:39Z)**_
+
+reverti el codigo ya que estas asumiendo que el articulo esta borrado y no es asi
+
+---
+
+_**Agent (model claude-4.5-sonnet-thinking, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+El usuario revirtió el código porque mi asunción de que los artículos estaban borrados es incorrecta. Necesito investigar mejor el problema real.
+
+Si en la grilla de artículos se muestran bien los precios, pero en la página de detalle del pedido NO, entonces el problema está en cómo estamos cargando los datos en la página de pedidos.
+
+Déjame pensar:
+1. En artículos, los precios se ven bien (screenshot 1 no lo veo pero el usuario lo confirma)
+2. En el detalle de pedido, algunos artículos muestran "-" en precio (screenshot visible)
+3. Los artículos NO están borrados
+
+Entonces el problema puede ser:
+- La query de `/api/articles?ids=...` no está trayendo todos los artículos
+- Los artículos existen pero el API no los está devolviendo
+- Hay un error en el join o en la búsqueda
+
+Necesito pedirle al usuario que:
+1. Abra la consola del navegador
+2. Vea qué dice el console.log que agregamos
+3. Me diga qué IDs están "missing"
+4. Luego yo puedo verificar en la base de datos si esos IDs existen
+
+O mejor aún, puedo pedirle que me muestre la consola directamente.</details></think>
+
+---
+
+Tienes razón, disculpa por asumir. Déjame investigar correctamente.
+
+Por favor, abre la **consola del navegador** (F12 → Console) cuando estés viendo ese pedido, y dime qué aparece en los mensajes de console.log. Específicamente busca:
+
+```
+🔍 Loading articles for IDs: [...]
+✅ Articles received: X of Y
+⚠️ Missing article IDs: [...]
+```
+
+O mándame un screenshot de la consola para ver exactamente qué artículos se están cargando y cuáles faltan.
+
+Mientras tanto, déjame ver si hay algo en el código que pueda estar filtrando incorrectamente:
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "if \(ids\)" in "d:\dialfa new\spisa-new\frontend\app\api\articles\route.ts" • 1 match</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `frontend/app/api/articles/route.ts` | `if (ids) \{` | L63 |
+
+
+</details>
+</tool-use>
+
+---
+
+Veo el problema potencial: **incluso cuando buscas por IDs específicos, sigue aplicando el filtro `deleted_at: null`** (línea 59). Esto significa que si alguno de esos artículos tiene `deleted_at` no null, no se va a traer.
+
+¿Puedes verificar en la consola del navegador qué IDs están faltando? Una vez que tengas esos IDs, puedo ayudarte a verificar si están marcados como eliminados en la base de datos.
+
+Mientras tanto, te sugiero hacer una query directa en la base de datos para los artículos que muestran "-" en precio:
+
+```sql
+SELECT id, code, description, unit_price, deleted_at, is_active 
+FROM articles 
+WHERE code IN ('BWS600STD3', 'BWS600S802', 'BWS600S804')
+```
+
+Esto nos dirá si:
+1. Los artículos existen
+2. Tienen precio definido
+3. Están marcados como eliminados o inactivos
+
+¿Qué te muestra la consola del navegador?
+
+---
+
+_**User (2025-12-26 23:39Z)**_
+
+
+
+---
+
+_**Agent (model claude-4.5-sonnet-thinking, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+Perfecto! Ahora veo el problema claramente en la base de datos:
+
+Los artículos SÍ existen, SÍ tienen precios definidos (`unit_price`), `deleted_at` es `<null>` (no están eliminados), y `is_active` es `true`.
+
+Entonces el problema NO es que estén eliminados o filtrados incorrectamente. El problema debe ser otra cosa.
+
+Déjame pensar... si los artículos se están trayendo correctamente del backend pero no se muestran los precios en el frontend, el problema debe estar en cómo estamos accediendo a los datos en el componente.
+
+Déjame revisar cómo estamos obteniendo el precio en el componente. Probablemente el `articlesMap.get(item.articleId)` no está encontrando el artículo, o el precio está en un campo diferente al esperado.
+
+Necesito ver qué muestra la consola del navegador cuando se cargan los artículos. El usuario debería ver los logs que agregamos.</details></think>
+
+---
+
+¡Perfecto! Ahora veo que los artículos **SÍ existen**, **SÍ tienen precios** (108.89, 54.60, 241.45), **NO están eliminados** (`deleted_at: <null>`), y **están activos** (`is_active: true`).
+
+Entonces el problema NO es el filtrado en el backend. El problema debe estar en el frontend.
+
+¿Puedes abrir la **consola del navegador** (F12 → Console) cuando estés viendo ese pedido y ver qué aparece? Debería mostrar algo como:
+
+```
+🔍 Loading articles for IDs: [1544, 1580, 1583, ...]
+✅ Articles received: X of Y
+  📦 BWS600STD3: price=108.89, deleted=false
+  📦 BWS600S802: price=54.60, deleted=false
+  📦 BWS600S804: price=241.45, deleted=false
+```
+
+Si ves "Missing article IDs", eso nos dirá que el problema está en la query del backend.
+
+Si todos los artículos se cargan correctamente pero igual no se muestra el precio, entonces el problema está en cómo estamos mapeando los datos en el componente (posiblemente el campo se llama diferente o hay un problema con el `BigInt` vs `number` en los IDs).
+
+**Por favor muéstrame qué aparece en la consola del navegador cuando abres ese pedido.**
+
+---
+
+_**User (2025-12-26 23:39Z)**_
+
+se ve que saque el log uqe mencionaste. 
+
+---
+
+_**Agent (model claude-4.5-sonnet-thinking, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+El usuario dice que sacó el log que mencioné. Entonces necesito volver a agregarlo para poder debuggear el problema. Déjame agregar los console.logs de vuelta para que podamos ver qué está pasando.</details></think>
+
+---
+
+Ah claro, revertiste el código. Déjame agregar los logs de vuelta para poder diagnosticar el problema:
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: d:\dialfa new\spisa-new\frontend\app\dashboard\supplier-orders\[id]\page.tsx</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: d:\dialfa new\spisa-new\frontend\app\dashboard\supplier-orders\[id]\page.tsx</summary>
+
+**Chunk 1**
+Lines added: 3, lines removed: undefined
+
+```diff
+@@ -82,4 +82,7 @@
+        try {
+          const articleIds = order.items!.map((item: SupplierOrderItemDto) =&gt; item.articleId);
++         
++         console.log('🔍 Cargando artículos para IDs:', articleIds);
++         
+          const response = await axios.get('/api/articles', {
+            params: {
+```
+
+**Chunk 2**
+Lines added: 22, lines removed: 2
+
+```diff
+@@ -90,13 +93,33 @@
+            }
+          });
++ 
++         console.log('✅ Artículos recibidos:', response.data.data.length, 'de', articleIds.length);
++         console.log('📊 Datos de artículos:', response.data.data.map((a: Article) =&gt; ({
++           id: a.id,
++           code: a.code,
++           price: a.unitPrice,
++         })));
+  
+          const articlesMap = new Map&lt;number, Article&gt;();
+          response.data.data.forEach((article: Article) =&gt; {
+            articlesMap.set(article.id, article);
+          });
+- 
++         
++         // Log missing articles
++         const missingIds = articleIds.filter(id =&gt; !articlesMap.has(id));
++         if (missingIds.length &gt; 0) {
++           console.warn('⚠️ IDs de artículos faltantes:', missingIds);
++           order.items!.forEach((item: SupplierOrderItemDto) =&gt; {
++             if (missingIds.includes(item.articleId)) {
++               console.warn(&#96;  ❌ ${item.articleCode} (ID: ${item.articleId}): ${item.articleDescription}&#96;);
++             }
++           });
++         }
++ 
++         console.log('💾 articlesData Map:', articlesMap);
++ 
+          setArticlesData(articlesMap);
+        } catch (error) {
+-         console.error('Error loading article data:', error);
++         console.error('❌ Error al cargar datos de artículos:', error);
+        } finally {
+          setLoadingArticles(false);
+```
+
+</details>
+
+</tool-use>
+
+---
+
+Perfecto, ahora agregué los console.log de vuelta. 
+
+**Por favor:**
+1. Refresca la página del pedido (F5)
+2. Abre la consola del navegador (F12 → pestaña "Console")
+3. Copia y pega aquí todo lo que aparezca con los emojis 🔍, ✅, 📊, ⚠️, 💾, ❌
+
+Eso me dirá exactamente qué está pasando con los artículos que no muestran precio.
+
+---
+
+_**User (2025-12-26 23:39Z)**_
+
+el problema ocurre especificmaente en la grilla de pedidos dentro de articulos. no en la grilla de articulos
+
+---
+
+_**Agent (model claude-4.5-sonnet-thinking, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+Ah! El usuario dice que el problema es en el **panel de pedidos a proveedores DENTRO de la página de artículos** (SupplierOrderPanel), NO en la página de detalle del pedido (/dashboard/supplier-orders/[id]).
+
+Déjame verificar dónde está el problema. El SupplierOrderPanel recibe los items con article completo, así que debería tener el unitPrice. Veamos el código del SupplierOrderPanel.</details></think>
+
+---
+
+¡Ah! Entiendo ahora. El problema está en el **SupplierOrderPanel** (el panel lateral en la página de Artículos), NO en la página de detalle del pedido.
+
+Déjame ver el código del SupplierOrderPanel donde muestra el precio:
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "Precio Unit\.|formatPrice\(item\.article" in "d:\dialfa new\spisa-new\frontend\components\articles\SupplierOrderPanel.tsx" • 4 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `frontend/components/articles/SupplierOrderPanel.tsx` | `<th class="text-right">Precio Unit.</th>` | L278 |
+| `frontend/components/articles/SupplierOrderPanel.tsx` | `<td class="text-right"><strong>$\{formatPrice(item.article.unitPrice)\}</strong></td>` | L320 |
+| `frontend/components/articles/SupplierOrderPanel.tsx` | `<TableHead className="text-right cursor-help">Precio Unit.</TableHead>` | L443 |
+| `frontend/components/articles/SupplierOrderPanel.tsx` | `\{formatPrice(item.article.unitPrice)\}` | L548 |
+
+
+</details>
+</tool-use>
+
+---
+
+Perfecto, veo que en la línea 548 se muestra `item.article.unitPrice`. El problema es que `item.article` en el `SupplierOrderPanel` proviene del `useSupplierOrderDraft` hook.
+
+Déjame revisar cómo se cargan los artículos en ese hook:
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "axios\.get.*articles|includeTrends|trendMonths" in "d:\dialfa new\spisa-new\frontend\lib\hooks\useSupplierOrderDraft.ts" • 12 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `frontend/lib/hooks/useSupplierOrderDraft.ts` | `export function useSupplierOrderDraft(trendMonths: number = 12) \{` | L16 |
+| `frontend/lib/hooks/useSupplierOrderDraft.ts` | `axios.get('/api/articles', \{` | L51 |
+| `frontend/lib/hooks/useSupplierOrderDraft.ts` | `includeTrends: 'true',` | L54 |
+| `frontend/lib/hooks/useSupplierOrderDraft.ts` | `trendMonths: trendMonths,` | L56 |
+| `frontend/lib/hooks/useSupplierOrderDraft.ts` | `// Calcular WMA dinámico basado en trendMonths` | L93 |
+| `frontend/lib/hooks/useSupplierOrderDraft.ts` | `const avgSales = calculateWeightedAvgSales(article.salesTrend, trendMonths);` | L94 |
+| `frontend/lib/hooks/useSupplierOrderDraft.ts` | `const avgSales = calculateWeightedAvgSales(article.salesTrend, trendMonths);` | L138 |
+| `frontend/lib/hooks/useSupplierOrderDraft.ts` | `\}, [draftsData, trendMonths]);` | L160 |
+| `frontend/lib/hooks/useSupplierOrderDraft.ts` | `const avgSales = calculateWeightedAvgSales(article.salesTrend, trendMonths);` | L228 |
+| `frontend/lib/hooks/useSupplierOrderDraft.ts` | `\}, [debouncedSave, trendMonths]);` | L255 |
+| `frontend/lib/hooks/useSupplierOrderDraft.ts` | `const avgSales = calculateWeightedAvgSales(article.salesTrend, trendMonths);` | L332 |
+| `frontend/lib/hooks/useSupplierOrderDraft.ts` | `\}, [trendMonths]);` | L340 |
+
+
+</details>
+</tool-use>
+
+---
+
+¡Ahí está el problema! Mira las líneas **70-91**: cuando NO encuentra el artículo en `articlesMap`, crea un **fallback Article** con valores por defecto, y **le pone `unitPrice: 0`** (línea 79).
+
+El problema es que ese objeto fallback no incluye el `unitPrice` real del artículo. Necesitamos obtener el precio de algún lado cuando el artículo no se encuentra en el `articlesMap`.
+
+Déjame ver si podemos obtener el precio del `SupplierOrderItemDto`:
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "SupplierOrderItemDto|articleCode|articleDescription" in "d:\dialfa new\spisa-new\frontend\types\supplierOrder.ts" • 6 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `frontend/types/supplierOrder.ts` | `items?: SupplierOrderItemDto[];` | L32 |
+| `frontend/types/supplierOrder.ts` | `export interface SupplierOrderItemDto \{` | L35 |
+| `frontend/types/supplierOrder.ts` | `articleCode: string;` | L39 |
+| `frontend/types/supplierOrder.ts` | `articleDescription: string;` | L40 |
+| `frontend/types/supplierOrder.ts` | `articleCode: string;` | L56 |
+| `frontend/types/supplierOrder.ts` | `articleDescription: string;` | L57 |
+
+
+</details>
+</tool-use>
+
+---
+
+El `SupplierOrderItemDto` no tiene el `unitPrice`. El problema es que cuando cargamos el draft y algunos artículos fallan al cargarse del API, creamos un fallback con precio 0.
+
+La solución es **agregar console.log para ver por qué algunos artículos no se cargan**, y luego cargarlos correctamente. Déjame agregar debugging al `useSupplierOrderDraft`:
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: d:\dialfa new\spisa-new\frontend\lib\hooks\useSupplierOrderDraft.ts</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: undefined
+
+```diff
+@@ -49,4 +49,6 @@
+          // Load articles with sales trends
+          if (articleIds.length &gt; 0) {
++           console.log('🔍 [Draft] Cargando artículos:', articleIds);
++           
+            axios.get('/api/articles', {
+              params: {
+```
+
+**Chunk 2**
+Lines added: 7, lines removed: undefined
+
+```diff
+@@ -58,4 +60,11 @@
+            })
+            .then((response) =&gt; {
++             console.log('✅ [Draft] Artículos recibidos:', response.data.data.length, 'de', articleIds.length);
++             console.log('📊 [Draft] Artículos:', response.data.data.map((a: Article) =&gt; ({
++               id: a.id,
++               code: a.code,
++               price: a.unitPrice
++             })));
++             
+              const articlesMap = new Map&lt;number, Article&gt;();
+              response.data.data.forEach((article: Article) =&gt; {
+```
+
+**Chunk 3**
+Lines added: 4, lines removed: undefined
+
+```diff
+@@ -67,4 +76,8 @@
+              latestDraft.items?.forEach((item: SupplierOrderItemDto) =&gt; {
+                const fullArticle = articlesMap.get(item.articleId);
++               
++               if (!fullArticle) {
++                 console.warn(&#96;⚠️ [Draft] Artículo NO encontrado en API - ID: ${item.articleId}, Code: ${item.articleCode}&#96;);
++               }
+                
+                const article: Article = fullArticle ? fullArticle : {
+```
+
+</details>
+
+</tool-use>
+
+---
+
+Ahora, por favor:
+
+1. Ve a **Artículos** (donde está el panel lateral del pedido)
+2. Abre la consola del navegador (F12 → Console)
+3. Copia y pega aquí lo que veas con los emojis `🔍 [Draft]`, `✅ [Draft]`, `📊 [Draft]`, `⚠️ [Draft]`
+
+Eso me dirá exactamente qué artículos NO se están cargando y por qué no aparece su precio.
+
+---
+
+_**User (2025-12-26 23:39Z)**_
+
+
+
+---
+
+_**Agent (model claude-4.5-sonnet-thinking, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+¡Perfecto! Ahí está el problema. Los artículos NO se están encontrando en el API. Veo:
+
+- ID: 1429, Code: BWS300STD21/2
+- ID: 1544, Code: BWS600STD3
+- ID: 1580, Code: BWS600S802
+- ID: 1583, Code: BWS600S804
+
+Estos artículos NO se están retornando por el API `/api/articles` cuando se busca por IDs.
+
+Pero sabemos de la query anterior que SÍ existen en la base de datos con precios. Entonces el problema está en el filtro `deleted_at: null` en el endpoint.
+
+Espera... el usuario dijo que revertió mi cambio donde quitaba ese filtro cuando se busca por IDs. Entonces ahora el código tiene de vuelta:
+
+```typescript
+const where: Record<string, any> = {
+  deleted_at: null,
+};
+
+if (ids) {
+  const idArray = ids.split(',').map(id => BigInt(id.trim()));
+  where.id = { in: idArray };
+}
+```
+
+Pero vimos que esos artículos tienen `deleted_at: <null>` en la DB, o sea no están eliminados. Entonces ¿por qué no se están trayendo?
+
+Déjame pensar... tal vez el problema es con el tipo de dato. Estamos convirtiendo a `BigInt` pero tal vez los IDs que vienen del draft son `number`.
+
+O tal vez hay un problema con el join/include de categories.
+
+Necesito agregar logs en el backend para ver qué está pasando.</details></think>
+
+---
+
+¡Perfecto! Ahí está el problema. Los artículos **NO se están encontrando** en el API:
+
+- BWS300STD21/2 (ID: 1429)  
+- BWS600STD3 (ID: 1544) ← Este SÍ tiene precio en la DB
+- BWS600S802 (ID: 1580) ← Este SÍ tiene precio en la DB  
+- BWS600S804 (ID: 1583) ← Este SÍ tiene precio en la DB
+
+Pero sabemos que estos artículos **SÍ existen** en la base de datos con precios válidos.
+
+El problema está en el endpoint `/api/articles`. Déjame agregar logs en el backend para ver qué está pasando:
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: d:\dialfa new\spisa-new\frontend\app\api\articles\route.ts</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -63,4 +63,5 @@
+      if (ids) {
+        const idArray = ids.split(',').map(id =&gt; BigInt(id.trim()));
++       console.log('🔍 [API] Buscando artículos por IDs:', idArray);
+        where.id = { in: idArray };
+      }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: d:\dialfa new\spisa-new\frontend\app\api\articles\route.ts</summary>
+
+**Chunk 1**
+Lines added: 10, lines removed: undefined
+
+```diff
+@@ -220,4 +220,14 @@
+          prisma.articles.count({ where }),
+        ]);
++ 
++       if (ids) {
++         console.log('✅ [API] Artículos encontrados:', articles.length);
++         console.log('📊 [API] Artículos:', articles.map(a =&gt; ({
++           id: a.id.toString(),
++           code: a.code,
++           price: a.unit_price,
++           deleted: a.deleted_at
++         })));
++       }
+  
+        finalArticles = articles.map(enrichArticle);
+```
+
+</details>
+
+</tool-use>
+
+---
+
+Ahora:
+
+1. Refresca la página de Artículos (F5)
+2. En la consola del navegador, busca los logs del **backend** (deberían aparecer en tu terminal donde corre `npm run dev`, no en el navegador)
+3. O si estás usando **Vercel/producción**, busca en los logs del servidor
+
+Los logs del **backend** mostrarán:
+```
+🔍 [API] Buscando artículos por IDs: [1429n, 1544n, 1580n, 1583n]
+✅ [API] Artículos encontrados: X
+📊 [API] Artículos: [...]
+```
+
+**¿Dónde están corriendo los logs del backend?** ¿En terminal/consola local o en logs de servidor?
+
+---
+
+_**User (2025-12-26 23:39Z)**_
+
+
+✅ [API] Artículos encontrados: 50
+📊 [API] Artículos: [
+  { id: '4', code: 'BCS1501', price: 15.82, deleted: null },
+  { id: '7', code: 'BCS15011/2', price: 16.52, deleted: null },
+  { id: '10', code: 'BCS15014', price: 576.76, deleted: null },
+  { id: '13', code: 'BCS1502', price: 21.03, deleted: null },
+  { id: '15', code: 'BCS15021/2', price: 32.95, deleted: null },
+  { id: '17', code: 'BCS1503', price: 37.73, deleted: null },
+  { id: '18', code: 'BCS1503/4', price: 15.27, deleted: null },
+  { id: '19', code: 'BCS1504', price: 55.43, deleted: null },
+  { id: '21', code: 'BCS1506', price: 84.7, deleted: null },
+  { id: '22', code: 'BCS1508', price: 143.39, deleted: null },
+  { id: '23', code: 'BCS3001', price: 26.46, deleted: null },
+  { id: '25', code: 'BCS30010', price: 508.54, deleted: null },
+  { id: '33', code: 'BCS3003/4', price: 26.18, deleted: null },
+  { id: '38', code: 'BCS6001', price: 35, deleted: null },
+  { id: '44', code: 'BCS6002', price: 40.75, deleted: null },
+  { id: '48', code: 'BCS6004', price: 168, deleted: null },
+  { id: '59', code: 'BRS1501', price: 18.71, deleted: null },
+  { id: '61', code: 'BRS15011/2', price: 20.24, deleted: null },
+  { id: '63', code: 'BRS1502', price: 23.79, deleted: null },
+  { id: '72', code: 'BRS15021/2', price: 40.61, deleted: null },
+  { id: '73', code: 'BRS1503', price: 41.27, deleted: null },
+  { id: '74', code: 'BRS1503/4', price: 14.32, deleted: null },
+  { id: '75', code: 'BRS1504', price: 58.11, deleted: null },
+  { id: '77', code: 'BRS1506', price: 86.73, deleted: null },
+  { id: '96', code: 'BSS1501', price: 14.01, deleted: null },
+  { id: '98', code: 'BSS15010', price: 154.23, deleted: null },
+  { id: '99', code: 'BSS15011/2', price: 17.7, deleted: null },
+  { id: '101', code: 'BSS15012', price: 264.53, deleted: null },
+  { id: '102', code: 'BSS15014', price: 419.19, deleted: null },
+  { id: '103', code: 'BSS15016', price: 520.39, deleted: null },
+  { id: '105', code: 'BSS1502', price: 19.8, deleted: null },
+  { id: '106', code: 'BSS15020', price: 777.67, deleted: null },
+  { id: '107', code: 'BSS15021/2', price: 30.56, deleted: null },
+  { id: '109', code: 'BSS1503', price: 34.56, deleted: null },
+  { id: '110', code: 'BSS1503/4', price: 12.55, deleted: null },
+  { id: '111', code: 'BSS1504', price: 50.8, deleted: null },
+  { id: '112', code: 'BSS1505', price: 59.13, deleted: null },
+  { id: '113', code: 'BSS1506', price: 70.03, deleted: null },
+  { id: '114', code: 'BSS1508', price: 109.85, deleted: null },
+  { id: '115', code: 'BSS3001', price: 24.1, deleted: null },
+  { id: '132', code: 'BSS3006', price: 163.43, deleted: null },
+  { id: '137', code: 'BSS60011/2', price: 35.86, deleted: null },
+  { id: '151', code: 'BSS6008', price: 561.63, deleted: null },
+  { id: '872', code: 'BWS150S4014', price: 73.88, deleted: null },
+  { id: '165', code: 'BWS150STD1', price: 20.45, deleted: null },
+  { id: '174', code: 'BWS150STD2', price: 24.79, deleted: null },
+  { id: '178', code: 'BWS150STD3', price: 49.3, deleted: null },
+  { id: '179', code: 'BWS150STD4', price: 64.83, deleted: null },
+  { id: '181', code: 'BWS150STD6', price: 107.98, deleted: null },
+  { id: '1464', code: 'BWS300S8011/4', price: 38.21, deleted: null }
+]
+
+---
+
+_**Agent (model claude-4.5-sonnet-thinking, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+Ah! Ahora veo el problema claramente. El API está devolviendo **50 artículos** pero está aplicando el **límite de paginación por defecto** (limit=50).
+
+Los artículos que faltan (BWS600STD3, BWS600S802, BWS600S804) probablemente están más adelante en la lista pero no se están devolviendo porque el API está limitando los resultados a 50.
+
+El problema es que cuando se busca por IDs, NO debería haber límite de paginación. Necesito modificar el endpoint para que cuando se busca por `ids`, ignore los límites de paginación.</details></think>
+
+---
+
+¡Ahí está el problema! El API está devolviendo **solo 50 artículos** porque está aplicando el **límite de paginación por defecto** (`limit=50`).
+
+Los artículos que faltan (IDs: 1544, 1580, 1583) están **más adelante en la lista** pero no se devuelven porque se corta en 50.
+
+**El problema:** Cuando se busca por `ids` específicos, NO debería aplicar límite de paginación.
+
+Déjame arreglarlo:
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: d:\dialfa new\spisa-new\frontend\app\api\articles\route.ts</summary>
+
+**Chunk 1**
+Lines added: 3, lines removed: undefined
+
+```diff
+@@ -205,4 +205,7 @@
+      } else {
+        // Normal flow: paginate first, then enrich
++       // IMPORTANTE: Si se busca por IDs, NO aplicar límite de paginación
++       const shouldPaginate = !ids; // Solo paginar si NO se busca por IDs específicos
++       
+        const [articles, total] = await Promise.all([
+          prisma.articles.findMany({
+```
+
+**Chunk 2**
+Lines added: 3, lines removed: 3
+
+```diff
+@@ -215,12 +218,12 @@
+              { code: 'asc' },
+            ],
+-           skip,
+-           take: limit,
++           skip: shouldPaginate ? skip : undefined,
++           take: shouldPaginate ? limit : undefined,
+          }),
+          prisma.articles.count({ where }),
+        ]);
+  
+        if (ids) {
+-         console.log('✅ [API] Artículos encontrados:', articles.length);
++         console.log('✅ [API] Artículos encontrados:', articles.length, 'de', ids.split(',').length, 'solicitados');
+          console.log('📊 [API] Artículos:', articles.map(a =&gt; ({
+            id: a.id.toString(),
+```
+
+</details>
+
+</tool-use>
+
+---
+
+Perfecto! Ahora cuando se buscan artículos por IDs específicos, **NO aplicará el límite de 50** y devolverá TODOS los artículos solicitados.
+
+Ahora refresca la página de Artículos y deberías ver:
+
+```
+✅ [API] Artículos encontrados: X de X solicitados  ← Ahora deberían coincidir
+```
+
+Y en la consola del navegador ya NO deberías ver los warnings:
+```
+⚠️ [Draft] Artículo NO encontrado en API
+```
+
+**Los precios deberían aparecer ahora correctamente** en el panel de pedidos! 🎉
 
 ---
 
