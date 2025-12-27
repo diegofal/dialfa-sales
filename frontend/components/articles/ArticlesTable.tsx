@@ -12,7 +12,7 @@ import {
 import { ClickableTableRow } from '@/components/ui/clickable-table-row';
 import { SortableTableHead } from '@/components/ui/sortable-table-head';
 import { Badge } from '@/components/ui/badge';
-import { Pencil, Trash2, Package } from 'lucide-react';
+import { Pencil, Trash2, Package, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -75,6 +75,40 @@ export function ArticlesTable({
       return <Badge variant="secondary">Sin Stock</Badge>;
     }
     return <Badge variant="default">Disponible</Badge>;
+  };
+
+  // Calculate trend direction
+  const calculateTrend = (salesTrend: number[] | undefined) => {
+    if (!salesTrend || salesTrend.length < 2) return 'none';
+    
+    const midPoint = Math.floor(salesTrend.length / 2);
+    const firstHalf = salesTrend.slice(0, midPoint);
+    const secondHalf = salesTrend.slice(midPoint);
+    
+    const avgFirst = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
+    const avgSecond = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
+    
+    if (avgFirst === 0 && avgSecond === 0) return 'none';
+    if (avgFirst === 0) return 'increasing';
+    
+    const changePercent = ((avgSecond - avgFirst) / avgFirst) * 100;
+    
+    if (changePercent > 20) return 'increasing';
+    if (changePercent < -20) return 'decreasing';
+    return 'stable';
+  };
+
+  const getTrendIcon = (trend: string) => {
+    switch (trend) {
+      case 'increasing':
+        return <TrendingUp className="h-3 w-3 text-green-600 dark:text-green-400" />;
+      case 'decreasing':
+        return <TrendingDown className="h-3 w-3 text-red-600 dark:text-red-400" />;
+      case 'stable':
+        return <Minus className="h-3 w-3 text-blue-600 dark:text-blue-400" />;
+      default:
+        return <Minus className="h-3 w-3 text-gray-600 dark:text-gray-400" />;
+    }
   };
 
   return (
@@ -164,27 +198,35 @@ export function ArticlesTable({
                 </TableCell>
                 <TableCell>
                   {article.salesTrend && article.salesTrend.length > 0 ? (
-                    <SparklineWithTooltip
-                      data={article.salesTrend}
-                      labels={article.salesTrendLabels}
-                      width={Math.min(180, Math.max(80, article.salesTrend.length * 10))}
-                      height={40}
-                      color={
-                        article.abcClass === 'A'
-                          ? 'rgb(34, 197, 94)' // green-500
-                          : article.abcClass === 'B'
-                          ? 'rgb(59, 130, 246)' // blue-500
-                          : 'rgb(107, 114, 128)' // gray-500
-                      }
-                      fillColor={
-                        article.abcClass === 'A'
-                          ? 'rgba(34, 197, 94, 0.1)'
-                          : article.abcClass === 'B'
-                          ? 'rgba(59, 130, 246, 0.1)'
-                          : 'rgba(107, 114, 128, 0.1)'
-                      }
-                      formatValue={(v) => `${v} unidades`}
-                    />
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1">
+                        {getTrendIcon(calculateTrend(article.salesTrend))}
+                        <span className="text-xs text-muted-foreground">
+                          {(article.salesTrend.reduce((a, b) => a + b, 0) / article.salesTrend.length).toFixed(1)}/mes
+                        </span>
+                      </div>
+                      <SparklineWithTooltip
+                        data={article.salesTrend}
+                        labels={article.salesTrendLabels}
+                        width={Math.min(180, Math.max(80, article.salesTrend.length * 10))}
+                        height={30}
+                        color={
+                          calculateTrend(article.salesTrend) === 'increasing'
+                            ? 'rgb(34, 197, 94)' // green
+                            : calculateTrend(article.salesTrend) === 'decreasing'
+                            ? 'rgb(239, 68, 68)' // red
+                            : 'rgb(59, 130, 246)' // blue
+                        }
+                        fillColor={
+                          calculateTrend(article.salesTrend) === 'increasing'
+                            ? 'rgba(34, 197, 94, 0.1)'
+                            : calculateTrend(article.salesTrend) === 'decreasing'
+                            ? 'rgba(239, 68, 68, 0.1)'
+                            : 'rgba(59, 130, 246, 0.1)'
+                        }
+                        formatValue={(v) => `${v} unidades`}
+                      />
+                    </div>
                   ) : (
                     <span className="text-xs text-muted-foreground">Sin datos</span>
                   )}

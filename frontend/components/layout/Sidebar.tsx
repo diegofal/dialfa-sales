@@ -20,13 +20,13 @@ import {
 import PedidosMenuItem from './PedidosMenuItem';
 import FacturasMenuItem from './FacturasMenuItem';
 import RemitosMenuItem from './RemitosMenuItem';
+import ArticulosMenuItem from './ArticulosMenuItem';
 import { useAuthStore } from '@/store/authStore';
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
   { name: 'Clientes', href: '/dashboard/clients', icon: Users },
   { name: 'Categorías', href: '/dashboard/categories', icon: FolderTree },
-  { name: 'Artículos', href: '/dashboard/articles', icon: Package },
 ];
 
 const navigationAfterRemitos = [
@@ -64,6 +64,9 @@ export default function Sidebar() {
             </Link>
           );
         })}
+        
+        {/* Artículos with expandable sub-items */}
+        <ArticulosMenuItem />
         
         {/* Pedidos with expandable sub-items */}
         <PedidosMenuItem />
