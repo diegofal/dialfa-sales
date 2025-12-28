@@ -60,6 +60,7 @@ export interface StockValuationSummary {
   };
   calculatedAt: Date;
   config: StockClassificationConfig;
+  cacheInfo?: StockValuationCacheInfo;
 }
 
 export interface StockValuationCacheInfo {

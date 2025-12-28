@@ -65,7 +65,11 @@ export async function calculateStockValuation(
 
   try {
     // 1. Obtener artículos activos (con o sin stock según configuración)
-    const whereClause: any = {
+    const whereClause: {
+      deleted_at: null;
+      is_active: true;
+      stock?: { gt: number };
+    } = {
       deleted_at: null,
       is_active: true,
     };

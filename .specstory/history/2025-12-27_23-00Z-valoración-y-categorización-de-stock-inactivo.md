@@ -6162,7 +6162,55 @@ Mirando los promedios:
 
 Todos están muy por debajo de las 5 unidades/mes requeridas para ser "Activo".
  
-Parece que la clasificación depende de dos criterios principales: frecuencia de ventas y volumen promedio. Aunque algunos artículos tienen ventas recientes, sus promedios mensuales están significativamente por debajo del umbral mínimo. Esto los coloca automáticamente en la categoría de "Movimiento Lento", independientemente de su actividad reciente.</details></think>
+Parece que la clasificación depende de dos criterios principales: frecuencia de ventas y volumen promedio. Aunque algunos artículos tienen ventas recientes, sus promedios mensuales están significativamente por debajo del umbral mínimo. Esto los coloca automáticamente en la categoría de "Movimiento Lento", independientemente de su actividad reciente.
+
+La percepción actual podría no reflejar completamente el comportamiento real de los productos. Un artículo con ventas en los últimos 180 días merece una categorización más matizada que simplemente "Lento".</details></think>
+
+---
+
+Buena observación! El problema es que **todos esos artículos venden muy poco** (mira el promedio: 0.3/mes, 1.5/mes, 0.2/mes, etc.), todos están **muy por debajo de las 5 unidades/mes** requeridas para ser "Activo".
+
+La lógica actual es:
+
+```
+🟢 ACTIVE = Última venta ≤ 90 días Y ventas ≥ 5 unidades/mes
+
+🟡 SLOW MOVING = Cualquier cosa que:
+   - Tenga ventas pero no califique como ACTIVE
+   - O última venta > 180 días
+   
+🔴 DEAD STOCK = Última venta > 365 días
+```
+
+**Entonces:**
+- BCS1501: Venta hace 12 días ✅ PERO solo 1.5/mes ❌ → **SLOW MOVING**
+- BCS15010: Venta hace 31 días ✅ PERO solo 0.2/mes ❌ → **SLOW MOVING**
+- BCS1503: Venta hace 25 días ✅ PERO solo 2.4/mes ❌ → **SLOW MOVING**
+
+**El problema:** "Movimiento Lento" suena como si hace mucho que no se vende, pero en realidad significa **"vende muy poco"**.
+
+### Opciones para ajustar:
+
+1. **Bajar el umbral de "Ventas Mín/Mes"** de 5 a 1 o 2 unidades
+2. **Crear categoría intermedia**: 
+   - ACTIVE: Ventas > 5/mes
+   - REGULAR: Ventas 1-5/mes con ventas recientes
+   - SLOW: Ventas < 1/mes
+3. **Eliminar el requisito de ventas mínimas** para ACTIVE y solo usar tiempo
+
+¿Cuál preferís? Probablemente la opción 1 (bajar el umbral) es la más simple y resuelve el problema que ves.
+
+---
+
+_**User (2025-12-26 23:39Z)**_
+
+arregla los issues npm run build
+
+---
+
+_**Agent (model claude-4.5-sonnet-thinking, mode Agent)**_
+
+
 
 ---
 
