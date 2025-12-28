@@ -29,12 +29,15 @@ import {
 } from '@/components/ui/tooltip';
 import { useSupplierOrder, useUpdateSupplierOrderStatus } from '@/lib/hooks/useSupplierOrders';
 import { useAuthStore } from '@/store/authStore';
-import { SupplierOrderStatus, SupplierOrderItemDto } from '@/types/supplierOrder';
+import { SupplierOrderStatus, SupplierOrderItemDto, CommercialValuationConfig } from '@/types/supplierOrder';
 import { formatSaleTime, calculateWeightedAvgSales, calculateEstimatedSaleTime, calculateWeightedAvgSaleTime } from '@/lib/utils/salesCalculations';
 import { SparklineWithTooltip } from '@/components/ui/sparkline';
 import { Article } from '@/types/article';
 import axios from 'axios';
 import { useMemo } from 'react';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { DollarSign } from 'lucide-react';
 
 const STATUS_LABELS: Record<SupplierOrderStatus, string> = {
   draft: 'Borrador',
@@ -67,6 +70,11 @@ export default function SupplierOrderDetailPage({
   const [trendMonths, setTrendMonths] = useState<number>(12);
   const [articlesData, setArticlesData] = useState<Map<number, Article>>(new Map());
   const [loadingArticles, setLoadingArticles] = useState(false);
+  const [showCommercial, setShowCommercial] = useState(false);
+  const [commercialConfig, setCommercialConfig] = useState<CommercialValuationConfig>({
+    cifPercentage: 50,
+    useCategoryDiscounts: true,
+  });
 
   const { data, isLoading } = useSupplierOrder(parseInt(id));
   const updateStatus = useUpdateSupplierOrderStatus();
@@ -86,6 +94,7 @@ export default function SupplierOrderDetailPage({
             ids: articleIds.join(','),
             includeTrends: 'true',
             includeLastSaleDate: 'true',
+            includeCategory: 'true',
             trendMonths: trendMonths,
           }
         });
@@ -121,13 +130,39 @@ export default function SupplierOrderDetailPage({
       const avgMonthlySales = calculateWeightedAvgSales(article.salesTrend, trendMonths);
       const estimatedSaleTime = calculateEstimatedSaleTime(item.quantity, avgMonthlySales);
 
+      // Calcular valores comerciales
+      const fobUnitPrice = item.proformaUnitPrice || 0;
+      const categoryDiscount = commercialConfig.useCategoryDiscounts 
+        ? (article.categoryDefaultDiscount || 0) 
+        : 0;
+      
+      const cifUnitPrice = fobUnitPrice * (1 + commercialConfig.cifPercentage / 100);
+      const discountedUnitPrice = (item.dbUnitPrice || 0) * (1 - categoryDiscount / 100);
+      const discountedTotalPrice = discountedUnitPrice * item.quantity;
+      
+      const realMarginAbsolute = discountedUnitPrice - cifUnitPrice;
+      // Margen sobre costo CIF (markup): (Venta - Costo) / Costo × 100
+      const realMarginPercent = cifUnitPrice > 0 
+        ? (realMarginAbsolute / cifUnitPrice) * 100 
+        : 0;
+
       return {
         ...item,
         avgMonthlySales,
         estimatedSaleTime,
+        // Commercial data
+        categoryId: article.categoryId,
+        categoryName: article.categoryName,
+        categoryDiscount,
+        cifPercentage: commercialConfig.cifPercentage,
+        cifUnitPrice,
+        discountedUnitPrice,
+        discountedTotalPrice,
+        realMarginAbsolute,
+        realMarginPercent,
       };
     });
-  }, [order?.items, articlesData, trendMonths]);
+  }, [order?.items, articlesData, trendMonths, commercialConfig]);
 
   // Recalcular tiempo estimado total
   const recalculatedTotalEstimatedTime = useMemo(() => {
@@ -267,37 +302,150 @@ export default function SupplierOrderDetailPage({
 
       {/* Valorización Cards - Mismo formato que modal de importación */}
       {order.items?.some((item: SupplierOrderItemDto) => item.proformaTotalPrice) && (
-        <div className="grid grid-cols-3 gap-4">
-          <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
-            <div className="text-2xl font-bold text-blue-700">
-              ${order.items.reduce((sum: number, item: SupplierOrderItemDto) => sum + (item.proformaTotalPrice || 0), 0).toFixed(2)}
+        <>
+          <div className="grid grid-cols-3 gap-4">
+            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+              <div className="text-2xl font-bold text-blue-700">
+                ${order.items.reduce((sum: number, item: SupplierOrderItemDto) => sum + (item.proformaTotalPrice || 0), 0).toFixed(2)}
+              </div>
+              <div className="text-sm text-blue-600">Total Proforma (FOB)</div>
             </div>
-            <div className="text-sm text-blue-600">Total Proforma</div>
-          </div>
-          <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
-            <div className="text-2xl font-bold text-purple-700">
-              ${order.items.reduce((sum: number, item: SupplierOrderItemDto) => sum + (item.dbTotalPrice || 0), 0).toFixed(2)}
+            <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+              <div className="text-2xl font-bold text-purple-700">
+                ${order.items.reduce((sum: number, item: SupplierOrderItemDto) => sum + (item.dbTotalPrice || 0), 0).toFixed(2)}
+              </div>
+              <div className="text-sm text-purple-600">Total DB (sin desc.)</div>
             </div>
-            <div className="text-sm text-purple-600">Total DB</div>
+            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+              {(() => {
+                const totalProforma = order.items.reduce((sum: number, item: SupplierOrderItemDto) => sum + (item.proformaTotalPrice || 0), 0);
+                const totalDB = order.items.reduce((sum: number, item: SupplierOrderItemDto) => sum + (item.dbTotalPrice || 0), 0);
+                const margin = totalDB - totalProforma;
+                const marginPercent = totalProforma > 0 ? ((totalDB / totalProforma - 1) * 100) : 0;
+                
+                return (
+                  <>
+                    <div className="text-2xl font-bold text-green-700">
+                      ${margin.toFixed(2)} ({marginPercent.toFixed(1)}%)
+                    </div>
+                    <div className="text-sm text-green-600">Margen DB</div>
+                  </>
+                );
+              })()}
+            </div>
           </div>
-          <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-            {(() => {
-              const totalProforma = order.items.reduce((sum: number, item: SupplierOrderItemDto) => sum + (item.proformaTotalPrice || 0), 0);
-              const totalDB = order.items.reduce((sum: number, item: SupplierOrderItemDto) => sum + (item.dbTotalPrice || 0), 0);
-              const margin = totalDB - totalProforma;
-              const marginPercent = totalProforma > 0 ? ((totalDB / totalProforma - 1) * 100) : 0;
-              
-              return (
-                <>
-                  <div className="text-2xl font-bold text-green-700">
-                    ${margin.toFixed(2)} ({marginPercent.toFixed(1)}%)
+
+          {/* Commercial Valuation Config & Cards */}
+          <div className="space-y-3 p-4 border rounded-lg bg-card">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <DollarSign className="h-4 w-4 text-muted-foreground" />
+                <Label htmlFor="show-commercial-detail" className="text-sm font-medium cursor-pointer">
+                  Mostrar análisis comercial (CIF + Descuentos)
+                </Label>
+              </div>
+              <Switch
+                id="show-commercial-detail"
+                checked={showCommercial}
+                onCheckedChange={setShowCommercial}
+              />
+            </div>
+            
+            {showCommercial && (
+              <>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t">
+                  <div className="space-y-2">
+                    <Label htmlFor="cif-percentage-detail" className="text-xs">
+                      CIF sobre FOB (%)
+                    </Label>
+                    <Select
+                      value={commercialConfig.cifPercentage.toString()}
+                      onValueChange={(v) =>
+                        setCommercialConfig({
+                          ...commercialConfig,
+                          cifPercentage: parseInt(v),
+                        })
+                      }
+                    >
+                      <SelectTrigger id="cif-percentage-detail" className="h-8">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="30">30%</SelectItem>
+                        <SelectItem value="40">40%</SelectItem>
+                        <SelectItem value="50">50%</SelectItem>
+                        <SelectItem value="60">60%</SelectItem>
+                        <SelectItem value="70">70%</SelectItem>
+                        <SelectItem value="80">80%</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="text-sm text-green-600">Margen Total</div>
-                </>
-              );
-            })()}
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="use-category-discounts-detail" className="text-xs flex items-center gap-1">
+                      Aplicar descuentos de categoría
+                    </Label>
+                    <div className="flex items-center h-8 px-3 border rounded-md">
+                      <Switch
+                        id="use-category-discounts-detail"
+                        checked={commercialConfig.useCategoryDiscounts}
+                        onCheckedChange={(checked) =>
+                          setCommercialConfig({
+                            ...commercialConfig,
+                            useCategoryDiscounts: checked,
+                          })
+                        }
+                      />
+                      <span className="ml-2 text-sm text-muted-foreground">
+                        {commercialConfig.useCategoryDiscounts ? 'Activado' : 'Desactivado'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Commercial Cards */}
+                <div className="grid grid-cols-3 gap-4 pt-3 border-t">
+                  <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                    <div className="text-2xl font-bold text-orange-700">
+                      ${itemsWithRecalculatedMetrics.reduce((sum: number, item: any) => {
+                        const cifTotal = (item.cifUnitPrice || 0) * item.quantity;
+                        return sum + cifTotal;
+                      }, 0).toFixed(2)}
+                    </div>
+                    <div className="text-sm text-orange-600">Total CIF ({commercialConfig.cifPercentage}%)</div>
+                  </div>
+                  <div className="p-4 bg-cyan-50 rounded-lg border border-cyan-200">
+                    <div className="text-2xl font-bold text-cyan-700">
+                      ${itemsWithRecalculatedMetrics.reduce((sum: number, item: any) => sum + (item.discountedTotalPrice || 0), 0).toFixed(2)}
+                    </div>
+                    <div className="text-sm text-cyan-600">Total c/Descuentos</div>
+                  </div>
+                  <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                    {(() => {
+                      const totalCIF = itemsWithRecalculatedMetrics.reduce((sum: number, item: any) => {
+                        const cifTotal = (item.cifUnitPrice || 0) * item.quantity;
+                        return sum + cifTotal;
+                      }, 0);
+                      const totalDiscounted = itemsWithRecalculatedMetrics.reduce((sum: number, item: any) => sum + (item.discountedTotalPrice || 0), 0);
+                      const realMargin = totalDiscounted - totalCIF;
+                      // Margen sobre costo (markup): (Venta - Costo) / Costo × 100
+                      const realMarginPercent = totalCIF > 0 ? (realMargin / totalCIF) * 100 : 0;
+                      
+                      return (
+                        <>
+                          <div className={`text-2xl font-bold ${realMarginPercent >= 100 ? 'text-emerald-700' : realMarginPercent >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+                            ${realMargin.toFixed(2)} ({realMarginPercent.toFixed(1)}%)
+                          </div>
+                          <div className="text-sm text-emerald-600">Margen Real</div>
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+              </>
+            )}
           </div>
-        </div>
+        </>
       )}
 
       {/* Items */}
@@ -388,12 +536,87 @@ export default function SupplierOrderDetailPage({
                       </TooltipContent>
                     </Tooltip>
                   </TableHead>
+                  {showCommercial && (
+                    <>
+                      <TableHead>Categoría</TableHead>
+                      <TableHead className="text-right">
+                        <Tooltip>
+                          <TooltipTrigger className="cursor-help">
+                            Desc. %
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-xs">Descuento de categoría aplicado</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TableHead>
+                      <TableHead className="text-right">
+                        <Tooltip>
+                          <TooltipTrigger className="cursor-help">
+                            CIF Unit.
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-xs">FOB + {commercialConfig.cifPercentage}% = Costo real de importación</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TableHead>
+                      <TableHead className="text-right">
+                        <Tooltip>
+                          <TooltipTrigger className="cursor-help">
+                            Total CIF
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-xs">CIF Unit. × Cantidad = Costo total de importación</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TableHead>
+                      <TableHead className="text-right">
+                        <Tooltip>
+                          <TooltipTrigger className="cursor-help">
+                            Precio c/Desc
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-xs">Precio DB con descuento de categoría aplicado</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TableHead>
+                      <TableHead className="text-right">
+                        <Tooltip>
+                          <TooltipTrigger className="cursor-help">
+                            Total c/Desc
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-xs">Total con descuento aplicado</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TableHead>
+                      <TableHead className="text-right">
+                        <Tooltip>
+                          <TooltipTrigger className="cursor-help">
+                            Margen Real USD
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-xs">Total c/Desc - Total CIF</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TableHead>
+                      <TableHead className="text-right">
+                        <Tooltip>
+                          <TooltipTrigger className="cursor-help">
+                            Margen Real %
+                          </TooltipTrigger>
+                          <TooltipContent>
+                            <p className="max-w-xs">(Margen Real USD / Total CIF) × 100<br/>Markup sobre costo de importación</p>
+                          </TooltipContent>
+                        </Tooltip>
+                      </TableHead>
+                    </>
+                  )}
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loadingArticles ? (
                   <TableRow>
-                    <TableCell colSpan={17} className="text-center text-muted-foreground py-8">
+                    <TableCell colSpan={showCommercial ? 25 : 17} className="text-center text-muted-foreground py-8">
                       Cargando datos de artículos...
                     </TableCell>
                   </TableRow>
@@ -537,6 +760,117 @@ export default function SupplierOrderDetailPage({
                           <span className="text-xs text-muted-foreground">Nunca</span>
                         )}
                       </TableCell>
+
+                      {/* Commercial Columns */}
+                      {showCommercial && (
+                        <>
+                          {/* Categoría */}
+                          <TableCell className="text-xs text-muted-foreground">
+                            {(item as any).categoryName || '-'}
+                          </TableCell>
+                          
+                          {/* Descuento % */}
+                          <TableCell className="text-right text-xs">
+                            {(item as any).categoryDiscount !== undefined ? (
+                              <span className="text-orange-600 font-medium">
+                                {(item as any).categoryDiscount.toFixed(0)}%
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          
+                          {/* CIF Unitario */}
+                          <TableCell className="text-right text-sm font-medium">
+                            {(item as any).cifUnitPrice !== undefined ? (
+                              formatPrice((item as any).cifUnitPrice)
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          
+                          {/* Total CIF */}
+                          <TableCell className="text-right text-sm font-semibold">
+                            {(item as any).cifUnitPrice !== undefined ? (
+                              <span className="text-orange-700">
+                                {formatPrice((item as any).cifUnitPrice * item.quantity)}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          
+                          {/* Precio con Descuento */}
+                          <TableCell className="text-right text-sm font-semibold">
+                            {(item as any).discountedUnitPrice !== undefined ? (
+                              <span className="text-cyan-600">
+                                {formatPrice((item as any).discountedUnitPrice)}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          
+                          {/* Total con Descuento */}
+                          <TableCell className="text-right text-sm font-semibold">
+                            {(item as any).discountedTotalPrice !== undefined ? (
+                              <span className="text-cyan-700">
+                                {formatPrice((item as any).discountedTotalPrice)}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          
+                          {/* Margen Real USD */}
+                          <TableCell className="text-right text-sm font-bold">
+                            {(item as any).discountedTotalPrice !== undefined && (item as any).cifUnitPrice !== undefined ? (
+                              (() => {
+                                const totalCIF = (item as any).cifUnitPrice * item.quantity;
+                                const marginUSD = (item as any).discountedTotalPrice - totalCIF;
+                                const marginPercent = totalCIF > 0 
+                                  ? (marginUSD / totalCIF) * 100 
+                                  : 0;
+                                
+                                return (
+                                  <span
+                                    className={
+                                      marginPercent >= 100
+                                        ? 'text-green-600'
+                                        : marginPercent >= 50
+                                        ? 'text-yellow-600'
+                                        : 'text-red-600'
+                                    }
+                                  >
+                                    {formatPrice(marginUSD)}
+                                  </span>
+                                );
+                              })()
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                          
+                          {/* Margen Real % */}
+                          <TableCell className="text-right text-sm font-bold">
+                            {(item as any).realMarginPercent !== undefined ? (
+                              <span
+                                className={
+                                  (item as any).realMarginPercent >= 100
+                                    ? 'text-green-600'
+                                    : (item as any).realMarginPercent >= 50
+                                    ? 'text-yellow-600'
+                                    : 'text-red-600'
+                                }
+                              >
+                                {(item as any).realMarginPercent.toFixed(1)}%
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">-</span>
+                            )}
+                          </TableCell>
+                        </>
+                      )}
                     </TableRow>
                   );
                 })

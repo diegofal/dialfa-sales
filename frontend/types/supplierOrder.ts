@@ -76,4 +76,8 @@ export interface SupplierOrderListDto {
   total: number;
 }
 
+export interface CommercialValuationConfig {
+  cifPercentage: number;           // Default: 50%
+  useCategoryDiscounts: boolean;   // Default: true
+}
 
