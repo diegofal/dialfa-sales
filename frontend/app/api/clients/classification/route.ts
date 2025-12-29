@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
       activeThresholdDays: parseInt(searchParams.get('activeThreshold') || '90'),
       slowMovingThresholdDays: parseInt(searchParams.get('slowThreshold') || '180'),
       inactiveThresholdDays: parseInt(searchParams.get('inactiveThreshold') || '365'),
-      minPurchasesForActive: parseInt(searchParams.get('minPurchases') || '3'),
+      minPurchasesPerMonth: parseInt(searchParams.get('minPurchasesPerMonth') || '1'),
       trendMonths: parseInt(searchParams.get('trendMonths') || '12'),
     };
 

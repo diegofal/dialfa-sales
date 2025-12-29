@@ -4,7 +4,15 @@ import type { CreateClientRequest, UpdateClientRequest } from '@/types/api';
 import type { PaginationParams } from '@/types/pagination';
 import { toast } from 'sonner';
 
-export const useClients = (params: PaginationParams = {}) => {
+interface ClientsQueryParams extends PaginationParams {
+  includeTrends?: boolean;
+  trendMonths?: number;
+  includeClassification?: boolean;
+  classificationStatus?: string;
+  classificationConfig?: Record<string, number>;
+}
+
+export const useClients = (params: ClientsQueryParams = {}) => {
   return useQuery({
     queryKey: ['clients', params],
     queryFn: () => clientsApi.getAll(params),

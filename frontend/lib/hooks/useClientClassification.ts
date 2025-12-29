@@ -11,7 +11,7 @@ export const useClientClassification = (config: Partial<ClientClassificationConf
           activeThreshold: config.activeThresholdDays,
           slowThreshold: config.slowMovingThresholdDays,
           inactiveThreshold: config.inactiveThresholdDays,
-          minPurchases: config.minPurchasesForActive,
+          minPurchasesPerMonth: config.minPurchasesPerMonth,
           trendMonths: config.trendMonths,
         },
       });

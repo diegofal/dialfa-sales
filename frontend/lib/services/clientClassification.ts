@@ -117,7 +117,7 @@ export async function calculateClientClassification(
 
     // 7. Clasificar cada cliente
     const clientsMetrics: ClientClassificationMetrics[] = [];
-    const now = new Date();
+    const currentDate = new Date();
 
     for (const client of clients) {
       const clientId = client.id.toString();
@@ -130,7 +130,7 @@ export async function calculateClientClassification(
         invoiceData,
         historical,
         trend,
-        now,
+        currentDate,
         finalConfig
       );
 

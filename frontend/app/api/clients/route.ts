@@ -8,6 +8,7 @@ import { logActivity } from '@/lib/services/activityLogger';
 import { ChangeTracker } from '@/lib/services/changeTracker';
 import { calculateClientSalesTrends } from '@/lib/services/clientSalesTrends';
 import { calculateClientClassification } from '@/lib/services/clientClassification';
+import type { ClientDto } from '@/types/api';
 
 export async function GET(request: NextRequest) {
   try {
@@ -88,9 +89,14 @@ export async function GET(request: NextRequest) {
 
     // Map to DTO format (snake_case to camelCase)
     const mappedClients = clients.map((client) => {
-      const dto = mapClientToDTO(client);
+      const baseDto = mapClientToDTO(client);
       const clientId = client.id.toString();
       
+      // Build enriched DTO with optional fields
+      const dto = {
+        ...baseDto,
+      } as ClientDto;
+
       // Add trends if available
       if (trendsData) {
         dto.salesTrend = trendsData.data.get(clientId) || [];

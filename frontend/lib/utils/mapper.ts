@@ -89,8 +89,9 @@ export function mapClientToDTO(client: unknown) {
     transporterName: transporters?.name || '',
     creditLimit: c.credit_limit ? parseFloat(String(c.credit_limit)) : null,
     sellerId: c.seller_id as bigint | null,
-    createdAt: c.created_at as Date,
-    updatedAt: c.updated_at as Date,
+    isActive: c.is_active !== undefined ? Boolean(c.is_active) : true,
+    createdAt: (c.created_at as Date).toISOString(),
+    updatedAt: (c.updated_at as Date).toISOString(),
   };
 }
 
