@@ -117,8 +117,6 @@ export function ImportPreviewDialog({
       'Total Proforma (USD)',
       'P.Unit DB (USD)',
       'Total DB (USD)',
-      'Margen USD',
-      'Margen %',
       'Tipo Detectado',
       'Serie Detectada',
       'Espesor Detectado',
@@ -146,8 +144,6 @@ export function ImportPreviewDialog({
         item.proformaTotalPrice?.toFixed(2) || '',
         item.dbUnitPrice?.toFixed(2) || '',
         item.dbTotalPrice?.toFixed(2) || '',
-        item.marginAbsolute?.toFixed(2) || '',
-        item.marginPercent?.toFixed(2) || '',
         `"${item.debugInfo?.extractedType || ''}"`,
         `"${item.debugInfo?.extractedSeries || ''}"`,
         `"${item.debugInfo?.extractedThickness || ''}"`,
@@ -284,8 +280,6 @@ export function ImportPreviewDialog({
                         <TableHead className="text-right w-[110px]">Total Proforma</TableHead>
                         <TableHead className="text-right w-[100px]">P.U. DB</TableHead>
                         <TableHead className="text-right w-[110px]">Total DB</TableHead>
-                        <TableHead className="text-right w-[100px]">Margen USD</TableHead>
-                        <TableHead className="text-right w-[100px]">Margen %</TableHead>
                         <TableHead className="w-[120px]">Código</TableHead>
                         <TableHead className="text-center w-[100px]">Estado</TableHead>
                       </TableRow>
@@ -316,24 +310,6 @@ export function ImportPreviewDialog({
                           </TableCell>
                           <TableCell className="text-right font-medium w-[110px]">
                             {item.dbTotalPrice ? `$${item.dbTotalPrice.toFixed(2)}` : '-'}
-                          </TableCell>
-                          <TableCell className={`text-right font-semibold w-[100px] ${
-                            item.marginAbsolute && item.marginAbsolute > 0 
-                              ? 'text-green-600' 
-                              : item.marginAbsolute && item.marginAbsolute < 0 
-                              ? 'text-red-600' 
-                              : ''
-                          }`}>
-                            {item.marginAbsolute ? `$${item.marginAbsolute.toFixed(2)}` : '-'}
-                          </TableCell>
-                          <TableCell className={`text-right font-semibold w-[100px] ${
-                            item.marginPercent && item.marginPercent > 0 
-                              ? 'text-green-600' 
-                              : item.marginPercent && item.marginPercent < 0 
-                              ? 'text-red-600' 
-                              : ''
-                          }`}>
-                            {item.marginPercent ? `${item.marginPercent.toFixed(1)}%` : '-'}
                           </TableCell>
                           <TableCell className="font-mono text-sm w-[120px]">
                             {item.article?.code || '-'}
