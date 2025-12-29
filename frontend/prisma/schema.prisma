@@ -128,7 +128,6 @@ model clients {
   updated_by        Int?
   seller_id         Int?
   current_balance   Decimal?            @default(0) @db.Decimal(18, 2)
-  is_active         Boolean             @default(true)
   account_movements account_movements[]
   client_discounts  client_discounts[]
   operation_types   operation_types     @relation(fields: [operation_type_id], references: [id], onUpdate: NoAction, map: "f_k_clients__operation_types_operation_type_id")

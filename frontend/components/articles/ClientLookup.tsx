@@ -23,7 +23,6 @@ export function ClientLookup({ onSelectClient }: ClientLookupProps) {
   // Search clients as user types
   const { data: clientsResult } = useClients({ 
     searchTerm: searchTerm,
-    activeOnly: true,
     pageSize: 10,
   });
   

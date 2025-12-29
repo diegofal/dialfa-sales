@@ -12,7 +12,7 @@ interface OrderSummaryStepProps {
 }
 
 export function OrderSummaryStep({ formData }: OrderSummaryStepProps) {
-  const { data: clientsResult } = useClients({ activeOnly: true });
+  const { data: clientsResult } = useClients({});
   const clients = clientsResult?.data || [];
   const selectedClient = clients.find((c) => c.id === formData.clientId);
 

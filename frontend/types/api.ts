@@ -26,13 +26,20 @@ export interface ClientDto {
   phone: string | null;
   email: string | null;
   creditLimit: number | null;
-  isActive: boolean;
   taxConditionName: string | null;
   provinceName: string | null;
   operationTypeName: string | null;
   transporterName: string | null;
   createdAt: string;
   updatedAt: string;
+  isActive: boolean;
+  salesTrend?: number[];
+  salesTrendLabels?: string[];
+  // Client classification
+  clientStatus?: 'active' | 'slow_moving' | 'inactive' | 'never_purchased';
+  daysSinceLastPurchase?: number | null;
+  lastPurchaseDate?: string | null;
+  rfmScore?: number;
 }
 
 export interface CreateClientRequest {
@@ -53,7 +60,6 @@ export interface CreateClientRequest {
 
 export interface UpdateClientRequest extends CreateClientRequest {
   id: number;
-  isActive: boolean;
 }
 
 export interface ApiError {

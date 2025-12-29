@@ -109,7 +109,6 @@ export async function PUT(
         transporter_id: validatedData.transporterId,
         seller_id: validatedData.sellerId,
         credit_limit: validatedData.creditLimit,
-        is_active: validatedData.isActive,
         updated_at: new Date(),
       },
       include: {

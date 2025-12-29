@@ -36,7 +36,6 @@ const clientSchema = z.object({
   email: z.string().email('Email inválido').optional().or(z.literal('')),
   taxConditionId: z.number().min(1, 'La condición de IVA es requerida'),
   operationTypeId: z.number().min(1, 'El tipo de operatoria es requerido'),
-  isActive: z.boolean().optional(),
 });
 
 type ClientFormValues = z.infer<typeof clientSchema>;
@@ -65,7 +64,6 @@ export default function ClientDialog({ open, onClose, client }: ClientDialogProp
       email: '',
       taxConditionId: 1,
       operationTypeId: 1,
-      isActive: true,
     },
   });
 
@@ -79,11 +77,10 @@ export default function ClientDialog({ open, onClose, client }: ClientDialogProp
         city: client.city || '',
         postalCode: client.postalCode || '',
         phone: client.phone || '',
-        email: client.email || '',
-        taxConditionId: 1, // You might want to extract this from the client object
-        operationTypeId: 1, // You might want to extract this from the client object
-        isActive: client.isActive,
-      });
+      email: client.email || '',
+      taxConditionId: 1, // You might want to extract this from the client object
+      operationTypeId: 1, // You might want to extract this from the client object
+    });
     } else {
       form.reset({
         code: '',
@@ -93,11 +90,10 @@ export default function ClientDialog({ open, onClose, client }: ClientDialogProp
         city: '',
         postalCode: '',
         phone: '',
-        email: '',
-        taxConditionId: 1,
-        operationTypeId: 1,
-        isActive: true,
-      });
+      email: '',
+      taxConditionId: 1,
+      operationTypeId: 1,
+    });
     }
   }, [client, form]);
 
@@ -109,7 +105,6 @@ export default function ClientDialog({ open, onClose, client }: ClientDialogProp
           data: {
             ...data,
             id: client.id,
-            isActive: data.isActive ?? true,
           },
         });
       } else {

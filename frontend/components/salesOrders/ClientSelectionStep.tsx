@@ -13,7 +13,7 @@ interface ClientSelectionStepProps {
 }
 
 export function ClientSelectionStep({ formData, setFormData }: ClientSelectionStepProps) {
-  const { data: clientsResult, isLoading } = useClients({ activeOnly: true }); // activeOnly = true
+  const { data: clientsResult, isLoading } = useClients({});
   const clients = clientsResult?.data || [];
 
   return (

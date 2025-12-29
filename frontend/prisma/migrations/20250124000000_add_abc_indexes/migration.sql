@@ -24,3 +24,4 @@ COMMENT ON INDEX idx_invoice_items_line_total IS 'Optimizes ABC classification q
 
 
 
+

@@ -4,7 +4,7 @@ import type { CreateClientRequest, UpdateClientRequest } from '@/types/api';
 import type { PaginationParams } from '@/types/pagination';
 import { toast } from 'sonner';
 
-export const useClients = (params: PaginationParams & { activeOnly?: boolean } = {}) => {
+export const useClients = (params: PaginationParams = {}) => {
   return useQuery({
     queryKey: ['clients', params],
     queryFn: () => clientsApi.getAll(params),

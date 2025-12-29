@@ -6,6 +6,8 @@ import { z } from 'zod';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { logActivity } from '@/lib/services/activityLogger';
 import { ChangeTracker } from '@/lib/services/changeTracker';
+import { calculateClientSalesTrends } from '@/lib/services/clientSalesTrends';
+import { calculateClientClassification } from '@/lib/services/clientClassification';
 
 export async function GET(request: NextRequest) {
   try {
@@ -13,7 +15,10 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get('page') || '1');
     const limit = parseInt(searchParams.get('limit') || '50');
     const search = searchParams.get('search') || '';
-    const isActive = searchParams.get('isActive');
+    const includeTrends = searchParams.get('includeTrends') === 'true';
+    const includeClassification = searchParams.get('includeClassification') === 'true';
+    const trendMonths = parseInt(searchParams.get('trendMonths') || '12');
+    const classificationStatus = searchParams.get('classificationStatus') || null;
 
     const skip = (page - 1) * limit;
 
@@ -31,8 +36,35 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    if (isActive !== null && isActive !== undefined) {
-      where.is_active = isActive === 'true';
+    // Get trends data if requested
+    let trendsData: { data: Map<string, number[]>; labels: string[] } | null = null;
+    if (includeTrends) {
+      try {
+        trendsData = await calculateClientSalesTrends(trendMonths);
+      } catch (error) {
+        console.error('Error getting client trends:', error);
+        // Continue without trends in case of error
+      }
+    }
+
+    // Get classification data if requested or if filtering by status
+    let classificationData: Awaited<ReturnType<typeof calculateClientClassification>> | null = null;
+    if (includeClassification || classificationStatus) {
+      try {
+        classificationData = await calculateClientClassification({ trendMonths });
+      } catch (error) {
+        console.error('Error getting client classification:', error);
+        // Continue without classification in case of error
+      }
+    }
+
+    // If filtering by classification status, get the client IDs first
+    if (classificationStatus && classificationData) {
+      const statusClients = classificationData.byStatus[classificationStatus as keyof typeof classificationData.byStatus];
+      if (statusClients) {
+        const clientIds = statusClients.clients.map(c => BigInt(c.clientId));
+        where.id = { in: clientIds };
+      }
     }
 
     // Get clients with relations
@@ -55,7 +87,32 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Map to DTO format (snake_case to camelCase)
-    const mappedClients = clients.map(mapClientToDTO);
+    const mappedClients = clients.map((client) => {
+      const dto = mapClientToDTO(client);
+      const clientId = client.id.toString();
+      
+      // Add trends if available
+      if (trendsData) {
+        dto.salesTrend = trendsData.data.get(clientId) || [];
+        dto.salesTrendLabels = trendsData.labels;
+      }
+
+      // Add classification if available
+      if (classificationData) {
+        const clientMetrics = Object.values(classificationData.byStatus)
+          .flatMap(group => group.clients)
+          .find(c => c.clientId === clientId);
+        
+        if (clientMetrics) {
+          dto.clientStatus = clientMetrics.status;
+          dto.daysSinceLastPurchase = clientMetrics.daysSinceLastPurchase;
+          dto.lastPurchaseDate = clientMetrics.lastPurchaseDate?.toISOString() || null;
+          dto.rfmScore = clientMetrics.rfmScore;
+        }
+      }
+      
+      return dto;
+    });
 
     return NextResponse.json({
       data: mappedClients,
@@ -99,7 +156,6 @@ export async function POST(request: NextRequest) {
         transporter_id: validatedData.transporterId,
         seller_id: validatedData.sellerId,
         credit_limit: validatedData.creditLimit,
-        is_active: validatedData.isActive ?? true,
         created_at: new Date(),
         updated_at: new Date(),
       },

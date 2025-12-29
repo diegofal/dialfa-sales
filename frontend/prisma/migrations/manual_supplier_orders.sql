@@ -72,3 +72,4 @@ CREATE INDEX IF NOT EXISTS "IX_supplier_order_items_article_id" ON supplier_orde
 
 
 
+
