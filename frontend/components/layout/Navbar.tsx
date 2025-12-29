@@ -17,14 +17,12 @@ import { QuickCartPopup } from '@/components/articles/QuickCartPopup';
 import { useQuickCartTabs } from '@/lib/hooks/useQuickCartTabs';
 import { useFixedBottomBar, useWindowSize } from '@/lib/hooks/useFixedBottomBar';
 import { calculateCartPositions, CART_CONSTANTS } from '@/lib/constants/cart';
-import { Badge } from '@/components/ui/badge';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 export default function Navbar() {
   const user = useAuthStore((state) => state.user);
   const logout = useLogout();
   const [cartOpen, setCartOpen] = useState(false);
-  const { getTotalItems } = useQuickCartTabs();
   
   // Automatically detect bottom bar and calculate positions
   const { bottomBarHeight, isDetecting } = useFixedBottomBar();
@@ -40,8 +38,6 @@ export default function Navbar() {
       cartPositions,
     });
   }
-  
-  const totalCartItems = getTotalItems();
   
   // Handle SPACE key to toggle cart
   useEffect(() => {
@@ -121,17 +117,7 @@ export default function Navbar() {
         }}
         onClick={() => setCartOpen(!cartOpen)}
       >
-        <div className="relative">
-          <ShoppingCart className="h-6 w-6" />
-          {totalCartItems > 0 && (
-            <Badge 
-              variant="destructive" 
-              className="absolute -top-2 -right-2 h-5 w-5 p-0 flex items-center justify-center text-xs"
-            >
-              {totalCartItems}
-            </Badge>
-          )}
-        </div>
+        <ShoppingCart className="h-6 w-6" />
       </Button>
 
       {/* Quick Cart Popup with Dynamic Position */}

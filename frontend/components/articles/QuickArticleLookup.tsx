@@ -187,7 +187,7 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
             onFocus={() => articleCode && setShowCodeResults(true)}
             onBlur={() => setTimeout(() => setShowCodeResults(false), 200)}
             placeholder="Buscar artículo..."
-            className="pl-7 uppercase text-sm h-9"
+            className="pl-7 text-sm h-9"
           />
         </div>
 

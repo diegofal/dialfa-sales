@@ -873,7 +873,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                   onFocus={() => articleCode && setShowCodeResults(true)}
                   onBlur={() => setTimeout(() => setShowCodeResults(false), 200)}
                   placeholder="Buscar código o descripción..."
-                  className="pl-9 uppercase h-9"
+                  className="pl-9 h-9"
                 />
                 
                 {/* Search Results Dropdown */}
@@ -975,7 +975,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                                     setShowEditResults(true);
                                   }}
                                   onKeyDown={handleEditKeyDown}
-                                  className="h-8 text-xs font-mono uppercase"
+                                  className="h-8 text-xs font-mono"
                                   autoFocus
                                 />
                                 {showEditResults && editCode && editArticles.length > 0 && (

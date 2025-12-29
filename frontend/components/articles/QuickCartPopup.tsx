@@ -656,7 +656,7 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
                         onKeyDown={handleEditKeyDown}
                         onFocus={() => editCode && setShowEditResults(true)}
                         onBlur={() => setTimeout(() => setShowEditResults(false), 200)}
-                        className="h-7 text-sm font-mono uppercase"
+                        className="h-7 text-sm font-mono"
                         placeholder="Buscar código..."
                         autoFocus
                       />
