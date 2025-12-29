@@ -2,7 +2,7 @@
 
 import { use, useEffect, useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Package, Download } from 'lucide-react';
+import { ArrowLeft, Package, Download, Scale } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
@@ -90,6 +90,7 @@ export default function SupplierOrderDetailPage({
   });
   const [discountOverrides, setDiscountOverrides] = useState<Map<number, number>>(new Map());
   const [globalDiscount, setGlobalDiscount] = useState<string>('');
+  const [syncingWeights, setSyncingWeights] = useState(false);
 
   const { data, isLoading } = useSupplierOrder(parseInt(id));
   const updateStatus = useUpdateSupplierOrderStatus();
@@ -231,6 +232,29 @@ export default function SupplierOrderDetailPage({
       style: 'currency',
       currency: 'ARS',
     }).format(price);
+  };
+
+  const handleSyncWeights = async () => {
+    if (!order || !confirm('¿Sincronizar los pesos unitarios de esta proforma a los artículos? Esto actualizará el campo "Peso (kg)" de cada artículo.')) {
+      return;
+    }
+
+    setSyncingWeights(true);
+    try {
+      const response = await axios.post(`/api/supplier-orders/${order.id}/sync-weights`);
+      
+      if (response.data.success) {
+        alert(`✅ ${response.data.message}`);
+      } else {
+        alert('Error: ' + (response.data.error || 'Error desconocido'));
+      }
+    } catch (error: unknown) {
+      const axiosError = error as { response?: { data?: { error?: string } } };
+      console.error('Error syncing weights:', error);
+      alert('Error al sincronizar pesos: ' + (axiosError.response?.data?.error || 'Error de conexión'));
+    } finally {
+      setSyncingWeights(false);
+    }
   };
 
   const handleExportToHTML = () => {
@@ -605,6 +629,16 @@ export default function SupplierOrderDetailPage({
             Creado el {new Date(order.orderDate).toLocaleDateString('es-AR')}
           </p>
         </div>
+        <Button
+          variant="outline"
+          onClick={handleSyncWeights}
+          disabled={syncingWeights || !canEdit}
+          className="gap-2"
+          title="Actualizar el peso (kg) de cada artículo con el peso unitario de esta proforma"
+        >
+          <Scale className="h-4 w-4" />
+          {syncingWeights ? 'Sincronizando...' : 'Sincronizar Pesos'}
+        </Button>
         <Button
           variant="outline"
           onClick={handleExportToHTML}

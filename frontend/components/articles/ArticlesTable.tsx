@@ -137,6 +137,9 @@ export function ArticlesTable({
             <SortableTableHead sortKey="MinimumStock" currentSortBy={currentSortBy} currentSortDescending={currentSortDescending} onSort={onSort} align="right">
               Stock Mín.
             </SortableTableHead>
+            <SortableTableHead align="right">
+              Peso (kg)
+            </SortableTableHead>
             <SortableTableHead>Tendencia</SortableTableHead>
             <SortableTableHead>ABC</SortableTableHead>
             <SortableTableHead>Última Venta</SortableTableHead>
@@ -147,7 +150,7 @@ export function ArticlesTable({
         <TableBody>
           {articles.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={10} className="text-center text-muted-foreground">
+              <TableCell colSpan={11} className="text-center text-muted-foreground">
                 No hay artículos para mostrar
               </TableCell>
             </TableRow>
@@ -195,6 +198,15 @@ export function ArticlesTable({
                 </TableCell>
                 <TableCell className="text-right text-muted-foreground">
                   {article.minimumStock}
+                </TableCell>
+                <TableCell className="text-right">
+                  {article.weightKg ? (
+                    <span className="text-sm font-medium">
+                      {article.weightKg.toFixed(2)}
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">-</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   {article.salesTrend && article.salesTrend.length > 0 ? (

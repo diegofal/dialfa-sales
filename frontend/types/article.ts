@@ -20,6 +20,7 @@ export interface Article {
   salesTrend?: number[];
   salesTrendLabels?: string[];
   lastSaleDate?: string | null; // ISO date string
+  weightKg?: number | null;
 }
 
 export interface ArticleFormData {
