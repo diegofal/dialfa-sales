@@ -37,6 +37,8 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { formatCuit } from '@/lib/utils';
+import { usePaymentTerms } from '@/lib/hooks/usePaymentTerms';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface OrderItemFormData {
   articleId: number;
@@ -99,7 +101,9 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     addOrUpdateOrderTab,
   } = useQuickCartTabs();
 
+  const { data: paymentTerms } = usePaymentTerms(true);
   const [notes, setNotes] = useState('');
+  const [paymentTermId, setPaymentTermId] = useState<number | null>(null);
   const [loadedFromCart, setLoadedFromCart] = useState(false);
   const [loadedOrderId, setLoadedOrderId] = useState<number | null>(null);
   const [currentTabId, setCurrentTabId] = useState<string | null>(null);
@@ -254,6 +258,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       setLocalClientName(existingOrder.clientBusinessName);
       setCurrentTabId(tabId);
       setNotes(existingOrder.notes || '');
+      setPaymentTermId(existingOrder.paymentTermId || null);
 
       setLoadedFromCart(true);
       setLoadedOrderId(existingOrder.id);
@@ -639,6 +644,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
 
       const requestData = {
         clientId,
+        paymentTermId: paymentTermId || undefined,
         notes: notes || undefined,
         items: items.map((item) => ({
           articleId: item.article.id,
@@ -845,6 +851,30 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                 onChange={(e) => setNotes(e.target.value)}
                 disabled={isReadOnly}
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="paymentTerm">Condición de Pago</Label>
+              <Select
+                value={paymentTermId?.toString() || ''}
+                onValueChange={(value) => setPaymentTermId(value ? Number(value) : null)}
+                disabled={isReadOnly}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccione una condición de pago (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Sin condición específica</SelectItem>
+                  {paymentTerms?.map((term) => (
+                    <SelectItem key={term.id} value={term.id.toString()}>
+                      {term.name} ({term.days} días)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Esta condición se usará al crear la factura
+              </p>
             </div>
           </CardContent>
         </Card>

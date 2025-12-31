@@ -100,6 +100,8 @@ export async function PUT(
         size: validatedData.size,
         supplier_id: validatedData.supplierId,
         weight_kg: validatedData.weightKg,
+        last_purchase_price: validatedData.lastPurchasePrice,
+        cif_percentage: validatedData.cifPercentage,
         historical_price1: validatedData.historicalPrice1,
         location: validatedData.location,
         notes: validatedData.notes,

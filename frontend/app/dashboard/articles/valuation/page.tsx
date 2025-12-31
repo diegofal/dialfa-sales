@@ -5,6 +5,7 @@ import { useStockValuation, useRefreshStockValuation } from '@/lib/hooks/useStoc
 import { ValuationSummary } from '@/components/articles/ValuationSummary';
 import { ValuationTable } from '@/components/articles/ValuationTable';
 import { ValuationFilters } from '@/components/articles/ValuationFilters';
+import { ValuationByCategory } from '@/components/articles/ValuationByCategory';
 import { StockClassificationConfig, StockStatus } from '@/types/stockValuation';
 import { AlertCircle, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
@@ -23,6 +24,7 @@ export default function ValuationPage() {
   });
 
   const [selectedStatus, setSelectedStatus] = useState<StockStatus | 'all'>('all');
+  const [selectedCategoryId, setSelectedCategoryId] = useState<number | null>(null);
   const [trendMonths, setTrendMonths] = useState<number>(6);
 
   // Usar trendMonths en la configuración para que se recarguen los datos
@@ -39,14 +41,45 @@ export default function ValuationPage() {
   };
 
   const handleStatusClick = (status: StockStatus) => {
+    setSelectedCategoryId(null); // Clear category filter when clicking status cards
     setSelectedStatus(selectedStatus === status ? 'all' : status);
   };
 
-  // Filtrar artículos según el status seleccionado
+  const handleCategoryStatusClick = (categoryId: number, status: StockStatus) => {
+    // Toggle: if same selection, clear it
+    if (selectedCategoryId === categoryId && selectedStatus === status) {
+      setSelectedCategoryId(null);
+      setSelectedStatus('all');
+    } else {
+      setSelectedCategoryId(categoryId);
+      setSelectedStatus(status);
+    }
+  };
+
+  const handleCategoryTotalClick = (categoryId: number) => {
+    // Toggle: if same category selected with 'all' status, clear it
+    if (selectedCategoryId === categoryId && selectedStatus === 'all') {
+      setSelectedCategoryId(null);
+    } else {
+      setSelectedCategoryId(categoryId);
+      setSelectedStatus('all');
+    }
+  };
+
+  // Filtrar artículos según el status y categoría seleccionados
   const filteredArticles = valuation 
-    ? selectedStatus === 'all'
-      ? Object.values(valuation.byStatus).flatMap(group => group.articles)
-      : valuation.byStatus[selectedStatus]?.articles || []
+    ? (() => {
+        let articles = selectedStatus === 'all'
+          ? Object.values(valuation.byStatus).flatMap(group => group.articles)
+          : valuation.byStatus[selectedStatus]?.articles || [];
+        
+        // Si hay categoría seleccionada, filtrar por ella
+        if (selectedCategoryId !== null) {
+          articles = articles.filter(a => a.categoryId === selectedCategoryId);
+        }
+        
+        return articles;
+      })()
     : [];
 
   // Ordenar por valor de stock descendente
@@ -100,20 +133,47 @@ export default function ValuationPage() {
           {/* Summary Cards */}
           <ValuationSummary valuation={valuation} onStatusClick={handleStatusClick} />
 
+          {/* Category Breakdown */}
+          {valuation.byCategory && valuation.byCategory.length > 0 && (
+            <ValuationByCategory 
+              categories={valuation.byCategory} 
+              totalStockValue={valuation.totals.totalStockValue}
+              onStatusClick={handleCategoryStatusClick}
+              onCategoryTotalClick={handleCategoryTotalClick}
+              selectedCategoryId={selectedCategoryId}
+              selectedStatus={selectedStatus !== 'all' ? selectedStatus : null}
+            />
+          )}
+
           {/* Articles Table */}
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold">
-                {selectedStatus === 'all' 
-                  ? 'Todos los Artículos' 
-                  : `Artículos: ${
-                      selectedStatus === StockStatus.ACTIVE ? 'Activos' :
-                      selectedStatus === StockStatus.SLOW_MOVING ? 'Movimiento Lento' :
-                      selectedStatus === StockStatus.DEAD_STOCK ? 'Stock Muerto' :
-                      'Nunca Vendidos'
-                    }`
-                }
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-xl font-semibold">
+                  {selectedStatus === 'all' 
+                    ? 'Todos los Artículos' 
+                    : `Artículos: ${
+                        selectedStatus === StockStatus.ACTIVE ? 'Activos' :
+                        selectedStatus === StockStatus.SLOW_MOVING ? 'Movimiento Lento' :
+                        selectedStatus === StockStatus.DEAD_STOCK ? 'Stock Muerto' :
+                        'Nunca Vendidos'
+                      }`
+                  }
+                </h2>
+                {selectedCategoryId !== null && (
+                  <span className="text-sm text-muted-foreground">
+                    en {valuation.byCategory?.find(c => c.categoryId === selectedCategoryId)?.categoryName}
+                  </span>
+                )}
+                {(selectedStatus !== 'all' || selectedCategoryId !== null) && (
+                  <button 
+                    onClick={() => { setSelectedStatus('all'); setSelectedCategoryId(null); }}
+                    className="text-xs text-primary hover:underline ml-2"
+                  >
+                    Limpiar filtro
+                  </button>
+                )}
+              </div>
               <p className="text-sm text-muted-foreground">
                 {sortedArticles.length} artículo{sortedArticles.length !== 1 ? 's' : ''}
               </p>

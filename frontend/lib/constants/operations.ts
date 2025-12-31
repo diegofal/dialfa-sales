@@ -36,6 +36,11 @@ export const OPERATIONS = {
   CATEGORY_UPDATE: 'CATEGORY_UPDATE',
   CATEGORY_DELETE: 'CATEGORY_DELETE',
   
+  // Condiciones de Pago
+  PAYMENT_TERM_CREATE: 'PAYMENT_TERM_CREATE',
+  PAYMENT_TERM_UPDATE: 'PAYMENT_TERM_UPDATE',
+  PAYMENT_TERM_DELETE: 'PAYMENT_TERM_DELETE',
+  
   // Certificados
   CERTIFICATE_SYNC: 'CERTIFICATE_SYNC',
   CERTIFICATE_DELETE: 'CERTIFICATE_DELETE',
@@ -49,6 +54,10 @@ export const OPERATIONS = {
   SETTINGS_UPDATE: 'SETTINGS_UPDATE',
   LOGIN: 'LOGIN',
   LOGOUT: 'LOGOUT',
+  
+  // Precios
+  PRICE_UPDATE: 'PRICE_UPDATE',
+  PRICE_BULK_UPDATE: 'PRICE_BULK_UPDATE',
 } as const;
 
 export const OPERATION_LABELS: Record<string, string> = {
@@ -75,6 +84,9 @@ export const OPERATION_LABELS: Record<string, string> = {
   CATEGORY_CREATE: 'Crear Categoría',
   CATEGORY_UPDATE: 'Modificar Categoría',
   CATEGORY_DELETE: 'Eliminar Categoría',
+  PAYMENT_TERM_CREATE: 'Crear Condición de Pago',
+  PAYMENT_TERM_UPDATE: 'Modificar Condición de Pago',
+  PAYMENT_TERM_DELETE: 'Eliminar Condición de Pago',
   CERTIFICATE_SYNC: 'Sincronizar Certificados',
   CERTIFICATE_DELETE: 'Eliminar Certificado',
   USER_CREATE: 'Crear Usuario',
@@ -83,5 +95,7 @@ export const OPERATION_LABELS: Record<string, string> = {
   SETTINGS_UPDATE: 'Configuración',
   LOGIN: 'Inicio de Sesión',
   LOGOUT: 'Cierre de Sesión',
+  PRICE_UPDATE: 'Actualizar Precio',
+  PRICE_BULK_UPDATE: 'Actualización Masiva de Precios',
 };
 

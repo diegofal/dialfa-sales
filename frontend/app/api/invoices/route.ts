@@ -43,6 +43,7 @@ export async function GET(request: NextRequest) {
               clients: true,
             },
           },
+          payment_terms: true,
         },
         orderBy: {
           invoice_date: 'desc',
@@ -89,7 +90,11 @@ export async function POST(request: NextRequest) {
           include: {
             articles: {
               include: {
-                categories: true, // Incluir categorías para obtener default_discount_percent
+                categories: {
+                  include: {
+                    category_payment_discounts: true,
+                  }
+                },
               }
             },
           },
@@ -139,6 +144,9 @@ export async function POST(request: NextRequest) {
       usdExchangeRate = parseFloat(settings.usd_exchange_rate.toString());
     }
 
+    // Determine payment term: use provided, inherit from sales order, or null
+    const paymentTermId = validatedData.paymentTermId ?? salesOrder.payment_term_id ?? null;
+
     // Generate invoice number (format: INV-YYYYMMDD-XXXX)
     const now = new Date();
     const dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');
@@ -170,10 +178,18 @@ export async function POST(request: NextRequest) {
     const invoiceItemsData = salesOrder.sales_order_items.map((item) => {
       const unitPriceUsd = parseFloat(item.unit_price.toString());
       const unitPriceArs = unitPriceUsd * usdExchangeRate;
-      // Obtener descuento de la categoría del artículo
-      const discountPercent = item.articles.categories?.default_discount_percent 
-        ? parseFloat(item.articles.categories.default_discount_percent.toString())
-        : 0;
+      
+      // Get discount based on payment term and category
+      let discountPercent = 0;
+      if (paymentTermId && item.articles.categories) {
+        const categoryDiscount = item.articles.categories.category_payment_discounts.find(
+          d => d.payment_term_id === paymentTermId
+        );
+        discountPercent = categoryDiscount 
+          ? parseFloat(categoryDiscount.discount_percent.toString())
+          : 0;
+      }
+      
       const quantity = item.quantity;
       
       // Calculate line total: (price * quantity) - discount
@@ -208,6 +224,7 @@ export async function POST(request: NextRequest) {
           invoice_number: invoiceNumber,
           sales_order_id: validatedData.salesOrderId,
           invoice_date: validatedData.invoiceDate || now,
+          payment_term_id: paymentTermId,
           net_amount: netAmountArs,
           tax_amount: taxAmount,
           total_amount: totalAmount,
@@ -249,6 +266,7 @@ export async function POST(request: NextRequest) {
               clients: true,
             },
           },
+          payment_terms: true,
         },
       });
     });

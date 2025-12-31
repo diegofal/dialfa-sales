@@ -6,6 +6,8 @@ import {
   StockValuationMetrics,
   StockValuationSummary,
   StockValuationCacheInfo,
+  CategoryValuationData,
+  PaymentTermValuation,
 } from '@/types/stockValuation';
 
 // Cache en memoria
@@ -64,7 +66,34 @@ export async function calculateStockValuation(
   const startTime = Date.now();
 
   try {
-    // 1. Obtener artículos activos (con o sin stock según configuración)
+    // 1. Obtener payment terms activas
+    const paymentTerms = await prisma.payment_terms.findMany({
+      where: { is_active: true },
+      orderBy: { days: 'asc' },
+      select: {
+        id: true,
+        code: true,
+        name: true,
+      },
+    });
+
+    // 2. Obtener todos los descuentos por categoría y payment term
+    const categoryPaymentDiscounts = await prisma.category_payment_discounts.findMany({
+      select: {
+        category_id: true,
+        payment_term_id: true,
+        discount_percent: true,
+      },
+    });
+
+    // Crear un mapa para acceso rápido: `categoryId-paymentTermId` -> discountPercent
+    const discountMap = new Map<string, number>();
+    for (const cpd of categoryPaymentDiscounts) {
+      const key = `${cpd.category_id}-${cpd.payment_term_id}`;
+      discountMap.set(key, Number(cpd.discount_percent));
+    }
+
+    // 3. Obtener artículos activos (con o sin stock según configuración)
     const whereClause: {
       deleted_at: null;
       is_active: true;
@@ -88,6 +117,15 @@ export async function calculateStockValuation(
         stock: true,
         cost_price: true,
         unit_price: true,
+        last_purchase_price: true,
+        category_id: true,
+        categories: {
+          select: {
+            id: true,
+            code: true,
+            name: true,
+          },
+        },
       },
     });
 
@@ -106,7 +144,13 @@ export async function calculateStockValuation(
       const lastSaleDate = lastSaleDates.get(articleId) || null;
       
       const currentStock = Number(article.stock);
-      const costPrice = Number(article.cost_price || 0);
+      // Usar last_purchase_price como costo, con cost_price como fallback
+      // Usar ?? (nullish coalescing) en lugar de || para permitir valor 0
+      const costPrice = article.last_purchase_price !== null && article.last_purchase_price !== undefined
+        ? Number(article.last_purchase_price)
+        : article.cost_price !== null && article.cost_price !== undefined
+          ? Number(article.cost_price)
+          : 0;
       const unitPrice = Number(article.unit_price || 0);
 
       // Calcular días desde última venta
@@ -146,16 +190,41 @@ export async function calculateStockValuation(
         fullConfig
       );
 
-      // Valores monetarios
+      // Obtener descuento de la categoría
+      const categoryId = Number(article.category_id);
+      
+      // Valores monetarios base (necesarios para calcular paymentTermsValuation)
       const stockValue = currentStock * costPrice;
-      const stockValueAtSalePrice = currentStock * unitPrice;
-      const potentialProfit = stockValueAtSalePrice - stockValue;
+      const stockValueAtListPrice = currentStock * unitPrice;
+      const potentialProfitAtListPrice = stockValueAtListPrice - stockValue;
+      
+      // Calcular valorización por cada payment term
+      const paymentTermsValuation: PaymentTermValuation[] = paymentTerms.map(pt => {
+        const discountKey = `${categoryId}-${pt.id}`;
+        const discountPercent = discountMap.get(discountKey) || 0;
+        const unitPriceWithDiscount = unitPrice * (1 - discountPercent / 100);
+        const stockValueAtDiscountedPrice = currentStock * unitPriceWithDiscount;
+        const potentialProfit = stockValueAtDiscountedPrice - stockValue;
+
+        return {
+          paymentTermId: pt.id,
+          paymentTermCode: pt.code,
+          paymentTermName: pt.name,
+          discountPercent,
+          unitPriceWithDiscount,
+          stockValueAtDiscountedPrice,
+          potentialProfit,
+        };
+      });
 
       metrics.push({
         articleId,
         articleCode: article.code,
         articleDescription: article.description,
         status,
+        categoryId: Number(article.category_id),
+        categoryCode: article.categories?.code || '',
+        categoryName: article.categories?.name || 'Sin categoría',
         daysSinceLastSale,
         lastSaleDate,
         avgMonthlySales,
@@ -163,9 +232,12 @@ export async function calculateStockValuation(
         salesTrendDirection: trendDirection,
         totalSalesInPeriod,
         currentStock,
+        unitCost: costPrice,
+        unitPrice,
         stockValue,
-        stockValueAtSalePrice,
-        potentialProfit,
+        stockValueAtListPrice,
+        potentialProfitAtListPrice,
+        paymentTermsValuation,
         rotationVelocity,
         estimatedDaysToSellOut,
         monthsOfInventory,
@@ -177,29 +249,61 @@ export async function calculateStockValuation(
       [StockStatus.ACTIVE]: {
         count: 0,
         totalValue: 0,
-        totalValueAtSale: 0,
-        totalPotentialProfit: 0,
+        totalValueAtListPrice: 0,
+        paymentTermsValuation: paymentTerms.map(pt => ({
+          paymentTermId: pt.id,
+          paymentTermCode: pt.code,
+          paymentTermName: pt.name,
+          discountPercent: 0,
+          unitPriceWithDiscount: 0,
+          stockValueAtDiscountedPrice: 0,
+          potentialProfit: 0,
+        })),
         articles: [],
       },
       [StockStatus.SLOW_MOVING]: {
         count: 0,
         totalValue: 0,
-        totalValueAtSale: 0,
-        totalPotentialProfit: 0,
+        totalValueAtListPrice: 0,
+        paymentTermsValuation: paymentTerms.map(pt => ({
+          paymentTermId: pt.id,
+          paymentTermCode: pt.code,
+          paymentTermName: pt.name,
+          discountPercent: 0,
+          unitPriceWithDiscount: 0,
+          stockValueAtDiscountedPrice: 0,
+          potentialProfit: 0,
+        })),
         articles: [],
       },
       [StockStatus.DEAD_STOCK]: {
         count: 0,
         totalValue: 0,
-        totalValueAtSale: 0,
-        totalPotentialProfit: 0,
+        totalValueAtListPrice: 0,
+        paymentTermsValuation: paymentTerms.map(pt => ({
+          paymentTermId: pt.id,
+          paymentTermCode: pt.code,
+          paymentTermName: pt.name,
+          discountPercent: 0,
+          unitPriceWithDiscount: 0,
+          stockValueAtDiscountedPrice: 0,
+          potentialProfit: 0,
+        })),
         articles: [],
       },
       [StockStatus.NEVER_SOLD]: {
         count: 0,
         totalValue: 0,
-        totalValueAtSale: 0,
-        totalPotentialProfit: 0,
+        totalValueAtListPrice: 0,
+        paymentTermsValuation: paymentTerms.map(pt => ({
+          paymentTermId: pt.id,
+          paymentTermCode: pt.code,
+          paymentTermName: pt.name,
+          discountPercent: 0,
+          unitPriceWithDiscount: 0,
+          stockValueAtDiscountedPrice: 0,
+          potentialProfit: 0,
+        })),
         articles: [],
       },
     };
@@ -208,8 +312,14 @@ export async function calculateStockValuation(
       const group = byStatus[metric.status];
       group.count++;
       group.totalValue += metric.stockValue;
-      group.totalValueAtSale += metric.stockValueAtSalePrice;
-      group.totalPotentialProfit += metric.potentialProfit;
+      group.totalValueAtListPrice += metric.stockValueAtListPrice;
+      
+      // Agregar valores por payment term
+      metric.paymentTermsValuation.forEach((ptv, index) => {
+        group.paymentTermsValuation[index].stockValueAtDiscountedPrice += ptv.stockValueAtDiscountedPrice;
+        group.paymentTermsValuation[index].potentialProfit += ptv.potentialProfit;
+      });
+      
       group.articles.push(metric);
     }
 
@@ -218,16 +328,88 @@ export async function calculateStockValuation(
       group.articles.sort((a, b) => b.stockValue - a.stockValue);
     });
 
-    // 5. Calcular totales
+    // 5. Agrupar por categoría
+    const categoryMap = new Map<number, CategoryValuationData>();
+    
+    for (const metric of metrics) {
+      const categoryId = metric.categoryId;
+      
+      if (!categoryMap.has(categoryId)) {
+        categoryMap.set(categoryId, {
+          categoryId,
+          categoryCode: metric.categoryCode,
+          categoryName: metric.categoryName,
+          count: 0,
+          totalValue: 0,
+          totalValueAtListPrice: 0,
+          paymentTermsValuation: paymentTerms.map(pt => {
+            const discountKey = `${categoryId}-${pt.id}`;
+            const discountPercent = discountMap.get(discountKey) || 0;
+            return {
+              paymentTermId: pt.id,
+              paymentTermCode: pt.code,
+              paymentTermName: pt.name,
+              discountPercent,
+              unitPriceWithDiscount: 0,
+              stockValueAtDiscountedPrice: 0,
+              potentialProfit: 0,
+            };
+          }),
+          byStatus: {
+            [StockStatus.ACTIVE]: 0,
+            [StockStatus.SLOW_MOVING]: 0,
+            [StockStatus.DEAD_STOCK]: 0,
+            [StockStatus.NEVER_SOLD]: 0,
+          },
+        });
+      }
+      
+      const category = categoryMap.get(categoryId)!;
+      category.count++;
+      category.totalValue += metric.stockValue;
+      category.totalValueAtListPrice += metric.stockValueAtListPrice;
+      
+      // Agregar valores por payment term
+      metric.paymentTermsValuation.forEach((ptv, index) => {
+        category.paymentTermsValuation[index].stockValueAtDiscountedPrice += ptv.stockValueAtDiscountedPrice;
+        category.paymentTermsValuation[index].potentialProfit += ptv.potentialProfit;
+      });
+      
+      category.byStatus[metric.status]++;
+    }
+    
+    // Ordenar categorías por valor total descendente
+    const byCategory = Array.from(categoryMap.values()).sort(
+      (a, b) => b.totalValue - a.totalValue
+    );
+
+    // 6. Calcular totales
     const totals = {
       totalArticles: metrics.length,
       totalStockValue: metrics.reduce((sum, m) => sum + m.stockValue, 0),
-      totalValueAtSale: metrics.reduce((sum, m) => sum + m.stockValueAtSalePrice, 0),
-      totalPotentialProfit: metrics.reduce((sum, m) => sum + m.potentialProfit, 0),
+      totalValueAtListPrice: metrics.reduce((sum, m) => sum + m.stockValueAtListPrice, 0),
+      paymentTermsValuation: paymentTerms.map(pt => ({
+        paymentTermId: pt.id,
+        paymentTermCode: pt.code,
+        paymentTermName: pt.name,
+        discountPercent: 0,
+        unitPriceWithDiscount: 0,
+        stockValueAtDiscountedPrice: 0,
+        potentialProfit: 0,
+      })),
     };
+
+    // Agregar valores por payment term a los totales
+    metrics.forEach(metric => {
+      metric.paymentTermsValuation.forEach((ptv, index) => {
+        totals.paymentTermsValuation[index].stockValueAtDiscountedPrice += ptv.stockValueAtDiscountedPrice;
+        totals.paymentTermsValuation[index].potentialProfit += ptv.potentialProfit;
+      });
+    });
 
     const summary: StockValuationSummary = {
       byStatus,
+      byCategory,
       totals,
       calculatedAt: new Date(),
       config: fullConfig,

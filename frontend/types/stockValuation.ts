@@ -14,11 +14,26 @@ export interface StockClassificationConfig {
   includeZeroStock: boolean;        // Default: false - Incluir artículos sin stock
 }
 
+export interface PaymentTermValuation {
+  paymentTermId: number;
+  paymentTermCode: string;
+  paymentTermName: string;
+  discountPercent: number;
+  unitPriceWithDiscount: number;
+  stockValueAtDiscountedPrice: number;
+  potentialProfit: number;
+}
+
 export interface StockValuationMetrics {
   articleId: string;
   articleCode: string;
   articleDescription: string;
   status: StockStatus;
+  
+  // Categoría
+  categoryId: number;
+  categoryCode: string;
+  categoryName: string;
   
   // Métricas temporales
   daysSinceLastSale: number | null;
@@ -32,9 +47,14 @@ export interface StockValuationMetrics {
   
   // Métricas de stock
   currentStock: number;
-  stockValue: number;              // stock * cost_price
-  stockValueAtSalePrice: number;   // stock * unit_price
-  potentialProfit: number;         // Diferencia entre precio venta y costo
+  unitCost: number;                          // Costo unitario (last_purchase_price o cost_price)
+  unitPrice: number;                         // Precio unitario de venta
+  stockValue: number;                        // stock * cost_price
+  stockValueAtListPrice: number;             // stock * unit_price (sin descuento)
+  potentialProfitAtListPrice: number;        // Ganancia sin descuento
+  
+  // Valorización por condición de pago
+  paymentTermsValuation: PaymentTermValuation[];
   
   // Métricas calculadas
   rotationVelocity: number;        // Unidades vendidas por mes
@@ -42,21 +62,38 @@ export interface StockValuationMetrics {
   monthsOfInventory: number;       // Meses de inventario actual
 }
 
+export interface CategoryValuationData {
+  categoryId: number;
+  categoryCode: string;
+  categoryName: string;
+  count: number;
+  totalValue: number;
+  totalValueAtListPrice: number;      // Sin descuento
+  // Valorización por condición de pago
+  paymentTermsValuation: PaymentTermValuation[];
+  byStatus: {
+    [key in StockStatus]: number; // count by status
+  };
+}
+
 export interface StockValuationSummary {
   byStatus: {
     [key in StockStatus]: {
       count: number;
       totalValue: number;
-      totalValueAtSale: number;
-      totalPotentialProfit: number;
+      totalValueAtListPrice: number;
+      // Valorización por condición de pago
+      paymentTermsValuation: PaymentTermValuation[];
       articles: StockValuationMetrics[];
     }
   };
+  byCategory: CategoryValuationData[];
   totals: {
     totalArticles: number;
     totalStockValue: number;
-    totalValueAtSale: number;
-    totalPotentialProfit: number;
+    totalValueAtListPrice: number;
+    // Valorización por condición de pago
+    paymentTermsValuation: PaymentTermValuation[];
   };
   calculatedAt: Date;
   config: StockClassificationConfig;

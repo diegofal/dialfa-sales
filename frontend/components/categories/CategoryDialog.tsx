@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
@@ -15,7 +15,10 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { useCategory, useCreateCategory, useUpdateCategory } from '@/lib/hooks/useCategories';
+import { usePaymentTerms } from '@/lib/hooks/usePaymentTerms';
+import { useCategoryPaymentDiscounts, useUpdateCategoryPaymentDiscounts } from '@/lib/hooks/useCategoryPaymentDiscounts';
 import type { CategoryFormData } from '@/types/category';
+import type { CategoryPaymentDiscountFormData } from '@/types/paymentTerm';
 
 const categorySchema = z.object({
   code: z.string().min(1, 'El código es requerido').max(20, 'Máximo 20 caracteres'),
@@ -35,6 +38,23 @@ export function CategoryDialog({ isOpen, onClose, categoryId }: CategoryDialogPr
   const { data: category } = useCategory(categoryId || 0);
   const createMutation = useCreateCategory();
   const updateMutation = useUpdateCategory();
+  
+  // Payment terms and discounts
+  const { data: paymentTerms } = usePaymentTerms(true);
+  const { data: categoryDiscounts, isLoading: isLoadingDiscounts } = useCategoryPaymentDiscounts(categoryId || 0);
+  const updateDiscountsMutation = useUpdateCategoryPaymentDiscounts();
+  
+  const [discounts, setDiscounts] = useState<Record<number, number>>({});
+
+  // Debug logs
+  console.log('CategoryDialog render:', {
+    isOpen,
+    categoryId,
+    isEditing,
+    categoryDiscounts,
+    isLoadingDiscounts,
+    discountsState: discounts,
+  });
 
   const {
     register,
@@ -64,17 +84,53 @@ export function CategoryDialog({ isOpen, onClose, categoryId }: CategoryDialogPr
       setValue('defaultDiscountPercent', discountValue);
     } else if (!isEditing) {
       reset();
+      setDiscounts({});
     }
   }, [category, isEditing, setValue, reset]);
 
+  // Load payment term discounts when dialog opens or category changes
+  useEffect(() => {
+    if (isOpen && categoryDiscounts && categoryDiscounts.length > 0) {
+      console.log('Loading category discounts:', categoryDiscounts);
+      const discountMap: Record<number, number> = {};
+      categoryDiscounts.forEach(d => {
+        discountMap[d.paymentTermId] = d.discountPercent;
+      });
+      console.log('Discount map:', discountMap);
+      setDiscounts(discountMap);
+    } else if (isOpen && !isEditing) {
+      // Reset discounts for new category
+      console.log('Resetting discounts for new category');
+      setDiscounts({});
+    }
+  }, [isOpen, categoryDiscounts, isEditing]);
+
   const onSubmit = async (data: CategoryFormData) => {
     try {
+      let savedCategoryId = categoryId;
+      
       if (isEditing && categoryId) {
         await updateMutation.mutateAsync({ id: categoryId, data });
       } else {
-        await createMutation.mutateAsync(data);
+        const newCategory = await createMutation.mutateAsync(data);
+        savedCategoryId = newCategory.id;
       }
+      
+      // Save payment term discounts if editing or after creating
+      if (savedCategoryId && paymentTerms) {
+        const discountData: CategoryPaymentDiscountFormData[] = paymentTerms.map(term => ({
+          paymentTermId: term.id,
+          discountPercent: discounts[term.id] || 0,
+        }));
+        
+        await updateDiscountsMutation.mutateAsync({
+          categoryId: savedCategoryId,
+          discounts: discountData,
+        });
+      }
+      
       reset();
+      setDiscounts({});
       onClose();
     } catch (error) {
       // Error handled by mutation
@@ -84,12 +140,18 @@ export function CategoryDialog({ isOpen, onClose, categoryId }: CategoryDialogPr
 
   const handleClose = () => {
     reset();
+    setDiscounts({});
     onClose();
+  };
+
+  const handleDiscountChange = (paymentTermId: number, value: string) => {
+    const numValue = parseFloat(value) || 0;
+    setDiscounts(prev => ({ ...prev, [paymentTermId]: numValue }));
   };
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Editar Categoría' : 'Nueva Categoría'}
@@ -135,18 +197,52 @@ export function CategoryDialog({ isOpen, onClose, categoryId }: CategoryDialogPr
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="defaultDiscountPercent">Descuento por defecto (%)</Label>
+            <Label htmlFor="defaultDiscountPercent">Descuento por defecto (%) - Deprecado</Label>
             <Input
               id="defaultDiscountPercent"
               type="number"
               step="0.01"
               {...register('defaultDiscountPercent', { valueAsNumber: true })}
               placeholder="0.00"
+              disabled
             />
-            {errors.defaultDiscountPercent && (
-              <p className="text-sm text-red-600">{errors.defaultDiscountPercent.message}</p>
-            )}
+            <p className="text-xs text-muted-foreground">
+              Este campo está deprecado. Use los descuentos por condición de pago a continuación.
+            </p>
           </div>
+
+          {paymentTerms && paymentTerms.length > 0 && (
+            <div className="space-y-2 border-t pt-4">
+              <Label>Descuentos por Condición de Pago</Label>
+              <p className="text-sm text-muted-foreground mb-2">
+                Configure el descuento para cada condición de pago disponible
+              </p>
+              {isEditing && !categoryDiscounts && (
+                <div className="text-sm text-gray-500 py-2">Cargando descuentos...</div>
+              )}
+              <div className="space-y-2">
+                {paymentTerms.map(term => {
+                  const currentDiscount = discounts[term.id] || 0;
+                  return (
+                    <div key={term.id} className="flex items-center gap-2">
+                      <Label className="w-40 text-sm">{term.name}</Label>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        min="0"
+                        max="100"
+                        value={currentDiscount}
+                        onChange={(e) => handleDiscountChange(term.id, e.target.value)}
+                        className="w-24"
+                      />
+                      <span className="text-sm text-muted-foreground">%</span>
+                      <span className="text-xs text-muted-foreground">({term.days} días)</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           <div className="flex justify-end gap-2 pt-4">
             <Button type="button" variant="outline" onClick={handleClose}>

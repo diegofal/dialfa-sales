@@ -32,6 +32,8 @@ export function mapArticleToDTO(article: unknown) {
     thickness: a.thickness as string | null,
     type: a.type as string | null,
     weightKg: a.weight_kg ? parseFloat(String(a.weight_kg)) : null,
+    lastPurchasePrice: a.last_purchase_price ? parseFloat(String(a.last_purchase_price)) : null,
+    cifPercentage: a.cif_percentage ? parseFloat(String(a.cif_percentage)) : null,
     isActive: a.is_active as boolean,
     createdAt: a.created_at as Date,
     updatedAt: a.updated_at as Date,
@@ -101,6 +103,7 @@ export function mapClientToDTO(client: unknown) {
 export function mapSalesOrderToDTO(order: unknown) {
   const o = order as Record<string, unknown>;
   const clients = o.clients as { business_name?: string } | undefined;
+  const paymentTerms = o.payment_terms as { name?: string } | undefined;
   const salesOrderItems = (o.sales_order_items as Array<Record<string, unknown>>) || [];
   const invoices = (o.invoices as Array<Record<string, unknown>>) || [];
   const deliveryNotes = (o.delivery_notes as Array<Record<string, unknown>>) || [];
@@ -117,6 +120,8 @@ export function mapSalesOrderToDTO(order: unknown) {
     orderDate: o.order_date as Date,
     deliveryDate: o.delivery_date as Date | null,
     status: o.status as string,
+    paymentTermId: o.payment_term_id as number | null,
+    paymentTermName: paymentTerms?.name || null,
     total: parseFloat(String(o.total)),
     notes: o.notes as string | null,
     specialDiscountPercent: parseFloat(String(o.special_discount_percent)),
@@ -174,6 +179,7 @@ export function mapInvoiceToDTO(invoice: unknown) {
     };
     special_discount_percent?: number;
   } | undefined;
+  const paymentTerms = i.payment_terms as { name?: string } | undefined;
   
   // Use invoice_items instead of sales_order_items
   const invoiceItems = (i.invoice_items || []) as Array<Record<string, unknown>>;
@@ -188,6 +194,8 @@ export function mapInvoiceToDTO(invoice: unknown) {
     clientCuit: salesOrders?.clients?.cuit || '',
     clientTaxCondition: salesOrders?.clients?.tax_conditions?.name || '',
     invoiceDate: i.invoice_date as Date,
+    paymentTermId: i.payment_term_id as number | null,
+    paymentTermName: paymentTerms?.name || null,
     usdExchangeRate: i.usd_exchange_rate ? parseFloat(String(i.usd_exchange_rate)) : null,
     specialDiscountPercent: salesOrders?.special_discount_percent ? parseFloat(String(salesOrders.special_discount_percent)) : 0,
     netAmount: parseFloat(String(i.net_amount)),

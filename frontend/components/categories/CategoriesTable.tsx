@@ -23,6 +23,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Pencil, Trash2, Package } from 'lucide-react';
 import { useDeleteCategory } from '@/lib/hooks/useCategories';
+import { useCategoryPaymentDiscounts } from '@/lib/hooks/useCategoryPaymentDiscounts';
 import type { Category } from '@/types/category';
 import { Badge } from '@/components/ui/badge';
 import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
@@ -33,6 +34,41 @@ interface CategoriesTableProps {
   currentSortBy?: string;
   currentSortDescending?: boolean;
   onSort?: (sortBy: string, sortDescending: boolean) => void;
+}
+
+// Component to display discount summary for a category
+function CategoryDiscountSummary({ categoryId }: { categoryId: number }) {
+  const { data: discounts, isLoading } = useCategoryPaymentDiscounts(categoryId);
+
+  if (isLoading) {
+    return <span className="text-xs text-gray-500">Cargando...</span>;
+  }
+
+  if (!discounts || discounts.length === 0) {
+    return <span className="text-xs text-gray-500">Sin descuentos configurados</span>;
+  }
+
+  const activeDiscounts = discounts.filter(d => d.discountPercent > 0);
+
+  if (activeDiscounts.length === 0) {
+    return <span className="text-xs text-gray-500">Sin descuentos configurados</span>;
+  }
+
+  return (
+    <div className="flex flex-col gap-1">
+      {activeDiscounts.slice(0, 2).map(discount => (
+        <div key={discount.paymentTermId} className="flex items-center gap-1 text-xs">
+          <span className="font-medium text-gray-700">{discount.paymentTermName}:</span>
+          <span className="text-blue-600 font-semibold">{discount.discountPercent}%</span>
+        </div>
+      ))}
+      {activeDiscounts.length > 2 && (
+        <span className="text-xs text-gray-500">
+          +{activeDiscounts.length - 2} más
+        </span>
+      )}
+    </div>
+  );
 }
 
 export function CategoriesTable({ categories, onEdit, currentSortBy, currentSortDescending, onSort }: CategoriesTableProps) {
@@ -69,14 +105,8 @@ export function CategoriesTable({ categories, onEdit, currentSortBy, currentSort
                 Nombre
               </SortableTableHead>
               <SortableTableHead>Descripción</SortableTableHead>
-              <SortableTableHead
-                sortKey="DefaultDiscountPercent"
-                currentSortBy={currentSortBy}
-                currentSortDescending={currentSortDescending}
-                onSort={onSort}
-                align="right"
-              >
-                Descuento (%)
+              <SortableTableHead align="center">
+                Descuentos por Condición de Pago
               </SortableTableHead>
               <SortableTableHead align="center">Artículos</SortableTableHead>
               <SortableTableHead align="center">Estado</SortableTableHead>
@@ -103,8 +133,8 @@ export function CategoriesTable({ categories, onEdit, currentSortBy, currentSort
                   <TableCell className="text-gray-600">
                     {category.description || '-'}
                   </TableCell>
-                  <TableCell className="text-right">
-                    {category.defaultDiscountPercent.toFixed(2)}%
+                  <TableCell>
+                    <CategoryDiscountSummary categoryId={category.id} />
                   </TableCell>
                   <TableCell className="text-center">
                     <div className="flex items-center justify-center gap-1">

@@ -44,6 +44,7 @@ export async function GET(request: NextRequest) {
         where,
         include: {
           clients: true,
+          payment_terms: true,
           sales_order_items: {
             include: {
               articles: true,
@@ -162,6 +163,7 @@ export async function POST(request: NextRequest) {
           order_date: now, // Use current date
           delivery_date: null, // No delivery date by default
           status: validatedData.status || 'PENDING',
+          payment_term_id: validatedData.paymentTermId ?? null,
           special_discount_percent: validatedData.specialDiscountPercent,
           total: total,
           notes: validatedData.notes,
@@ -186,6 +188,7 @@ export async function POST(request: NextRequest) {
         where: { id: salesOrder.id },
         include: {
           clients: true,
+          payment_terms: true,
           sales_order_items: {
             include: {
               articles: true,

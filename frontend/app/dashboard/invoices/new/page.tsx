@@ -12,15 +12,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useCreateInvoice } from '@/lib/hooks/useInvoices';
 import { useSalesOrders } from '@/lib/hooks/useSalesOrders';
 import { useSystemSettings } from '@/lib/hooks/useSettings';
+import { usePaymentTerms } from '@/lib/hooks/usePaymentTerms';
 
 export default function NewInvoicePage() {
   const router = useRouter();
   const createInvoiceMutation = useCreateInvoice();
   const { data: settings } = useSystemSettings();
+  const { data: paymentTerms } = usePaymentTerms(true);
 
   const [formData, setFormData] = useState({
     salesOrderId: '',
     invoiceDate: new Date().toISOString().split('T')[0],
+    paymentTermId: '',
     usdExchangeRate: '',
     specialDiscountPercent: '0',
     notes: '',
@@ -44,6 +47,21 @@ export default function NewInvoicePage() {
     }
   }, [settings, formData.usdExchangeRate]);
 
+  // Pre-fill payment term from selected sales order
+  useEffect(() => {
+    if (formData.salesOrderId && salesOrdersData) {
+      const selectedOrder = salesOrdersData.data.find(
+        order => order.id.toString() === formData.salesOrderId
+      );
+      if (selectedOrder && selectedOrder.paymentTermId) {
+        setFormData(prev => ({
+          ...prev,
+          paymentTermId: selectedOrder.paymentTermId?.toString() || ''
+        }));
+      }
+    }
+  }, [formData.salesOrderId, salesOrdersData]);
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -55,6 +73,7 @@ export default function NewInvoicePage() {
       {
         salesOrderId: Number(formData.salesOrderId),
         invoiceDate: formData.invoiceDate,
+        paymentTermId: formData.paymentTermId ? Number(formData.paymentTermId) : null,
         usdExchangeRate: formData.usdExchangeRate ? Number(formData.usdExchangeRate) : null,
         specialDiscountPercent: Number(formData.specialDiscountPercent),
         notes: formData.notes || null,
@@ -122,6 +141,31 @@ export default function NewInvoicePage() {
                 }
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="paymentTermId">Condición de Pago</Label>
+              <Select
+                value={formData.paymentTermId}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, paymentTermId: value })
+                }
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Seleccione una condición de pago (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Sin condición específica</SelectItem>
+                  {paymentTerms?.map((term) => (
+                    <SelectItem key={term.id} value={term.id.toString()}>
+                      {term.name} ({term.days} días)
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                Los descuentos se aplicarán según la condición de pago seleccionada
+              </p>
             </div>
 
             <div className="space-y-2">

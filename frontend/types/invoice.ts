@@ -8,6 +8,8 @@ export interface Invoice {
   clientCuit: string;
   clientTaxCondition: string;
   invoiceDate: string;
+  paymentTermId: number | null;
+  paymentTermName: string | null;
   usdExchangeRate: number | null;
   specialDiscountPercent: number;
   netAmount: number;
@@ -55,6 +57,7 @@ export interface InvoiceListDto {
 export interface CreateInvoiceRequest {
   salesOrderId: number;
   invoiceDate: string;
+  paymentTermId: number | null;
   usdExchangeRate: number | null;
   specialDiscountPercent: number;
   notes: string | null;
@@ -63,6 +66,7 @@ export interface CreateInvoiceRequest {
 export interface UpdateInvoiceRequest {
   id: number;
   invoiceDate: string;
+  paymentTermId: number | null;
   usdExchangeRate: number | null;
   specialDiscountPercent: number;
   notes: string | null;

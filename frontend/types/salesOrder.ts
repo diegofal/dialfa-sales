@@ -7,6 +7,8 @@ export interface SalesOrder {
   orderDate: string;
   deliveryDate?: string;
   status: 'PENDING' | 'INVOICED' | 'CANCELLED' | 'COMPLETED';
+  paymentTermId: number | null;
+  paymentTermName: string | null;
   total: number;
   specialDiscountPercent: number;
   notes?: string;
@@ -64,6 +66,7 @@ export interface SalesOrderListDto {
 
 export interface CreateSalesOrderRequest {
   clientId: number;
+  paymentTermId?: number | null;
   notes?: string;
   items: CreateSalesOrderItemRequest[];
 }
@@ -94,6 +97,7 @@ export interface SalesOrderFormData {
   clientId?: number;
   orderDate?: string;
   deliveryDate?: string;
+  paymentTermId?: number | null;
   notes?: string;
   items: SalesOrderItemFormData[];
 }

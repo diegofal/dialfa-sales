@@ -21,6 +21,8 @@ export interface Article {
   salesTrendLabels?: string[];
   lastSaleDate?: string | null; // ISO date string
   weightKg?: number | null;
+  lastPurchasePrice?: number | null;
+  cifPercentage?: number | null;
 }
 
 export interface ArticleFormData {

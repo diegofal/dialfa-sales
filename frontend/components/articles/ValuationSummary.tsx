@@ -61,8 +61,8 @@ export function ValuationSummary({ valuation, onStatusClick }: ValuationSummaryP
         <CardHeader>
           <CardTitle>Resumen General</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <p className="text-sm text-muted-foreground">Total Artículos</p>
               <p className="text-2xl font-bold">{valuation.totals.totalArticles}</p>
@@ -72,14 +72,31 @@ export function ValuationSummary({ valuation, onStatusClick }: ValuationSummaryP
               <p className="text-2xl font-bold">{formatCurrency(valuation.totals.totalStockValue)}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Valor Venta Potencial</p>
-              <p className="text-2xl font-bold">{formatCurrency(valuation.totals.totalValueAtSale)}</p>
+              <p className="text-sm text-muted-foreground">Precio de Lista</p>
+              <p className="text-2xl font-bold">{formatCurrency(valuation.totals.totalValueAtListPrice)}</p>
             </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Ganancia Potencial</p>
-              <p className="text-2xl font-bold text-green-600 dark:text-green-400">
-                {formatCurrency(valuation.totals.totalPotentialProfit)}
-              </p>
+          </div>
+
+          {/* Totales por Condición de Pago */}
+          <div className="pt-4 border-t">
+            <p className="text-sm font-medium mb-3">Valorización por Condición de Pago</p>
+            <div className="flex gap-3 overflow-x-auto pb-2">
+              {valuation.totals.paymentTermsValuation.map((ptv) => (
+                <div 
+                  key={ptv.paymentTermId} 
+                  className="flex-shrink-0 border rounded-lg px-4 py-3 bg-card min-w-[180px]"
+                >
+                  <div className="text-sm font-medium text-primary mb-2" title={ptv.paymentTermName}>
+                    {ptv.paymentTermName}
+                  </div>
+                  <div className="text-xl font-bold text-blue-600 dark:text-blue-400">
+                    {formatCurrency(ptv.stockValueAtDiscountedPrice)}
+                  </div>
+                  <div className="text-xs text-green-600 dark:text-green-400 mt-1">
+                    Ganancia: {formatCurrency(ptv.potentialProfit)}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </CardContent>
@@ -118,8 +135,31 @@ export function ValuationSummary({ valuation, onStatusClick }: ValuationSummaryP
                   <p className="text-xs text-muted-foreground">{percentage}% del total</p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Potencial Venta</p>
-                  <p className="text-sm font-semibold">{formatCurrency(data.totalValueAtSale)}</p>
+                  <p className="text-xs text-muted-foreground mb-1">Precio Lista</p>
+                  <p className="text-sm font-semibold">{formatCurrency(data.totalValueAtListPrice)}</p>
+                </div>
+                
+                {/* Horizontal scrollable payment terms */}
+                <div className="pt-2 border-t">
+                  <p className="text-xs text-muted-foreground mb-2">Por Condición de Pago:</p>
+                  <div className="flex gap-2 overflow-x-auto pb-1">
+                    {data.paymentTermsValuation.map((ptv) => (
+                      <div 
+                        key={ptv.paymentTermId} 
+                        className="flex-shrink-0 border rounded px-2 py-1.5 bg-background/50 min-w-[120px]"
+                      >
+                        <div className="text-xs font-medium text-primary truncate" title={ptv.paymentTermName}>
+                          {ptv.paymentTermName}
+                        </div>
+                        <div className="text-[10px] text-muted-foreground">
+                          Desc: {ptv.discountPercent.toFixed(0)}%
+                        </div>
+                        <div className="text-xs font-semibold text-blue-600 dark:text-blue-400">
+                          {formatCurrency(ptv.stockValueAtDiscountedPrice)}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </CardContent>
             </Card>

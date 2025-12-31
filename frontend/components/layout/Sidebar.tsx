@@ -16,6 +16,8 @@ import {
   MessageSquare,
   MessagesSquare,
   ShoppingCart,
+  DollarSign,
+  CalendarClock,
 } from 'lucide-react';
 import PedidosMenuItem from './PedidosMenuItem';
 import FacturasMenuItem from './FacturasMenuItem';
@@ -132,6 +134,30 @@ export default function Sidebar() {
             <p className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
               Administración
             </p>
+            <Link
+              href="/dashboard/price-lists"
+              className={cn(
+                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                pathname.startsWith('/dashboard/price-lists')
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+              )}
+            >
+              <DollarSign className="h-5 w-5" />
+              Listas de Precios
+            </Link>
+            <Link
+              href="/dashboard/payment-terms"
+              className={cn(
+                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                pathname.startsWith('/dashboard/payment-terms')
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+              )}
+            >
+              <CalendarClock className="h-5 w-5" />
+              Condiciones de Pago
+            </Link>
             <Link
               href="/dashboard/users"
               className={cn(

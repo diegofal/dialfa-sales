@@ -48,11 +48,14 @@ export function ValuationTable({ articles, trendMonths = 6 }: ValuationTableProp
   const router = useRouter();
 
   const formatCurrency = (value: number) => {
+    if (isNaN(value) || value === null || value === undefined) {
+      return '-';
+    }
     return new Intl.NumberFormat('es-AR', {
       style: 'currency',
       currency: 'ARS',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
     }).format(value);
   };
 
@@ -91,9 +94,9 @@ export function ValuationTable({ articles, trendMonths = 6 }: ValuationTableProp
             <TableHead className="text-right w-[80px]">Stock</TableHead>
             <TableHead className="w-[110px]">Última Venta</TableHead>
             <TableHead className="w-[140px]">Tendencia</TableHead>
+            <TableHead className="text-right w-[100px]">Costo</TableHead>
             <TableHead className="text-right w-[110px]">Valor Costo</TableHead>
-            <TableHead className="text-right w-[110px]">Valor Venta</TableHead>
-            <TableHead className="text-right w-[110px]">Ganancia</TableHead>
+            <TableHead className="text-right w-[110px]">Precio Lista</TableHead>
             <TableHead className="w-[80px]"></TableHead>
           </TableRow>
         </TableHeader>
@@ -165,20 +168,14 @@ export function ValuationTable({ articles, trendMonths = 6 }: ValuationTableProp
                     <span className="text-xs text-muted-foreground">Sin datos</span>
                   )}
                 </TableCell>
+                <TableCell className="text-right text-sm text-muted-foreground">
+                  {formatCurrency(article.unitCost)}
+                </TableCell>
                 <TableCell className="text-right text-sm">
                   {formatCurrency(article.stockValue)}
                 </TableCell>
                 <TableCell className="text-right text-sm">
-                  {formatCurrency(article.stockValueAtSalePrice)}
-                </TableCell>
-                <TableCell
-                  className={`text-right text-sm font-semibold ${
-                    article.potentialProfit >= 0
-                      ? 'text-green-600 dark:text-green-400'
-                      : 'text-red-600 dark:text-red-400'
-                  }`}
-                >
-                  {formatCurrency(article.potentialProfit)}
+                  {formatCurrency(article.stockValueAtListPrice)}
                 </TableCell>
                 <TableCell>
                   <Button
