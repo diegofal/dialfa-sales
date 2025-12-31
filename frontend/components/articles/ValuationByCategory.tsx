@@ -99,19 +99,13 @@ export function ValuationByCategory({
                   </div>
                   <div className="flex items-center gap-4">
                     <div className="text-right">
-                      <p className="font-bold text-base">{formatCurrency(category.totalValue)}</p>
+                      <p className="font-bold text-base">{formatCurrency(category.totalValueAtListPrice)}</p>
                       <p className="text-xs text-muted-foreground">
                         {percentage.toFixed(1)}% del total
                       </p>
                     </div>
                   </div>
                 </div>
-
-                {/* Progress bar */}
-                <Progress 
-                  value={percentage} 
-                  className="h-2 mb-3"
-                />
 
                 {/* Status breakdown */}
                 <div className="flex items-center gap-4 flex-wrap">

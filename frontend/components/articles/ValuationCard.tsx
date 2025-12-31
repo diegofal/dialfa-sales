@@ -149,18 +149,8 @@ export function ValuationCard({ metric }: ValuationCardProps) {
             <span className="text-sm font-semibold">{formatCurrency(metric.stockValue)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-xs text-muted-foreground">Valor Venta:</span>
-            <span className="text-sm font-semibold">{formatCurrency(metric.stockValueAtSalePrice)}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-xs text-muted-foreground">Ganancia Potencial:</span>
-            <span className={`text-sm font-bold ${
-              metric.potentialProfit >= 0 
-                ? 'text-green-600 dark:text-green-400' 
-                : 'text-red-600 dark:text-red-400'
-            }`}>
-              {formatCurrency(metric.potentialProfit)}
-            </span>
+            <span className="text-xs text-muted-foreground">Valor Lista:</span>
+            <span className="text-sm font-semibold">{formatCurrency(metric.stockValueAtListPrice)}</span>
           </div>
         </div>
 

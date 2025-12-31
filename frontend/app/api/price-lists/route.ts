@@ -6,7 +6,9 @@ export async function GET(request: NextRequest) {
   try {
     // Verificar permisos de administrador
     const { authorized, error } = requireAdmin(request);
-    if (!authorized) return error;
+    if (!authorized) {
+      return error || NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const searchParams = request.nextUrl.searchParams;
     const categoryId = searchParams.get('categoryId');
@@ -72,7 +74,6 @@ export async function GET(request: NextRequest) {
           categoryId: Number(article.category_id),
           categoryName: article.categories.name,
           categoryCode: article.categories.code,
-          categoryDiscount: Number(article.categories.default_discount_percent),
           items: [],
         });
       }
@@ -83,12 +84,8 @@ export async function GET(request: NextRequest) {
         code: article.code,
         description: article.description,
         unitPrice: Number(article.unit_price),
-        stock: Number(article.stock),
-        costPrice: article.last_purchase_price ? Number(article.last_purchase_price) : undefined,
-        cifPercentage: article.cif_percentage ? Number(article.cif_percentage) : undefined,
         categoryId: Number(article.category_id),
         categoryName: article.categories.name,
-        categoryDiscount: Number(article.categories.default_discount_percent),
         isActive: article.is_active,
         isDiscontinued: article.is_discontinued,
       });

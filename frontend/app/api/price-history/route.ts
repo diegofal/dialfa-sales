@@ -5,7 +5,9 @@ import { requireAdmin } from '@/lib/auth/roles';
 export async function GET(request: NextRequest) {
   try {
     const { authorized, error } = requireAdmin(request);
-    if (!authorized) return error;
+    if (!authorized) {
+      return error || NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const searchParams = request.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');

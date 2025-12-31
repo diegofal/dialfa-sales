@@ -25,7 +25,33 @@ import { PriceHistoryDialog } from '@/components/priceLists/PriceHistoryDialog';
 export default function PriceListsPage() {
   const { isAdmin } = useAuthStore();
   
-  // Verificar permisos
+  // State - DEBE estar antes del early return
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [activeOnly, setActiveOnly] = useState<boolean>(true);
+  const [editingPrices, setEditingPrices] = useState<Map<number, number>>(new Map());
+  const [proposedPrices, setProposedPrices] = useState<Map<number, number>>(new Map()); // Precios del CSV
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
+
+  // Queries - DEBEN estar antes del early return
+  const { data: categoriesData } = useCategories({ activeOnly: true, pageSize: 500 });
+  
+  // Debug: Ver qué categorías está trayendo
+  useEffect(() => {
+    if (categoriesData?.data) {
+      console.log('Categorías cargadas:', categoriesData.data.map(c => ({ code: c.code, name: c.name })));
+    }
+  }, [categoriesData]);
+  
+  const { data, isLoading } = usePriceLists({
+    categoryId: selectedCategoryId !== 'all' ? parseInt(selectedCategoryId) : undefined,
+    search: searchTerm || undefined,
+    activeOnly,
+  });
+  const updatePricesMutation = useUpdatePrices();
+  
+  // Verificar permisos DESPUÉS de los hooks
   if (!isAdmin()) {
     return (
       <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
@@ -38,32 +64,6 @@ export default function PriceListsPage() {
       </div>
     );
   }
-
-  // State
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
-  const [searchTerm, setSearchTerm] = useState<string>('');
-  const [activeOnly, setActiveOnly] = useState<boolean>(true);
-  const [editingPrices, setEditingPrices] = useState<Map<number, number>>(new Map());
-  const [proposedPrices, setProposedPrices] = useState<Map<number, number>>(new Map()); // Precios del CSV
-  const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
-
-  // Queries
-  const { data: categoriesData } = useCategories({ activeOnly: true, pageSize: 500 });
-  
-  // Debug: Ver qué categorías está trayendo
-  useEffect(() => {
-    if (categoriesData?.data) {
-      console.log('Categorías cargadas:', categoriesData.data.map(c => ({ code: c.code, name: c.name })));
-    }
-  }, [categoriesData]);
-  
-  const { data, isLoading, error } = usePriceLists({
-    categoryId: selectedCategoryId !== 'all' ? parseInt(selectedCategoryId) : undefined,
-    search: searchTerm || undefined,
-    activeOnly,
-  });
-  const updatePricesMutation = useUpdatePrices();
 
   // Handlers
   const handlePriceChange = (articleId: number, newPrice: number) => {
@@ -562,13 +562,6 @@ export default function PriceListsPage() {
         <div className="flex justify-center items-center py-12">
           <p className="text-muted-foreground">Cargando listas de precios...</p>
         </div>
-      ) : error ? (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            Error al cargar las listas de precios. Por favor, intenta nuevamente.
-          </AlertDescription>
-        </Alert>
       ) : data && data.data.length > 0 ? (
         <Accordion type="multiple" className="space-y-4" defaultValue={data.data.map(c => c.categoryId.toString())}>
           {data.data.map((category) => (

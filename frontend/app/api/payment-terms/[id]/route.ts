@@ -3,7 +3,6 @@ import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { logActivity } from '@/lib/services/activityLogger';
-import { ChangeTracker } from '@/lib/services/changeTracker';
 
 const updatePaymentTermSchema = z.object({
   code: z.string().min(1).max(20).optional(),
@@ -14,10 +13,11 @@ const updatePaymentTermSchema = z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = parseInt(params.id);
+    const { id: paramId } = await params;
+    const id = parseInt(paramId);
 
     const paymentTerm = await prisma.payment_terms.findUnique({
       where: { id },
@@ -53,10 +53,11 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = parseInt(params.id);
+    const { id: paramId } = await params;
+    const id = parseInt(paramId);
     const body = await request.json();
 
     // Validate input
@@ -109,12 +110,8 @@ export async function PUT(
       updatedAt: paymentTerm.updated_at.toISOString(),
     };
 
-    // Track changes
-    const tracker = new ChangeTracker();
-    tracker.trackUpdate('payment_term', BigInt(id), existing, paymentTerm);
-
     // Log activity
-    const activityLogId = await logActivity({
+    await logActivity({
       request,
       operation: OPERATIONS.PAYMENT_TERM_UPDATE,
       description: `Condición de pago ${paymentTerm.name} actualizada`,
@@ -122,10 +119,6 @@ export async function PUT(
       entityId: BigInt(id),
       details: { code: paymentTerm.code, name: paymentTerm.name }
     });
-
-    if (activityLogId) {
-      await tracker.saveChanges(activityLogId);
-    }
 
     return NextResponse.json(mappedTerm);
   } catch (error) {
@@ -147,10 +140,11 @@ export async function PUT(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const id = parseInt(params.id);
+    const { id: paramId } = await params;
+    const id = parseInt(paramId);
 
     const existing = await prisma.payment_terms.findUnique({
       where: { id },

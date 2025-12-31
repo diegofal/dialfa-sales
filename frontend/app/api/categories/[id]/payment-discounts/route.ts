@@ -11,10 +11,11 @@ const upsertDiscountsSchema = z.array(z.object({
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const categoryId = BigInt(params.id);
+    const { id } = await params;
+    const categoryId = BigInt(id);
 
     // Get all payment terms with discounts for this category
     const paymentTerms = await prisma.payment_terms.findMany({
@@ -58,10 +59,11 @@ export async function GET(
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const categoryId = BigInt(params.id);
+    const { id } = await params;
+    const categoryId = BigInt(id);
     const body = await request.json();
 
     // Validate input

@@ -59,6 +59,7 @@ export interface SalesOrderListDto {
   clientBusinessName: string;
   status: string;
   total: number;
+  paymentTermId?: number | null;
   // For permission calculations
   hasInvoice: boolean;
   invoicePrinted: boolean;

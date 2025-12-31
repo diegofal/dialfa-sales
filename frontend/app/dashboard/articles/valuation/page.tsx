@@ -137,7 +137,7 @@ export default function ValuationPage() {
           {valuation.byCategory && valuation.byCategory.length > 0 && (
             <ValuationByCategory 
               categories={valuation.byCategory} 
-              totalStockValue={valuation.totals.totalStockValue}
+              totalStockValue={valuation.totals.totalValueAtListPrice}
               onStatusClick={handleCategoryStatusClick}
               onCategoryTotalClick={handleCategoryTotalClick}
               selectedCategoryId={selectedCategoryId}

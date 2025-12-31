@@ -20,7 +20,9 @@ export async function PUT(request: NextRequest) {
   try {
     // Verificar permisos de administrador
     const { authorized, error, user } = requireAdmin(request);
-    if (!authorized) return error;
+    if (!authorized) {
+      return error || NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
 
     const body = await request.json();
     

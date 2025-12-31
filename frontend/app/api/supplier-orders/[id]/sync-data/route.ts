@@ -67,10 +67,10 @@ export async function POST(
         last_purchase_price?: number;
         cif_percentage?: number;
         updated_at: Date;
-        updated_by: number;
+        updated_by?: number;
       } = {
         updated_at: new Date(),
-        updated_by: user.userId,
+        ...(user.userId && { updated_by: user.userId }),
       };
 
       const updateInfo: {

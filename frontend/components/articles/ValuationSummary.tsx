@@ -62,14 +62,10 @@ export function ValuationSummary({ valuation, onStatusClick }: ValuationSummaryP
           <CardTitle>Resumen General</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <p className="text-sm text-muted-foreground">Total Artículos</p>
               <p className="text-2xl font-bold">{valuation.totals.totalArticles}</p>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground">Valor Stock (Costo)</p>
-              <p className="text-2xl font-bold">{formatCurrency(valuation.totals.totalStockValue)}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Precio de Lista</p>
@@ -151,10 +147,7 @@ export function ValuationSummary({ valuation, onStatusClick }: ValuationSummaryP
                         <div className="text-xs font-medium text-primary truncate" title={ptv.paymentTermName}>
                           {ptv.paymentTermName}
                         </div>
-                        <div className="text-[10px] text-muted-foreground">
-                          Desc: {ptv.discountPercent.toFixed(0)}%
-                        </div>
-                        <div className="text-xs font-semibold text-blue-600 dark:text-blue-400">
+                        <div className="text-xs font-semibold text-blue-600 dark:text-blue-400 mt-1">
                           {formatCurrency(ptv.stockValueAtDiscountedPrice)}
                         </div>
                       </div>
