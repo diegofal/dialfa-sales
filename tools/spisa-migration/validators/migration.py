@@ -181,22 +181,16 @@ class MigrationValidator:
         """Compare record counts between SQL Server and PostgreSQL."""
         result = ValidationResult(is_valid=True)
         
-        # Tables with deleted_at column (soft deletes)
+        # Tables with deleted_at column (soft deletes) - exact match expected
         comparisons_with_deletes: Dict[str, Tuple[str, str]] = {
             "Categories": ("Categorias", "categories"),
-            "Articles": ("Articulos", "articles"),
             "Clients": ("Clientes", "clients"),
             "Sales Orders": ("NotaPedidos", "sales_orders"),
             "Invoices": ("Facturas", "invoices"),
             "Delivery Notes": ("Remitos", "delivery_notes"),
         }
         
-        # Tables without deleted_at column (hard deletes or no deletes)
-        comparisons_no_deletes: Dict[str, Tuple[str, str]] = {
-            "Order Items": ("NotaPedido_Items", "sales_order_items"),
-        }
-        
-        # Validate tables with soft deletes
+        # Validate tables with soft deletes (exact match)
         for entity, (sql_table, pg_table) in comparisons_with_deletes.items():
             sql_count = await self.sql_reader.get_record_count(sql_table)
             pg_count = await self.pg_writer.get_record_count(pg_table, check_deleted=True)
@@ -209,24 +203,52 @@ class MigrationValidator:
             else:
                 logger.info(f"{entity}: {sql_count} records match")
         
-        # Validate tables without soft deletes
-        for entity, (sql_table, pg_table) in comparisons_no_deletes.items():
-            sql_count = await self.sql_reader.get_record_count(sql_table)
-            pg_count = await self.pg_writer.get_record_count(pg_table, check_deleted=False)
-            
-            if sql_count != pg_count:
-                result.issues.append(
-                    f"{entity}: SQL Server={sql_count}, PostgreSQL={pg_count} (mismatch!)"
-                )
-                result.is_valid = False
-            else:
-                logger.info(f"{entity}: {sql_count} records match")
+        # Special validation for Articles (discontinued articles are excluded)
+        await self._validate_articles_count(result)
+        
+        # Special validation for Order Items (items with discontinued articles are excluded)
+        await self._validate_order_items_count(result)
         
         # Special validation for invoice_items and delivery_note_items
         # (they don't exist in legacy system, so we validate they were properly created)
         await self._validate_item_replication(result)
         
         return result
+    
+    async def _validate_articles_count(self, result: ValidationResult):
+        """Validate articles count (discontinued articles are excluded from migration)."""
+        # Get count of non-discontinued articles from SQL Server
+        query = "SELECT COUNT(*) FROM Articulos WHERE discontinuado = 0 OR discontinuado IS NULL"
+        sql_active_count = await asyncio.to_thread(self._execute_sql_count, query)
+        pg_count = await self.pg_writer.get_record_count("articles", check_deleted=True)
+        
+        if sql_active_count != pg_count:
+            result.issues.append(
+                f"Articles: SQL Server (active)={sql_active_count}, PostgreSQL={pg_count} (mismatch!)"
+            )
+            result.is_valid = False
+        else:
+            logger.info(f"Articles: {pg_count} records match (discontinued excluded)")
+    
+    async def _validate_order_items_count(self, result: ValidationResult):
+        """Validate order items count (items with discontinued articles are excluded)."""
+        # Get count of order items with active articles from SQL Server
+        query = """
+            SELECT COUNT(*) 
+            FROM NotaPedido_Items npi
+            INNER JOIN Articulos a ON npi.IdArticulo = a.idArticulo
+            WHERE a.discontinuado = 0 OR a.discontinuado IS NULL
+        """
+        sql_active_count = await asyncio.to_thread(self._execute_sql_count, query)
+        pg_count = await self.pg_writer.get_record_count("sales_order_items", check_deleted=False)
+        
+        if sql_active_count != pg_count:
+            result.issues.append(
+                f"Order Items: SQL Server (with active articles)={sql_active_count}, PostgreSQL={pg_count} (mismatch!)"
+            )
+            result.is_valid = False
+        else:
+            logger.info(f"Order Items: {pg_count} records match (discontinued article items excluded)")
     
     async def _validate_item_replication(self, result: ValidationResult):
         """Validate that invoice and delivery note items were properly replicated."""

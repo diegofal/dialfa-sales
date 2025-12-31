@@ -79,6 +79,7 @@ export async function GET(request: NextRequest) {
       oldPrice: Number(h.old_price),
       newPrice: Number(h.new_price),
       changeType: h.change_type,
+      changeBatchId: h.change_batch_id || undefined,
       changedBy: h.changed_by || undefined,
       changedByName: h.changed_by_name || undefined,
       notes: h.notes || undefined,

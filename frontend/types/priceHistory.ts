@@ -5,7 +5,8 @@ export interface PriceHistory {
   articleDescription?: string;
   oldPrice: number;
   newPrice: number;
-  changeType: 'manual' | 'csv_import' | 'bulk_update';
+  changeType: 'manual' | 'csv_import' | 'bulk_update' | 'price_revert';
+  changeBatchId?: string;
   changedBy?: number;
   changedByName?: string;
   notes?: string;

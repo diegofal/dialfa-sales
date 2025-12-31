@@ -1,3 +1,10 @@
+export interface PaymentDiscount {
+  paymentTermId: number;
+  paymentTermCode: string;
+  paymentTermName: string;
+  discountPercent: number;
+}
+
 export interface PriceListItem {
   id: number;
   code: string;
@@ -8,16 +15,20 @@ export interface PriceListItem {
   cifPercentage?: number;
   categoryId: number;
   categoryName: string;
-  categoryDiscount: number;
   isActive: boolean;
   isDiscontinued: boolean;
+  displayOrder?: string;
+  type?: string;
+  series?: number;
+  thickness?: string;
+  size?: string;
 }
 
 export interface PriceListByCategory {
   categoryId: number;
   categoryName: string;
   categoryCode: string;
-  categoryDiscount: number;
+  paymentDiscounts: PaymentDiscount[];
   items: PriceListItem[];
   totalItems: number;
 }
@@ -38,4 +49,3 @@ export interface PriceListFilters {
   search?: string;
   activeOnly?: boolean;
 }
-

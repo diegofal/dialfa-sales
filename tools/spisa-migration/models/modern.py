@@ -59,9 +59,7 @@ class ModernClient:
     operation_type_id: int
     transporter_id: Optional[int]
     credit_limit: Optional[float]
-    current_balance: float
     seller_id: Optional[int]  # Additional field from production database
-    is_active: bool
     created_at: datetime
     updated_at: datetime
 

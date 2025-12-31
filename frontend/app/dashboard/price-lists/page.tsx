@@ -1,29 +1,56 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { usePriceLists, useUpdatePrices } from '@/lib/hooks/usePriceLists';
 import { useCategories } from '@/lib/hooks/useCategories';
 import { useAuthStore } from '@/store/authStore';
 import { PriceListFilters } from '@/components/priceLists/PriceListFilters';
 import { PriceListTable } from '@/components/priceLists/PriceListTable';
+import { PriceHistoryTable } from '@/components/priceLists/PriceHistoryTable';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { AlertCircle, Save, X, DollarSign, Download, Upload, History } from 'lucide-react';
+import { AlertCircle, Save, X, DollarSign, Download, Upload, History, List } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BulkPriceUpdate } from '@/types/priceList';
+import { sortArticlesByCategory } from '@/lib/utils/articleSorting';
 import { toast } from 'sonner';
 import { PriceImportDialog } from '@/components/priceLists/PriceImportDialog';
-import { PriceHistoryDialog } from '@/components/priceLists/PriceHistoryDialog';
 
 export default function PriceListsPage() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
   const { isAdmin } = useAuthStore();
+  
+  // Get initial tab from URL or default to 'price-lists'
+  const [currentTab, setCurrentTab] = useState<string>(() => {
+    return searchParams.get('tab') || 'price-lists';
+  });
+
+  // Sync tab with URL on mount and when searchParams change
+  useEffect(() => {
+    const tabFromUrl = searchParams.get('tab') || 'price-lists';
+    if (tabFromUrl !== currentTab) {
+      setCurrentTab(tabFromUrl);
+    }
+  }, [searchParams]);
+
+  // Update URL when tab changes
+  const handleTabChange = (newTab: string) => {
+    setCurrentTab(newTab);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set('tab', newTab);
+    router.push(`${pathname}?${params.toString()}`);
+  };
   
   // State - DEBE estar antes del early return
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
@@ -32,7 +59,6 @@ export default function PriceListsPage() {
   const [editingPrices, setEditingPrices] = useState<Map<number, number>>(new Map());
   const [proposedPrices, setProposedPrices] = useState<Map<number, number>>(new Map()); // Precios del CSV
   const [importDialogOpen, setImportDialogOpen] = useState(false);
-  const [historyDialogOpen, setHistoryDialogOpen] = useState(false);
 
   // Queries - DEBEN estar antes del early return
   const { data: categoriesData } = useCategories({ activeOnly: true, pageSize: 500 });
@@ -143,7 +169,7 @@ export default function PriceListsPage() {
     toast.info('Precios propuestos cancelados');
   };
 
-  // Crear array plano de todos los artículos para el import
+  // Crear array plano de todos los artículos para el import con payment discounts
   const allArticles = data?.data.flatMap(category => 
     category.items.map(item => ({
       id: item.id,
@@ -153,37 +179,75 @@ export default function PriceListsPage() {
       stock: item.stock,
       costPrice: item.costPrice,
       cifPercentage: item.cifPercentage,
-      categoryDiscount: item.categoryDiscount,
+      categoryId: item.categoryId,
+      paymentDiscounts: category.paymentDiscounts,
     }))
   ) || [];
 
-  // Calcular stock valorizado
+  // Obtener todos los payment terms únicos
+  const allPaymentTerms = data?.data
+    .flatMap(category => category.paymentDiscounts)
+    .filter((discount, index, self) => 
+      index === self.findIndex(d => d.paymentTermId === discount.paymentTermId)
+    )
+    .sort((a, b) => a.paymentTermCode.localeCompare(b.paymentTermCode))
+    || [];
+
+  // Ordenar items usando el algoritmo global de ordenamiento
+  // Ver: lib/utils/articleSorting.ts para documentación completa
+  const sortedData = data ? sortArticlesByCategory(data.data) : [];
+
+  // Calcular stock valorizado por condición de pago SOLO para items modificados
   const calculateStockValue = () => {
-    if (!data || proposedPrices.size === 0) return { before: 0, after: 0 };
+    if (!data || proposedPrices.size === 0) return { before: {}, after: {} };
     
-    let before = 0;
-    let after = 0;
+    const beforeByPaymentTerm: Record<string, number> = {};
+    const afterByPaymentTerm: Record<string, number> = {};
     
-    data.data.forEach(category => {
+    // Inicializar con todos los payment terms
+    allPaymentTerms.forEach(pt => {
+      beforeByPaymentTerm[pt.paymentTermCode] = 0;
+      afterByPaymentTerm[pt.paymentTermCode] = 0;
+    });
+    
+    // Iterar solo sobre los items que tienen precio propuesto
+    sortedData.forEach(category => {
       category.items.forEach(item => {
-        const stockValue = item.stock * item.unitPrice;
-        before += stockValue;
+        const proposedPrice = proposedPrices.get(item.id);
         
-        if (proposedPrices.has(item.id)) {
-          after += item.stock * proposedPrices.get(item.id)!;
-        } else {
-          after += stockValue;
-        }
+        // SOLO calcular si este item tiene un precio propuesto
+        if (!proposedPrice) return;
+        
+        const basePrice = item.unitPrice;
+        
+        // Calcular valorización por cada payment term
+        category.paymentDiscounts.forEach(pd => {
+          const currentPrice = basePrice * (1 - pd.discountPercent / 100);
+          const newPrice = proposedPrice * (1 - pd.discountPercent / 100);
+          
+          beforeByPaymentTerm[pd.paymentTermCode] += item.stock * currentPrice;
+          afterByPaymentTerm[pd.paymentTermCode] += item.stock * newPrice;
+        });
       });
     });
     
-    return { before, after };
+    return { before: beforeByPaymentTerm, after: afterByPaymentTerm };
   };
 
   const stockValue = calculateStockValue();
 
+  // Filtrar datos: Si hay precios propuestos, mostrar solo items modificados
+  const displayData = proposedPrices.size > 0
+    ? sortedData
+        .map(category => ({
+          ...category,
+          items: category.items.filter(item => proposedPrices.has(item.id)),
+        }))
+        .filter(category => category.items.length > 0) // Solo categorías con items modificados
+    : sortedData;
+
   const handleDownloadHTML = () => {
-    if (!data || data.data.length === 0) {
+    if (!data || displayData.length === 0) {
       toast.error('No hay datos para descargar');
       return;
     }
@@ -351,7 +415,7 @@ export default function PriceListsPage() {
     </div>
   </div>
 
-  ${data.data.map(category => `
+   ${displayData.map(category => `
     <div class="category">
       <div class="category-header">
         <div>
@@ -423,32 +487,41 @@ export default function PriceListsPage() {
             Gestión de precios unitarios por categoría
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button
-            onClick={() => setImportDialogOpen(true)}
-            disabled={isLoading}
-            variant="default"
-          >
-            <Upload className="h-4 w-4 mr-2" />
-            Importar CSV
-          </Button>
-          <Button
-            onClick={() => setHistoryDialogOpen(true)}
-            variant="outline"
-          >
-            <History className="h-4 w-4 mr-2" />
-            Ver Historial
-          </Button>
-          <Button
-            onClick={handleDownloadHTML}
-            disabled={isLoading || !data || data.data.length === 0}
-            variant="outline"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Descargar HTML
-          </Button>
-        </div>
       </div>
+
+      {/* Tabs */}
+      <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="price-lists" className="flex items-center gap-2">
+            <List className="h-4 w-4" />
+            Listas de Precios
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            Historial de Cambios
+          </TabsTrigger>
+        </TabsList>
+
+        {/* Price Lists Tab */}
+        <TabsContent value="price-lists" className="space-y-6">
+          <div className="flex gap-2 justify-end">
+            <Button
+              onClick={() => setImportDialogOpen(true)}
+              disabled={isLoading}
+              variant="default"
+            >
+              <Upload className="h-4 w-4 mr-2" />
+              Importar CSV
+            </Button>
+            <Button
+              onClick={handleDownloadHTML}
+              disabled={isLoading || !data || displayData.length === 0}
+              variant="outline"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Descargar HTML
+            </Button>
+          </div>
 
       {/* Filters */}
       <PriceListFilters
@@ -498,29 +571,54 @@ export default function PriceListsPage() {
           <AlertCircle className="h-4 w-4 text-blue-600" />
           <AlertDescription className="space-y-3">
             <div className="flex items-center justify-between">
-              <div>
-                <div className="font-semibold">
+              <div className="flex-1">
+                <div className="font-semibold mb-1">
                   Tienes <strong>{proposedPrices.size}</strong> precios propuestos desde CSV
                 </div>
-                <div className="text-sm mt-2 space-y-1">
-                  <div>
-                    Stock Valorizado Actual: <strong className="text-gray-900 dark:text-gray-100">${stockValue.before.toFixed(2)}</strong>
-                  </div>
-                  <div>
-                    Stock Valorizado Propuesto: <strong className={stockValue.after > stockValue.before ? 'text-green-600' : 'text-red-600'}>
-                      ${stockValue.after.toFixed(2)}
-                    </strong>
-                  </div>
-                  <div>
-                    Diferencia: <strong className={stockValue.after - stockValue.before > 0 ? 'text-green-600' : 'text-red-600'}>
-                      {stockValue.after - stockValue.before > 0 ? '+' : ''}
-                      ${(stockValue.after - stockValue.before).toFixed(2)} 
-                      ({((stockValue.after - stockValue.before) / stockValue.before * 100).toFixed(1)}%)
-                    </strong>
+                <div className="text-xs text-gray-600 dark:text-gray-400 mb-3">
+                  Valorización del stock de los <strong>{proposedPrices.size} artículos modificados</strong> (no incluye el resto del inventario)
+                </div>
+                <div className="text-sm space-y-3">
+                  {/* Valorización por condición de pago */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {allPaymentTerms.map(pt => {
+                      const before = stockValue.before[pt.paymentTermCode] || 0;
+                      const after = stockValue.after[pt.paymentTermCode] || 0;
+                      const diff = after - before;
+                      const diffPercent = before > 0 ? (diff / before * 100) : 0;
+                      
+                      return (
+                        <div key={pt.paymentTermCode} className="border border-gray-200 dark:border-gray-700 rounded-md p-3 bg-white dark:bg-gray-800">
+                          <div className="font-semibold text-gray-700 dark:text-gray-300 mb-2">
+                            {pt.paymentTermName} ({pt.discountPercent}%)
+                          </div>
+                          <div className="space-y-1 text-xs">
+                            <div className="flex justify-between">
+                              <span>Actual:</span>
+                              <span className="font-mono text-gray-900 dark:text-gray-100">
+                                ${before.toFixed(2)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Propuesto:</span>
+                              <span className={`font-mono ${after > before ? 'text-green-600' : 'text-red-600'}`}>
+                                ${after.toFixed(2)}
+                              </span>
+                            </div>
+                            <div className="flex justify-between pt-1 border-t border-gray-200 dark:border-gray-700">
+                              <span>Diferencia:</span>
+                              <span className={`font-mono font-semibold ${diff > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                {diff > 0 ? '+' : ''}${diff.toFixed(2)} ({diffPercent.toFixed(1)}%)
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
                   </div>
                 </div>
               </div>
-              <div className="flex gap-2">
+              <div className="flex gap-2 ml-4">
                 <Button
                   size="sm"
                   onClick={handleConfirmProposedPrices}
@@ -549,10 +647,10 @@ export default function PriceListsPage() {
       {data && (
         <div className="flex gap-4 flex-wrap">
           <Badge variant="secondary" className="text-sm py-1.5 px-3">
-            {data.totalCategories} categorías
+            {displayData.length} categorías {proposedPrices.size > 0 && '(con cambios)'}
           </Badge>
           <Badge variant="secondary" className="text-sm py-1.5 px-3">
-            {data.totalArticles} artículos
+            {displayData.reduce((sum, cat) => sum + cat.items.length, 0)} artículos {proposedPrices.size > 0 && '(modificados)'}
           </Badge>
         </div>
       )}
@@ -562,9 +660,9 @@ export default function PriceListsPage() {
         <div className="flex justify-center items-center py-12">
           <p className="text-muted-foreground">Cargando listas de precios...</p>
         </div>
-      ) : data && data.data.length > 0 ? (
-        <Accordion type="multiple" className="space-y-4" defaultValue={data.data.map(c => c.categoryId.toString())}>
-          {data.data.map((category) => (
+       ) : data && displayData.length > 0 ? (
+        <Accordion type="multiple" className="space-y-4" defaultValue={displayData.map(c => c.categoryId.toString())}>
+          {displayData.map((category) => (
             <AccordionItem
               key={category.categoryId}
               value={category.categoryId.toString()}
@@ -586,6 +684,7 @@ export default function PriceListsPage() {
               <AccordionContent className="px-6 pb-6">
                 <PriceListTable
                   items={category.items}
+                  paymentDiscounts={category.paymentDiscounts}
                   onPriceChange={handlePriceChange}
                   editingPrices={editingPrices}
                   proposedPrices={proposedPrices}
@@ -611,13 +710,15 @@ export default function PriceListsPage() {
         onOpenChange={setImportDialogOpen}
         onConfirm={handleImportConfirm}
         articles={allArticles}
+        paymentTerms={allPaymentTerms}
       />
+        </TabsContent>
 
-      {/* History Dialog */}
-      <PriceHistoryDialog
-        open={historyDialogOpen}
-        onOpenChange={setHistoryDialogOpen}
-      />
+        {/* History Tab */}
+        <TabsContent value="history" className="space-y-6">
+          <PriceHistoryTable />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }

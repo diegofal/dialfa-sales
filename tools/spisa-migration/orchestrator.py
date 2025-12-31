@@ -332,7 +332,25 @@ class MigrationOrchestrator:
         
         try:
             legacy_data = await self.sql_reader.read_table("Articulos", legacy.LegacyArticulo)
-            modern_data = [entities.map_article(item) for item in legacy_data]
+            
+            # Filter out discontinued articles - they won't be migrated
+            active_articles = [item for item in legacy_data if not item.discontinuado]
+            discontinued_count = len(legacy_data) - len(active_articles)
+            if discontinued_count > 0:
+                logger.info(f"Skipping {discontinued_count} discontinued articles")
+            
+            # Get valid supplier IDs from PostgreSQL to avoid FK violations
+            valid_supplier_ids = await self.pg_writer.get_valid_ids("suppliers")
+            
+            # Count articles with invalid suppliers for logging
+            invalid_supplier_count = sum(
+                1 for item in active_articles 
+                if item.proveedor is not None and item.proveedor not in valid_supplier_ids
+            )
+            if invalid_supplier_count > 0:
+                logger.warning(f"Setting {invalid_supplier_count} articles with invalid supplier FKs to NULL")
+            
+            modern_data = [entities.map_article(item, valid_supplier_ids) for item in active_articles]
             
             result.migrated_count = await self.pg_writer.bulk_insert("articles", modern_data)
             await self.pg_writer.reset_sequence("articles", "articles_id_seq")
@@ -426,11 +444,10 @@ class MigrationOrchestrator:
         
         try:
             legacy_items = await self.sql_reader.read_table("NotaPedido_Items", legacy.LegacyNotaPedidoItem)
-            legacy_orders = await self.sql_reader.read_table("NotaPedidos", legacy.LegacyNotaPedido)
-            legacy_articles = await self.sql_reader.read_table("Articulos", legacy.LegacyArticulo)
             
-            valid_order_ids = {o.IdNotaPedido for o in legacy_orders}
-            valid_article_ids = {a.idArticulo for a in legacy_articles}
+            # Get valid IDs from PostgreSQL (what was actually migrated, excluding discontinued articles)
+            valid_order_ids = await self.pg_writer.get_valid_ids("sales_orders")
+            valid_article_ids = await self.pg_writer.get_valid_ids("articles")
             
             valid_items = [
                 i for i in legacy_items
@@ -439,7 +456,7 @@ class MigrationOrchestrator:
             
             filtered_count = len(legacy_items) - len(valid_items)
             if filtered_count > 0:
-                logger.warning(f"Filtered {filtered_count} order items with invalid FK references")
+                logger.warning(f"Filtered {filtered_count} order items with invalid FK references (discontinued articles or missing orders)")
             
             modern_items = [entities.map_sales_order_item(item) for item in valid_items]
             

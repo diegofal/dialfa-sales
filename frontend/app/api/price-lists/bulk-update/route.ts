@@ -4,7 +4,7 @@ import { requireAdmin } from '@/lib/auth/roles';
 import { z } from 'zod';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { logActivity } from '@/lib/services/activityLogger';
-import { ChangeTracker } from '@/lib/services/changeTracker';
+import { randomUUID } from 'crypto';
 
 // Schema de validación para actualizaciones masivas
 const bulkPriceUpdateSchema = z.object({
@@ -29,8 +29,12 @@ export async function PUT(request: NextRequest) {
     // Validar datos de entrada
     const validatedData = bulkPriceUpdateSchema.parse(body);
 
-    // Iniciar tracker de cambios
-    const tracker = new ChangeTracker();
+    console.log(`[BULK-UPDATE] Received request with ${validatedData.updates.length} updates`);
+
+    // Generar UUID único para este lote de cambios
+    const changeBatchId = randomUUID();
+    
+    console.log(`[BULK-UPDATE] Generated batch ID: ${changeBatchId.substring(0, 8)}`);
     
     // Actualizar cada artículo
     const updatedArticles = [];
@@ -46,13 +50,7 @@ export async function PUT(request: NextRequest) {
         continue; // Skip deleted or non-existent articles
       }
 
-      // Guardar estado anterior para tracking
-      const beforeState = {
-        id: Number(currentArticle.id),
-        code: currentArticle.code,
-        description: currentArticle.description,
-        unit_price: Number(currentArticle.unit_price),
-      };
+      const oldPrice = Number(currentArticle.unit_price);
 
       // Actualizar el precio
       const updatedArticle = await prisma.articles.update({
@@ -60,30 +58,24 @@ export async function PUT(request: NextRequest) {
         data: {
           unit_price: update.newPrice,
           updated_at: new Date(),
+          updated_by: user?.id,
         },
         include: { categories: true },
       });
 
-      // Guardar en historial de precios
-      try {
-        await prisma.$executeRaw`
-          INSERT INTO price_history (article_id, old_price, new_price, change_type, changed_by, changed_by_name, notes, created_at)
-          VALUES (${updatedArticle.id}, ${currentArticle.unit_price}, ${update.newPrice}, ${validatedData.changeType || 'bulk_update'}, ${user.userId || null}, ${user.email || 'Sistema'}, ${validatedData.notes || null}, NOW())
-        `;
-      } catch (error) {
-        console.error('Error saving price history:', error);
-      }
-
-      // Guardar estado posterior para tracking
-      const afterState = {
-        id: Number(updatedArticle.id),
-        code: updatedArticle.code,
-        description: updatedArticle.description,
-        unit_price: Number(updatedArticle.unit_price),
-      };
-
-      // Track creation for activity log
-      tracker.trackCreate('article', updatedArticle.id, afterState);
+      // Guardar en historial de precios con batch ID
+      await prisma.price_history.create({
+        data: {
+          article_id: updatedArticle.id,
+          old_price: oldPrice,
+          new_price: update.newPrice,
+          change_type: validatedData.changeType || 'bulk_update',
+          change_batch_id: changeBatchId,
+          changed_by: user?.id,
+          changed_by_name: user?.name || user?.email,
+          notes: validatedData.notes,
+        },
+      });
 
       updatedArticles.push({
         id: Number(updatedArticle.id),
@@ -95,26 +87,23 @@ export async function PUT(request: NextRequest) {
     }
 
     // Registrar actividad
-    const activityLogId = await logActivity({
-      request,
+    await logActivity({
       operation: OPERATIONS.PRICE_BULK_UPDATE,
-      description: `Actualización masiva de ${updatedArticles.length} precios`,
-      entityType: 'price-list',
-      entityId: BigInt(0),
-      details: {
+      userId: user?.id,
+      userName: user?.name || user?.email,
+      description: `Actualización masiva de ${updatedArticles.length} precios (Batch: ${changeBatchId.substring(0, 8)})`,
+      metadata: {
+        changeBatchId,
         updatedCount: updatedArticles.length,
         totalRequested: validatedData.updates.length,
-      }
+        changeType: validatedData.changeType,
+      },
     });
-
-    // Guardar cambios detallados
-    if (activityLogId) {
-      await tracker.saveChanges(activityLogId);
-    }
 
     return NextResponse.json({
       success: true,
       updatedCount: updatedArticles.length,
+      changeBatchId,
       articles: updatedArticles,
     });
   } catch (error) {
@@ -133,4 +122,3 @@ export async function PUT(request: NextRequest) {
     );
   }
 }
-

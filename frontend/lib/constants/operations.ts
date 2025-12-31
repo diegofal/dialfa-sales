@@ -58,6 +58,7 @@ export const OPERATIONS = {
   // Precios
   PRICE_UPDATE: 'PRICE_UPDATE',
   PRICE_BULK_UPDATE: 'PRICE_BULK_UPDATE',
+  PRICE_REVERT: 'PRICE_REVERT',
 } as const;
 
 export const OPERATION_LABELS: Record<string, string> = {
@@ -97,5 +98,6 @@ export const OPERATION_LABELS: Record<string, string> = {
   LOGOUT: 'Cierre de Sesión',
   PRICE_UPDATE: 'Actualizar Precio',
   PRICE_BULK_UPDATE: 'Actualización Masiva de Precios',
+  PRICE_REVERT: 'Revertir Precio',
 };
 

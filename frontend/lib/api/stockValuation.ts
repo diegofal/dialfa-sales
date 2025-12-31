@@ -18,6 +18,7 @@ export const stockValuationApi = {
       deadThreshold: params.deadStockThresholdDays,
       minSales: params.minSalesForActive,
       trendMonths: params.trendMonths,
+      includeZeroStock: params.includeZeroStock,
       status: params.status,
       refresh: params.refresh,
     };

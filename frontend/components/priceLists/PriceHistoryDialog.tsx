@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -9,7 +10,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Pagination } from '@/components/ui/pagination';
 import { usePriceHistory } from '@/lib/hooks/usePriceHistory';
-import { TrendingUp, TrendingDown, Calendar, User } from 'lucide-react';
+import { useRevertPrice } from '@/lib/hooks/usePriceLists';
+import { TrendingUp, TrendingDown, Calendar, User, Undo2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 
@@ -40,6 +42,14 @@ export function PriceHistoryDialog({
     page,
     limit: 25,
   });
+
+  const revertPriceMutation = useRevertPrice();
+
+  const handleRevert = (historyId: number, articleCode: string) => {
+    if (window.confirm(`¿Estás seguro de revertir el precio del artículo ${articleCode}?`)) {
+      revertPriceMutation.mutate(historyId);
+    }
+  };
 
   const getChangeTypeLabel = (type: string) => {
     const labels: Record<string, string> = {
@@ -127,6 +137,7 @@ export function PriceHistoryDialog({
                   <TableHead className="text-right">Cambio</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead>Usuario</TableHead>
+                  <TableHead className="w-[100px]">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -186,6 +197,17 @@ export function PriceHistoryDialog({
                         <User className="h-3 w-3" />
                         {item.changedByName || 'Sistema'}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => handleRevert(item.id, item.articleCode || '')}
+                        disabled={revertPriceMutation.isPending}
+                        title="Revertir a precio anterior"
+                      >
+                        <Undo2 className="h-4 w-4" />
+                      </Button>
                     </TableCell>
                   </TableRow>
                 ))}

@@ -93,14 +93,13 @@ export async function calculateStockValuation(
       discountMap.set(key, Number(cpd.discount_percent));
     }
 
-    // 3. Obtener artículos activos (con o sin stock según configuración)
+    // 3. Obtener TODOS los artículos (activos e inactivos, con o sin stock según configuración)
+    // La valorización debe incluir todos los items que tengan valor en el inventario
     const whereClause: {
       deleted_at: null;
-      is_active: true;
       stock?: { gt: number };
     } = {
       deleted_at: null,
-      is_active: true,
     };
 
     // Si no se incluyen artículos sin stock, filtrar stock > 0

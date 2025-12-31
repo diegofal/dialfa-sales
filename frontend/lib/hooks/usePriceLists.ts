@@ -35,3 +35,96 @@ export function useUpdatePrices() {
   });
 }
 
+export function useRevertPrice() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (priceHistoryId: number) => {
+      const response = await fetch('/api/price-lists/revert', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ priceHistoryId }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al revertir precio');
+      }
+
+      return response.json();
+    },
+    onSuccess: (data) => {
+      // Invalidar caches
+      queryClient.invalidateQueries({ queryKey: ['price-lists'] });
+      queryClient.invalidateQueries({ queryKey: ['articles'] });
+      queryClient.invalidateQueries({ queryKey: ['price-history'] });
+      
+      toast.success('Precio revertido exitosamente');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Error al revertir precio');
+    },
+  });
+}
+
+export function useUndoLastChange() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async () => {
+      const response = await fetch('/api/price-lists/undo', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al deshacer cambios');
+      }
+
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['price-lists'] });
+      queryClient.invalidateQueries({ queryKey: ['articles'] });
+      queryClient.invalidateQueries({ queryKey: ['price-history'] });
+      
+      toast.success(data.message || 'Cambios deshechos exitosamente');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Error al deshacer cambios');
+    },
+  });
+}
+
+export function useRevertBatch() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: async (changeBatchId: string) => {
+      const response = await fetch('/api/price-lists/revert-batch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ changeBatchId }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al revertir batch');
+      }
+
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ['price-lists'] });
+      queryClient.invalidateQueries({ queryKey: ['articles'] });
+      queryClient.invalidateQueries({ queryKey: ['price-history'] });
+      
+      toast.success(data.message || 'Batch revertido exitosamente');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Error al revertir batch');
+    },
+  });
+}
+

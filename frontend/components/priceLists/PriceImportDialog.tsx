@@ -11,6 +11,17 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Upload, AlertCircle, TrendingUp, TrendingDown, Info } from 'lucide-react';
 import { toast } from 'sonner';
+import { PaymentDiscount } from '@/types/priceList';
+
+interface PaymentTermPrice {
+  paymentTermId: number;
+  paymentTermCode: string;
+  paymentTermName: string;
+  discountPercent: number;
+  finalPrice: number;
+  margin?: number;
+  markup?: number;
+}
 
 interface ImportPreviewItem {
   code: string;
@@ -20,14 +31,8 @@ interface ImportPreviewItem {
   costPrice?: number;
   cifPercentage?: number;
   cifValue?: number;
-  categoryDiscount: number;
-  effectiveDiscount: number; // El descuento que realmente se aplicó
   newPrice: number;
-  discountedPrice: number; // Precio con descuento de categoría
-  adjustedPrice: number; // Precio con descuento ajustado manualmente
-  margin?: number;
-  marginAmount?: number;
-  markup?: number; // ROI sobre costo
+  paymentTermPrices: PaymentTermPrice[];
   status: 'found' | 'not-found' | 'no-cost';
 }
 
@@ -42,15 +47,46 @@ interface PriceImportDialogProps {
     unitPrice: number;
     costPrice?: number;
     cifPercentage?: number;
-    categoryDiscount: number;
+    categoryId: number;
+    paymentDiscounts: PaymentDiscount[];
   }>;
+  paymentTerms: PaymentDiscount[];
 }
 
-export function PriceImportDialog({ open, onOpenChange, onConfirm, articles }: PriceImportDialogProps) {
+export function PriceImportDialog({ open, onOpenChange, onConfirm, articles, paymentTerms }: PriceImportDialogProps) {
   const [csvData, setCsvData] = useState<ImportPreviewItem[]>([]);
-  const [discountPercent, setDiscountPercent] = useState<number>(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
+
+  const calculatePaymentTermPrices = (
+    newPrice: number,
+    paymentDiscounts: PaymentDiscount[],
+    cifValue?: number
+  ): PaymentTermPrice[] => {
+    return paymentDiscounts.map(pd => {
+      const finalPrice = newPrice * (1 - pd.discountPercent / 100);
+      
+      // Calcular margen y markup si hay CIF
+      let margin: number | undefined;
+      let markup: number | undefined;
+      
+      if (cifValue && cifValue > 0) {
+        const marginAmount = finalPrice - cifValue;
+        margin = (marginAmount / finalPrice) * 100;
+        markup = (marginAmount / cifValue) * 100;
+      }
+      
+      return {
+        paymentTermId: pd.paymentTermId,
+        paymentTermCode: pd.paymentTermCode,
+        paymentTermName: pd.paymentTermName,
+        discountPercent: pd.discountPercent,
+        finalPrice,
+        margin,
+        markup,
+      };
+    });
+  };
 
   const processFile = (file: File) => {
     if (!file.name.endsWith('.csv')) {
@@ -86,17 +122,11 @@ export function PriceImportDialog({ open, onOpenChange, onConfirm, articles }: P
           if (!article) {
             return {
               code,
-              categoryDiscount: 0,
-              effectiveDiscount: 0,
               newPrice,
-              discountedPrice: newPrice,
-              adjustedPrice: newPrice,
+              paymentTermPrices: [],
               status: 'not-found' as const,
             };
           }
-
-          // Calcular precio con descuento de categoría
-          const discountedPrice = newPrice * (1 - article.categoryDiscount / 100);
 
           // Calcular CIF: Último Precio Compra * (1 + CIF%)
           const hasCostAndCif = article.costPrice && article.costPrice > 0 && article.cifPercentage && article.cifPercentage > 0;
@@ -104,16 +134,12 @@ export function PriceImportDialog({ open, onOpenChange, onConfirm, articles }: P
             ? article.costPrice! * (1 + article.cifPercentage! / 100)
             : undefined;
           
-          // Calcular margen sobre ventas: (Precio - Costo) / Precio × 100
-          const marginAmount = cifValue ? discountedPrice - cifValue : undefined;
-          const margin = cifValue && discountedPrice > 0
-            ? (marginAmount! / discountedPrice) * 100
-            : undefined;
-          
-          // Calcular markup (rentabilidad sobre costo): (Precio - Costo) / Costo × 100
-          const markup = cifValue && cifValue > 0
-            ? (marginAmount! / cifValue) * 100
-            : undefined;
+          // Calcular precios por condición de pago
+          const paymentTermPrices = calculatePaymentTermPrices(
+            newPrice,
+            article.paymentDiscounts,
+            cifValue
+          );
 
           return {
             code,
@@ -123,14 +149,8 @@ export function PriceImportDialog({ open, onOpenChange, onConfirm, articles }: P
             costPrice: article.costPrice,
             cifPercentage: article.cifPercentage,
             cifValue,
-            categoryDiscount: article.categoryDiscount,
-            effectiveDiscount: article.categoryDiscount, // Inicialmente usa el de categoría
             newPrice,
-            discountedPrice,
-            adjustedPrice: discountedPrice, // Inicialmente igual al precio con descuento de categoría
-            margin,
-            marginAmount,
-            markup,
+            paymentTermPrices,
             status: hasCostAndCif ? 'found' as const : 'no-cost' as const,
           };
         }).filter(Boolean) as ImportPreviewItem[];
@@ -175,44 +195,13 @@ export function PriceImportDialog({ open, onOpenChange, onConfirm, articles }: P
     }
   };
 
-  const handleDiscountChange = (value: string) => {
-    const discount = parseFloat(value) || 0;
-    setDiscountPercent(discount);
-    
-    // Si hay descuento manual, sobreescribe el de categoría; si no, usa el de categoría
-    setCsvData(prev => prev.map(item => {
-      const effectiveDiscount = discount > 0 ? discount : item.categoryDiscount;
-      const adjustedPrice = item.newPrice * (1 - effectiveDiscount / 100);
-      
-      // Recalcular margen sobre ventas con CIF
-      const marginAmount = item.cifValue ? adjustedPrice - item.cifValue : undefined;
-      const margin = item.cifValue && adjustedPrice > 0
-        ? (marginAmount! / adjustedPrice) * 100
-        : undefined;
-      
-      // Recalcular markup (ROI sobre costo)
-      const markup = item.cifValue && item.cifValue > 0
-        ? (marginAmount! / item.cifValue) * 100
-        : undefined;
-      
-      return {
-        ...item,
-        effectiveDiscount, // Guardar el descuento que se aplicó
-        adjustedPrice,
-        margin,
-        marginAmount,
-        markup,
-      };
-    }));
-  };
-
   const handleConfirm = async () => {
     const validUpdates = csvData
       .filter(item => item.status === 'found' || item.status === 'no-cost')
       .filter(item => item.articleId)
       .map(item => ({
         articleId: item.articleId!,
-        newPrice: item.adjustedPrice,
+        newPrice: item.newPrice,
       }));
 
     if (validUpdates.length === 0) {
@@ -225,7 +214,6 @@ export function PriceImportDialog({ open, onOpenChange, onConfirm, articles }: P
       await onConfirm(validUpdates);
       onOpenChange(false);
       setCsvData([]);
-      setDiscountPercent(0);
     } catch (error) {
       // Error ya manejado por el mutation
     } finally {
@@ -239,8 +227,8 @@ export function PriceImportDialog({ open, onOpenChange, onConfirm, articles }: P
     notFound: csvData.filter(i => i.status === 'not-found').length,
     noCost: csvData.filter(i => i.status === 'no-cost').length,
     avgMarkup: csvData
-      .filter(i => i.markup !== undefined)
-      .reduce((sum, i) => sum + i.markup!, 0) / csvData.filter(i => i.markup !== undefined).length || 0,
+      .flatMap(i => i.paymentTermPrices.map(p => p.markup).filter(m => m !== undefined) as number[])
+      .reduce((sum, m, _, arr) => sum + m / arr.length, 0) || 0,
   };
 
   return (
@@ -249,7 +237,7 @@ export function PriceImportDialog({ open, onOpenChange, onConfirm, articles }: P
         <DialogHeader>
           <DialogTitle>Importar Precios desde CSV</DialogTitle>
           <DialogDescription>
-            Sube un archivo CSV con las columnas: Codigo, NuevoDB
+            Sube un archivo CSV con las columnas: Codigo, NuevoDB (precio sin descuento)
           </DialogDescription>
         </DialogHeader>
 
@@ -316,192 +304,149 @@ export function PriceImportDialog({ open, onOpenChange, onConfirm, articles }: P
                 </div>
               </div>
 
-              {/* Discount Adjustment */}
-              <div className="flex items-end gap-4">
-                <div className="flex-1">
-                  <Label htmlFor="discount">Ajuste de Descuento (%)</Label>
-                  <Input
-                    id="discount"
-                    type="number"
-                    step="0.1"
-                    value={discountPercent}
-                    onChange={(e) => handleDiscountChange(e.target.value)}
-                    placeholder="0"
-                  />
-                </div>
-                <Button variant="outline" onClick={() => handleDiscountChange('0')}>
-                  Resetear
-                </Button>
-              </div>
-
-              {discountPercent !== 0 && (
-                <Alert>
-                  <AlertCircle className="h-4 w-4" />
-                  <AlertDescription>
-                    Se aplicará un descuento del <strong>{discountPercent}%</strong> a todos los precios, 
-                    <strong> sobreescribiendo</strong> el descuento de categoría
-                  </AlertDescription>
-                </Alert>
-              )}
-
               {/* Preview Table */}
               <div className="border rounded-lg overflow-auto max-h-96">
                 <TooltipProvider>
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead className="w-[120px]">Código</TableHead>
-                        <TableHead>Descripción</TableHead>
-                        <TableHead className="text-right">Precio Actual</TableHead>
-                        <TableHead className="text-right">Nuevo Precio</TableHead>
-                        <TableHead className="text-right">Precio c/ Desc</TableHead>
-                        <TableHead className="text-right">Precio Final</TableHead>
-                        <TableHead className="text-right">% Cambio</TableHead>
-                        <TableHead className="text-right">Últ. P. Compra</TableHead>
-                        <TableHead className="text-right">CIF %</TableHead>
-                        <TableHead className="text-right">Valor CIF</TableHead>
-                        <TableHead className="text-right">Margen $</TableHead>
-                        <TableHead className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <span>Margen %</span>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground" />
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="w-[280px]">
-                                <div className="space-y-2">
-                                  <p className="font-semibold">Margen sobre Ventas</p>
-                                  <p className="text-xs">Fórmula: (Precio - Costo) / Precio × 100</p>
-                                  <p className="text-xs">Indica qué % del precio de venta es ganancia. Útil para análisis financiero y comparar con estándares de la industria.</p>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
-                        </TableHead>
-                        <TableHead className="text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <span>Markup %</span>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Info className="h-3.5 w-3.5 cursor-help text-muted-foreground" />
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="w-[280px]">
-                                <div className="space-y-2">
-                                  <p className="font-semibold">Rentabilidad sobre Costo (ROI)</p>
-                                  <p className="text-xs">Fórmula: (Precio - Costo) / Costo × 100</p>
-                                  <p className="text-xs">Indica cuánto ganas por cada dólar invertido. Es la métrica clave para decidir si un precio es rentable.</p>
-                                  <p className="text-xs">Ej: 590% = por cada $1 que gastas, ganas $5.90</p>
-                                </div>
-                              </TooltipContent>
-                            </Tooltip>
-                          </div>
-                        </TableHead>
+                        <TableHead className="w-[100px]">Código</TableHead>
+                        <TableHead className="w-[200px]">Descripción</TableHead>
+                        <TableHead className="text-right w-[100px]">Precio Actual</TableHead>
+                        <TableHead className="text-right w-[100px]">Precio CSV</TableHead>
+                        <TableHead className="text-right w-[80px]">% Cambio</TableHead>
+                        <TableHead className="text-right w-[90px]">Últ. P. Compra</TableHead>
+                        <TableHead className="text-right w-[70px]">CIF %</TableHead>
+                        <TableHead className="text-right w-[90px]">Valor CIF</TableHead>
+                        
+                        {/* Columnas dinámicas por payment term */}
+                        {paymentTerms.map(pt => (
+                          <TableHead key={pt.paymentTermId} className="text-right w-[150px]" colSpan={3}>
+                            <div className="text-center font-bold border-l border-border pl-2">
+                              {pt.paymentTermCode}
+                            </div>
+                            <div className="grid grid-cols-3 gap-1 text-xs text-muted-foreground mt-1">
+                              <div>Precio</div>
+                              <div>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="cursor-help flex items-center justify-center gap-0.5">
+                                      Marg%
+                                      <Info className="h-3 w-3" />
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="w-[280px]">
+                                    <div className="space-y-2">
+                                      <p className="font-semibold">Margen sobre Ventas</p>
+                                      <p className="text-xs">Fórmula: (Precio - CIF) / Precio × 100</p>
+                                      <p className="text-xs">Indica qué % del precio de venta es ganancia.</p>
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                              <div>
+                                <Tooltip>
+                                  <TooltipTrigger asChild>
+                                    <span className="cursor-help flex items-center justify-center gap-0.5">
+                                      Mkup%
+                                      <Info className="h-3 w-3" />
+                                    </span>
+                                  </TooltipTrigger>
+                                  <TooltipContent side="top" className="w-[280px]">
+                                    <div className="space-y-2">
+                                      <p className="font-semibold">Rentabilidad sobre Costo (ROI)</p>
+                                      <p className="text-xs">Fórmula: (Precio - CIF) / CIF × 100</p>
+                                      <p className="text-xs">Cuánto ganas por cada dólar invertido.</p>
+                                    </div>
+                                  </TooltipContent>
+                                </Tooltip>
+                              </div>
+                            </div>
+                          </TableHead>
+                        ))}
                       </TableRow>
                     </TableHeader>
-                  <TableBody>
-                    {csvData.map((item, idx) => {
-                      // Calcular porcentaje de cambio basado en el precio final
-                      const priceChange = item.currentPrice 
-                        ? ((item.adjustedPrice - item.currentPrice) / item.currentPrice) * 100
-                        : null;
-                      
-                      return (
-                        <TableRow key={idx}>
-                          <TableCell className="font-mono text-sm">{item.code}</TableCell>
-                          <TableCell className="text-sm">
-                            {item.description || <span className="text-muted-foreground">-</span>}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {item.currentPrice ? `$${item.currentPrice.toFixed(2)}` : '-'}
-                          </TableCell>
-                          <TableCell className="text-right font-medium">
-                            ${item.newPrice.toFixed(2)}
-                          </TableCell>
-                          <TableCell className="text-right font-medium text-blue-600">
-                            ${item.adjustedPrice.toFixed(2)}
-                            {item.effectiveDiscount > 0 && (
-                              <span className="text-xs text-muted-foreground ml-1">
-                                (-{item.effectiveDiscount.toFixed(1)}%)
-                              </span>
-                            )}
-                          </TableCell>
-                          <TableCell className="text-right font-bold text-primary">
-                            ${item.adjustedPrice.toFixed(2)}
-                          </TableCell>
-                          <TableCell className="text-right">
-                            {priceChange !== null ? (
-                              <span className={priceChange < 0 ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold'}>
-                                {priceChange > 0 ? '+' : ''}{priceChange.toFixed(1)}%
-                              </span>
-                            ) : (
-                              '-'
-                            )}
-                          </TableCell>
-                        <TableCell className="text-right">
-                          {item.costPrice ? `$${item.costPrice.toFixed(2)}` : '-'}
-                        </TableCell>
-                        <TableCell className="text-right text-sm">
-                          {item.cifPercentage ? `${item.cifPercentage.toFixed(1)}%` : '-'}
-                        </TableCell>
-                        <TableCell className="text-right font-medium">
-                          {item.cifValue ? `$${item.cifValue.toFixed(2)}` : '-'}
-                        </TableCell>
-                        <TableCell className="text-right font-semibold">
-                          {item.marginAmount !== undefined ? (
-                            <span className={item.marginAmount < 0 ? 'text-red-600' : 'text-green-600'}>
-                              ${item.marginAmount.toFixed(2)}
-                            </span>
-                          ) : (
-                            '-'
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {item.margin !== undefined ? (
-                            <div className="flex items-center justify-end gap-1">
-                              {item.margin >= 30 ? (
-                                <TrendingUp className="h-4 w-4 text-green-600" />
-                              ) : item.margin >= 15 ? (
-                                <TrendingUp className="h-4 w-4 text-yellow-600" />
-                              ) : (
-                                <TrendingDown className="h-4 w-4 text-red-600" />
-                              )}
-                              <span className={
-                                item.margin >= 30 ? 'text-green-600' :
-                                item.margin >= 15 ? 'text-yellow-600' : 'text-red-600'
-                              }>
-                                {item.margin.toFixed(1)}%
-                              </span>
-                            </div>
-                          ) : (
-                            '-'
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {item.markup !== undefined ? (
-                            <div className="flex items-center justify-end gap-1">
-                              {item.markup >= 100 ? (
-                                <TrendingUp className="h-4 w-4 text-green-600" />
-                              ) : item.markup >= 50 ? (
-                                <TrendingUp className="h-4 w-4 text-yellow-600" />
-                              ) : (
-                                <TrendingDown className="h-4 w-4 text-red-600" />
-                              )}
-                              <span className={
-                                item.markup >= 100 ? 'text-green-600 font-semibold' :
-                                item.markup >= 50 ? 'text-yellow-600 font-semibold' : 'text-red-600 font-semibold'
-                              }>
-                                {item.markup.toFixed(1)}%
-                              </span>
-                            </div>
-                          ) : (
-                            '-'
-                          )}
-                        </TableCell>
-                      </TableRow>
-                      );
-                    })}
-                  </TableBody>
-                </Table>
+                    <TableBody>
+                      {csvData.map((item, idx) => {
+                        const priceChange = item.currentPrice 
+                          ? ((item.newPrice - item.currentPrice) / item.currentPrice) * 100
+                          : null;
+                        
+                        return (
+                          <TableRow key={idx}>
+                            <TableCell className="font-mono text-xs">{item.code}</TableCell>
+                            <TableCell className="text-xs">
+                              {item.description || <span className="text-muted-foreground">-</span>}
+                            </TableCell>
+                            <TableCell className="text-right text-sm">
+                              {item.currentPrice ? `$${item.currentPrice.toFixed(2)}` : '-'}
+                            </TableCell>
+                            <TableCell className="text-right font-medium text-sm">
+                              ${item.newPrice.toFixed(2)}
+                            </TableCell>
+                            <TableCell className="text-right text-sm">
+                              {priceChange !== null ? (
+                                <span className={priceChange < 0 ? 'text-red-600 font-semibold' : 'text-green-600 font-semibold'}>
+                                  {priceChange > 0 ? '+' : ''}{priceChange.toFixed(1)}%
+                                </span>
+                              ) : '-'}
+                            </TableCell>
+                            <TableCell className="text-right text-sm">
+                              {item.costPrice ? `$${item.costPrice.toFixed(2)}` : '-'}
+                            </TableCell>
+                            <TableCell className="text-right text-xs">
+                              {item.cifPercentage ? `${item.cifPercentage.toFixed(1)}%` : '-'}
+                            </TableCell>
+                            <TableCell className="text-right font-medium text-sm">
+                              {item.cifValue ? `$${item.cifValue.toFixed(2)}` : '-'}
+                            </TableCell>
+                            
+                            {/* Columnas dinámicas por payment term */}
+                            {paymentTerms.map(pt => {
+                              const ptPrice = item.paymentTermPrices.find(p => p.paymentTermId === pt.paymentTermId);
+                              
+                              return (
+                                <TableCell key={pt.paymentTermId} colSpan={3} className="border-l border-border">
+                                  {ptPrice ? (
+                                    <div className="grid grid-cols-3 gap-1 text-xs">
+                                      <div className="text-right font-semibold text-primary">
+                                        ${ptPrice.finalPrice.toFixed(2)}
+                                        <div className="text-[10px] text-muted-foreground">
+                                          -{ptPrice.discountPercent.toFixed(1)}%
+                                        </div>
+                                      </div>
+                                      <div className="text-right">
+                                        {ptPrice.margin !== undefined ? (
+                                          <span className={
+                                            ptPrice.margin >= 30 ? 'text-green-600 font-semibold' :
+                                            ptPrice.margin >= 15 ? 'text-yellow-600' : 'text-red-600'
+                                          }>
+                                            {ptPrice.margin.toFixed(1)}%
+                                          </span>
+                                        ) : '-'}
+                                      </div>
+                                      <div className="text-right">
+                                        {ptPrice.markup !== undefined ? (
+                                          <span className={
+                                            ptPrice.markup >= 100 ? 'text-green-600 font-semibold' :
+                                            ptPrice.markup >= 50 ? 'text-yellow-600' : 'text-red-600'
+                                          }>
+                                            {ptPrice.markup.toFixed(1)}%
+                                          </span>
+                                        ) : '-'}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <div className="text-center text-muted-foreground text-xs">-</div>
+                                  )}
+                                </TableCell>
+                              );
+                            })}
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
                 </TooltipProvider>
               </div>
 
@@ -511,7 +456,6 @@ export function PriceImportDialog({ open, onOpenChange, onConfirm, articles }: P
                   variant="outline"
                   onClick={() => {
                     setCsvData([]);
-                    setDiscountPercent(0);
                   }}
                 >
                   Cancelar y Cargar Otro
@@ -535,4 +479,3 @@ export function PriceImportDialog({ open, onOpenChange, onConfirm, articles }: P
     </Dialog>
   );
 }
-

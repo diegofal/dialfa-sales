@@ -122,8 +122,20 @@ def map_category(legacy: LegacyCategoria) -> ModernCategory:
     )
 
 
-def map_article(legacy: LegacyArticulo) -> ModernArticle:
-    """Map article from legacy to modern."""
+def map_article(legacy: LegacyArticulo, valid_supplier_ids: set = None) -> ModernArticle:
+    """Map article from legacy to modern.
+    
+    Args:
+        legacy: Legacy article data
+        valid_supplier_ids: Set of valid supplier IDs in PostgreSQL. If provided,
+                           supplier_id will be set to None if not in this set.
+    """
+    # Handle supplier_id - set to None if supplier doesn't exist in PostgreSQL
+    supplier_id = legacy.proveedor
+    if valid_supplier_ids is not None and supplier_id is not None:
+        if supplier_id not in valid_supplier_ids:
+            supplier_id = None
+    
     return ModernArticle(
         id=legacy.idArticulo,
         category_id=legacy.IdCategoria,
@@ -142,7 +154,7 @@ def map_article(legacy: LegacyArticulo) -> ModernArticle:
         series=legacy.serie,
         thickness=legacy.espesor.strip() if legacy.espesor else None,
         size=legacy.size.strip() if legacy.size else None,
-        supplier_id=legacy.proveedor,
+        supplier_id=supplier_id,
         weight_kg=float(legacy.peso) if legacy.peso else None,
         historical_price1=float(legacy.precio_unitario_historico_1) if legacy.precio_unitario_historico_1 else None,
         is_active=not legacy.discontinuado if legacy.discontinuado is not None else True,
@@ -171,9 +183,7 @@ def map_client(legacy: LegacyCliente) -> ModernClient:
         operation_type_id=legacy.IdOperatoria,
         transporter_id=legacy.IdTransportista,
         credit_limit=None,
-        current_balance=float(legacy.Saldo),
         seller_id=legacy.IdVendedor,  # Additional field from production database
-        is_active=True,
         created_at=datetime.utcnow(),
         updated_at=datetime.utcnow()
     )
