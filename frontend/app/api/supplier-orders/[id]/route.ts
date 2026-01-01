@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getUserFromRequest } from '@/lib/auth/roles';
+import { logActivity } from '@/lib/services/activityLogger';
+import { OPERATIONS } from '@/lib/constants/operations';
 
 interface OrderItemInput {
   articleId: number;
@@ -171,6 +173,20 @@ export async function PUT(
         },
       });
 
+      // Log activity
+      await logActivity({
+        request,
+        operation: OPERATIONS.SUPPLIER_ORDER_UPDATE,
+        description: `Pedido a proveedor ${order.order_number} actualizado con ${totalItems} artículos`,
+        entityType: 'supplier_order',
+        entityId: order.id,
+        details: { 
+          orderNumber: order.order_number,
+          totalItems: order.total_items,
+          totalQuantity: order.total_quantity,
+        },
+      });
+
       return NextResponse.json({
         success: true,
         data: {
@@ -191,6 +207,16 @@ export async function PUT(
           notes: notes ?? undefined,
           updated_by: user.userId,
         },
+      });
+
+      // Log activity
+      await logActivity({
+        request,
+        operation: OPERATIONS.SUPPLIER_ORDER_UPDATE,
+        description: `Pedido a proveedor ${order.order_number} actualizado`,
+        entityType: 'supplier_order',
+        entityId: order.id,
+        details: { orderNumber: order.order_number },
       });
 
       return NextResponse.json({
@@ -224,12 +250,38 @@ export async function DELETE(
     const { id: idParam } = await params;
     const id = BigInt(idParam);
 
+    // Get order info before deletion for logging
+    const order = await prisma.supplier_orders.findUnique({
+      where: { id },
+      include: { supplier: true },
+    });
+
+    if (!order) {
+      return NextResponse.json(
+        { error: 'Pedido no encontrado' },
+        { status: 404 }
+      );
+    }
+
     // Soft delete
     await prisma.supplier_orders.update({
       where: { id },
       data: {
         deleted_at: new Date(),
         updated_by: user.userId,
+      },
+    });
+
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.SUPPLIER_ORDER_DELETE,
+      description: `Pedido a proveedor ${order.order_number} eliminado`,
+      entityType: 'supplier_order',
+      entityId: order.id,
+      details: { 
+        orderNumber: order.order_number,
+        supplierName: order.supplier?.name || null,
       },
     });
 

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/db'
 import { Prisma } from '@prisma/client'
+import { logActivity } from '@/lib/services/activityLogger'
+import { OPERATIONS } from '@/lib/constants/operations'
 
 /**
  * GET /api/coladas
@@ -110,6 +112,20 @@ export async function POST(request: NextRequest) {
         supplier,
         material_type
       }
+    })
+
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.COLADA_CREATE,
+      description: `Colada ${colada.colada_number} creada`,
+      entityType: 'colada',
+      entityId: colada.id,
+      details: { 
+        coladaNumber: colada.colada_number,
+        supplier: colada.supplier,
+        materialType: colada.material_type,
+      },
     })
 
     return NextResponse.json({

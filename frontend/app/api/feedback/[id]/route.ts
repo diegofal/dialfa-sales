@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/auth/jwt';
 import { requireAdmin } from '@/lib/auth/roles';
+import { logActivity } from '@/lib/services/activityLogger';
+import { OPERATIONS } from '@/lib/constants/operations';
 
 export async function PATCH(
   request: NextRequest,
@@ -65,6 +67,20 @@ export async function PATCH(
       data: updateData,
     });
 
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.FEEDBACK_UPDATE,
+      description: `Feedback actualizado: ${feedback.subject}${status ? ` (estado: ${status})` : ''}`,
+      entityType: 'feedback',
+      entityId: feedback.id,
+      details: { 
+        subject: feedback.subject,
+        status: feedback.status,
+        priority: feedback.priority,
+      },
+    });
+
     return NextResponse.json({
       id: Number(feedback.id),
       userId: feedback.user_id,
@@ -102,8 +118,27 @@ export async function DELETE(
       return NextResponse.json({ error: 'Invalid ID' }, { status: 400 });
     }
 
+    // Get feedback info before deletion for logging
+    const feedback = await prisma.feedback.findUnique({
+      where: { id: feedbackId },
+    });
+
+    if (!feedback) {
+      return NextResponse.json({ error: 'Feedback not found' }, { status: 404 });
+    }
+
     await prisma.feedback.delete({
       where: { id: feedbackId },
+    });
+
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.FEEDBACK_DELETE,
+      description: `Feedback eliminado: ${feedback.subject}`,
+      entityType: 'feedback',
+      entityId: BigInt(feedbackId),
+      details: { subject: feedback.subject, type: feedback.type },
     });
 
     return NextResponse.json({ success: true });

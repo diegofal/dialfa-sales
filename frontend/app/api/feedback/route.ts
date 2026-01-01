@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/auth/jwt';
+import { logActivity } from '@/lib/services/activityLogger';
+import { OPERATIONS } from '@/lib/constants/operations';
 
 export async function GET(request: NextRequest) {
   try {
@@ -104,6 +106,16 @@ export async function POST(request: NextRequest) {
         created_at: now,
         updated_at: now,
       },
+    });
+
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.FEEDBACK_CREATE,
+      description: `Feedback creado: ${subject} (${type})`,
+      entityType: 'feedback',
+      entityId: feedback.id,
+      details: { type, subject },
     });
 
     return NextResponse.json({

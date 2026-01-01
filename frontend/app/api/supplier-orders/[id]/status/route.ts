@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma, Prisma } from '@/lib/db';
 import { getUserFromRequest } from '@/lib/auth/roles';
+import { logActivity } from '@/lib/services/activityLogger';
+import { OPERATIONS } from '@/lib/constants/operations';
 
 export async function PATCH(
   request: NextRequest,
@@ -35,9 +37,29 @@ export async function PATCH(
       updateData.actual_delivery_date = new Date();
     }
 
+    // Get previous status for logging
+    const previousOrder = await prisma.supplier_orders.findUnique({
+      where: { id },
+      select: { status: true, order_number: true },
+    });
+
     const order = await prisma.supplier_orders.update({
       where: { id },
       data: updateData,
+    });
+
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.SUPPLIER_ORDER_STATUS_CHANGE,
+      description: `Estado de pedido ${order.order_number} cambiado de ${previousOrder?.status || 'N/A'} a ${status}`,
+      entityType: 'supplier_order',
+      entityId: order.id,
+      details: { 
+        orderNumber: order.order_number,
+        previousStatus: previousOrder?.status,
+        newStatus: status,
+      },
     });
 
     return NextResponse.json({

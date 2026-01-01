@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma, Prisma } from '@/lib/db';
 import { getUserFromRequest } from '@/lib/auth/roles';
+import { logActivity } from '@/lib/services/activityLogger';
+import { OPERATIONS } from '@/lib/constants/operations';
 
 export async function GET(request: NextRequest) {
   try {
@@ -105,6 +107,16 @@ export async function POST(request: NextRequest) {
         created_by: user.userId,
         updated_by: user.userId,
       },
+    });
+
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.SUPPLIER_CREATE,
+      description: `Proveedor ${supplier.name} (${supplier.code}) creado`,
+      entityType: 'supplier',
+      entityId: supplier.id,
+      details: { code: supplier.code, name: supplier.name },
     });
 
     return NextResponse.json({

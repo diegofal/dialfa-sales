@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { z } from 'zod';
+import { logActivity } from '@/lib/services/activityLogger';
+import { OPERATIONS } from '@/lib/constants/operations';
 
 const updateExchangeRateSchema = z.object({
   usdExchangeRate: z.number().positive('Exchange rate must be positive'),
@@ -109,6 +111,25 @@ export async function PATCH(
       });
 
       return updatedInvoice;
+    });
+
+    // Log activity
+    const previousRate = existingInvoice.usd_exchange_rate 
+      ? parseFloat(existingInvoice.usd_exchange_rate.toString()) 
+      : null;
+    
+    await logActivity({
+      request,
+      operation: OPERATIONS.INVOICE_EXCHANGE_RATE_UPDATE,
+      description: `Tipo de cambio de factura ${result.invoice_number} actualizado de ${previousRate || 'N/A'} a ${newExchangeRate}`,
+      entityType: 'invoice',
+      entityId: result.id,
+      details: { 
+        invoiceNumber: result.invoice_number,
+        previousRate,
+        newRate: newExchangeRate,
+        newTotalAmount: parseFloat(result.total_amount.toString()),
+      },
     });
 
     // Map to DTO format

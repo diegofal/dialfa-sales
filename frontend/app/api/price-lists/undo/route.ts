@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
         data: { 
           unit_price: change.old_price,
           updated_at: new Date(),
-          updated_by: user?.id,
+          updated_by: user?.userId,
         },
       });
 
@@ -77,8 +77,8 @@ export async function POST(request: NextRequest) {
           new_price: change.old_price,
           change_type: 'manual',
           change_batch_id: revertBatchId,
-          changed_by: user?.id,
-          changed_by_name: user?.name || user?.email,
+          changed_by: user?.userId,
+          changed_by_name: user?.email || 'Sistema',
           notes: `UNDO: Reversión del batch ${lastBatch.change_batch_id.substring(0, 8)}`,
         },
       });
@@ -92,11 +92,11 @@ export async function POST(request: NextRequest) {
 
     // Log de actividad
     await logActivity({
+      request,
       operation: OPERATIONS.PRICE_REVERT,
-      userId: user?.id,
-      userName: user?.name || user?.email,
       description: `UNDO: Revertidos ${revertedArticles.length} precios del batch ${lastBatch.change_batch_id.substring(0, 8)}`,
-      metadata: {
+      entityType: 'price-list',
+      details: {
         originalBatchId: lastBatch.change_batch_id,
         revertBatchId,
         revertedCount: revertedArticles.length,

@@ -63,7 +63,7 @@ export async function POST(request: NextRequest) {
       data: { 
         unit_price: historyRecord.old_price,
         updated_at: new Date(),
-        updated_by: user?.id,
+        updated_by: user?.userId,
       },
     });
 
@@ -76,20 +76,20 @@ export async function POST(request: NextRequest) {
         new_price: historyRecord.old_price,
         change_type: 'price_revert',
         change_batch_id: historyRecord.change_batch_id, // Mantener el batch ID original
-        changed_by: user?.id,
-        changed_by_name: user?.name || user?.email,
+        changed_by: user?.userId,
+        changed_by_name: user?.email || 'Sistema',
         notes: `Reversión de cambio #${priceHistoryId} (${historyRecord.change_type})`,
       },
     });
 
     // Log de actividad
     await logActivity({
+      request,
       operation: OPERATIONS.PRICE_REVERT,
-      userId: user?.id,
-      userName: user?.name || user?.email,
       description: `Precio revertido para artículo ${article.code}: $${currentPrice.toFixed(2)} → $${revertToPrice.toFixed(2)}`,
-      metadata: {
-        articleId: Number(article.id),
+      entityType: 'article',
+      entityId: article.id,
+      details: {
         articleCode: article.code,
         oldPrice: currentPrice,
         newPrice: revertToPrice,

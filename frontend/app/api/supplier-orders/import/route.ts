@@ -4,6 +4,8 @@ import { BestflowExtractor } from '@/lib/services/proformaImport/bestflow-extrac
 import { ArticleMatcher } from '@/lib/services/proformaImport/article-matcher';
 import { prisma } from '@/lib/db';
 import { calculateSalesTrends } from '@/lib/services/salesTrends';
+import { logActivity } from '@/lib/services/activityLogger';
+import { OPERATIONS } from '@/lib/constants/operations';
 
 export async function POST(request: NextRequest) {
   try {
@@ -89,6 +91,21 @@ export async function POST(request: NextRequest) {
       (m) => m.confidence >= 50 && m.confidence < 70
     ).length;
     const unmatched = enrichedItems.filter((m) => m.confidence < 50).length;
+
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.SUPPLIER_ORDER_IMPORT,
+      description: `Proforma importada: ${file.name} (${enrichedItems.length} artículos, ${matched} coincidencias)`,
+      entityType: 'supplier_order',
+      details: { 
+        fileName: file.name,
+        totalItems: enrichedItems.length,
+        matched,
+        needsReview,
+        unmatched,
+      },
+    });
 
     return NextResponse.json({
       success: true,

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma, Prisma } from '@/lib/db';
 import { getUserFromRequest } from '@/lib/auth/roles';
+import { logActivity } from '@/lib/services/activityLogger';
+import { OPERATIONS } from '@/lib/constants/operations';
 
 interface OrderItemInput {
   articleId: number;
@@ -187,6 +189,21 @@ export async function POST(request: NextRequest) {
       include: {
         supplier: true,
         supplier_order_items: true,
+      },
+    });
+
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.SUPPLIER_ORDER_CREATE,
+      description: `Pedido a proveedor ${order.order_number} creado${order.supplier ? ` para ${order.supplier.name}` : ''}`,
+      entityType: 'supplier_order',
+      entityId: order.id,
+      details: { 
+        orderNumber: order.order_number, 
+        supplierName: order.supplier?.name || null,
+        totalItems: order.total_items,
+        totalQuantity: order.total_quantity,
       },
     });
 

@@ -59,6 +59,29 @@ export const OPERATIONS = {
   PRICE_UPDATE: 'PRICE_UPDATE',
   PRICE_BULK_UPDATE: 'PRICE_BULK_UPDATE',
   PRICE_REVERT: 'PRICE_REVERT',
+  
+  // Proveedores
+  SUPPLIER_CREATE: 'SUPPLIER_CREATE',
+  SUPPLIER_UPDATE: 'SUPPLIER_UPDATE',
+  SUPPLIER_DELETE: 'SUPPLIER_DELETE',
+  
+  // Pedidos a Proveedor
+  SUPPLIER_ORDER_CREATE: 'SUPPLIER_ORDER_CREATE',
+  SUPPLIER_ORDER_UPDATE: 'SUPPLIER_ORDER_UPDATE',
+  SUPPLIER_ORDER_DELETE: 'SUPPLIER_ORDER_DELETE',
+  SUPPLIER_ORDER_STATUS_CHANGE: 'SUPPLIER_ORDER_STATUS_CHANGE',
+  SUPPLIER_ORDER_IMPORT: 'SUPPLIER_ORDER_IMPORT',
+  
+  // Facturas - Tipo de cambio
+  INVOICE_EXCHANGE_RATE_UPDATE: 'INVOICE_EXCHANGE_RATE_UPDATE',
+  
+  // Feedback
+  FEEDBACK_CREATE: 'FEEDBACK_CREATE',
+  FEEDBACK_UPDATE: 'FEEDBACK_UPDATE',
+  FEEDBACK_DELETE: 'FEEDBACK_DELETE',
+  
+  // Coladas
+  COLADA_CREATE: 'COLADA_CREATE',
 } as const;
 
 export const OPERATION_LABELS: Record<string, string> = {
@@ -99,5 +122,18 @@ export const OPERATION_LABELS: Record<string, string> = {
   PRICE_UPDATE: 'Actualizar Precio',
   PRICE_BULK_UPDATE: 'Actualización Masiva de Precios',
   PRICE_REVERT: 'Revertir Precio',
+  SUPPLIER_CREATE: 'Crear Proveedor',
+  SUPPLIER_UPDATE: 'Modificar Proveedor',
+  SUPPLIER_DELETE: 'Eliminar Proveedor',
+  SUPPLIER_ORDER_CREATE: 'Crear Pedido a Proveedor',
+  SUPPLIER_ORDER_UPDATE: 'Modificar Pedido a Proveedor',
+  SUPPLIER_ORDER_DELETE: 'Eliminar Pedido a Proveedor',
+  SUPPLIER_ORDER_STATUS_CHANGE: 'Cambiar Estado Pedido a Proveedor',
+  SUPPLIER_ORDER_IMPORT: 'Importar Proforma',
+  INVOICE_EXCHANGE_RATE_UPDATE: 'Actualizar Tipo de Cambio en Factura',
+  FEEDBACK_CREATE: 'Crear Feedback',
+  FEEDBACK_UPDATE: 'Modificar Feedback',
+  FEEDBACK_DELETE: 'Eliminar Feedback',
+  COLADA_CREATE: 'Crear Colada',
 };
 

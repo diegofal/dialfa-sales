@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { getUserFromRequest } from '@/lib/auth/roles';
+import { logActivity } from '@/lib/services/activityLogger';
+import { OPERATIONS } from '@/lib/constants/operations';
 
 export async function GET(
   request: NextRequest,
@@ -107,6 +109,16 @@ export async function PUT(
       },
     });
 
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.SUPPLIER_UPDATE,
+      description: `Proveedor ${supplier.name} (${supplier.code}) actualizado`,
+      entityType: 'supplier',
+      entityId: supplier.id,
+      details: { code: supplier.code, name: supplier.name },
+    });
+
     return NextResponse.json({
       success: true,
       data: {
@@ -144,6 +156,18 @@ export async function DELETE(
     const { id: idParam } = await params;
     const id = parseInt(idParam);
 
+    // Get supplier info before deletion for logging
+    const supplier = await prisma.suppliers.findUnique({
+      where: { id },
+    });
+
+    if (!supplier) {
+      return NextResponse.json(
+        { error: 'Proveedor no encontrado' },
+        { status: 404 }
+      );
+    }
+
     // Soft delete
     await prisma.suppliers.update({
       where: { id },
@@ -152,6 +176,16 @@ export async function DELETE(
         is_active: false,
         updated_by: user.userId,
       },
+    });
+
+    // Log activity
+    await logActivity({
+      request,
+      operation: OPERATIONS.SUPPLIER_DELETE,
+      description: `Proveedor ${supplier.name} (${supplier.code}) eliminado`,
+      entityType: 'supplier',
+      entityId: supplier.id,
+      details: { code: supplier.code, name: supplier.name },
     });
 
     return NextResponse.json({
