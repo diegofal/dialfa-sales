@@ -21,12 +21,30 @@ export async function POST(
     const salesOrder = await prisma.sales_orders.findUnique({
       where: { id: salesOrderId },
       include: {
-        clients: true,
+        clients: {
+          include: {
+            payment_terms: true,
+          }
+        },
+        payment_terms: true,
         sales_order_items: {
           include: {
             articles: {
               include: {
-                categories: true, // Incluir categorías para obtener default_discount_percent
+                categories: {
+                  include: {
+                    category_payment_discounts: {
+                      where: {
+                        payment_term_id: {
+                          not: null,
+                        }
+                      },
+                      include: {
+                        payment_terms: true,
+                      }
+                    }
+                  }
+                }, // Incluir categorías y sus descuentos por condición de pago
               }
             },
           },
@@ -113,16 +131,38 @@ export async function POST(
     // Calculate amounts with USD to ARS conversion
     const TAX_RATE = 0.21; // 21% IVA
     
+    // Determinar el payment_term_id a usar (del pedido o del cliente)
+    const paymentTermId = salesOrder.payment_term_id || salesOrder.clients.payment_term_id;
+    
+    if (!paymentTermId) {
+      return NextResponse.json(
+        { error: 'El pedido o cliente debe tener una condición de pago asignada' },
+        { status: 400 }
+      );
+    }
+    
     let netAmountArs = 0;
     
     // Prepare invoice items with conversion
     const invoiceItemsData = salesOrder.sales_order_items.map((item) => {
       const unitPriceUsd = parseFloat(item.unit_price.toString());
       const unitPriceArs = unitPriceUsd * usdExchangeRate;
-      // Obtener descuento de la categoría del artículo
-      const discountPercent = item.articles.categories?.default_discount_percent 
-        ? parseFloat(item.articles.categories.default_discount_percent.toString())
-        : 0;
+      
+      // Obtener descuento basado en la condición de pago y categoría
+      let discountPercent = 0;
+      const categoryDiscounts = item.articles.categories?.category_payment_discounts;
+      if (categoryDiscounts && categoryDiscounts.length > 0) {
+        const discount = categoryDiscounts.find(d => d.payment_term_id === paymentTermId);
+        if (discount) {
+          discountPercent = parseFloat(discount.discount_percent.toString());
+        }
+      }
+      
+      // Si no hay descuento específico por condición de pago, usar el default de la categoría
+      if (discountPercent === 0 && item.articles.categories?.default_discount_percent) {
+        discountPercent = parseFloat(item.articles.categories.default_discount_percent.toString());
+      }
+      
       const quantity = item.quantity;
       
       // Calculate line total: (price * quantity) - discount
@@ -157,6 +197,7 @@ export async function POST(
           invoice_number: invoiceNumber,
           sales_order_id: salesOrderId,
           invoice_date: now,
+          payment_term_id: paymentTermId,
           net_amount: netAmountArs,
           tax_amount: taxAmount,
           total_amount: totalAmount,

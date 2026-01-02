@@ -26,6 +26,7 @@ export interface ClientDto {
   phone: string | null;
   email: string | null;
   creditLimit: number | null;
+  paymentTermId: number;
   taxConditionName: string | null;
   provinceName: string | null;
   operationTypeName: string | null;
@@ -56,6 +57,7 @@ export interface CreateClientRequest {
   operationTypeId: number;
   transporterId?: number;
   creditLimit?: number;
+  paymentTermId?: number;
 }
 
 export interface UpdateClientRequest extends CreateClientRequest {

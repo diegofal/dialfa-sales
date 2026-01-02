@@ -22,6 +22,7 @@ export async function GET(
         provinces: true,
         operation_types: true,
         transporters: true,
+        payment_terms: true,
         client_discounts: {
           include: {
             categories: true,
@@ -109,6 +110,7 @@ export async function PUT(
         transporter_id: validatedData.transporterId,
         seller_id: validatedData.sellerId,
         credit_limit: validatedData.creditLimit,
+        payment_term_id: validatedData.paymentTermId,
         updated_at: new Date(),
       },
       include: {
@@ -116,6 +118,7 @@ export async function PUT(
         provinces: true,
         operation_types: true,
         transporters: true,
+        payment_terms: true,
       },
     });
 

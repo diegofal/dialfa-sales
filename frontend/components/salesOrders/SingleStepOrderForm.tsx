@@ -39,6 +39,7 @@ import {
 import { formatCuit } from '@/lib/utils';
 import { usePaymentTerms } from '@/lib/hooks/usePaymentTerms';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useClient, useUpdateClient } from '@/lib/hooks/useClients';
 
 interface OrderItemFormData {
   articleId: number;
@@ -102,6 +103,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   } = useQuickCartTabs();
 
   const { data: paymentTerms } = usePaymentTerms(true);
+  const updateClientMutation = useUpdateClient();
   const [notes, setNotes] = useState('');
   const [paymentTermId, setPaymentTermId] = useState<number | null>(null);
   const [loadedFromCart, setLoadedFromCart] = useState(false);
@@ -175,6 +177,9 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   const clientId = isEditMode ? localClientId : currentTab?.clientId;
   const clientName = isEditMode ? localClientName : (currentTab?.clientName || '');
 
+  // Load client data to get payment term
+  const { data: clientData } = useClient(clientId || 0);
+
   // Track changes for unsaved changes detection
   useEffect(() => {
     if (isEditMode && existingOrder && loadedOrderId === existingOrder.id) {
@@ -197,6 +202,13 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       setHasUnsavedChanges(hasChanges);
     }
   }, [isEditMode, existingOrder, loadedOrderId, items, clientId, notes]);
+
+  // Load payment term from client when client changes
+  useEffect(() => {
+    if (clientData?.paymentTermId) {
+      setPaymentTermId(clientData.paymentTermId);
+    }
+  }, [clientData]);
 
   // Detect unprinted documents that will be regenerated on save
   useEffect(() => {
@@ -854,17 +866,41 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="paymentTerm">Condición de Pago</Label>
+              <Label htmlFor="paymentTerm">Condición de Pago *</Label>
               <Select
-                value={paymentTermId?.toString() || ''}
-                onValueChange={(value) => setPaymentTermId(value ? Number(value) : null)}
-                disabled={isReadOnly}
+                value={paymentTermId?.toString() || undefined}
+                onValueChange={async (value) => {
+                  const newPaymentTermId = Number(value);
+                  setPaymentTermId(newPaymentTermId);
+                  
+                  // Update client's payment term
+                  if (clientId && clientData) {
+                    try {
+                      await updateClientMutation.mutateAsync({
+                        id: clientId,
+                        data: {
+                          code: clientData.code,
+                          businessName: clientData.businessName,
+                          taxConditionId: clientData.taxConditionId,
+                          operationTypeId: clientData.operationTypeId,
+                          paymentTermId: newPaymentTermId,
+                        }
+                      });
+                      toast.success('Condición de pago actualizada para el cliente', {
+                        duration: 2000,
+                        position: 'top-center'
+                      });
+                    } catch (error) {
+                      console.error('Error updating client payment term:', error);
+                    }
+                  }
+                }}
+                disabled={isReadOnly || !clientId}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Seleccione una condición de pago (opcional)" />
+                  <SelectValue placeholder="Seleccionar condición de pago" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Sin condición específica</SelectItem>
                   {paymentTerms?.map((term) => (
                     <SelectItem key={term.id} value={term.id.toString()}>
                       {term.name} ({term.days} días)
@@ -873,7 +909,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Esta condición se usará al crear la factura
+                Se usará para aplicar descuentos y calcular vencimiento de factura
               </p>
             </div>
           </CardContent>

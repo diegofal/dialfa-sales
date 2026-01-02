@@ -308,6 +308,22 @@ export default function InvoiceDetailPage() {
             </div>
 
             <div>
+              <p className="text-sm text-muted-foreground">Condición de Pago</p>
+              <p className="font-medium">
+                {invoice.paymentTermName ? (
+                  <Badge variant="outline" className="text-base font-medium">
+                    {invoice.paymentTermName}
+                  </Badge>
+                ) : (
+                  <span className="text-muted-foreground">No especificada</span>
+                )}
+              </p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Define los descuentos aplicables por categoría
+              </p>
+            </div>
+
+            <div>
               <Label htmlFor="exchangeRate" className="text-sm text-muted-foreground">
                 Tipo de Cambio USD
               </Label>

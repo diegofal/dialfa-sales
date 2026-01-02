@@ -125,6 +125,7 @@ model clients {
   operation_type_id Int
   transporter_id    Int?
   credit_limit      Decimal?            @db.Decimal(18, 2)
+  payment_term_id   Int
   created_at        DateTime            @db.Timestamptz(6)
   updated_at        DateTime            @db.Timestamptz(6)
   deleted_at        DateTime?           @db.Timestamptz(6)
@@ -135,12 +136,14 @@ model clients {
   client_discounts  client_discounts[]
   operation_types   operation_types     @relation(fields: [operation_type_id], references: [id], onUpdate: NoAction, map: "f_k_clients__operation_types_operation_type_id")
   provinces         provinces?          @relation(fields: [province_id], references: [id], onDelete: Restrict, onUpdate: NoAction, map: "f_k_clients__provinces_province_id")
+  payment_terms     payment_terms?      @relation(fields: [payment_term_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "f_k_clients__payment_terms_payment_term_id")
   tax_conditions    tax_conditions      @relation(fields: [tax_condition_id], references: [id], onUpdate: NoAction, map: "f_k_clients__tax_conditions_tax_condition_id")
   transporters      transporters?       @relation(fields: [transporter_id], references: [id], onUpdate: NoAction, map: "f_k_clients__transporters_transporter_id")
   sales_orders      sales_orders[]
 
   @@index([operation_type_id], map: "IX_clients_operation_type_id")
   @@index([province_id], map: "IX_clients_province_id")
+  @@index([payment_term_id], map: "IX_clients_payment_term_id")
   @@index([tax_condition_id], map: "IX_clients_tax_condition_id")
   @@index([transporter_id], map: "IX_clients_transporter_id")
 }
@@ -268,6 +271,7 @@ model payment_terms {
   created_by                 Int?
   updated_by                 Int?
   category_payment_discounts category_payment_discounts[]
+  clients                    clients[]
   invoices                   invoices[]
   sales_orders               sales_orders[]
 

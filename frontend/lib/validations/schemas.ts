@@ -54,6 +54,7 @@ export const createClientSchema = z.object({
   transporterId: z.coerce.number().int().optional().nullable(),
   sellerId: z.coerce.number().int().optional().nullable(),
   creditLimit: z.coerce.number().min(0).optional().nullable(),
+  paymentTermId: z.coerce.number().int().min(1, 'Debe seleccionar una condición de pago'),
 });
 
 export const updateClientSchema = createClientSchema.partial().required({ code: true, businessName: true, taxConditionId: true, operationTypeId: true });
