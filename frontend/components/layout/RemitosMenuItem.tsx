@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { Truck, X, AlertCircle } from 'lucide-react';
+import { Truck, X } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -13,23 +13,12 @@ import {
 } from '@/components/ui/tooltip';
 import { useQuickDeliveryNoteTabs } from '@/lib/hooks/useQuickDeliveryNoteTabs';
 import { toast } from 'sonner';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 
 export default function RemitosMenuItem() {
   const pathname = usePathname();
   const router = useRouter();
   const { tabs, removeTab, activeTabId, setActiveTab } = useQuickDeliveryNoteTabs();
   const [isExpanded, setIsExpanded] = useState(true);
-  const [tabToRemove, setTabToRemove] = useState<string | null>(null);
 
   const isActive = pathname === '/dashboard/delivery-notes' || pathname.startsWith('/dashboard/delivery-notes/');
   const isDeliveryNoteDetailPage = pathname.match(/^\/dashboard\/delivery-notes\/\d+$/);
@@ -44,10 +33,7 @@ export default function RemitosMenuItem() {
 
   const handleRemoveTab = (e: React.MouseEvent, tabId: string) => {
     e.stopPropagation();
-    setTabToRemove(tabId);
-  };
-
-  const removeTabImmediate = (tabId: string) => {
+    
     const tab = tabs.find(t => t.id === tabId);
     removeTab(tabId);
     toast.success('Remito cerrado', {
@@ -60,15 +46,6 @@ export default function RemitosMenuItem() {
       router.push('/dashboard/delivery-notes');
     }
   };
-
-  const handleConfirmRemove = () => {
-    if (tabToRemove) {
-      removeTabImmediate(tabToRemove);
-      setTabToRemove(null);
-    }
-  };
-
-  const tabToRemoveData = tabs.find(t => t.id === tabToRemove);
 
   return (
     <>
@@ -135,32 +112,6 @@ export default function RemitosMenuItem() {
           </div>
         )}
       </div>
-
-      {/* Confirmation Dialog */}
-      <AlertDialog open={!!tabToRemove} onOpenChange={(open) => !open && setTabToRemove(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-orange-500" />
-              ¿Cerrar remito?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              ¿Estás seguro de que deseas cerrar el remito{' '}
-              <span className="font-semibold">{tabToRemoveData?.deliveryNumber}</span> de{' '}
-              <span className="font-semibold">{tabToRemoveData?.clientName}</span>?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmRemove}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Sí, cerrar remito
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }

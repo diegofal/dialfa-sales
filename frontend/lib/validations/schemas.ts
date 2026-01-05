@@ -18,8 +18,6 @@ export const createArticleSchema = z.object({
   size: z.string().max(100).optional().nullable(),
   supplierId: z.coerce.number().int().optional().nullable(),
   weightKg: z.coerce.number().optional().nullable(),
-  lastPurchasePrice: z.coerce.number().min(0, 'El último precio de compra no puede ser negativo').optional().nullable(),
-  cifPercentage: z.coerce.number().min(0).max(100, 'El porcentaje CIF debe estar entre 0 y 100').optional().nullable(),
   historicalPrice1: z.coerce.number().optional().nullable(),
   location: z.string().max(200).optional().nullable(),
   notes: z.string().max(1000).optional().nullable(),
@@ -42,7 +40,7 @@ export const updateCategorySchema = createCategorySchema.partial().required({ co
 export const createClientSchema = z.object({
   code: z.string().min(1, 'El código es requerido').max(20, 'El código no puede exceder 20 caracteres'),
   businessName: z.string().min(1, 'La razón social es requerida').max(200, 'La razón social no puede exceder 200 caracteres'),
-  cuit: z.string().max(13).optional().nullable(), // 11 digits + 2 hyphens = 13 characters max
+  cuit: z.string().max(11).optional().nullable(),
   taxConditionId: z.coerce.number().int().min(1, 'Debe seleccionar una condición de IVA'),
   address: z.string().max(200).optional().nullable(),
   city: z.string().max(100).optional().nullable(),
@@ -55,6 +53,8 @@ export const createClientSchema = z.object({
   sellerId: z.coerce.number().int().optional().nullable(),
   creditLimit: z.coerce.number().min(0).optional().nullable(),
   paymentTermId: z.coerce.number().int().min(1, 'Debe seleccionar una condición de pago'),
+  currentBalance: z.coerce.number().default(0),
+  isActive: z.boolean().optional().default(true),
 });
 
 export const updateClientSchema = createClientSchema.partial().required({ code: true, businessName: true, taxConditionId: true, operationTypeId: true });
@@ -73,7 +73,7 @@ export const createSalesOrderSchema = z.object({
   orderDate: z.coerce.date().optional(),
   deliveryDate: z.coerce.date().optional().nullable(),
   status: z.string().optional().default('PENDING'),
-  paymentTermId: z.coerce.number().int().optional().nullable(),
+  paymentTermId: z.coerce.number().int().min(1, 'Debe seleccionar una condición de pago'),
   specialDiscountPercent: z.coerce.number().min(0).max(100).default(0),
   notes: z.string().optional().nullable(),
   items: z.array(salesOrderItemSchema).min(1, 'Order must have at least one item'),
@@ -85,7 +85,6 @@ export const updateSalesOrderSchema = createSalesOrderSchema.partial().required(
 export const createInvoiceSchema = z.object({
   salesOrderId: z.coerce.bigint().refine(val => val > 0, 'Sales Order ID is required'),
   invoiceDate: z.coerce.date().optional().default(() => new Date()),
-  paymentTermId: z.coerce.number().int().optional().nullable(),
   usdExchangeRate: z.coerce.number().min(0).optional().nullable(),
   isCreditNote: z.boolean().optional().default(false),
   isQuotation: z.boolean().optional().default(false),

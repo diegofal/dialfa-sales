@@ -1,7 +1,7 @@
 'use client';
 
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Printer, XCircle, Eye, Save, X as XIcon, Edit2, Trash2 } from 'lucide-react';
+import { ArrowLeft, Printer, XCircle, Eye, Save, X as XIcon, Edit2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -15,10 +15,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useInvoice, useCancelInvoice, usePrintInvoice, useUpdateInvoiceExchangeRate, useInvoiceStockMovements, useDeleteInvoice, useUpdateInvoiceItems } from '@/lib/hooks/useInvoices';
+import { useInvoice, useCancelInvoice, usePrintInvoice, useUpdateInvoiceExchangeRate } from '@/lib/hooks/useInvoices';
 import { useQuickInvoiceTabs } from '@/lib/hooks/useQuickInvoiceTabs';
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { toast } from 'sonner';
+import { useState, useEffect } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,7 +28,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { formatCuit } from '@/lib/utils';
 
 export default function InvoiceDetailPage() {
   const params = useParams();
@@ -37,75 +35,14 @@ export default function InvoiceDetailPage() {
   const invoiceId = Number(params.id);
 
   const { data: invoice, isLoading } = useInvoice(invoiceId);
-  const { data: stockMovements, isLoading: isLoadingMovements } = useInvoiceStockMovements(invoiceId);
   const cancelInvoiceMutation = useCancelInvoice();
-  const deleteInvoiceMutation = useDeleteInvoice();
   const printInvoiceMutation = usePrintInvoice();
   const updateExchangeRateMutation = useUpdateInvoiceExchangeRate();
-  const updateInvoiceItemsMutation = useUpdateInvoiceItems();
   const { addInvoiceTab } = useQuickInvoiceTabs();
 
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [isEditingExchangeRate, setIsEditingExchangeRate] = useState(false);
   const [editedExchangeRate, setEditedExchangeRate] = useState('');
-  const [editedItems, setEditedItems] = useState<Array<{id: number, discountPercent: number}>>([]);
-  const saveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-
-  // Función para guardar items (debe estar antes de los returns condicionales)
-  const handleSaveItems = useCallback(() => {
-    if (!invoice) return;
-    
-    // Comparar con valores originales - solo guardar si hay cambios REALES
-    const hasRealChanges = editedItems.some(editedItem => {
-      const originalItem = invoice.items.find(i => i.id === editedItem.id);
-      return originalItem && originalItem.discountPercent !== editedItem.discountPercent;
-    });
-
-    if (!hasRealChanges || editedItems.length === 0) {
-      return;
-    }
-
-    // Enviar TODOS los items con sus descuentos actuales (mezclando editados y originales)
-    const allItemsWithDiscounts = invoice.items.map(item => {
-      const editedItem = editedItems.find(e => e.id === item.id);
-      return {
-        id: item.id,
-        discountPercent: editedItem ? editedItem.discountPercent : item.discountPercent,
-      };
-    });
-
-    updateInvoiceItemsMutation.mutate(
-      { id: invoiceId, items: allItemsWithDiscounts },
-      {
-        onSuccess: () => {
-          // Limpiar items editados después de guardar
-          setEditedItems([]);
-        },
-      }
-    );
-  }, [editedItems, invoiceId, invoice, updateInvoiceItemsMutation]);
-
-  // Debounce para guardar automáticamente después de 1 segundo
-  useEffect(() => {
-    if (editedItems.length === 0) return;
-
-    // Limpiar el timeout anterior
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-
-    // Crear nuevo timeout
-    saveTimeoutRef.current = setTimeout(() => {
-      handleSaveItems();
-    }, 1000); // 1 segundo de delay
-
-    // Cleanup
-    return () => {
-      if (saveTimeoutRef.current) {
-        clearTimeout(saveTimeoutRef.current);
-      }
-    };
-  }, [editedItems, handleSaveItems]);
 
   // Add invoice to tabs when loaded
   useEffect(() => {
@@ -114,11 +51,6 @@ export default function InvoiceDetailPage() {
       if (invoice.usdExchangeRate) {
         setEditedExchangeRate(invoice.usdExchangeRate.toString());
       }
-      // Cargar descuentos editables
-      setEditedItems(invoice.items.map(item => ({
-        id: item.id,
-        discountPercent: item.discountPercent
-      })));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [invoice?.id]); // Only depend on invoice.id to avoid infinite loop
@@ -176,15 +108,6 @@ export default function InvoiceDetailPage() {
     );
   };
 
-  const handleDelete = () => {
-    deleteInvoiceMutation.mutate(invoiceId, {
-      onSuccess: () => {
-        setShowCancelDialog(false);
-        router.push('/dashboard/invoices');
-      },
-    });
-  };
-
   const handlePrint = () => {
     printInvoiceMutation.mutate(invoiceId);
   };
@@ -210,48 +133,6 @@ export default function InvoiceDetailPage() {
     if (invoice?.usdExchangeRate) {
       setEditedExchangeRate(invoice.usdExchangeRate.toString());
     }
-  };
-
-  const formatRelativeDate = (dateString: string) => {
-    try {
-      const date = new Date(dateString);
-      const now = new Date();
-      const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-      
-      if (diffInSeconds < 60) return 'hace un momento';
-      if (diffInSeconds < 3600) return `hace ${Math.floor(diffInSeconds / 60)} minutos`;
-      if (diffInSeconds < 86400) return `hace ${Math.floor(diffInSeconds / 3600)} horas`;
-      if (diffInSeconds < 604800) return `hace ${Math.floor(diffInSeconds / 86400)} días`;
-      return formatDate(dateString);
-    } catch {
-      return dateString;
-    }
-  };
-
-  const getMovementTypeBadge = (movementType: number) => {
-    switch (movementType) {
-      case 1: // Compra (CREDIT)
-        return <Badge variant="default" className="bg-green-600">Compra</Badge>;
-      case 2: // Venta (DEBIT)
-        return <Badge variant="destructive">Venta</Badge>;
-      case 3: // Devolución
-        return <Badge variant="secondary" className="bg-blue-600 text-white">Devolución</Badge>;
-      case 4: // Ajuste
-        return <Badge variant="secondary" className="bg-yellow-600">Ajuste</Badge>;
-      case 5: // Transferencia
-        return <Badge variant="outline">Transferencia</Badge>;
-      default:
-        return <Badge variant="secondary">Otro</Badge>;
-    }
-  };
-
-  const formatQuantity = (quantity: number) => {
-    const isPositive = quantity > 0;
-    return (
-      <span className={isPositive ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
-        {isPositive ? '+' : ''}{quantity}
-      </span>
-    );
   };
 
   const canEditExchangeRate = invoice && !invoice.isPrinted && !invoice.isCancelled;
@@ -287,7 +168,7 @@ export default function InvoiceDetailPage() {
             </div>
             <div>
               <p className="text-sm text-muted-foreground">CUIT</p>
-              <p className="font-medium font-mono">{formatCuit(invoice.clientCuit)}</p>
+              <p className="font-medium">{invoice.clientCuit}</p>
             </div>
             <div>
               <p className="text-sm text-muted-foreground">Condición IVA</p>
@@ -305,22 +186,6 @@ export default function InvoiceDetailPage() {
             <div>
               <p className="text-sm text-muted-foreground">Pedido N°</p>
               <p className="font-medium">{invoice.salesOrderNumber}</p>
-            </div>
-
-            <div>
-              <p className="text-sm text-muted-foreground">Condición de Pago</p>
-              <p className="font-medium">
-                {invoice.paymentTermName ? (
-                  <Badge variant="outline" className="text-base font-medium">
-                    {invoice.paymentTermName}
-                  </Badge>
-                ) : (
-                  <span className="text-muted-foreground">No especificada</span>
-                )}
-              </p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Define los descuentos aplicables por categoría
-              </p>
             </div>
 
             <div>
@@ -379,6 +244,10 @@ export default function InvoiceDetailPage() {
               )}
             </div>
 
+            <div>
+              <p className="text-sm text-muted-foreground">Descuento Especial</p>
+              <p className="font-medium">{invoice.specialDiscountPercent}%</p>
+            </div>
             {invoice.notes && (
               <div>
                 <p className="text-sm text-muted-foreground">Observaciones</p>
@@ -419,36 +288,7 @@ export default function InvoiceDetailPage() {
                       (USD {item.unitPriceUsd.toFixed(2)})
                     </span>
                   </TableCell>
-                  <TableCell className="text-right">
-                    {canEditExchangeRate ? (
-                      <div className="flex items-center justify-end gap-1">
-                        <Input
-                          type="number"
-                          step="0.01"
-                          min="0"
-                          max="100"
-                          value={editedItems.find(i => i.id === item.id)?.discountPercent ?? item.discountPercent}
-                          onChange={(e) => {
-                            const newDiscount = parseFloat(e.target.value) || 0;
-                            setEditedItems(items => {
-                              const existingIndex = items.findIndex(i => i.id === item.id);
-                              if (existingIndex >= 0) {
-                                return items.map(i => 
-                                  i.id === item.id ? { ...i, discountPercent: newDiscount } : i
-                                );
-                              } else {
-                                return [...items, { id: item.id, discountPercent: newDiscount }];
-                              }
-                            });
-                          }}
-                          className="w-16 h-8 text-right text-sm"
-                        />
-                        <span className="text-xs text-muted-foreground">%</span>
-                      </div>
-                    ) : (
-                      `${item.discountPercent}%`
-                    )}
-                  </TableCell>
+                  <TableCell className="text-right">{item.discountPercent}%</TableCell>
                   <TableCell className="text-right font-medium">
                     {formatCurrency(item.lineTotal)}
                   </TableCell>
@@ -505,70 +345,13 @@ export default function InvoiceDetailPage() {
           <CardHeader>
             <CardTitle>Movimientos de Stock</CardTitle>
             <CardDescription>
-              {stockMovements && stockMovements.length > 0
-                ? `${stockMovements.length} movimiento(s) de inventario asociados a esta factura`
-                : 'Movimientos de inventario asociados a esta factura'}
+              Movimientos de inventario asociados a esta factura
             </CardDescription>
           </CardHeader>
           <CardContent>
-            {isLoadingMovements ? (
-              <div className="text-center py-4">
-                <p className="text-sm text-muted-foreground">Cargando movimientos...</p>
-              </div>
-            ) : stockMovements && stockMovements.length > 0 ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Fecha</TableHead>
-                    <TableHead>Artículo</TableHead>
-                    <TableHead>Tipo</TableHead>
-                    <TableHead className="text-right">Cantidad</TableHead>
-                    <TableHead>Referencia</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {stockMovements.map((movement) => (
-                    <TableRow key={movement.id}>
-                      <TableCell>
-                        <div className="flex flex-col">
-                          <span className="text-sm">
-                            {formatRelativeDate(movement.movementDate)}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {formatDate(movement.movementDate)}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium text-sm">{movement.articleCode}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {movement.articleDescription}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        {getMovementTypeBadge(movement.movementType)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {formatQuantity(movement.quantity)}
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm">
-                          {movement.referenceDocument || '-'}
-                        </span>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            ) : (
-              <div className="text-center py-4">
-                <p className="text-sm text-muted-foreground">
-                  No hay movimientos de stock registrados para esta factura
-                </p>
-              </div>
-            )}
+            <p className="text-sm text-muted-foreground text-center py-4">
+              Sección de movimientos de stock - próximamente con datos reales de la API
+            </p>
           </CardContent>
         </Card>
       )}
@@ -589,19 +372,9 @@ export default function InvoiceDetailPage() {
                 <Button
                   variant="outline"
                   onClick={() => setShowCancelDialog(true)}
-                  className={!invoice.isPrinted ? "text-destructive hover:text-destructive" : ""}
                 >
-                  {invoice.isPrinted ? (
-                    <>
-                      <XCircle className="mr-2 h-4 w-4" />
-                      Cancelar Factura
-                    </>
-                  ) : (
-                    <>
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Eliminar Factura
-                    </>
-                  )}
+                  <XCircle className="mr-2 h-4 w-4" />
+                  Cancelar Factura
                 </Button>
               )}
             </div>
@@ -631,22 +404,15 @@ export default function InvoiceDetailPage() {
         </div>
       </div>
 
-      {/* Cancel/Delete Dialog */}
+      {/* Cancel Dialog */}
       <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              {invoice.isPrinted ? '¿Cancelar factura?' : '¿Eliminar factura?'}
-            </AlertDialogTitle>
+            <AlertDialogTitle>¿Cancelar factura?</AlertDialogTitle>
             <AlertDialogDescription>
-              {invoice.isPrinted ? (
-                <>
-                  Esta acción marcará la factura como CANCELADA y se restaurará el stock automáticamente.
-                </>
-              ) : (
-                <>
-                  Esta acción eliminará la factura permanentemente. Como la factura no ha sido impresa, no hay cambios en el stock que revertir.
-                </>
+              Esta acción marcará la factura como CANCELADA.
+              {invoice?.isPrinted && (
+                <> Como la factura está impresa, se restaurará el stock automáticamente.</>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -655,15 +421,10 @@ export default function InvoiceDetailPage() {
               No, volver
             </AlertDialogCancel>
             <AlertDialogAction
-              onClick={invoice.isPrinted ? handleCancel : handleDelete}
-              disabled={cancelInvoiceMutation.isPending || deleteInvoiceMutation.isPending}
-              className={!invoice.isPrinted ? "bg-destructive text-destructive-foreground hover:bg-destructive/90" : ""}
+              onClick={handleCancel}
+              disabled={cancelInvoiceMutation.isPending}
             >
-              {invoice.isPrinted ? (
-                cancelInvoiceMutation.isPending ? 'Cancelando...' : 'Sí, cancelar factura'
-              ) : (
-                deleteInvoiceMutation.isPending ? 'Eliminando...' : 'Sí, eliminar factura'
-              )}
+              {cancelInvoiceMutation.isPending ? 'Cancelando...' : 'Sí, cancelar factura'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

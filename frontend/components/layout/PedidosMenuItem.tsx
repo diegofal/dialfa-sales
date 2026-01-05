@@ -4,7 +4,7 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { cn } from '@/lib/utils';
-import { ShoppingCart, ChevronDown, ChevronRight, X, AlertCircle } from 'lucide-react';
+import { ShoppingCart, ChevronDown, ChevronRight, X } from 'lucide-react';
 import {
   Tooltip,
   TooltipContent,
@@ -13,23 +13,12 @@ import {
 } from '@/components/ui/tooltip';
 import { useQuickCartTabs } from '@/lib/hooks/useQuickCartTabs';
 import { toast } from 'sonner';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
 
 export default function PedidosMenuItem() {
   const pathname = usePathname();
   const router = useRouter();
   const { tabs, removeTab, activeTabId, setActiveTab } = useQuickCartTabs();
   const [isExpanded, setIsExpanded] = useState(true);
-  const [tabToRemove, setTabToRemove] = useState<string | null>(null);
 
   console.log('PedidosMenuItem tabs:', tabs);
 
@@ -56,20 +45,8 @@ export default function PedidosMenuItem() {
   const handleRemoveTab = (e: React.MouseEvent, tabId: string) => {
     e.stopPropagation();
     
-    const tab = tabs.find(t => t.id === tabId);
-    
-    // If tab has items, show confirmation dialog
-    if (tab && tab.items.length > 0) {
-      setTabToRemove(tabId);
-    } else {
-      // If empty, remove immediately
-      removeTabImmediate(tabId);
-    }
-  };
-
-  const removeTabImmediate = (tabId: string) => {
     removeTab(tabId);
-    toast.success('Pedido eliminado', {
+    toast.success('Pedido cerrado', {
       duration: 2000,
       position: 'top-center'
     });
@@ -79,15 +56,6 @@ export default function PedidosMenuItem() {
       router.push('/dashboard/sales-orders');
     }
   };
-
-  const handleConfirmRemove = () => {
-    if (tabToRemove) {
-      removeTabImmediate(tabToRemove);
-      setTabToRemove(null);
-    }
-  };
-
-  const tabToRemoveData = tabs.find(t => t.id === tabToRemove);
 
   return (
     <>
@@ -169,33 +137,6 @@ export default function PedidosMenuItem() {
           </div>
         )}
       </div>
-
-      {/* Confirmation Dialog */}
-      <AlertDialog open={!!tabToRemove} onOpenChange={(open) => !open && setTabToRemove(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-orange-500" />
-              ¿Cerrar pedido?
-            </AlertDialogTitle>
-            <AlertDialogDescription>
-              El pedido <span className="font-semibold">{tabToRemoveData?.clientName || tabToRemoveData?.name}</span> tiene{' '}
-              <span className="font-semibold">{tabToRemoveData?.items.length || 0} artículo(s)</span>.
-              <br /><br />
-              ¿Estás seguro de que deseas cerrar este pedido? Esta acción no se puede deshacer.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleConfirmRemove}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              Sí, cerrar pedido
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </>
   );
 }

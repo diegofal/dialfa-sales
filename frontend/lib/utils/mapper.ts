@@ -3,10 +3,7 @@
  */
 export function mapArticleToDTO(article: unknown) {
   const a = article as Record<string, unknown>;
-  const categories = a.categories as { 
-    name?: string;
-    default_discount_percent?: unknown;
-  } | undefined;
+  const categories = a.categories as { name?: string } | undefined;
   
   return {
     id: parseInt(String((a.id as bigint | number))),
@@ -14,9 +11,6 @@ export function mapArticleToDTO(article: unknown) {
     description: a.description as string,
     categoryId: parseInt(String((a.category_id as bigint | number))),
     categoryName: categories?.name || '',
-    categoryDefaultDiscount: categories?.default_discount_percent 
-      ? parseFloat(String(categories.default_discount_percent))
-      : 0,
     unitPrice: parseFloat(String(a.unit_price)),
     stock: parseFloat(String(a.stock)),
     minimumStock: parseFloat(String(a.minimum_stock)),
@@ -32,8 +26,6 @@ export function mapArticleToDTO(article: unknown) {
     thickness: a.thickness as string | null,
     type: a.type as string | null,
     weightKg: a.weight_kg ? parseFloat(String(a.weight_kg)) : null,
-    lastPurchasePrice: a.last_purchase_price ? parseFloat(String(a.last_purchase_price)) : null,
-    cifPercentage: a.cif_percentage ? parseFloat(String(a.cif_percentage)) : null,
     isActive: a.is_active as boolean,
     createdAt: a.created_at as Date,
     updatedAt: a.updated_at as Date,
@@ -45,7 +37,6 @@ export function mapArticleToDTO(article: unknown) {
  */
 export function mapCategoryToDTO(category: unknown) {
   const c = category as Record<string, unknown>;
-  const articles = c.articles as unknown[] | undefined;
   
   return {
     id: parseInt(String((c.id as bigint | number))),
@@ -54,8 +45,6 @@ export function mapCategoryToDTO(category: unknown) {
     description: c.description as string | null,
     defaultDiscountPercent: parseFloat(String(c.default_discount_percent)),
     isActive: c.is_active as boolean,
-    isDeleted: !!c.deleted_at,
-    articlesCount: articles?.length || 0,
     createdAt: c.created_at as Date,
     updatedAt: c.updated_at as Date,
   };
@@ -70,6 +59,7 @@ export function mapClientToDTO(client: unknown) {
   const provinces = c.provinces as { name?: string } | undefined;
   const operationTypes = c.operation_types as { name?: string } | undefined;
   const transporters = c.transporters as { name?: string } | undefined;
+  const paymentTerms = c.payment_terms as { name?: string } | undefined;
   
   return {
     id: parseInt(String((c.id as bigint | number))),
@@ -89,9 +79,12 @@ export function mapClientToDTO(client: unknown) {
     operationTypeName: operationTypes?.name || '',
     transporterId: c.transporter_id as bigint | null,
     transporterName: transporters?.name || '',
+    paymentTermId: c.payment_term_id as number,
+    paymentTermName: paymentTerms?.name || null,
     creditLimit: c.credit_limit ? parseFloat(String(c.credit_limit)) : null,
+    currentBalance: parseFloat(String(c.current_balance)),
+    isActive: c.is_active as boolean,
     sellerId: c.seller_id as bigint | null,
-    isActive: c.is_active !== undefined ? Boolean(c.is_active) : true,
     createdAt: (c.created_at as Date).toISOString(),
     updatedAt: (c.updated_at as Date).toISOString(),
   };
@@ -102,7 +95,7 @@ export function mapClientToDTO(client: unknown) {
  */
 export function mapSalesOrderToDTO(order: unknown) {
   const o = order as Record<string, unknown>;
-  const clients = o.clients as { business_name?: string } | undefined;
+  const clients = o.clients as { business_name?: string; cuit?: string } | undefined;
   const paymentTerms = o.payment_terms as { name?: string } | undefined;
   const salesOrderItems = (o.sales_order_items as Array<Record<string, unknown>>) || [];
   const invoices = (o.invoices as Array<Record<string, unknown>>) || [];
@@ -116,15 +109,17 @@ export function mapSalesOrderToDTO(order: unknown) {
     id: parseInt(String((o.id as bigint | number))),
     clientId: parseInt(String((o.client_id as bigint | number))),
     clientBusinessName: clients?.business_name || '',
+    clientCuit: clients?.cuit || '',
     orderNumber: o.order_number as string,
     orderDate: o.order_date as Date,
     deliveryDate: o.delivery_date as Date | null,
     status: o.status as string,
-    paymentTermId: o.payment_term_id as number | null,
+    paymentTermId: o.payment_term_id ? parseInt(String(o.payment_term_id)) : null,
     paymentTermName: paymentTerms?.name || null,
     total: parseFloat(String(o.total)),
     notes: o.notes as string | null,
     specialDiscountPercent: parseFloat(String(o.special_discount_percent)),
+    itemsCount: salesOrderItems.length,
     isDeleted: !!o.deleted_at,
     // For permission calculations
     hasInvoice: !!invoice && !(invoice.is_cancelled as boolean),
@@ -179,7 +174,6 @@ export function mapInvoiceToDTO(invoice: unknown) {
     };
     special_discount_percent?: number;
   } | undefined;
-  const paymentTerms = i.payment_terms as { name?: string } | undefined;
   
   // Use invoice_items instead of sales_order_items
   const invoiceItems = (i.invoice_items || []) as Array<Record<string, unknown>>;
@@ -194,8 +188,6 @@ export function mapInvoiceToDTO(invoice: unknown) {
     clientCuit: salesOrders?.clients?.cuit || '',
     clientTaxCondition: salesOrders?.clients?.tax_conditions?.name || '',
     invoiceDate: i.invoice_date as Date,
-    paymentTermId: i.payment_term_id as number | null,
-    paymentTermName: paymentTerms?.name || null,
     usdExchangeRate: i.usd_exchange_rate ? parseFloat(String(i.usd_exchange_rate)) : null,
     specialDiscountPercent: salesOrders?.special_discount_percent ? parseFloat(String(salesOrders.special_discount_percent)) : 0,
     netAmount: parseFloat(String(i.net_amount)),

@@ -81,6 +81,7 @@ export interface CreateSalesOrderItemRequest {
 
 export interface UpdateSalesOrderRequest {
   clientId: number;
+  paymentTermId?: number | null;
   notes?: string;
   items: UpdateSalesOrderItemRequest[];
 }

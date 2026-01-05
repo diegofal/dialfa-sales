@@ -38,8 +38,16 @@ import {
 } from '@/components/ui/alert-dialog';
 import { formatCuit } from '@/lib/utils';
 import { usePaymentTerms } from '@/lib/hooks/usePaymentTerms';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useClient, useUpdateClient } from '@/lib/hooks/useClients';
+import { useClient } from '@/lib/hooks/useClients';
+import { useFormValidation, validators } from '@/hooks/useFormValidation';
+import { FormField } from '@/components/ui/form-field';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 interface OrderItemFormData {
   articleId: number;
@@ -102,10 +110,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     addOrUpdateOrderTab,
   } = useQuickCartTabs();
 
-  const { data: paymentTerms } = usePaymentTerms(true);
-  const updateClientMutation = useUpdateClient();
   const [notes, setNotes] = useState('');
-  const [paymentTermId, setPaymentTermId] = useState<number | null>(null);
   const [loadedFromCart, setLoadedFromCart] = useState(false);
   const [loadedOrderId, setLoadedOrderId] = useState<number | null>(null);
   const [currentTabId, setCurrentTabId] = useState<string | null>(null);
@@ -117,6 +122,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   const [localItems, setLocalItems] = useState<QuickCartItem[]>([]);
   const [localClientId, setLocalClientId] = useState<number | undefined>(undefined);
   const [localClientName, setLocalClientName] = useState<string>('');
+  const [paymentTermId, setPaymentTermId] = useState<number | undefined>(undefined);
 
   // Article search state
   const [articleCode, setArticleCode] = useState('');
@@ -148,6 +154,18 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false);
   const [unsavedChangesAction, setUnsavedChangesAction] = useState<'save' | 'discard' | null>(null);
 
+  // Load payment terms for dropdown
+  const { data: paymentTermsResult } = usePaymentTerms({ activeOnly: true });
+  const paymentTerms = paymentTermsResult?.data || [];
+
+  // Form validation
+  const { validate, hasError, getError, clearError, clearAllErrors } = useFormValidation([
+    {
+      field: 'paymentTermId',
+      validate: validators.required('Debe seleccionar una condición de pago'),
+    },
+  ]);
+
   // Track unprinted documents that will be regenerated
   const [hasUnprintedDocs, setHasUnprintedDocs] = useState<{
     invoice: boolean;
@@ -177,7 +195,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   const clientId = isEditMode ? localClientId : currentTab?.clientId;
   const clientName = isEditMode ? localClientName : (currentTab?.clientName || '');
 
-  // Load client data to get payment term
+  // Load client data to fetch payment term (use clientId which works in both modes)
   const { data: clientData } = useClient(clientId || 0);
 
   // Track changes for unsaved changes detection
@@ -202,13 +220,6 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       setHasUnsavedChanges(hasChanges);
     }
   }, [isEditMode, existingOrder, loadedOrderId, items, clientId, notes]);
-
-  // Load payment term from client when client changes
-  useEffect(() => {
-    if (clientData?.paymentTermId) {
-      setPaymentTermId(clientData.paymentTermId);
-    }
-  }, [clientData]);
 
   // Detect unprinted documents that will be regenerated on save
   useEffect(() => {
@@ -270,12 +281,35 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       setLocalClientName(existingOrder.clientBusinessName);
       setCurrentTabId(tabId);
       setNotes(existingOrder.notes || '');
-      setPaymentTermId(existingOrder.paymentTermId || null);
+      setPaymentTermId(existingOrder.paymentTermId || undefined);
 
       setLoadedFromCart(true);
       setLoadedOrderId(existingOrder.id);
     }
   }, [isEditMode, existingOrder, loadedOrderId, addOrUpdateOrderTab]);
+
+  // Load client data and set paymentTermId when client is selected or changed
+  useEffect(() => {
+    if (clientData && !isLoadingOrder) {
+      // In edit mode, don't override the payment term from the loaded order
+      // The order's payment term should take precedence
+      if (isEditMode) {
+        // Only set from client if we're in edit mode but haven't loaded the order yet
+        // AND we don't have a paymentTermId
+        if (!loadedOrderId && !paymentTermId && clientData.paymentTermId) {
+          setPaymentTermId(clientData.paymentTermId);
+          clearError('paymentTermId');
+        }
+        return;
+      }
+      
+      // In creation mode, always use the client's payment term
+      if (clientData.paymentTermId) {
+        setPaymentTermId(clientData.paymentTermId);
+        clearError('paymentTermId');
+      }
+    }
+  }, [clientData, isLoadingOrder, isEditMode, loadedOrderId, paymentTermId, clearError]);
 
   // Update currentTabId when activeTab changes (from sidebar clicks)
   useEffect(() => {
@@ -398,9 +432,41 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       // In edit mode, clear local state
       setLocalClientId(undefined);
       setLocalClientName('');
+      setPaymentTermId(undefined);
     } else if (currentTabId) {
       // In draft mode, clear QuickCart tab
       clearClient();
+      setPaymentTermId(undefined);
+    }
+  };
+
+  const handlePaymentTermChange = async (value: string) => {
+    const newPaymentTermId = Number(value);
+    setPaymentTermId(newPaymentTermId);
+    clearError('paymentTermId');
+
+    // Update client payment term if we have a selected client
+    if (clientId) {
+      try {
+        const response = await fetch(`/api/clients/${clientId}/payment-term`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paymentTermId: newPaymentTermId }),
+        });
+
+        if (!response.ok) {
+          const error = await response.json();
+          console.error('Error updating client payment term:', error);
+          toast.error('No se pudo actualizar la condición de pago del cliente');
+        } else {
+          toast.success('Condición de pago actualizada', {
+            duration: 2000,
+            position: 'top-center'
+          });
+        }
+      } catch (error) {
+        console.error('Error updating client payment term:', error);
+      }
     }
   };
 
@@ -614,6 +680,15 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   };
 
   const handleSubmit = async () => {
+    // Client-side validation
+    if (!validate({ paymentTermId })) {
+      toast.error('Debe seleccionar una condición de pago', {
+        duration: 3000,
+        position: 'top-center'
+      });
+      return;
+    }
+
     // Validation using the validation helper
     const validation = validateSalesOrder(
       clientId,
@@ -656,7 +731,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
 
       const requestData = {
         clientId,
-        paymentTermId: paymentTermId || undefined,
+        paymentTermId: paymentTermId,
         notes: notes || undefined,
         items: items.map((item) => ({
           articleId: item.article.id,
@@ -818,6 +893,31 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                     </Button>
                   )}
                 </div>
+
+                {/* Payment Term Field */}
+                <FormField
+                  label="Condición de Pago"
+                  required
+                  error={getError('paymentTermId')}
+                  htmlFor="paymentTermId"
+                >
+                  <Select
+                    value={paymentTermId?.toString()}
+                    onValueChange={handlePaymentTermChange}
+                    disabled={isReadOnly || !clientId}
+                  >
+                    <SelectTrigger id="paymentTermId">
+                      <SelectValue placeholder="Seleccionar condición de pago" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paymentTerms.map((term) => (
+                        <SelectItem key={term.id} value={term.id.toString()}>
+                          {term.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </FormField>
               </div>
             ) : (
               <ClientLookup onSelectClient={handleSelectClient} />
@@ -864,54 +964,6 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                 disabled={isReadOnly}
               />
             </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="paymentTerm">Condición de Pago *</Label>
-              <Select
-                value={paymentTermId?.toString() || undefined}
-                onValueChange={async (value) => {
-                  const newPaymentTermId = Number(value);
-                  setPaymentTermId(newPaymentTermId);
-                  
-                  // Update client's payment term
-                  if (clientId && clientData) {
-                    try {
-                      await updateClientMutation.mutateAsync({
-                        id: clientId,
-                        data: {
-                          code: clientData.code,
-                          businessName: clientData.businessName,
-                          taxConditionId: clientData.taxConditionId,
-                          operationTypeId: clientData.operationTypeId,
-                          paymentTermId: newPaymentTermId,
-                        }
-                      });
-                      toast.success('Condición de pago actualizada para el cliente', {
-                        duration: 2000,
-                        position: 'top-center'
-                      });
-                    } catch (error) {
-                      console.error('Error updating client payment term:', error);
-                    }
-                  }
-                }}
-                disabled={isReadOnly || !clientId}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar condición de pago" />
-                </SelectTrigger>
-                <SelectContent>
-                  {paymentTerms?.map((term) => (
-                    <SelectItem key={term.id} value={term.id.toString()}>
-                      {term.name} ({term.days} días)
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Se usará para aplicar descuentos y calcular vencimiento de factura
-              </p>
-            </div>
           </CardContent>
         </Card>
       </div>
@@ -939,7 +991,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                   onFocus={() => articleCode && setShowCodeResults(true)}
                   onBlur={() => setTimeout(() => setShowCodeResults(false), 200)}
                   placeholder="Buscar código o descripción..."
-                  className="pl-9 h-9"
+                  className="pl-9 uppercase h-9"
                 />
                 
                 {/* Search Results Dropdown */}
@@ -1041,7 +1093,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                                     setShowEditResults(true);
                                   }}
                                   onKeyDown={handleEditKeyDown}
-                                  className="h-8 text-xs font-mono"
+                                  className="h-8 text-xs font-mono uppercase"
                                   autoFocus
                                 />
                                 {showEditResults && editCode && editArticles.length > 0 && (

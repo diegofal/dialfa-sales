@@ -16,13 +16,22 @@ export interface PaymentTermFormData {
   isActive: boolean;
 }
 
-async function fetchPaymentTerms(): Promise<PaymentTerm[]> {
-  const response = await fetch('/api/payment-terms?activeOnly=true');
+interface UsePaymentTermsOptions {
+  activeOnly?: boolean;
+}
+
+interface PaymentTermsResponse {
+  data: PaymentTerm[];
+}
+
+async function fetchPaymentTerms(activeOnly = true): Promise<PaymentTermsResponse> {
+  const queryParam = activeOnly ? '?activeOnly=true' : '';
+  const response = await fetch(`/api/payment-terms${queryParam}`);
   if (!response.ok) {
     throw new Error('Failed to fetch payment terms');
   }
   const data = await response.json();
-  return data.data || [];
+  return data; // Return the full response which includes { data: [...] }
 }
 
 async function createPaymentTerm(data: PaymentTermFormData): Promise<PaymentTerm> {
@@ -66,10 +75,10 @@ async function deletePaymentTerm(id: number): Promise<void> {
   }
 }
 
-export function usePaymentTerms() {
+export function usePaymentTerms(options?: UsePaymentTermsOptions) {
   return useQuery({
-    queryKey: ['payment-terms'],
-    queryFn: fetchPaymentTerms,
+    queryKey: ['payment-terms', options?.activeOnly],
+    queryFn: () => fetchPaymentTerms(options?.activeOnly ?? true),
     staleTime: 5 * 60 * 1000, // 5 minutos
   });
 }

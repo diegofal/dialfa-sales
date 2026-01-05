@@ -20,6 +20,7 @@ export async function GET(
       where: { id },
       include: {
         clients: true,
+        payment_terms: true,
         sales_order_items: {
           include: {
             articles: true,
@@ -189,6 +190,7 @@ export async function PUT(
           where: { id },
           data: {
             client_id: validatedData.clientId,
+            payment_term_id: validatedData.paymentTermId,
             status: validatedData.status,
             special_discount_percent: validatedData.specialDiscountPercent,
             total: total,
