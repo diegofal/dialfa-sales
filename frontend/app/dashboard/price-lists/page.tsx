@@ -11,7 +11,7 @@ import { PriceListTable } from '@/components/priceLists/PriceListTable';
 import { PriceHistoryTable } from '@/components/priceLists/PriceHistoryTable';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Accordion,
@@ -79,20 +79,6 @@ export default function PriceListsPage() {
   const updatePricesMutation = useUpdatePrices();
   const { loadDraft, saveDraft, deleteDraft, isSaving } = usePriceImportDraft();
   
-  // Verificar permisos DESPUÉS de los hooks
-  if (!isAdmin()) {
-    return (
-      <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
-        <Alert variant="destructive" className="max-w-md">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>
-            No tienes permisos para acceder a esta página. Solo los administradores pueden ver y editar listas de precios.
-          </AlertDescription>
-        </Alert>
-      </div>
-    );
-  }
-
   // Cargar borrador guardado al montar el componente
   useEffect(() => {
     const loadSavedDraft = async () => {
@@ -107,6 +93,20 @@ export default function PriceListsPage() {
     
     loadSavedDraft();
   }, [loadDraft]);
+  
+  // Verificar permisos DESPUÉS de los hooks
+  if (!isAdmin()) {
+    return (
+      <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+        <Alert variant="destructive" className="max-w-md">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>
+            No tienes permisos para acceder a esta página. Solo los administradores pueden ver y editar listas de precios.
+          </AlertDescription>
+        </Alert>
+      </div>
+    );
+  }
 
   // Handlers
   const handlePriceChange = (articleId: number, newPrice: number) => {
@@ -137,7 +137,7 @@ export default function PriceListsPage() {
         notes: 'Actualización manual desde interfaz',
       });
       setEditingPrices(new Map());
-    } catch (error) {
+    } catch {
       // Error handling is done in the mutation
     }
   };
@@ -188,7 +188,7 @@ export default function PriceListsPage() {
       
       setProposedPrices(new Map()); // Limpiar precios propuestos
       toast.success('Precios actualizados exitosamente');
-    } catch (error) {
+    } catch {
       // Error ya manejado
     }
   };

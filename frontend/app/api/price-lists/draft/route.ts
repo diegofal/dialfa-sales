@@ -15,8 +15,12 @@ export async function GET(request: NextRequest) {
       return error || NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (!user?.userId) {
+      return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
+    }
+
     const draft = await prisma.price_import_drafts.findUnique({
-      where: { user_id: user!.userId },
+      where: { user_id: user.userId },
     });
 
     if (!draft) {
@@ -49,6 +53,10 @@ export async function POST(request: NextRequest) {
       return error || NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (!user?.userId) {
+      return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
+    }
+
     const body = await request.json();
     const validated = saveDraftSchema.parse(body);
     
@@ -56,9 +64,9 @@ export async function POST(request: NextRequest) {
 
     // Upsert: crea si no existe, actualiza si existe
     const draft = await prisma.price_import_drafts.upsert({
-      where: { user_id: user!.userId },
+      where: { user_id: user.userId },
       create: {
-        user_id: user!.userId,
+        user_id: user.userId,
         draft_data: validated.draftData,
         article_count: articleCount,
       },
@@ -97,12 +105,16 @@ export async function DELETE(request: NextRequest) {
       return error || NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    if (!user?.userId) {
+      return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
+    }
+
     await prisma.price_import_drafts.delete({
-      where: { user_id: user!.userId },
+      where: { user_id: user.userId },
     });
 
     return NextResponse.json({ success: true });
-  } catch (error) {
+  } catch {
     // Si no existe el borrador, no es un error
     return NextResponse.json({ success: true });
   }

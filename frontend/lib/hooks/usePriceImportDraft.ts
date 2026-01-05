@@ -1,14 +1,6 @@
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 
-interface DraftData {
-  id: number;
-  draftData: Record<string, number>;
-  articleCount: number;
-  createdAt: string;
-  updatedAt: string;
-}
-
 export function usePriceImportDraft() {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
