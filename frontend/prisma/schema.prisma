@@ -125,7 +125,7 @@ model clients {
   operation_type_id Int
   transporter_id    Int?
   credit_limit      Decimal?            @db.Decimal(18, 2)
-  payment_term_id   Int
+  payment_term_id   Int?
   created_at        DateTime            @db.Timestamptz(6)
   updated_at        DateTime            @db.Timestamptz(6)
   deleted_at        DateTime?           @db.Timestamptz(6)
