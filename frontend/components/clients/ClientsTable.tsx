@@ -101,14 +101,14 @@ export default function ClientsTable({
   const getClientStatusBadge = (status: ClientDto['clientStatus']) => {
     if (!status) return null;
     
-    const badgeConfig = {
+    const badgeConfig: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; label: string; className: string }> = {
       active: { variant: 'default' as const, label: 'Activo', className: 'bg-green-600 hover:bg-green-700' },
       slow_moving: { variant: 'secondary' as const, label: 'Lento', className: 'bg-yellow-600 hover:bg-yellow-700 text-white' },
       inactive: { variant: 'destructive' as const, label: 'Inactivo', className: '' },
       never_purchased: { variant: 'outline' as const, label: 'Sin Compras', className: '' },
     };
 
-    const config = badgeConfig[status];
+    const config = badgeConfig[status] || badgeConfig.never_purchased;
     return (
       <Badge variant={config.variant} className={config.className}>
         {config.label}
@@ -157,7 +157,7 @@ export default function ClientsTable({
               <SortableTableHead>Tendencia</SortableTableHead>
               <SortableTableHead>Clasificación</SortableTableHead>
               <SortableTableHead>Última Compra</SortableTableHead>
-              <SortableTableHead>Estado</SortableTableHead>
+              {/* <SortableTableHead>Estado</SortableTableHead> */}
               <TableHead className="text-right">Acciones</TableHead>
             </TableRow>
           </TableHeader>
@@ -241,11 +241,12 @@ export default function ClientsTable({
                       <span className="text-xs text-muted-foreground">Nunca</span>
                     )}
                   </TableCell>
-                  <TableCell>
+                  {/* Estado columna removida - isActive no existe en la tabla */}
+                  {/* <TableCell>
                     <Badge variant={client.isActive ? 'default' : 'secondary'}>
                       {client.isActive ? 'Activo' : 'Inactivo'}
                     </Badge>
-                  </TableCell>
+                  </TableCell> */}
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button

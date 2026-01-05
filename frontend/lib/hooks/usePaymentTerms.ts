@@ -1,20 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-
-export interface PaymentTerm {
-  id: number;
-  code: string;
-  name: string;
-  days: number;
-  isActive: boolean;
-}
-
-export interface PaymentTermFormData {
-  code: string;
-  name: string;
-  days: number;
-  isActive: boolean;
-}
+import { PaymentTerm, PaymentTermFormData } from '@/types/paymentTerm';
 
 interface UsePaymentTermsOptions {
   activeOnly?: boolean;
@@ -79,6 +65,7 @@ export function usePaymentTerms(options?: UsePaymentTermsOptions) {
   return useQuery({
     queryKey: ['payment-terms', options?.activeOnly],
     queryFn: () => fetchPaymentTerms(options?.activeOnly ?? true),
+    select: (response) => response.data, // Extract the data array
     staleTime: 5 * 60 * 1000, // 5 minutos
   });
 }

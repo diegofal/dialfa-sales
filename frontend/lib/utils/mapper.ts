@@ -174,6 +174,7 @@ export function mapInvoiceToDTO(invoice: unknown) {
     };
     special_discount_percent?: number;
   } | undefined;
+  const paymentTerms = i.payment_terms as { name?: string } | undefined;
   
   // Use invoice_items instead of sales_order_items
   const invoiceItems = (i.invoice_items || []) as Array<Record<string, unknown>>;
@@ -188,6 +189,8 @@ export function mapInvoiceToDTO(invoice: unknown) {
     clientCuit: salesOrders?.clients?.cuit || '',
     clientTaxCondition: salesOrders?.clients?.tax_conditions?.name || '',
     invoiceDate: i.invoice_date as Date,
+    paymentTermId: i.payment_term_id ? parseInt(String(i.payment_term_id)) : null,
+    paymentTermName: paymentTerms?.name || null,
     usdExchangeRate: i.usd_exchange_rate ? parseFloat(String(i.usd_exchange_rate)) : null,
     specialDiscountPercent: salesOrders?.special_discount_percent ? parseFloat(String(salesOrders.special_discount_percent)) : 0,
     netAmount: parseFloat(String(i.net_amount)),

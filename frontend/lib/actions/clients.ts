@@ -25,6 +25,9 @@ export async function createClient(data: CreateClientInput) {
       };
     }
 
+    // Si no se proporciona payment_term_id, usar 1 como default (Pago Contado)
+    const paymentTermId = validated.paymentTermId || 1;
+
     const client = await prisma.clients.create({
       data: {
         code: validated.code,
@@ -41,6 +44,7 @@ export async function createClient(data: CreateClientInput) {
         transporter_id: validated.transporterId,
         seller_id: validated.sellerId,
         credit_limit: validated.creditLimit,
+        payment_term_id: paymentTermId,
         created_at: new Date(),
         updated_at: new Date(),
       },

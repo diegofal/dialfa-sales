@@ -26,8 +26,6 @@ export interface ClientDto {
   phone: string | null;
   email: string | null;
   creditLimit: number | null;
-  currentBalance: number;
-  isActive: boolean;
   paymentTermId: number;
   paymentTermName: string | null;
   taxConditionName: string | null;
@@ -36,6 +34,15 @@ export interface ClientDto {
   transporterName: string | null;
   createdAt: string;
   updatedAt: string;
+  salesTrend?: number[];
+  salesTrendLabels?: string[];
+  clientStatus?: string;
+  daysSinceLastPurchase?: number | null;
+  lastPurchaseDate?: string | null;
+  rfmScore?: number | null;
+  lifetimeValue?: number | null;
+  avgOrderValue?: number | null;
+  totalOrders?: number | null;
 }
 
 export interface CreateClientRequest {
@@ -51,14 +58,13 @@ export interface CreateClientRequest {
   taxConditionId: number;
   operationTypeId: number;
   transporterId?: number;
+  sellerId?: number;
   creditLimit?: number;
-  currentBalance?: number;
-  paymentTermId: number;
+  paymentTermId?: number;
 }
 
 export interface UpdateClientRequest extends CreateClientRequest {
   id: number;
-  isActive: boolean;
 }
 
 export interface ApiError {

@@ -155,8 +155,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   const [unsavedChangesAction, setUnsavedChangesAction] = useState<'save' | 'discard' | null>(null);
 
   // Load payment terms for dropdown
-  const { data: paymentTermsResult } = usePaymentTerms({ activeOnly: true });
-  const paymentTerms = paymentTermsResult?.data || [];
+  const { data: paymentTerms } = usePaymentTerms({ activeOnly: true });
 
   // Form validation
   const { validate, hasError, getError, clearError, clearAllErrors } = useFormValidation([
@@ -303,20 +302,26 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
         return;
       }
       
-      // In creation mode, always use the client's payment term
+      // In creation mode, ALWAYS use the client's payment term
+      // This ensures it updates when switching tabs or clients
       if (clientData.paymentTermId) {
         setPaymentTermId(clientData.paymentTermId);
         clearError('paymentTermId');
       }
     }
-  }, [clientData, isLoadingOrder, isEditMode, loadedOrderId, paymentTermId, clearError]);
+  }, [clientData, isLoadingOrder, isEditMode, loadedOrderId, clearError]);
 
   // Update currentTabId when activeTab changes (from sidebar clicks)
   useEffect(() => {
     if (fromQuickCart && activeTab && activeTab.id && (!currentTabId || activeTab.id !== currentTabId)) {
+      // When switching tabs in creation mode, reset paymentTermId
+      // This ensures it reloads from the new client
+      if (!isEditMode) {
+        setPaymentTermId(undefined);
+      }
       setCurrentTabId(activeTab.id);
     }
-  }, [activeTab, fromQuickCart, currentTabId]);
+  }, [activeTab, fromQuickCart, currentTabId, isEditMode]);
 
   // Load data from quick cart if coming from there
   useEffect(() => {
@@ -910,7 +915,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                       <SelectValue placeholder="Seleccionar condición de pago" />
                     </SelectTrigger>
                     <SelectContent>
-                      {paymentTerms.map((term) => (
+                      {paymentTerms?.map((term) => (
                         <SelectItem key={term.id} value={term.id.toString()}>
                           {term.name}
                         </SelectItem>

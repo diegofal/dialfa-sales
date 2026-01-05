@@ -12,7 +12,7 @@ export default function PaymentTermsPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingTerm, setEditingTerm] = useState<PaymentTerm | null>(null);
 
-  const { data: paymentTerms, isLoading } = usePaymentTerms(false);
+  const { data: paymentTerms, isLoading } = usePaymentTerms({ activeOnly: false });
   const deleteMutation = useDeletePaymentTerm();
 
   const handleEdit = (term: PaymentTerm) => {

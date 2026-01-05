@@ -21,12 +21,21 @@ export async function POST(
     const salesOrder = await prisma.sales_orders.findUnique({
       where: { id: salesOrderId },
       include: {
-        clients: true,
+        clients: {
+          include: {
+            payment_terms: true,
+          }
+        },
+        payment_terms: true,
         sales_order_items: {
           include: {
             articles: {
               include: {
-                categories: true, // Incluir categorías para obtener default_discount_percent
+                categories: {
+                  include: {
+                    category_payment_discounts: true,
+                  }
+                },
               }
             },
           },
@@ -62,6 +71,15 @@ export async function POST(
     if (activeInvoice) {
       return NextResponse.json(
         { error: 'El pedido ya tiene una factura asociada' },
+        { status: 400 }
+      );
+    }
+
+    // Determine payment term from order or client
+    const paymentTermId = salesOrder.payment_term_id || salesOrder.clients.payment_term_id;
+    if (!paymentTermId) {
+      return NextResponse.json(
+        { error: 'El pedido o cliente debe tener una condición de pago asignada' },
         { status: 400 }
       );
     }
@@ -119,10 +137,20 @@ export async function POST(
     const invoiceItemsData = salesOrder.sales_order_items.map((item) => {
       const unitPriceUsd = parseFloat(item.unit_price.toString());
       const unitPriceArs = unitPriceUsd * usdExchangeRate;
-      // Obtener descuento de la categoría del artículo
-      const discountPercent = item.articles.categories?.default_discount_percent 
-        ? parseFloat(item.articles.categories.default_discount_percent.toString())
-        : 0;
+      
+      // Get discount based on payment term and category
+      // First try to find specific discount for this category and payment term
+      const categoryPaymentDiscount = item.articles.categories?.category_payment_discounts?.find(
+        cpd => cpd.payment_term_id === paymentTermId
+      );
+      
+      // If specific discount exists, use it; otherwise fall back to default
+      const discountPercent = categoryPaymentDiscount
+        ? parseFloat(categoryPaymentDiscount.discount_percent.toString())
+        : (item.articles.categories?.default_discount_percent 
+            ? parseFloat(item.articles.categories.default_discount_percent.toString())
+            : 0);
+      
       const quantity = item.quantity;
       
       // Calculate line total: (price * quantity) - discount
@@ -157,6 +185,7 @@ export async function POST(
           invoice_number: invoiceNumber,
           sales_order_id: salesOrderId,
           invoice_date: now,
+          payment_term_id: paymentTermId,
           net_amount: netAmountArs,
           tax_amount: taxAmount,
           total_amount: totalAmount,
@@ -192,10 +221,15 @@ export async function POST(
       return await tx.invoices.findUnique({
         where: { id: invoice.id },
         include: {
+          payment_terms: true,
           invoice_items: true,
           sales_orders: {
             include: {
-              clients: true,
+              clients: {
+                include: {
+                  tax_conditions: true,
+                }
+              },
             },
           },
         },

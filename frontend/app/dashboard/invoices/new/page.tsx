@@ -18,7 +18,7 @@ export default function NewInvoicePage() {
   const router = useRouter();
   const createInvoiceMutation = useCreateInvoice();
   const { data: settings } = useSystemSettings();
-  const { data: paymentTerms } = usePaymentTerms(true);
+  const { data: paymentTerms } = usePaymentTerms({ activeOnly: true });
 
   const [formData, setFormData] = useState({
     salesOrderId: '',

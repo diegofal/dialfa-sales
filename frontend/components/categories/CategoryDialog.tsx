@@ -40,7 +40,7 @@ export function CategoryDialog({ isOpen, onClose, categoryId }: CategoryDialogPr
   const updateMutation = useUpdateCategory();
   
   // Payment terms and discounts
-  const { data: paymentTerms } = usePaymentTerms(true);
+  const { data: paymentTerms } = usePaymentTerms({ activeOnly: true });
   const { data: categoryDiscounts, isLoading: isLoadingDiscounts } = useCategoryPaymentDiscounts(categoryId || 0);
   const updateDiscountsMutation = useUpdateCategoryPaymentDiscounts();
   

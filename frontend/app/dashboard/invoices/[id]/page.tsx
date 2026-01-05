@@ -16,8 +16,18 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useInvoice, useCancelInvoice, usePrintInvoice, useUpdateInvoiceExchangeRate } from '@/lib/hooks/useInvoices';
+import { usePaymentTerms } from '@/lib/hooks/usePaymentTerms';
+import { useQueryClient } from '@tanstack/react-query';
 import { useQuickInvoiceTabs } from '@/lib/hooks/useQuickInvoiceTabs';
+import { toast } from 'sonner';
 import { useState, useEffect } from 'react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -35,6 +45,8 @@ export default function InvoiceDetailPage() {
   const invoiceId = Number(params.id);
 
   const { data: invoice, isLoading } = useInvoice(invoiceId);
+  const { data: paymentTerms } = usePaymentTerms({ activeOnly: true });
+  const queryClient = useQueryClient();
   const cancelInvoiceMutation = useCancelInvoice();
   const printInvoiceMutation = usePrintInvoice();
   const updateExchangeRateMutation = useUpdateInvoiceExchangeRate();
@@ -43,6 +55,8 @@ export default function InvoiceDetailPage() {
   const [showCancelDialog, setShowCancelDialog] = useState(false);
   const [isEditingExchangeRate, setIsEditingExchangeRate] = useState(false);
   const [editedExchangeRate, setEditedExchangeRate] = useState('');
+  const [isEditingPaymentTerm, setIsEditingPaymentTerm] = useState(false);
+  const [editedPaymentTermId, setEditedPaymentTermId] = useState<number | null>(null);
 
   // Add invoice to tabs when loaded
   useEffect(() => {
@@ -50,6 +64,9 @@ export default function InvoiceDetailPage() {
       addInvoiceTab(invoice.id, invoice.invoiceNumber, invoice.clientBusinessName);
       if (invoice.usdExchangeRate) {
         setEditedExchangeRate(invoice.usdExchangeRate.toString());
+      }
+      if (invoice.paymentTermId) {
+        setEditedPaymentTermId(invoice.paymentTermId);
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -132,6 +149,47 @@ export default function InvoiceDetailPage() {
     setIsEditingExchangeRate(false);
     if (invoice?.usdExchangeRate) {
       setEditedExchangeRate(invoice.usdExchangeRate.toString());
+    }
+  };
+
+  const handleSavePaymentTerm = async () => {
+    if (!editedPaymentTermId) return;
+
+    try {
+      const response = await fetch(`/api/invoices/${invoiceId}/payment-term`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ paymentTermId: editedPaymentTermId }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || 'Error al actualizar condición de pago');
+      }
+
+      const result = await response.json();
+
+      // Invalidate queries to refetch data
+      queryClient.invalidateQueries({ queryKey: ['invoice', invoiceId] });
+      queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      
+      // Show success message with details
+      toast.success('Condición de pago actualizada', {
+        description: `Se recalcularon ${result.itemsRecalculated} item(s) con los nuevos descuentos`,
+        duration: 4000,
+      });
+      
+      setIsEditingPaymentTerm(false);
+    } catch (error) {
+      console.error('Error updating payment term:', error);
+      toast.error('Error al actualizar la condición de pago');
+    }
+  };
+
+  const handleCancelEditPaymentTerm = () => {
+    setIsEditingPaymentTerm(false);
+    if (invoice?.paymentTermId) {
+      setEditedPaymentTermId(invoice.paymentTermId);
     }
   };
 
@@ -245,8 +303,64 @@ export default function InvoiceDetailPage() {
             </div>
 
             <div>
-              <p className="text-sm text-muted-foreground">Descuento Especial</p>
-              <p className="font-medium">{invoice.specialDiscountPercent}%</p>
+              <Label htmlFor="paymentTerm" className="text-sm text-muted-foreground">
+                Condición de Pago
+              </Label>
+              {isEditingPaymentTerm ? (
+                <div className="flex gap-2 mt-2">
+                  <Select
+                    value={editedPaymentTermId?.toString()}
+                    onValueChange={(value) => setEditedPaymentTermId(Number(value))}
+                  >
+                    <SelectTrigger className="max-w-xs">
+                      <SelectValue placeholder="Seleccionar condición" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {paymentTerms?.map((term) => (
+                        <SelectItem key={term.id} value={term.id.toString()}>
+                          {term.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <Button
+                    size="sm"
+                    onClick={handleSavePaymentTerm}
+                  >
+                    <Save className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleCancelEditPaymentTerm}
+                  >
+                    <XIcon className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2 mt-1">
+                  <p className="font-medium">
+                    {invoice.paymentTermName || 'N/A'}
+                  </p>
+                  {canEditExchangeRate && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-6 w-6"
+                      onClick={() => setIsEditingPaymentTerm(true)}
+                      title="Editar condición de pago"
+                    >
+                      <Edit2 className="h-3 w-3" />
+                    </Button>
+                  )}
+                </div>
+              )}
+              {canEditExchangeRate && !isEditingPaymentTerm && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Puede modificar la condición de pago mientras la factura no esté impresa.
+                  Esto recalculará los descuentos de cada item y actualizará la condición del cliente.
+                </p>
+              )}
             </div>
             {invoice.notes && (
               <div>

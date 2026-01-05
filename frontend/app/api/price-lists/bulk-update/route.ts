@@ -58,7 +58,7 @@ export async function PUT(request: NextRequest) {
         data: {
           unit_price: update.newPrice,
           updated_at: new Date(),
-          updated_by: user?.id,
+          updated_by: user?.userId,
         },
         include: { categories: true },
       });
@@ -71,8 +71,8 @@ export async function PUT(request: NextRequest) {
           new_price: update.newPrice,
           change_type: validatedData.changeType || 'bulk_update',
           change_batch_id: changeBatchId,
-          changed_by: user?.id,
-          changed_by_name: user?.name || user?.email,
+          changed_by: user?.userId,
+          changed_by_name: user?.email,
           notes: validatedData.notes,
         },
       });
@@ -88,11 +88,10 @@ export async function PUT(request: NextRequest) {
 
     // Registrar actividad
     await logActivity({
+      request,
       operation: OPERATIONS.PRICE_BULK_UPDATE,
-      userId: user?.id,
-      userName: user?.name || user?.email,
       description: `Actualización masiva de ${updatedArticles.length} precios (Batch: ${changeBatchId.substring(0, 8)})`,
-      metadata: {
+      details: {
         changeBatchId,
         updatedCount: updatedArticles.length,
         totalRequested: validatedData.updates.length,

@@ -145,6 +145,9 @@ export async function POST(request: NextRequest) {
     // Validate input
     const validatedData = createClientSchema.parse(body);
 
+    // Si no se proporciona payment_term_id, usar 1 como default (Pago Contado)
+    const paymentTermId = validatedData.paymentTermId || 1;
+
     // Convert camelCase to snake_case for Prisma
     const client = await prisma.clients.create({
       data: {
@@ -162,6 +165,7 @@ export async function POST(request: NextRequest) {
         transporter_id: validatedData.transporterId,
         seller_id: validatedData.sellerId,
         credit_limit: validatedData.creditLimit,
+        payment_term_id: paymentTermId,
         created_at: new Date(),
         updated_at: new Date(),
       },
@@ -170,6 +174,7 @@ export async function POST(request: NextRequest) {
         provinces: true,
         operation_types: true,
         transporters: true,
+        payment_terms: true,
       },
     });
 
