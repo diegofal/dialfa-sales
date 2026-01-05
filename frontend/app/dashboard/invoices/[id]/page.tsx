@@ -15,7 +15,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useInvoice, useCancelInvoice, usePrintInvoice, useUpdateInvoiceExchangeRate } from '@/lib/hooks/useInvoices';
+import { useInvoice, useCancelInvoice, usePrintInvoice, useUpdateInvoiceExchangeRate, useInvoiceStockMovements } from '@/lib/hooks/useInvoices';
 import { usePaymentTerms } from '@/lib/hooks/usePaymentTerms';
 import { useQueryClient } from '@tanstack/react-query';
 import { useQuickInvoiceTabs } from '@/lib/hooks/useQuickInvoiceTabs';
@@ -45,6 +45,7 @@ export default function InvoiceDetailPage() {
   const invoiceId = Number(params.id);
 
   const { data: invoice, isLoading } = useInvoice(invoiceId);
+  const { data: stockMovements, isLoading: isLoadingMovements } = useInvoiceStockMovements(invoiceId);
   const { data: paymentTerms } = usePaymentTerms({ activeOnly: true });
   const queryClient = useQueryClient();
   const cancelInvoiceMutation = useCancelInvoice();
@@ -191,6 +192,48 @@ export default function InvoiceDetailPage() {
     if (invoice?.paymentTermId) {
       setEditedPaymentTermId(invoice.paymentTermId);
     }
+  };
+
+  const formatRelativeDate = (dateString: string) => {
+    try {
+      const date = new Date(dateString);
+      const now = new Date();
+      const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+      
+      if (diffInSeconds < 60) return 'hace un momento';
+      if (diffInSeconds < 3600) return `hace ${Math.floor(diffInSeconds / 60)} minutos`;
+      if (diffInSeconds < 86400) return `hace ${Math.floor(diffInSeconds / 3600)} horas`;
+      if (diffInSeconds < 604800) return `hace ${Math.floor(diffInSeconds / 86400)} días`;
+      return formatDate(dateString);
+    } catch {
+      return dateString;
+    }
+  };
+
+  const getMovementTypeBadge = (movementType: number) => {
+    switch (movementType) {
+      case 1: // Compra (CREDIT)
+        return <Badge variant="default" className="bg-green-600">Compra</Badge>;
+      case 2: // Venta (DEBIT)
+        return <Badge variant="destructive">Venta</Badge>;
+      case 3: // Devolución
+        return <Badge variant="secondary" className="bg-blue-600 text-white">Devolución</Badge>;
+      case 4: // Ajuste
+        return <Badge variant="secondary" className="bg-yellow-600">Ajuste</Badge>;
+      case 5: // Transferencia
+        return <Badge variant="outline">Transferencia</Badge>;
+      default:
+        return <Badge variant="secondary">Otro</Badge>;
+    }
+  };
+
+  const formatQuantity = (quantity: number) => {
+    const isPositive = quantity > 0;
+    return (
+      <span className={isPositive ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
+        {isPositive ? '+' : ''}{quantity}
+      </span>
+    );
   };
 
   const canEditExchangeRate = invoice && !invoice.isPrinted && !invoice.isCancelled;
@@ -459,13 +502,70 @@ export default function InvoiceDetailPage() {
           <CardHeader>
             <CardTitle>Movimientos de Stock</CardTitle>
             <CardDescription>
-              Movimientos de inventario asociados a esta factura
+              {stockMovements && stockMovements.length > 0
+                ? `${stockMovements.length} movimiento(s) de inventario asociados a esta factura`
+                : 'Movimientos de inventario asociados a esta factura'}
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-muted-foreground text-center py-4">
-              Sección de movimientos de stock - próximamente con datos reales de la API
-            </p>
+            {isLoadingMovements ? (
+              <div className="text-center py-4">
+                <p className="text-sm text-muted-foreground">Cargando movimientos...</p>
+              </div>
+            ) : stockMovements && stockMovements.length > 0 ? (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Fecha</TableHead>
+                    <TableHead>Artículo</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead className="text-right">Cantidad</TableHead>
+                    <TableHead>Referencia</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {stockMovements.map((movement) => (
+                    <TableRow key={movement.id}>
+                      <TableCell>
+                        <div className="flex flex-col">
+                          <span className="text-sm">
+                            {formatRelativeDate(movement.movementDate)}
+                          </span>
+                          <span className="text-xs text-muted-foreground">
+                            {formatDate(movement.movementDate)}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium text-sm">{movement.articleCode}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {movement.articleDescription}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {getMovementTypeBadge(movement.movementType)}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {formatQuantity(movement.quantity)}
+                      </TableCell>
+                      <TableCell>
+                        <span className="text-sm">
+                          {movement.referenceDocument || '-'}
+                        </span>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            ) : (
+              <div className="text-center py-4">
+                <p className="text-sm text-muted-foreground">
+                  No hay movimientos de stock registrados para esta factura
+                </p>
+              </div>
+            )}
           </CardContent>
         </Card>
       )}
