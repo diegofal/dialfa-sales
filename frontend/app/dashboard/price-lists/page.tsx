@@ -5,6 +5,7 @@ import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { usePriceLists, useUpdatePrices } from '@/lib/hooks/usePriceLists';
 import { useCategories } from '@/lib/hooks/useCategories';
 import { useAuthStore } from '@/store/authStore';
+import { usePriceImportDraft } from '@/lib/hooks/usePriceImportDraft';
 import { PriceListFilters } from '@/components/priceLists/PriceListFilters';
 import { PriceListTable } from '@/components/priceLists/PriceListTable';
 import { PriceHistoryTable } from '@/components/priceLists/PriceHistoryTable';
@@ -76,6 +77,7 @@ export default function PriceListsPage() {
     activeOnly,
   });
   const updatePricesMutation = useUpdatePrices();
+  const { loadDraft, saveDraft, deleteDraft, isSaving } = usePriceImportDraft();
   
   // Verificar permisos DESPUÉS de los hooks
   if (!isAdmin()) {
@@ -90,6 +92,21 @@ export default function PriceListsPage() {
       </div>
     );
   }
+
+  // Cargar borrador guardado al montar el componente
+  useEffect(() => {
+    const loadSavedDraft = async () => {
+      const draft = await loadDraft();
+      if (draft && draft.size > 0) {
+        setProposedPrices(draft);
+        toast.info(`Se recuperaron ${draft.size} precios propuestos guardados anteriormente`, {
+          duration: 5000,
+        });
+      }
+    };
+    
+    loadSavedDraft();
+  }, [loadDraft]);
 
   // Handlers
   const handlePriceChange = (articleId: number, newPrice: number) => {
@@ -137,7 +154,15 @@ export default function PriceListsPage() {
       newProposedPrices.set(update.articleId, update.newPrice);
     });
     setProposedPrices(newProposedPrices);
-    toast.success(`${updates.length} precios preparados. Revisa y confirma los cambios.`);
+    
+    // Guardar en base de datos
+    const saved = await saveDraft(newProposedPrices);
+    
+    if (saved) {
+      toast.success(`${updates.length} precios preparados y guardados. Revisa y confirma los cambios.`);
+    } else {
+      toast.warning(`${updates.length} precios preparados (no se pudo guardar en BD)`);
+    }
   };
 
   const handleConfirmProposedPrices = async () => {
@@ -157,6 +182,10 @@ export default function PriceListsPage() {
         changeType: 'csv_import',
         notes: 'Importación masiva desde CSV',
       });
+      
+      // Eliminar borrador de la BD después de confirmar
+      await deleteDraft();
+      
       setProposedPrices(new Map()); // Limpiar precios propuestos
       toast.success('Precios actualizados exitosamente');
     } catch (error) {
@@ -164,9 +193,14 @@ export default function PriceListsPage() {
     }
   };
 
-  const handleCancelProposedPrices = () => {
+  const handleCancelProposedPrices = async () => {
+    // Eliminar de la BD
+    await deleteDraft();
+    
+    // Limpiar estado local
     setProposedPrices(new Map());
-    toast.info('Precios propuestos cancelados');
+    
+    toast.info('Precios propuestos cancelados y eliminados');
   };
 
   // Crear array plano de todos los artículos para el import con payment discounts
@@ -572,8 +606,13 @@ export default function PriceListsPage() {
           <AlertDescription className="space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex-1">
-                <div className="font-semibold mb-1">
+                <div className="font-semibold mb-1 flex items-center gap-2">
                   Tienes <strong>{proposedPrices.size}</strong> precios propuestos desde CSV
+                  {isSaving && (
+                    <span className="text-xs text-blue-600 animate-pulse">
+                      Guardando...
+                    </span>
+                  )}
                 </div>
                 <div className="text-xs text-gray-600 dark:text-gray-400 mb-3">
                   Valorización del stock de los <strong>{proposedPrices.size} artículos modificados</strong> (no incluye el resto del inventario)

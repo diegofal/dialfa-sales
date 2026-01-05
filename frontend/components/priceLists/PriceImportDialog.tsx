@@ -237,7 +237,8 @@ export function PriceImportDialog({ open, onOpenChange, onConfirm, articles, pay
         <DialogHeader>
           <DialogTitle>Importar Precios desde CSV</DialogTitle>
           <DialogDescription>
-            Sube un archivo CSV con las columnas: Codigo, NuevoDB (precio sin descuento)
+            Sube un archivo CSV con las columnas: Codigo, NuevoDB (precio sin descuento).
+            Los precios propuestos se guardarán automáticamente y persistirán aunque refresques la página.
           </DialogDescription>
         </DialogHeader>
 

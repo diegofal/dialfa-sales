@@ -602,3 +602,14 @@ model price_history {
   @@index([changed_by], map: "IX_price_history_changed_by")
   @@index([change_batch_id], map: "IX_price_history_change_batch_id")
 }
+
+model price_import_drafts {
+  id            BigInt   @id @default(autoincrement())
+  user_id       Int
+  draft_data    Json     @db.JsonB
+  article_count Int      @default(0)
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime @updatedAt @db.Timestamptz(6)
+
+  @@unique([user_id], map: "idx_price_import_drafts_user_id")
+}
