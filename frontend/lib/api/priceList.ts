@@ -11,8 +11,9 @@ export async function fetchPriceLists(filters?: PriceListFilters): Promise<Price
     params.append('search', filters.search);
   }
   
-  if (filters?.activeOnly !== undefined) {
-    params.append('activeOnly', filters.activeOnly.toString());
+  // Only send activeOnly if it's explicitly true
+  if (filters?.activeOnly === true) {
+    params.append('activeOnly', 'true');
   }
 
   const response = await fetch(`/api/price-lists?${params.toString()}`, {

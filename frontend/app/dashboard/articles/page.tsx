@@ -94,7 +94,7 @@ export default function ArticlesPage() {
   const { data: categories } = useCategories({ activeOnly: true });
 
   const { data, isLoading } = useArticles({
-    activeOnly: true,
+    activeOnly: false, // Include discontinued articles
     searchTerm: searchTerm || undefined,
     categoryId: categoryFilter !== 'all' ? parseInt(categoryFilter) : undefined,
     lowStockOnly: stockFilter === 'low' ? true : undefined,

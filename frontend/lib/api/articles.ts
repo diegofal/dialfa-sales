@@ -20,7 +20,8 @@ export const articlesApi = {
       limit: params.pageSize || 50,
       search: params.searchTerm,
       categoryId: params.categoryId,
-      isActive: params.activeOnly,
+      // Only send isActive if activeOnly is explicitly true
+      isActive: params.activeOnly === true ? 'true' : undefined,
       includeABC: params.includeABC,
       abcFilter: params.abcFilter,
       salesSort: params.salesSort,

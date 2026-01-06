@@ -174,7 +174,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   // Search articles for adding
   const { data: articlesResult } = useArticles({
     searchTerm: articleCode,
-    activeOnly: true,
+    activeOnly: false, // Include discontinued articles
     pageSize: 5,
   });
   const articles = articlesResult?.data || [];
@@ -182,7 +182,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   // Search articles for editing
   const { data: editArticlesResult } = useArticles({
     searchTerm: editCode,
-    activeOnly: true,
+    activeOnly: false, // Include discontinued articles
     pageSize: 5,
   });
   const editArticles = editArticlesResult?.data || [];

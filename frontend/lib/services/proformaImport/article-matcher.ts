@@ -36,7 +36,7 @@ export class ArticleMatcher {
     const articles = await this.prisma.articles.findMany({
       where: {
         is_active: true,
-        is_discontinued: false,
+        // Include discontinued articles - they can still be matched
         deleted_at: null,
       },
       select: {

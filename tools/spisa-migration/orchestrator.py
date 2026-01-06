@@ -333,11 +333,12 @@ class MigrationOrchestrator:
         try:
             legacy_data = await self.sql_reader.read_table("Articulos", legacy.LegacyArticulo)
             
-            # Filter out discontinued articles - they won't be migrated
-            active_articles = [item for item in legacy_data if not item.discontinuado]
-            discontinued_count = len(legacy_data) - len(active_articles)
+            # Include all articles (both active and discontinued)
+            # Discontinued flag is preserved in is_discontinued field
+            active_articles = legacy_data
+            discontinued_count = sum(1 for item in legacy_data if item.discontinuado)
             if discontinued_count > 0:
-                logger.info(f"Skipping {discontinued_count} discontinued articles")
+                logger.info(f"Migrating {len(legacy_data)} articles (including {discontinued_count} discontinued)")
             
             # Get valid supplier IDs from PostgreSQL to avoid FK violations
             valid_supplier_ids = await self.pg_writer.get_valid_ids("suppliers")
@@ -456,7 +457,7 @@ class MigrationOrchestrator:
             
             filtered_count = len(legacy_items) - len(valid_items)
             if filtered_count > 0:
-                logger.warning(f"Filtered {filtered_count} order items with invalid FK references (discontinued articles or missing orders)")
+                logger.warning(f"Filtered {filtered_count} order items with invalid FK references (missing orders or articles)")
             
             modern_items = [entities.map_sales_order_item(item) for item in valid_items]
             

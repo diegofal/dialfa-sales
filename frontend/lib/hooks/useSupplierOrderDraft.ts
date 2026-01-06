@@ -78,7 +78,7 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
                 stock: item.currentStock,
                 minimumStock: item.minimumStock,
                 location: null,
-                isDiscontinued: false,
+                isDiscontinued: false, // Will be loaded from DB if available
                 notes: null,
                 isDeleted: false,
                 createdAt: '',
@@ -122,7 +122,7 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
                 stock: item.currentStock,
                 minimumStock: item.minimumStock,
                 location: null,
-                isDiscontinued: false,
+                isDiscontinued: false, // Will be loaded from DB if available
                 notes: null,
                 isDeleted: false,
                 createdAt: '',

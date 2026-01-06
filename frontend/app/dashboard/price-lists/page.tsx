@@ -19,12 +19,19 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
-import { AlertCircle, Save, X, DollarSign, Download, Upload, History, List } from 'lucide-react';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
+import { AlertCircle, Save, X, DollarSign, Download, Upload, History, List, FileDown, FileSpreadsheet } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { BulkPriceUpdate } from '@/types/priceList';
 import { sortArticlesByCategory } from '@/lib/utils/articleSorting';
 import { toast } from 'sonner';
 import { PriceImportDialog } from '@/components/priceLists/PriceImportDialog';
+import * as XLSX from 'xlsx';
 
 export default function PriceListsPage() {
   const router = useRouter();
@@ -56,7 +63,7 @@ export default function PriceListsPage() {
   // State - DEBE estar antes del early return
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
-  const [activeOnly, setActiveOnly] = useState<boolean>(true);
+  const [activeOnly, setActiveOnly] = useState<boolean>(false); // Include discontinued articles
   const [editingPrices, setEditingPrices] = useState<Map<number, number>>(new Map());
   const [proposedPrices, setProposedPrices] = useState<Map<number, number>>(new Map()); // Precios del CSV
   const [importDialogOpen, setImportDialogOpen] = useState(false);
@@ -286,6 +293,8 @@ export default function PriceListsPage() {
       return;
     }
 
+    const hasProposedPrices = proposedPrices.size > 0;
+
     const html = `
 <!DOCTYPE html>
 <html lang="es">
@@ -372,34 +381,35 @@ export default function PriceListsPage() {
     table {
       width: 100%;
       border-collapse: collapse;
+      font-size: 13px;
     }
     thead {
       background: #f8f9fa;
     }
     th {
       text-align: left;
-      padding: 12px 20px;
+      padding: 12px 15px;
       font-size: 12px;
       text-transform: uppercase;
       color: #666;
       font-weight: 600;
+      border-bottom: 2px solid #dee2e6;
     }
-    th.price { text-align: right; }
+    th.right { text-align: right; }
     td {
-      padding: 12px 20px;
+      padding: 10px 15px;
       border-bottom: 1px solid #f0f0f0;
     }
-    td.price {
+    td.right {
       text-align: right;
-      font-weight: bold;
-      color: #2563eb;
-      font-size: 16px;
+      font-weight: 600;
+      font-size: 14px;
     }
     .badge {
       display: inline-block;
-      padding: 4px 8px;
-      border-radius: 4px;
-      font-size: 11px;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-size: 9px;
       font-weight: 600;
     }
     .badge-active {
@@ -413,7 +423,13 @@ export default function PriceListsPage() {
     .badge-discontinued {
       background: #fee2e2;
       color: #991b1b;
-      margin-left: 8px;
+      margin-left: 4px;
+    }
+    .positive {
+      color: #059669;
+    }
+    .negative {
+      color: #dc2626;
     }
     .footer {
       margin-top: 40px;
@@ -423,8 +439,13 @@ export default function PriceListsPage() {
       font-size: 14px;
     }
     @media print {
-      body { padding: 20px; background: white; }
-      .category { page-break-inside: avoid; }
+      body { padding: 10px; background: white; font-size: 10px; }
+      .category { 
+        page-break-inside: avoid;
+        margin-bottom: 20px;
+      }
+      table { font-size: 9px; }
+      th, td { padding: 4px 6px; }
     }
   </style>
 </head>
@@ -462,27 +483,34 @@ export default function PriceListsPage() {
         <thead>
           <tr>
             <th style="width: 15%">Código</th>
-            <th style="width: 55%">Descripción</th>
-            <th class="price" style="width: 15%">Precio Unitario</th>
-            <th style="width: 15%">Estado</th>
+            <th style="width: 45%">Descripción</th>
+            <th class="right" style="width: 20%">Precio Base</th>
+            <th class="right" style="width: 20%">Precio Propuesto</th>
           </tr>
         </thead>
         <tbody>
-          ${category.items.map(item => `
+          ${category.items.map(item => {
+            const proposedPrice = proposedPrices.get(item.id);
+            const priceToUse = proposedPrice || item.unitPrice;
+            const priceChange = proposedPrice 
+              ? ((proposedPrice - item.unitPrice) / item.unitPrice * 100)
+              : 0;
+            
+            return `
             <tr>
-              <td style="font-family: monospace; font-size: 14px;">${item.code}</td>
-              <td>
+              <td style="font-family: monospace; font-size: 12px;">${item.code}</td>
+              <td style="font-size: 12px;">
                 ${item.description}
                 ${item.isDiscontinued ? '<span class="badge badge-discontinued">Discontinuado</span>' : ''}
               </td>
-              <td class="price">$${item.unitPrice.toFixed(2)}</td>
-              <td>
-                <span class="badge ${item.isActive ? 'badge-active' : 'badge-inactive'}">
-                  ${item.isActive ? 'Activo' : 'Inactivo'}
-                </span>
+              <td class="right">$${item.unitPrice.toFixed(2)}</td>
+              <td class="right ${proposedPrice ? (priceChange > 0 ? 'positive' : 'negative') : ''}">
+                $${priceToUse.toFixed(2)}
+                ${proposedPrice ? `<br><small style="font-size: 10px;">${priceChange > 0 ? '+' : ''}${priceChange.toFixed(1)}%</small>` : ''}
               </td>
             </tr>
-          `).join('')}
+          `;
+          }).join('')}
         </tbody>
       </table>
     </div>
@@ -506,6 +534,272 @@ export default function PriceListsPage() {
     URL.revokeObjectURL(url);
     
     toast.success('Lista de precios descargada correctamente');
+  };
+
+  const handleExportCSV = () => {
+    if (!data || displayData.length === 0) {
+      toast.error('No hay datos para exportar');
+      return;
+    }
+
+    // Generar CSV con Código y Precio Propuesto
+    let csvContent = 'Codigo,PrecioPropuesto\n';
+    
+    displayData.forEach(category => {
+      category.items.forEach(item => {
+        const proposedPrice = proposedPrices.get(item.id);
+        const priceToUse = proposedPrice || item.unitPrice;
+        csvContent += `${item.code},${priceToUse.toFixed(2)}\n`;
+      });
+    });
+
+    // Crear y descargar el archivo CSV
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `precios-propuestos-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast.success('CSV exportado correctamente');
+  };
+
+  const handleExportExcel = () => {
+    if (!data || displayData.length === 0) {
+      toast.error('No hay datos para exportar');
+      return;
+    }
+
+    // Preparar datos para Excel
+    const excelData: Array<{ Codigo: string; PrecioPropuesto: number }> = [];
+    
+    displayData.forEach(category => {
+      category.items.forEach(item => {
+        const proposedPrice = proposedPrices.get(item.id);
+        const priceToUse = proposedPrice || item.unitPrice;
+        excelData.push({
+          Codigo: item.code,
+          PrecioPropuesto: Number(priceToUse.toFixed(2))
+        });
+      });
+    });
+
+    // Crear workbook y worksheet
+    const ws = XLSX.utils.json_to_sheet(excelData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Precios Propuestos');
+
+    // Ajustar ancho de columnas
+    ws['!cols'] = [
+      { wch: 15 }, // Codigo
+      { wch: 18 }  // PrecioPropuesto
+    ];
+
+    // Descargar archivo
+    XLSX.writeFile(wb, `precios-propuestos-${new Date().toISOString().split('T')[0]}.xlsx`);
+    
+    toast.success('Excel exportado correctamente');
+  };
+
+  /**
+   * Exportar formato XLS Dialfa - Formato específico para lista de bridas
+   * Todo en una sola hoja: S-150, S-300, S-600 uno debajo del otro
+   */
+  const handleExportDialfa = () => {
+    if (!data || displayData.length === 0) {
+      toast.error('No hay datos para exportar');
+      return;
+    }
+
+    // Definir el orden de diámetros
+    const sizeOrder = [
+      '1/2"', '3/4"', '1"', '1 1/4"', '1 1/2"', '2"', '2 1/2"', '3"', '4"', 
+      '5"', '6"', '8"', '10"', '12"', '14"', '16"', '18"', '20"', '24"'
+    ];
+
+    // Normalizar tamaño para comparación
+    const normalizeSize = (size: string | undefined): string => {
+      if (!size) return '';
+      let s = size.trim().toUpperCase();
+      if (!s.endsWith('"') && !s.endsWith("'")) {
+        s = s + '"';
+      }
+      s = s.replace(/'/g, '"');
+      return s;
+    };
+
+    // Mapear tipos a columnas (incluir códigos cortos y variantes)
+    const typeToColumn: Record<string, string> = {
+      // Livianas
+      'LIVIANA': 'LIVIANAS',
+      'L': 'LIVIANAS',
+      // S.O.R.F. (Slip On Raised Face)
+      'SORF': 'S.O.R.F.',
+      'S.O.R.F.': 'S.O.R.F.',
+      'S': 'S.O.R.F.',
+      'SO': 'S.O.R.F.',
+      'SLIP ON': 'S.O.R.F.',
+      // W.N.R.F. (Welding Neck Raised Face)
+      'WNRF': 'W.N.R.F.',
+      'W.N.R.F.': 'W.N.R.F.',
+      'W': 'W.N.R.F.',
+      'WN': 'W.N.R.F.',
+      'WELDING NECK': 'W.N.R.F.',
+      // Ciegas (Blind)
+      'CIEGA': 'CIEGAS',
+      'BLIND': 'CIEGAS',
+      'C': 'CIEGAS',
+      'BL': 'CIEGAS',
+      // Roscadas (Threaded)
+      'ROSCADA': 'ROSCADAS',
+      'THREADED': 'ROSCADAS',
+      'R': 'ROSCADAS',
+      'TH': 'ROSCADAS',
+    };
+
+    // Estructura para almacenar datos por serie
+    const seriesData: Record<number, Record<string, Record<string, number>>> = {
+      150: {},
+      300: {},
+      600: {},
+    };
+
+    // Columnas por serie (S-150 tiene más columnas que S-300 y S-600)
+    const columnsBySeries: Record<number, string[]> = {
+      150: ['DIAMETRO', 'LIVIANAS', 'S.O.R.F.', 'W.N.R.F.', 'CIEGAS', 'ROSCADAS'],
+      300: ['DIAMETRO', 'S.O.R.F.', 'W.N.R.F.', 'CIEGAS'],
+      600: ['DIAMETRO', 'S.O.R.F.', 'W.N.R.F.', 'CIEGAS'],
+    };
+
+    // Número máximo de columnas (para S-150)
+    const maxCols = 6;
+
+    // Mapear espesores estándar (solo estos se exportan en la lista Dialfa)
+    const isStandardThickness = (thickness: string | undefined): boolean => {
+      if (!thickness) return true; // Si no tiene espesor, asumimos estándar
+      const t = thickness.toUpperCase().trim();
+      // STD, 40, Sch. 40, SCH40, S.40 son espesores estándar
+      return t === 'STD' || t === '40' || t === 'SCH. 40' || t === 'SCH40' || t === 'S.40' || t === '';
+    };
+
+    // Procesar todos los artículos
+    displayData.forEach(category => {
+      category.items.forEach(item => {
+        const series = item.series;
+        const type = item.type?.toUpperCase();
+        const size = normalizeSize(item.size);
+        const thickness = item.thickness;
+        
+        if (!series || ![150, 300, 600].includes(series)) return;
+        if (!type || !size) return;
+        
+        // Solo exportar artículos con espesor estándar
+        if (!isStandardThickness(thickness)) return;
+
+        const proposedPrice = proposedPrices.get(item.id);
+        const price = proposedPrice || item.unitPrice;
+
+        const column = typeToColumn[type];
+        if (!column) return;
+
+        if (!seriesData[series][size]) {
+          seriesData[series][size] = {};
+        }
+
+        seriesData[series][size][column] = price;
+      });
+    });
+
+    // Obtener mes y año actual
+    const now = new Date();
+    const monthNames = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 
+                        'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+    const currentMonth = monthNames[now.getMonth()];
+    const currentYear = now.getFullYear();
+
+    // Crear UNA SOLA hoja con todo el contenido
+    const sheetData: (string | number | null)[][] = [];
+    const merges: XLSX.Range[] = [];
+
+    // Título principal
+    sheetData.push([`LISTA DE PRECIOS DE BRIDAS ${currentMonth} ${currentYear}`]);
+    merges.push({ s: { r: 0, c: 0 }, e: { r: 0, c: maxCols - 1 } });
+    sheetData.push([]); // Fila vacía
+
+    // Procesar cada serie una debajo de la otra
+    [150, 300, 600].forEach((series, seriesIndex) => {
+      const columns = columnsBySeries[series];
+      const seriesRows = seriesData[series];
+
+      // Subtítulo de serie
+      const seriesStartRow = sheetData.length;
+      sheetData.push([`S-${series}`]);
+      merges.push({ s: { r: seriesStartRow, c: 0 }, e: { r: seriesStartRow, c: columns.length - 1 } });
+      sheetData.push([]); // Fila vacía
+
+      // Encabezados
+      const headerRow: (string | null)[] = [...columns];
+      // Rellenar con null hasta maxCols para mantener consistencia
+      while (headerRow.length < maxCols) headerRow.push(null);
+      sheetData.push(headerRow);
+
+      // Datos ordenados por tamaño
+      sizeOrder.forEach(size => {
+        if (seriesRows[size]) {
+          const row: (string | number | null)[] = [size];
+          columns.slice(1).forEach(col => {
+            const value = seriesRows[size][col];
+            row.push(value !== undefined ? value : null);
+          });
+          // Rellenar con null hasta maxCols
+          while (row.length < maxCols) row.push(null);
+          sheetData.push(row);
+        }
+      });
+
+      // Espacio entre secciones (excepto la última)
+      if (seriesIndex < 2) {
+        sheetData.push([]); // Fila vacía
+        sheetData.push([]); // Fila vacía
+      }
+    });
+
+    // Notas al pie
+    sheetData.push([]); // Fila vacía
+    sheetData.push(['PRECIOS EN DOLARES ESTADOUNIDENSES']);
+    sheetData.push([]);
+    sheetData.push(['LOS PRECIOS NO INCLUYEN I.V.A.']);
+    sheetData.push([]);
+    sheetData.push(['LAS LISTAS SON NETAS']);
+
+    // Crear worksheet
+    const ws = XLSX.utils.aoa_to_sheet(sheetData);
+
+    // Ajustar ancho de columnas
+    ws['!cols'] = [
+      { wch: 12 },  // DIAMETRO
+      { wch: 10 },  // LIVIANAS / S.O.R.F.
+      { wch: 10 },  // S.O.R.F. / W.N.R.F.
+      { wch: 10 },  // W.N.R.F. / CIEGAS
+      { wch: 10 },  // CIEGAS
+      { wch: 10 },  // ROSCADAS
+    ];
+
+    // Aplicar merges
+    ws['!merges'] = merges;
+
+    // Crear workbook y agregar hoja
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Bridas');
+
+    // Descargar archivo
+    const filename = `BRIDAS_DIALFA_${currentMonth}_${currentYear}.xlsx`;
+    XLSX.writeFile(wb, filename);
+    
+    toast.success(`Archivo "${filename}" exportado correctamente`);
   };
 
   return (
@@ -547,14 +841,37 @@ export default function PriceListsPage() {
               <Upload className="h-4 w-4 mr-2" />
               Importar CSV
             </Button>
-            <Button
-              onClick={handleDownloadHTML}
-              disabled={isLoading || !data || displayData.length === 0}
-              variant="outline"
-            >
-              <Download className="h-4 w-4 mr-2" />
-              Descargar HTML
-            </Button>
+            
+            {/* Dropdown para exportar */}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  disabled={isLoading || !data || displayData.length === 0}
+                  variant="outline"
+                >
+                  <FileDown className="h-4 w-4 mr-2" />
+                  Exportar
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end">
+                <DropdownMenuItem onClick={handleExportDialfa}>
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  XLS Dialfa (Bridas)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportCSV}>
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Exportar CSV
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleExportExcel}>
+                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  Exportar Excel (XLS)
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={handleDownloadHTML}>
+                  <Download className="h-4 w-4 mr-2" />
+                  Descargar HTML
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
       {/* Filters */}

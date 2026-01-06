@@ -216,39 +216,38 @@ class MigrationValidator:
         return result
     
     async def _validate_articles_count(self, result: ValidationResult):
-        """Validate articles count (discontinued articles are excluded from migration)."""
-        # Get count of non-discontinued articles from SQL Server
-        query = "SELECT COUNT(*) FROM Articulos WHERE discontinuado = 0 OR discontinuado IS NULL"
-        sql_active_count = await asyncio.to_thread(self._execute_sql_count, query)
+        """Validate articles count (all articles including discontinued are migrated)."""
+        # Get count of all articles from SQL Server (including discontinued)
+        query = "SELECT COUNT(*) FROM Articulos"
+        sql_count = await asyncio.to_thread(self._execute_sql_count, query)
         pg_count = await self.pg_writer.get_record_count("articles", check_deleted=True)
         
-        if sql_active_count != pg_count:
+        if sql_count != pg_count:
             result.issues.append(
-                f"Articles: SQL Server (active)={sql_active_count}, PostgreSQL={pg_count} (mismatch!)"
+                f"Articles: SQL Server={sql_count}, PostgreSQL={pg_count} (mismatch!)"
             )
             result.is_valid = False
         else:
-            logger.info(f"Articles: {pg_count} records match (discontinued excluded)")
+            logger.info(f"Articles: {pg_count} records match (including discontinued)")
     
     async def _validate_order_items_count(self, result: ValidationResult):
-        """Validate order items count (items with discontinued articles are excluded)."""
-        # Get count of order items with active articles from SQL Server
+        """Validate order items count (all articles including discontinued)."""
+        # Get count of all order items from SQL Server
         query = """
             SELECT COUNT(*) 
             FROM NotaPedido_Items npi
             INNER JOIN Articulos a ON npi.IdArticulo = a.idArticulo
-            WHERE a.discontinuado = 0 OR a.discontinuado IS NULL
         """
-        sql_active_count = await asyncio.to_thread(self._execute_sql_count, query)
+        sql_count = await asyncio.to_thread(self._execute_sql_count, query)
         pg_count = await self.pg_writer.get_record_count("sales_order_items", check_deleted=False)
         
-        if sql_active_count != pg_count:
+        if sql_count != pg_count:
             result.issues.append(
-                f"Order Items: SQL Server (with active articles)={sql_active_count}, PostgreSQL={pg_count} (mismatch!)"
+                f"Order Items: SQL Server={sql_count}, PostgreSQL={pg_count} (mismatch!)"
             )
             result.is_valid = False
         else:
-            logger.info(f"Order Items: {pg_count} records match (discontinued article items excluded)")
+            logger.info(f"Order Items: {pg_count} records match (including discontinued articles)")
     
     async def _validate_item_replication(self, result: ValidationResult):
         """Validate that invoice and delivery note items were properly replicated."""
