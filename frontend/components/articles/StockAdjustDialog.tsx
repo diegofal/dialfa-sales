@@ -94,7 +94,7 @@ export default function StockAdjustDialog({
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent size="sm">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>Ajustar Stock</DialogTitle>

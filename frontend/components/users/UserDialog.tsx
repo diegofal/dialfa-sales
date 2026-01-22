@@ -95,7 +95,7 @@ export default function UserDialog({ user, isOpen, onClose }: UserDialogProps) {
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent size="sm">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
             <DialogTitle>{user ? 'Editar Usuario' : 'Crear Usuario'}</DialogTitle>

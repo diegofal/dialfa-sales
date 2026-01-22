@@ -86,7 +86,7 @@ export function PaymentTermDialog({ isOpen, onClose, paymentTerm }: PaymentTermD
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent size="sm">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Editar Condición de Pago' : 'Nueva Condición de Pago'}
@@ -103,7 +103,7 @@ export function PaymentTermDialog({ isOpen, onClose, paymentTerm }: PaymentTermD
               disabled={isEditing}
             />
             {errors.code && (
-              <p className="text-sm text-red-600">{errors.code.message}</p>
+              <p className="text-sm text-destructive">{errors.code.message}</p>
             )}
           </div>
 
@@ -115,7 +115,7 @@ export function PaymentTermDialog({ isOpen, onClose, paymentTerm }: PaymentTermD
               placeholder="Ej: 30 días"
             />
             {errors.name && (
-              <p className="text-sm text-red-600">{errors.name.message}</p>
+              <p className="text-sm text-destructive">{errors.name.message}</p>
             )}
           </div>
 
@@ -128,7 +128,7 @@ export function PaymentTermDialog({ isOpen, onClose, paymentTerm }: PaymentTermD
               placeholder="0"
             />
             {errors.days && (
-              <p className="text-sm text-red-600">{errors.days.message}</p>
+              <p className="text-sm text-destructive">{errors.days.message}</p>
             )}
             <p className="text-sm text-muted-foreground">
               0 = Contado, 30 = 30 días, etc.

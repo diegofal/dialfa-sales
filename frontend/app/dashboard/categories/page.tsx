@@ -10,6 +10,7 @@ import { usePagination } from '@/lib/hooks/usePagination';
 import { CategoryDialog } from '@/components/categories/CategoryDialog';
 import { CategoriesTable } from '@/components/categories/CategoriesTable';
 import { useCategories } from '@/lib/hooks/useCategories';
+import { LoadingSpinner } from '@/components/ui/spinner';
 
 export default function CategoriesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -43,11 +44,11 @@ export default function CategoriesPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Categorías</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-3xl font-bold tracking-tight">Categorías</h1>
+          <p className="text-muted-foreground">
             Gestiona las categorías de productos
           </p>
         </div>
@@ -82,9 +83,7 @@ export default function CategoriesPage() {
         </CardHeader>
         <CardContent>
           {isLoading && (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-            </div>
+            <LoadingSpinner size="md" className="py-8" />
           )}
 
           {data && data.data.length > 0 && (

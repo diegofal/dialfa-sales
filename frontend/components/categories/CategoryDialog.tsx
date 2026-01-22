@@ -151,7 +151,7 @@ export function CategoryDialog({ isOpen, onClose, categoryId }: CategoryDialogPr
 
   return (
     <Dialog open={isOpen} onOpenChange={handleClose}>
-      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+      <DialogContent size="lg">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Editar Categoría' : 'Nueva Categoría'}
@@ -167,7 +167,7 @@ export function CategoryDialog({ isOpen, onClose, categoryId }: CategoryDialogPr
               placeholder="Ej: CAT001"
             />
             {errors.code && (
-              <p className="text-sm text-red-600">{errors.code.message}</p>
+              <p className="text-sm text-destructive">{errors.code.message}</p>
             )}
           </div>
 
@@ -179,7 +179,7 @@ export function CategoryDialog({ isOpen, onClose, categoryId }: CategoryDialogPr
               placeholder="Ej: Electrónica"
             />
             {errors.name && (
-              <p className="text-sm text-red-600">{errors.name.message}</p>
+              <p className="text-sm text-destructive">{errors.name.message}</p>
             )}
           </div>
 
@@ -192,7 +192,7 @@ export function CategoryDialog({ isOpen, onClose, categoryId }: CategoryDialogPr
               rows={3}
             />
             {errors.description && (
-              <p className="text-sm text-red-600">{errors.description.message}</p>
+              <p className="text-sm text-destructive">{errors.description.message}</p>
             )}
           </div>
 

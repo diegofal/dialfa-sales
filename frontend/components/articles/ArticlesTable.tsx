@@ -101,13 +101,13 @@ export function ArticlesTable({
   const getTrendIcon = (trend: string) => {
     switch (trend) {
       case 'increasing':
-        return <TrendingUp className="h-3 w-3 text-green-600 dark:text-green-400" />;
+        return <TrendingUp className="h-3 w-3 text-success" />;
       case 'decreasing':
-        return <TrendingDown className="h-3 w-3 text-red-600 dark:text-red-400" />;
+        return <TrendingDown className="h-3 w-3 text-destructive" />;
       case 'stable':
-        return <Minus className="h-3 w-3 text-blue-600 dark:text-blue-400" />;
+        return <Minus className="h-3 w-3 text-info" />;
       default:
-        return <Minus className="h-3 w-3 text-gray-600 dark:text-gray-400" />;
+        return <Minus className="h-3 w-3 text-muted-foreground" />;
     }
   };
 
@@ -192,7 +192,7 @@ export function ArticlesTable({
                   {formatPrice(article.unitPrice)}
                 </TableCell>
                 <TableCell className="text-right">
-                  <span className={article.isLowStock ? 'text-red-600 font-semibold' : ''}>
+                  <span className={article.isLowStock ? 'text-destructive font-semibold' : ''}>
                     {article.stock}
                   </span>
                 </TableCell>
@@ -248,17 +248,10 @@ export function ArticlesTable({
                     <Badge
                       variant={
                         article.abcClass === 'A'
-                          ? 'default'
+                          ? 'success'
                           : article.abcClass === 'B'
-                          ? 'secondary'
-                          : 'outline'
-                      }
-                      className={
-                        article.abcClass === 'A'
-                          ? 'bg-green-600 hover:bg-green-700 text-white'
-                          : article.abcClass === 'B'
-                          ? 'bg-blue-600 hover:bg-blue-700 text-white'
-                          : 'bg-gray-600 hover:bg-gray-700 text-white'
+                          ? 'info'
+                          : 'secondary'
                       }
                     >
                       {article.abcClass}

@@ -3,6 +3,7 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
+import { LoadingSpinner } from '@/components/ui/spinner';
 
 export default function HomePage() {
   const router = useRouter();
@@ -11,7 +12,7 @@ export default function HomePage() {
   useEffect(() => {
     // Wait for hydration before redirecting
     if (!hydrated) return;
-    
+
     // Redirect based on authentication status
     if (isAuthenticated) {
       router.push('/dashboard');
@@ -22,7 +23,7 @@ export default function HomePage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+      <LoadingSpinner size="lg" />
     </div>
   );
 }

@@ -141,7 +141,7 @@ export function UploadCertificateDialog({ open, onOpenChange }: UploadCertificat
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent size="sm">
         <DialogHeader>
           <DialogTitle>Subir Certificado</DialogTitle>
           <DialogDescription>

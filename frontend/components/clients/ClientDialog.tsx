@@ -124,7 +124,7 @@ export default function ClientDialog({ open, onClose, client }: ClientDialogProp
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent size="lg">
         <DialogHeader>
           <DialogTitle>
             {isEditing ? 'Editar Cliente' : 'Nuevo Cliente'}

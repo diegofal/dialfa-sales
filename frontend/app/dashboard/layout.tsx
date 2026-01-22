@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import Sidebar from '@/components/layout/Sidebar';
 import Navbar from '@/components/layout/Navbar';
+import { LoadingSpinner } from '@/components/ui/spinner';
 
 export default function DashboardLayout({
   children,
@@ -25,7 +26,7 @@ export default function DashboardLayout({
   if (!hydrated || !isAuthenticated) {
     return (
       <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+        <LoadingSpinner size="lg" />
       </div>
     );
   }

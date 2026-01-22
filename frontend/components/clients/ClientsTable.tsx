@@ -88,29 +88,29 @@ export default function ClientsTable({
   const getTrendIcon = (trend: string) => {
     switch (trend) {
       case 'increasing':
-        return <TrendingUp className="h-3 w-3 text-green-600 dark:text-green-400" />;
+        return <TrendingUp className="h-3 w-3 text-success" />;
       case 'decreasing':
-        return <TrendingDown className="h-3 w-3 text-red-600 dark:text-red-400" />;
+        return <TrendingDown className="h-3 w-3 text-destructive" />;
       case 'stable':
-        return <Minus className="h-3 w-3 text-blue-600 dark:text-blue-400" />;
+        return <Minus className="h-3 w-3 text-info" />;
       default:
-        return <Minus className="h-3 w-3 text-gray-600 dark:text-gray-400" />;
+        return <Minus className="h-3 w-3 text-muted-foreground" />;
     }
   };
 
   const getClientStatusBadge = (status: ClientDto['clientStatus']) => {
     if (!status) return null;
-    
-    const badgeConfig: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline'; label: string; className: string }> = {
-      active: { variant: 'default' as const, label: 'Activo', className: 'bg-green-600 hover:bg-green-700' },
-      slow_moving: { variant: 'secondary' as const, label: 'Lento', className: 'bg-yellow-600 hover:bg-yellow-700 text-white' },
-      inactive: { variant: 'destructive' as const, label: 'Inactivo', className: '' },
-      never_purchased: { variant: 'outline' as const, label: 'Sin Compras', className: '' },
+
+    const badgeConfig: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' | 'info'; label: string }> = {
+      active: { variant: 'success', label: 'Activo' },
+      slow_moving: { variant: 'warning', label: 'Lento' },
+      inactive: { variant: 'destructive', label: 'Inactivo' },
+      never_purchased: { variant: 'outline', label: 'Sin Compras' },
     };
 
     const config = badgeConfig[status] || badgeConfig.never_purchased;
     return (
-      <Badge variant={config.variant} className={config.className}>
+      <Badge variant={config.variant}>
         {config.label}
       </Badge>
     );
@@ -287,7 +287,7 @@ export default function ClientsTable({
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
-              className="bg-red-600 hover:bg-red-700"
+              className="bg-destructive hover:bg-destructive/90"
             >
               Eliminar
             </AlertDialogAction>

@@ -20,17 +20,17 @@ interface StockMovementsTableProps {
 export function StockMovementsTable({ movements }: StockMovementsTableProps) {
   const getMovementTypeBadge = (movementType: number, quantity: number) => {
     const isPositive = quantity > 0;
-    
+
     switch (movementType) {
       case 1: // Compra
-        return <Badge variant="default" className="bg-green-600">Compra</Badge>;
+        return <Badge variant="success">Compra</Badge>;
       case 2: // Venta
         return <Badge variant="destructive">Venta</Badge>;
       case 3: // Devolución
-        return <Badge variant="secondary" className="bg-blue-600 text-white">Devolución</Badge>;
+        return <Badge variant="info">Devolución</Badge>;
       case 4: // Ajuste
         return (
-          <Badge variant={isPositive ? "default" : "destructive"} className={isPositive ? "bg-yellow-600" : ""}>
+          <Badge variant={isPositive ? "warning" : "destructive"}>
             Ajuste
           </Badge>
         );
@@ -44,7 +44,7 @@ export function StockMovementsTable({ movements }: StockMovementsTableProps) {
   const formatQuantity = (quantity: number) => {
     const isPositive = quantity > 0;
     return (
-      <span className={isPositive ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
+      <span className={isPositive ? 'text-success font-semibold' : 'text-destructive font-semibold'}>
         {isPositive ? '+' : ''}{quantity}
       </span>
     );

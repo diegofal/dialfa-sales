@@ -142,7 +142,7 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent size="lg">
         <DialogHeader>
           <DialogTitle>{isEditing ? 'Editar Artículo' : 'Nuevo Artículo'}</DialogTitle>
         </DialogHeader>
@@ -164,7 +164,7 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
               <Label htmlFor="code">Código *</Label>
               <Input id="code" {...register('code')} disabled={!canEdit} />
               {errors.code && (
-                <p className="text-sm text-red-500">{errors.code.message}</p>
+                <p className="text-sm text-destructive">{errors.code.message}</p>
               )}
             </div>
 
@@ -194,7 +194,7 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
                 </SelectContent>
               </Select>
               {errors.categoryId && (
-                <p className="text-sm text-red-500">{errors.categoryId.message}</p>
+                <p className="text-sm text-destructive">{errors.categoryId.message}</p>
               )}
             </div>
           </div>
@@ -204,7 +204,7 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
             <Label htmlFor="description">Descripción *</Label>
             <Textarea id="description" {...register('description')} rows={2} disabled={!canEdit} />
             {errors.description && (
-              <p className="text-sm text-red-500">{errors.description.message}</p>
+              <p className="text-sm text-destructive">{errors.description.message}</p>
             )}
           </div>
 
@@ -220,7 +220,7 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
                 disabled={!canEdit}
               />
               {errors.unitPrice && (
-                <p className="text-sm text-red-500">{errors.unitPrice.message}</p>
+                <p className="text-sm text-destructive">{errors.unitPrice.message}</p>
               )}
             </div>
 
@@ -234,7 +234,7 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
                 disabled={!canEdit}
               />
               {errors.stock && (
-                <p className="text-sm text-red-500">{errors.stock.message}</p>
+                <p className="text-sm text-destructive">{errors.stock.message}</p>
               )}
               {isVendedorUser && (
                 <p className="text-[10px] text-muted-foreground">
@@ -253,7 +253,7 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
                 disabled={!canEdit}
               />
               {errors.minimumStock && (
-                <p className="text-sm text-red-500">{errors.minimumStock.message}</p>
+                <p className="text-sm text-destructive">{errors.minimumStock.message}</p>
               )}
             </div>
           </div>
@@ -263,7 +263,7 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
             <Label htmlFor="location">Ubicación</Label>
             <Input id="location" {...register('location')} placeholder="Ej: Depósito A - Estante 3" disabled={!canEdit} />
             {errors.location && (
-              <p className="text-sm text-red-500">{errors.location.message}</p>
+              <p className="text-sm text-destructive">{errors.location.message}</p>
             )}
           </div>
 
@@ -272,7 +272,7 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
             <Label htmlFor="notes">Notas</Label>
             <Textarea id="notes" {...register('notes')} rows={3} disabled={!canEdit} />
             {errors.notes && (
-              <p className="text-sm text-red-500">{errors.notes.message}</p>
+              <p className="text-sm text-destructive">{errors.notes.message}</p>
             )}
           </div>
 

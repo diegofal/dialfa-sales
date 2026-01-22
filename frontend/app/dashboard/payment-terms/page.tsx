@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { usePaymentTerms, useDeletePaymentTerm } from '@/lib/hooks/usePaymentTerms';
 import { PaymentTermDialog } from '@/components/paymentTerms/PaymentTermDialog';
+import { LoadingSpinner } from '@/components/ui/spinner';
 import type { PaymentTerm } from '@/types/paymentTerm';
 
 export default function PaymentTermsPage() {
@@ -32,11 +33,11 @@ export default function PaymentTermsPage() {
   };
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-3xl font-bold">Condiciones de Pago</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-3xl font-bold tracking-tight">Condiciones de Pago</h1>
+          <p className="text-muted-foreground">
             Administrar las condiciones de pago disponibles
           </p>
         </div>
@@ -55,9 +56,7 @@ export default function PaymentTermsPage() {
         </CardHeader>
         <CardContent>
           {isLoading && (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-            </div>
+            <LoadingSpinner size="md" className="py-8" />
           )}
 
           {paymentTerms && paymentTerms.length > 0 && (
@@ -74,7 +73,7 @@ export default function PaymentTermsPage() {
                 </thead>
                 <tbody>
                   {paymentTerms.map((term) => (
-                    <tr key={term.id} className="border-b hover:bg-gray-50">
+                    <tr key={term.id} className="border-b hover:bg-muted">
                       <td className="py-3 px-4 font-medium">{term.code}</td>
                       <td className="py-3 px-4">{term.name}</td>
                       <td className="py-3 px-4 text-right">{term.days}</td>

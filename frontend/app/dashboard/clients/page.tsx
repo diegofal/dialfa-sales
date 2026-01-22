@@ -15,6 +15,7 @@ import ClientClassificationSummary from '@/components/clients/ClientClassificati
 import { ClientClassificationFilters } from '@/components/clients/ClientClassificationFilters';
 import type { ClientDto } from '@/types/api';
 import { ClientStatus, ClientClassificationConfig } from '@/types/clientClassification';
+import { LoadingSpinner } from '@/components/ui/spinner';
 
 export default function ClientsPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -164,13 +165,11 @@ export default function ClientsPage() {
         </CardHeader>
         <CardContent>
           {isLoading && (
-            <div className="flex justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-            </div>
+            <LoadingSpinner size="md" className="py-8" />
           )}
 
           {error && (
-            <div className="text-center py-8 text-red-600">
+            <div className="text-center py-8 text-destructive">
               Error al cargar los clientes
             </div>
           )}
