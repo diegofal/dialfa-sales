@@ -6,6 +6,22 @@
 
 ---
 
+## 🤖 Desarrollo con IA
+
+**⚠️ IMPORTANTE para Claude Code, Cursor y otras herramientas de IA:**
+
+Todos los cambios realizados por IA **DEBEN** seguir los patrones arquitectónicos documentados:
+
+- **Claude Code:** Ver [`.claude/DEVELOPMENT_RULES.md`](./.claude/DEVELOPMENT_RULES.md)
+- **Cursor:** Ver [`.cursorrules`](./.cursorrules)
+- **Patrones:** Ver [`docs/AI_DEVELOPMENT_PATTERNS.md`](./docs/AI_DEVELOPMENT_PATTERNS.md)
+
+**Skills disponibles:**
+- `/scaffold-entity` - Genera entidad CRUD completa
+- `/commit` - Crea commits con formato correcto
+
+---
+
 ## 🚀 Quick Start
 
 **¿Primera vez? Lee la guía completa:** [START_GUIDE.md](./START_GUIDE.md)

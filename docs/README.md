@@ -2,6 +2,32 @@
 
 Bienvenido a la documentación completa del proyecto SPISA. Esta documentación proporciona un análisis exhaustivo de la arquitectura, estructura y oportunidades de mejora del sistema.
 
+## 🤖 Desarrollo con IA - LECTURA OBLIGATORIA
+
+### ⚠️ [Patrones de Desarrollo para IA](./AI_DEVELOPMENT_PATTERNS.md) - **NUEVO**
+
+**TODOS los cambios realizados por herramientas de IA (Claude Code, Cursor, GitHub Copilot, etc.) DEBEN seguir los patrones documentados en este archivo.**
+
+Esta guía contiene:
+- ✅ Factory Pattern obligatorio para hooks (createCRUDHooks)
+- ✅ Estructura de archivos estándar para entidades CRUD
+- ✅ Patrones de API Layer con PagedResult<T>
+- ✅ Convenciones de validación con Zod
+- ✅ Patrones de componentes Dialog y Table
+- ✅ Anti-patrones que NUNCA deben usarse
+- ✅ Proceso de implementación paso a paso
+
+**Archivos relacionados:**
+- Claude Code: [`.claude/DEVELOPMENT_RULES.md`](../.claude/DEVELOPMENT_RULES.md)
+- Cursor: [`.cursorrules`](../.cursorrules)
+- Commits: [`.claude/COMMIT_GUIDE.md`](../.claude/COMMIT_GUIDE.md)
+
+**Skills disponibles:**
+- `/scaffold-entity` - Genera entidad CRUD completa siguiendo patrones
+- `/commit` - Crea commits con formato Conventional Commits
+
+---
+
 ## 📚 Índice de Documentación
 
 ### 1. [Visión General de la Arquitectura](./architecture-overview.md)
@@ -243,5 +269,5 @@ Para preguntas sobre la documentación o arquitectura, contactar al equipo de de
 
 ---
 
-**Última actualización:** 2026-01-22
-**Versión:** 1.0.0
+**Última actualización:** 2026-01-23
+**Versión:** 1.1.0
