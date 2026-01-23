@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useFeedback } from '@/lib/hooks/useFeedback';
+import { useFeedback, useCreateFeedback } from '@/lib/hooks/useFeedback';
 import { FeedbackType } from '@/types/feedback';
 
 const feedbackTypes: {
@@ -46,14 +46,16 @@ const statusColors: Record<string, string> = {
 };
 
 export default function FeedbackPage() {
-  const { feedbacks, isLoading, createFeedback, fetchFeedbacks } = useFeedback();
+  const { data, isLoading, refetch } = useFeedback({});
+  const createMutation = useCreateFeedback();
   const [showForm, setShowForm] = useState(false);
-  const [submitting, setSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     type: 'bug' as FeedbackType,
     subject: '',
     description: '',
   });
+
+  const feedbacks = data?.data || [];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,18 +65,13 @@ export default function FeedbackPage() {
       return;
     }
 
-    setSubmitting(true);
     try {
-      await createFeedback(formData);
-      toast.success('¡Feedback enviado exitosamente!');
+      await createMutation.mutateAsync(formData);
       setFormData({ type: 'bug', subject: '', description: '' });
       setShowForm(false);
-      fetchFeedbacks();
+      refetch();
     } catch (error) {
-      toast.error('Error al enviar feedback');
       console.error(error);
-    } finally {
-      setSubmitting(false);
     }
   };
 
@@ -163,12 +160,12 @@ export default function FeedbackPage() {
                     setShowForm(false);
                     setFormData({ type: 'bug', subject: '', description: '' });
                   }}
-                  disabled={submitting}
+                  disabled={createMutation.isPending}
                 >
                   Cancelar
                 </Button>
-                <Button type="submit" disabled={submitting}>
-                  {submitting ? (
+                <Button type="submit" disabled={createMutation.isPending}>
+                  {createMutation.isPending ? (
                     <>
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                       Enviando...

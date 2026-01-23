@@ -1,21 +1,21 @@
-import type {
-  Feedback,
-  CreateFeedbackDTO,
-  UpdateFeedbackDTO,
-  FeedbackResponse,
-  FeedbackStatus,
-  FeedbackType,
-} from '@/types/feedback';
+import type { Feedback, CreateFeedbackDTO, UpdateFeedbackDTO } from '@/types/feedback';
+import type { PagedResult } from '@/types/pagination';
 import { apiClient } from './client';
 
 export const feedbackApi = {
   getAll: async (params?: {
-    page?: number;
-    limit?: number;
-    status?: FeedbackStatus;
-    type?: FeedbackType;
-  }): Promise<FeedbackResponse> => {
-    const { data } = await apiClient.get<FeedbackResponse>('/feedback', { params });
+    pageNumber?: number;
+    pageSize?: number;
+    status?: string;
+    type?: string;
+  }): Promise<PagedResult<Feedback>> => {
+    const apiParams = {
+      page: params?.pageNumber || 1,
+      limit: params?.pageSize || 50,
+      status: params?.status,
+      type: params?.type,
+    };
+    const { data } = await apiClient.get<PagedResult<Feedback>>('/feedback', { params: apiParams });
     return data;
   },
 

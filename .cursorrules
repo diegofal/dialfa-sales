@@ -1,0 +1,216 @@
+# Cursor AI Rules - SPISA Project
+
+## 🎯 REGLA FUNDAMENTAL
+
+**TODOS los cambios realizados por la IA DEBEN seguir estrictamente los patrones arquitectónicos y de código existentes en el proyecto.**
+
+Antes de escribir cualquier código:
+1. ✅ Lee la documentación en `docs/`
+2. ✅ Busca ejemplos similares en el codebase
+3. ✅ Sigue los patrones identificados
+4. ❌ NO inventes nuevos patrones sin justificación
+
+## 📚 Documentación Obligatoria
+
+Lee y aplica las siguientes guías antes de hacer cambios:
+
+### Arquitectura
+- `docs/architecture-overview.md` - Estructura general del proyecto
+- `docs/folder-structure-analysis.md` - Organización de carpetas
+- `docs/components-interaction.md` - Interacción entre componentes
+
+### Desarrollo
+- `docs/DEVELOPER_GUIDE.md` - Guía principal de desarrollo
+- `docs/code-quality-tools.md` - Herramientas y estándares
+- `docs/solid-principles-analysis.md` - Principios SOLID aplicados
+
+### Implementación
+- `docs/IMPLEMENTATION_PLAN.md` - Plan de implementación
+- `docs/MIGRATION_SUMMARY_2026.md` - Migraciones y cambios
+- `docs/TECHNICAL_DEBT_COMPLETION.md` - Deuda técnica resuelta
+
+## 🏗️ Patrones Arquitectónicos Obligatorios
+
+### 1. Factory Pattern para Hooks (OBLIGATORIO)
+
+✅ **CORRECTO:**
+```typescript
+// frontend/lib/hooks/useEntity.ts
+import { createCRUDHooks } from './api/createCRUDHooks';
+import { entityApi } from '../api/entity';
+
+const { useList, useById, useCreate, useUpdate, useDelete } = createCRUDHooks<
+  Entity,
+  EntityFormData,
+  EntityFormData,
+  EntityListParams
+>({
+  entityName: 'Entidad',
+  api: entityApi,
+  queryKey: 'entities',
+});
+
+export {
+  useList as useEntities,
+  useById as useEntity,
+  useCreate as useCreateEntity,
+  useUpdate as useUpdateEntity,
+  useDelete as useDeleteEntity,
+};
+```
+
+❌ **INCORRECTO:**
+```typescript
+// NO crear hooks personalizados desde cero
+export function useEntity() {
+  const query = useQuery({ ... });
+  return { ... }; // ❌ NO hacer esto
+}
+```
+
+### 2. Estructura de Componentes
+
+✅ **CORRECTO:**
+```
+frontend/
+├── components/
+│   └── entities/
+│       ├── EntityDialog.tsx      # Formulario create/edit
+│       ├── EntitiesTable.tsx     # Tabla con acciones
+│       └── EntityCard.tsx        # Opcional: vista de tarjeta
+├── app/
+│   └── dashboard/
+│       └── entities/
+│           └── page.tsx          # Página principal CRUD
+```
+
+### 3. Validación con Zod
+
+✅ **CORRECTO:**
+```typescript
+// frontend/lib/validations/schemas.ts
+export const createEntitySchema = z.object({
+  field: z.string().min(1, 'Campo requerido'),
+  // ...
+});
+
+export const updateEntitySchema = createEntitySchema.partial();
+```
+
+### 4. API Layer
+
+✅ **CORRECTO:**
+```typescript
+// frontend/lib/api/entities.ts
+import type { Entity, EntityFormData } from '@/types/entity';
+import type { PagedResult } from '@/types/pagination';
+import { apiClient } from './client';
+
+export const entitiesApi = {
+  getAll: async (params?): Promise<PagedResult<Entity>> => {
+    const { data } = await apiClient.get<PagedResult<Entity>>('/entities', { params });
+    return data;
+  },
+  // getById, create, update, delete...
+};
+```
+
+### 5. Tipos TypeScript
+
+✅ **CORRECTO:**
+```typescript
+// frontend/types/entity.ts
+export interface Entity {
+  id: number;
+  // ... campos
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface EntityFormData {
+  // Solo campos editables (sin id, timestamps)
+}
+```
+
+## 📋 Checklist Antes de Commitear
+
+- [ ] ¿Seguí el factory pattern para hooks?
+- [ ] ¿Usé los componentes UI existentes?
+- [ ] ¿Agregué validación con Zod?
+- [ ] ¿Los tipos están en `frontend/types/`?
+- [ ] ¿La API usa `PagedResult<T>`?
+- [ ] ¿Seguí la estructura de carpetas?
+- [ ] ¿Revisé ejemplos similares en el código?
+- [ ] ¿El commit sigue Conventional Commits?
+
+## 🚫 Anti-Patrones - NO HACER
+
+1. ❌ NO crear hooks personalizados sin usar `createCRUDHooks`
+2. ❌ NO inventar nuevas estructuras de carpetas
+3. ❌ NO mezclar lógica de negocio en componentes UI
+4. ❌ NO hardcodear valores (usar constantes/config)
+5. ❌ NO ignorar TypeScript errors (resolver todos)
+6. ❌ NO duplicar código (buscar componentes reutilizables)
+7. ❌ NO crear interfaces inconsistentes con el resto
+
+## 🔍 Proceso de Validación
+
+Antes de escribir código:
+
+1. **Explora primero:**
+   ```bash
+   # Busca ejemplos similares
+   grep -r "pattern" frontend/
+   ```
+
+2. **Lee la documentación:**
+   - Revisa `docs/DEVELOPER_GUIDE.md`
+   - Busca ejemplos en módulos similares
+
+3. **Sigue el patrón:**
+   - Copia la estructura de un módulo existente
+   - Adapta los nombres y tipos
+   - Mantén la consistencia
+
+4. **Valida:**
+   - `npm run build` debe pasar
+   - `npm run lint` debe pasar
+   - TypeScript sin errores
+
+## 📝 Commits
+
+Sigue **Conventional Commits**:
+```
+type(scope): subject en minúsculas
+
+Body opcional explicando QUÉ y POR QUÉ.
+
+Co-Authored-By: Claude <noreply@anthropic.com>
+```
+
+Ver `.claude/COMMIT_GUIDE.md` para más detalles.
+
+## 🎨 Estilo de Código
+
+- **React**: Functional components con hooks
+- **State**: React Query para server state, useState para UI
+- **Forms**: React Hook Form + Zod
+- **Styling**: Tailwind CSS con componentes shadcn/ui
+- **TypeScript**: Strict mode, tipos explícitos
+
+## 🔗 Referencias Rápidas
+
+- Factory Pattern: `frontend/lib/hooks/api/createCRUDHooks.ts`
+- Ejemplo completo: `frontend/app/dashboard/categories/`
+- UI Components: `frontend/components/ui/`
+- Validaciones: `frontend/lib/validations/schemas.ts`
+- API Client: `frontend/lib/api/client.ts`
+
+## ⚠️ IMPORTANTE
+
+Si necesitas desviarte de los patrones existentes:
+1. Consulta primero con el usuario
+2. Documenta la razón en el commit
+3. Actualiza la documentación en `docs/`
+
+**La consistencia es más importante que la perfección.**

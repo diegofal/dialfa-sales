@@ -1,4 +1,7 @@
 {
+  "attribution": {
+    "commit": "\nCo-Authored-By: Claude <noreply@anthropic.com>"
+  },
   "permissions": {
     "allow": [
       "Bash(find:*)",
