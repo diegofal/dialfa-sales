@@ -3,7 +3,9 @@ import { PagedResult, PaginationParams } from '@/types/pagination';
 import apiClient from './client';
 
 export const categoriesApi = {
-  getAll: async (params: PaginationParams & { activeOnly?: boolean } = {}): Promise<PagedResult<Category>> => {
+  getAll: async (
+    params: PaginationParams & { activeOnly?: boolean } = {}
+  ): Promise<PagedResult<Category>> => {
     const apiParams: Record<string, string | number | boolean | undefined> = {
       page: params.pageNumber || 1,
       limit: params.pageSize || 10,
@@ -19,7 +21,7 @@ export const categoriesApi = {
     const { data } = await apiClient.get<PagedResult<Category>>('/categories', {
       params: apiParams,
     });
-    
+
     return data;
   },
 
@@ -45,5 +47,3 @@ export const categoriesApi = {
     await apiClient.delete(`/categories/${id}`);
   },
 };
-
-

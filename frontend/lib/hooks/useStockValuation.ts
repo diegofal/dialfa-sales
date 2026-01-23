@@ -1,7 +1,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { stockValuationApi, ValuationParams } from '../api/stockValuation';
-import { StockClassificationConfig } from '@/types/stockValuation';
 import { toast } from 'sonner';
+import { StockClassificationConfig } from '@/types/stockValuation';
+import { stockValuationApi, ValuationParams } from '../api/stockValuation';
 
 export function useStockValuation(params: ValuationParams = {}) {
   return useQuery({
@@ -29,4 +29,3 @@ export function useRefreshStockValuation() {
     },
   });
 }
-

@@ -1,95 +1,95 @@
 {
-    "name": "Default Delivery Note",
-    "version": "1.0.0",
-    "type": "delivery-note",
-    "pageSize": {
-        "width": 595,
-        "height": 842
+  "name": "Default Delivery Note",
+  "version": "1.0.0",
+  "type": "delivery-note",
+  "pageSize": {
+    "width": 595,
+    "height": 842
+  },
+  "margins": {
+    "top": 0,
+    "bottom": 0,
+    "left": 0,
+    "right": 0
+  },
+  "globalOffset": {
+    "x": 0,
+    "y": 0
+  },
+  "font": {
+    "family": "Courier",
+    "size": 10
+  },
+  "fields": {
+    "fecha": {
+      "x": 405,
+      "y": 68,
+      "align": "left"
     },
-    "margins": {
-        "top": 0,
-        "bottom": 0,
-        "left": 0,
-        "right": 0
+    "razonSocial": {
+      "x": 75,
+      "y": 135,
+      "fontWeight": "bold"
     },
-    "globalOffset": {
-        "x": 0,
-        "y": 0
+    "domicilio": {
+      "x": 75,
+      "y": 146
     },
-    "font": {
-        "family": "Courier",
-        "size": 10
+    "localidad": {
+      "x": 75,
+      "y": 158
     },
-    "fields": {
-        "fecha": {
-            "x": 405,
-            "y": 68,
-            "align": "left"
-        },
-        "razonSocial": {
-            "x": 75,
-            "y": 135,
-            "fontWeight": "bold"
-        },
-        "domicilio": {
-            "x": 75,
-            "y": 146
-        },
-        "localidad": {
-            "x": 75,
-            "y": 158
-        },
-        "provincia": {
-            "x": 75,
-            "y": 176
-        },
-        "condicionIVA": {
-            "x": 75,
-            "y": 199
-        },
-        "cuit": {
-            "x": 345,
-            "y": 199
-        },
-        "transportista": {
-            "x": 113,
-            "y": 709
-        },
-        "domicilioTransportista": {
-            "x": 128,
-            "y": 743
-        },
-        "peso": {
-            "x": 473,
-            "y": 600
-        },
-        "bultos": {
-            "x": 473,
-            "y": 675
-        },
-        "valor": {
-            "x": 473,
-            "y": 638
-        },
-        "observaciones": {
-            "x": 54,
-            "y": 581
-        }
+    "provincia": {
+      "x": 75,
+      "y": 176
     },
-    "items": {
-        "startY": 263,
-        "spacing": 11,
-        "maxRows": 35,
-        "columns": {
-            "cantidad": {
-                "x": 60,
-                "align": "left"
-            },
-            "descripcion": {
-                "x": 120,
-                "width": 350,
-                "align": "left"
-            }
-        }
+    "condicionIVA": {
+      "x": 75,
+      "y": 199
+    },
+    "cuit": {
+      "x": 345,
+      "y": 199
+    },
+    "transportista": {
+      "x": 113,
+      "y": 709
+    },
+    "domicilioTransportista": {
+      "x": 128,
+      "y": 743
+    },
+    "peso": {
+      "x": 473,
+      "y": 600
+    },
+    "bultos": {
+      "x": 473,
+      "y": 675
+    },
+    "valor": {
+      "x": 473,
+      "y": 638
+    },
+    "observaciones": {
+      "x": 54,
+      "y": 581
     }
+  },
+  "items": {
+    "startY": 263,
+    "spacing": 11,
+    "maxRows": 35,
+    "columns": {
+      "cantidad": {
+        "x": 60,
+        "align": "left"
+      },
+      "descripcion": {
+        "x": 120,
+        "width": 350,
+        "align": "left"
+      }
+    }
+  }
 }

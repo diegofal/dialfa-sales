@@ -1,12 +1,12 @@
-import { apiClient } from './client';
-import { PagedResult, PaginationParams } from '@/types/pagination';
 import type {
   Invoice,
   InvoiceListDto,
   CreateInvoiceRequest,
   UpdateInvoiceRequest,
 } from '@/types/invoice';
+import { PagedResult, PaginationParams } from '@/types/pagination';
 import type { StockMovement } from '@/types/stockMovement';
+import { apiClient } from './client';
 
 export const invoicesApi = {
   getAll: async (
@@ -51,9 +51,13 @@ export const invoicesApi = {
   },
 
   print: async (id: number): Promise<void> => {
-    const response = await apiClient.post(`/invoices/${id}/print`, {}, {
-      responseType: 'blob',
-    });
+    const response = await apiClient.post(
+      `/invoices/${id}/print`,
+      {},
+      {
+        responseType: 'blob',
+      }
+    );
 
     // Create blob URL from the PDF
     const pdfBlob = new Blob([response.data], { type: 'application/pdf' });
@@ -119,4 +123,3 @@ export const invoicesApi = {
     await apiClient.delete(`/invoices/${id}`);
   },
 };
-

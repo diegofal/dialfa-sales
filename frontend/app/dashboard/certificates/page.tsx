@@ -1,6 +1,12 @@
 'use client';
 
+import { Upload, Search, X, FileCheck, FileSpreadsheet } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
+import { CertificatesTable } from '@/components/certificates/CertificatesTable';
+import { CertificateViewerDialog } from '@/components/certificates/CertificateViewerDialog';
+import { SyncExcelDialog } from '@/components/certificates/SyncExcelDialog';
+import { UploadCertificateDialog } from '@/components/certificates/UploadCertificateDialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
@@ -10,14 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { CertificatesTable } from '@/components/certificates/CertificatesTable';
-import { UploadCertificateDialog } from '@/components/certificates/UploadCertificateDialog';
-import { CertificateViewerDialog } from '@/components/certificates/CertificateViewerDialog';
-import { SyncExcelDialog } from '@/components/certificates/SyncExcelDialog';
 import { useCertificates, useDeleteCertificate } from '@/lib/hooks/useCertificates';
 import { CERTIFICATE_CATEGORIES, CertificateResponse } from '@/types/certificate';
-import { Upload, Search, X, FileCheck, FileSpreadsheet } from 'lucide-react';
-import { toast } from 'sonner';
 
 export default function CertificatesPage() {
   // Search/filter state
@@ -49,13 +49,13 @@ export default function CertificatesPage() {
   const handleDownload = async (certificate: CertificateResponse) => {
     try {
       toast.loading('Descargando archivo...', { id: 'download' });
-      
+
       // Get signed URL
       const response = await fetch(`/api/certificates/${certificate.id}/download`);
       if (!response.ok) throw new Error('Error obteniendo URL de descarga');
-      
+
       const { signedUrl } = await response.json();
-      
+
       // Download file
       const link = document.createElement('a');
       link.href = signedUrl;
@@ -64,7 +64,7 @@ export default function CertificatesPage() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       toast.success('Archivo descargado', { id: 'download' });
     } catch (error) {
       toast.error('Error al descargar el archivo', { id: 'download' });
@@ -89,11 +89,11 @@ export default function CertificatesPage() {
   const hasFilters = coladaSearch || categoryFilter;
 
   return (
-    <div className="container mx-auto py-6 space-y-6">
+    <div className="container mx-auto space-y-6 py-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <FileCheck className="h-8 w-8 text-primary" />
+          <FileCheck className="text-primary h-8 w-8" />
           <div>
             <h1 className="text-2xl font-bold">Certificados de Calidad</h1>
             <p className="text-muted-foreground">
@@ -103,21 +103,21 @@ export default function CertificatesPage() {
         </div>
         <div className="flex gap-2">
           <Button onClick={() => setSyncDialogOpen(true)} variant="outline">
-            <FileSpreadsheet className="h-4 w-4 mr-2" />
+            <FileSpreadsheet className="mr-2 h-4 w-4" />
             Sincronizar Excel
           </Button>
           <Button onClick={() => setUploadDialogOpen(true)}>
-            <Upload className="h-4 w-4 mr-2" />
+            <Upload className="mr-2 h-4 w-4" />
             Subir Certificado
           </Button>
         </div>
       </div>
 
       {/* Search and Filters */}
-      <div className="flex flex-wrap gap-4 items-center bg-card p-4 rounded-lg border">
-        <div className="flex-1 min-w-[250px]">
+      <div className="bg-card flex flex-wrap items-center gap-4 rounded-lg border p-4">
+        <div className="min-w-[250px] flex-1">
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
             <Input
               placeholder="Buscar por número de colada..."
               value={coladaSearch}
@@ -130,10 +130,10 @@ export default function CertificatesPage() {
           </div>
         </div>
 
-        <Select 
-          value={categoryFilter || "ALL"} 
+        <Select
+          value={categoryFilter || 'ALL'}
           onValueChange={(value) => {
-            setCategoryFilter(value === "ALL" ? "" : value);
+            setCategoryFilter(value === 'ALL' ? '' : value);
             setPage(1);
           }}
         >
@@ -152,7 +152,7 @@ export default function CertificatesPage() {
 
         {hasFilters && (
           <Button variant="ghost" size="sm" onClick={clearFilters}>
-            <X className="h-4 w-4 mr-1" />
+            <X className="mr-1 h-4 w-4" />
             Limpiar filtros
           </Button>
         )}
@@ -160,7 +160,7 @@ export default function CertificatesPage() {
 
       {/* Results info */}
       {data && (
-        <div className="text-sm text-muted-foreground">
+        <div className="text-muted-foreground text-sm">
           Mostrando {data.data.length} de {data.pagination.total} certificados
           {hasFilters && ' (filtrado)'}
         </div>
@@ -181,18 +181,18 @@ export default function CertificatesPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setPage(p => Math.max(1, p - 1))}
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
             disabled={page === 1}
           >
             Anterior
           </Button>
-          <span className="text-sm text-muted-foreground">
+          <span className="text-muted-foreground text-sm">
             Página {page} de {data.pagination.totalPages}
           </span>
           <Button
             variant="outline"
             size="sm"
-            onClick={() => setPage(p => Math.min(data.pagination.totalPages, p + 1))}
+            onClick={() => setPage((p) => Math.min(data.pagination.totalPages, p + 1))}
             disabled={page === data.pagination.totalPages}
           >
             Siguiente
@@ -201,10 +201,7 @@ export default function CertificatesPage() {
       )}
 
       {/* Dialogs */}
-      <UploadCertificateDialog
-        open={uploadDialogOpen}
-        onOpenChange={setUploadDialogOpen}
-      />
+      <UploadCertificateDialog open={uploadDialogOpen} onOpenChange={setUploadDialogOpen} />
 
       <SyncExcelDialog
         open={syncDialogOpen}
@@ -220,4 +217,3 @@ export default function CertificatesPage() {
     </div>
   );
 }
-

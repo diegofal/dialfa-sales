@@ -1,16 +1,17 @@
 'use client';
 
-import { useState } from 'react';
 import { Filter, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { DeliveryNotesTable } from '@/components/deliveryNotes/DeliveryNotesTable';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
-import { usePagination } from '@/lib/hooks/usePagination';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { DeliveryNotesTable } from '@/components/deliveryNotes/DeliveryNotesTable';
+import { ROUTES } from '@/lib/constants/routes';
 import { useDeliveryNotes, useDeleteDeliveryNote } from '@/lib/hooks/useDeliveryNotes';
-import { useRouter } from 'next/navigation';
+import { usePagination } from '@/lib/hooks/usePagination';
 import { useQuickDeliveryNoteTabs } from '@/lib/hooks/useQuickDeliveryNoteTabs';
 
 export default function DeliveryNotesPage() {
@@ -47,14 +48,14 @@ export default function DeliveryNotesPage() {
   };
 
   const handleViewDeliveryNote = (id: number) => {
-    router.push(`/dashboard/delivery-notes/${id}`);
+    router.push(`${ROUTES.DELIVERY_NOTES}/${id}`);
   };
 
   const handleDeleteDeliveryNote = (id: number) => {
     deleteDeliveryNoteMutation.mutate(id, {
       onSuccess: () => {
         // Remove tab from sidebar if it exists (find by deliveryNoteId)
-        const tabToRemove = tabs.find(tab => tab.deliveryNoteId === id);
+        const tabToRemove = tabs.find((tab) => tab.deliveryNoteId === id);
         if (tabToRemove) {
           removeTab(tabToRemove.id);
         }
@@ -70,7 +71,9 @@ export default function DeliveryNotesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Remitos</h1>
-          <p className="text-muted-foreground">Gestiona los remitos de entrega. Los remitos se generan desde los pedidos.</p>
+          <p className="text-muted-foreground">
+            Gestiona los remitos de entrega. Los remitos se generan desde los pedidos.
+          </p>
         </div>
       </div>
 
@@ -98,11 +101,13 @@ export default function DeliveryNotesPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {data?.data.filter(d => {
+              {data?.data.filter((d) => {
                 const deliveryDate = new Date(d.deliveryDate);
                 const now = new Date();
-                return deliveryDate.getMonth() === now.getMonth() && 
-                       deliveryDate.getFullYear() === now.getFullYear();
+                return (
+                  deliveryDate.getMonth() === now.getMonth() &&
+                  deliveryDate.getFullYear() === now.getFullYear()
+                );
               }).length || 0}
             </div>
           </CardContent>
@@ -116,9 +121,7 @@ export default function DeliveryNotesPage() {
             <div className="flex items-center gap-2">
               <Filter className="h-5 w-5" />
               <CardTitle>Filtros</CardTitle>
-              {activeFiltersCount > 0 && (
-                <Badge variant="secondary">{activeFiltersCount}</Badge>
-              )}
+              {activeFiltersCount > 0 && <Badge variant="secondary">{activeFiltersCount}</Badge>}
             </div>
             {activeFiltersCount > 0 && (
               <Button variant="ghost" size="sm" onClick={handleClearFilters}>
@@ -162,9 +165,7 @@ export default function DeliveryNotesPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Cargando remitos...
-            </div>
+            <div className="text-muted-foreground py-8 text-center">Cargando remitos...</div>
           ) : data && data.data.length > 0 ? (
             <>
               <DeliveryNotesTable
@@ -186,14 +187,10 @@ export default function DeliveryNotesPage() {
               </div>
             </>
           ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              No se encontraron remitos
-            </div>
+            <div className="text-muted-foreground py-8 text-center">No se encontraron remitos</div>
           )}
         </CardContent>
       </Card>
     </div>
   );
 }
-
-

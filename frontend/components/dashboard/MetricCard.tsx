@@ -3,8 +3,8 @@
  * Displays a single metric with gradient background
  */
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LucideIcon } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
 export interface MetricCardProps {
@@ -27,14 +27,14 @@ export function MetricCard({
   children,
 }: MetricCardProps) {
   return (
-    <Card 
+    <Card
       className={cn(
         'relative overflow-hidden border-0 text-white transition-all duration-300 hover:scale-105 hover:shadow-2xl',
         gradient
       )}
     >
-      <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-        <CardTitle className="text-sm font-medium uppercase tracking-wide opacity-90">
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+        <CardTitle className="text-sm font-medium tracking-wide uppercase opacity-90">
           {title}
         </CardTitle>
         <div className="rounded-full bg-white/20 p-2 backdrop-blur-sm">
@@ -47,9 +47,7 @@ export function MetricCard({
         ) : (
           <>
             <div className="text-3xl font-bold tracking-tight">{value}</div>
-            {subtitle && (
-              <p className="text-xs opacity-75">{subtitle}</p>
-            )}
+            {subtitle && <p className="text-xs opacity-75">{subtitle}</p>}
             {children}
           </>
         )}
@@ -57,12 +55,3 @@ export function MetricCard({
     </Card>
   );
 }
-
-
-
-
-
-
-
-
-

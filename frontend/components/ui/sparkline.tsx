@@ -24,13 +24,10 @@ export function Sparkline({
   className = '',
 }: SparklineProps) {
   // Si no hay datos o todos son 0, mostrar línea plana
-  if (!data || data.length === 0 || data.every(v => v === 0)) {
+  if (!data || data.length === 0 || data.every((v) => v === 0)) {
     return (
-      <div 
-        className={`flex items-center justify-center ${className}`} 
-        style={{ width, height }}
-      >
-        <span className="text-xs text-muted-foreground">Sin datos</span>
+      <div className={`flex items-center justify-center ${className}`} style={{ width, height }}>
+        <span className="text-muted-foreground text-xs">Sin datos</span>
       </div>
     );
   }
@@ -68,12 +65,8 @@ export function Sparkline({
       preserveAspectRatio="none"
     >
       {/* Área de relleno */}
-      <path
-        d={areaPath}
-        fill={fillColor}
-        stroke="none"
-      />
-      
+      <path d={areaPath} fill={fillColor} stroke="none" />
+
       {/* Línea */}
       <path
         d={linePath}
@@ -85,15 +78,10 @@ export function Sparkline({
       />
 
       {/* Puntos opcionales */}
-      {showDots && points.map((point, index) => (
-        <circle
-          key={index}
-          cx={point.x}
-          cy={point.y}
-          r="2"
-          fill={color}
-        />
-      ))}
+      {showDots &&
+        points.map((point, index) => (
+          <circle key={index} cx={point.x} cy={point.y} r="2" fill={color} />
+        ))}
     </svg>
   );
 }
@@ -120,13 +108,12 @@ export function SparklineWithTooltip({
   }
 
   const width = sparklineProps.width || 100;
-  const height = sparklineProps.height || 30;
 
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const index = Math.round((x / width) * (data.length - 1));
-    
+
     if (index >= 0 && index < data.length) {
       setHoveredIndex(index);
       setTooltipPosition({ x: e.clientX, y: e.clientY });
@@ -149,7 +136,7 @@ export function SparklineWithTooltip({
 
       {hoveredIndex !== null && (
         <div
-          className="fixed z-50 bg-popover text-popover-foreground rounded-md shadow-md px-3 py-2 text-sm pointer-events-none"
+          className="bg-popover text-popover-foreground pointer-events-none fixed z-50 rounded-md px-3 py-2 text-sm shadow-md"
           style={{
             left: tooltipPosition.x + 10,
             top: tooltipPosition.y - 10,
@@ -158,16 +145,9 @@ export function SparklineWithTooltip({
           <div className="font-medium">
             {labels && labels[hoveredIndex] ? labels[hoveredIndex] : `Punto ${hoveredIndex + 1}`}
           </div>
-          <div className="text-muted-foreground">
-            {formatValue(data[hoveredIndex])}
-          </div>
+          <div className="text-muted-foreground">{formatValue(data[hoveredIndex])}</div>
         </div>
       )}
     </div>
   );
 }
-
-
-
-
-

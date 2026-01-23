@@ -1,17 +1,7 @@
 'use client';
 
-import { useState } from 'react';
 import { Trash2, XCircle, Eye } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { ClickableTableRow } from '@/components/ui/clickable-table-row';
-import { SortableTableHead } from '@/components/ui/sortable-table-head';
+import { useState } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,8 +13,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import type { SalesOrderListDto } from '@/types/salesOrder';
+import { Button } from '@/components/ui/button';
+import { ClickableTableRow } from '@/components/ui/clickable-table-row';
+import { SortableTableHead } from '@/components/ui/sortable-table-head';
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table';
 import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
+import type { SalesOrderListDto } from '@/types/salesOrder';
 
 interface SalesOrdersTableProps {
   orders: SalesOrderListDto[];
@@ -79,19 +73,45 @@ export function SalesOrdersTable({
         <Table>
           <TableHeader>
             <TableRow>
-              <SortableTableHead sortKey="OrderNumber" currentSortBy={currentSortBy} currentSortDescending={currentSortDescending} onSort={onSort}>
+              <SortableTableHead
+                sortKey="OrderNumber"
+                currentSortBy={currentSortBy}
+                currentSortDescending={currentSortDescending}
+                onSort={onSort}
+              >
                 N° Pedido
               </SortableTableHead>
-              <SortableTableHead sortKey="OrderDate" currentSortBy={currentSortBy} currentSortDescending={currentSortDescending} onSort={onSort}>
+              <SortableTableHead
+                sortKey="OrderDate"
+                currentSortBy={currentSortBy}
+                currentSortDescending={currentSortDescending}
+                onSort={onSort}
+              >
                 Fecha
               </SortableTableHead>
-              <SortableTableHead sortKey="ClientBusinessName" currentSortBy={currentSortBy} currentSortDescending={currentSortDescending} onSort={onSort}>
+              <SortableTableHead
+                sortKey="ClientBusinessName"
+                currentSortBy={currentSortBy}
+                currentSortDescending={currentSortDescending}
+                onSort={onSort}
+              >
                 Cliente
               </SortableTableHead>
-              <SortableTableHead sortKey="Status" currentSortBy={currentSortBy} currentSortDescending={currentSortDescending} onSort={onSort}>
+              <SortableTableHead
+                sortKey="Status"
+                currentSortBy={currentSortBy}
+                currentSortDescending={currentSortDescending}
+                onSort={onSort}
+              >
                 Estado
               </SortableTableHead>
-              <SortableTableHead sortKey="Total" currentSortBy={currentSortBy} currentSortDescending={currentSortDescending} onSort={onSort} align="right">
+              <SortableTableHead
+                sortKey="Total"
+                currentSortBy={currentSortBy}
+                currentSortDescending={currentSortDescending}
+                onSort={onSort}
+                align="right"
+              >
                 Total
               </SortableTableHead>
               <SortableTableHead align="right">Acciones</SortableTableHead>
@@ -100,7 +120,7 @@ export function SalesOrdersTable({
           <TableBody>
             {orders.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="text-center text-muted-foreground">
+                <TableCell colSpan={6} className="text-muted-foreground text-center">
                   No se encontraron pedidos
                 </TableCell>
               </TableRow>
@@ -213,5 +233,3 @@ export function SalesOrdersTable({
     </>
   );
 }
-
-

@@ -7,7 +7,7 @@ async function createTestUser() {
   try {
     // Check if user already exists
     const existing = await prisma.users.findUnique({
-      where: { username: 'admin' }
+      where: { username: 'admin' },
     });
 
     if (existing) {
@@ -17,7 +17,7 @@ async function createTestUser() {
         username: existing.username,
         email: existing.email,
         role: existing.role,
-        isActive: existing.is_active
+        isActive: existing.is_active,
       });
       return;
     }
@@ -35,7 +35,7 @@ async function createTestUser() {
         is_active: true,
         created_at: new Date(),
         updated_at: new Date(),
-      }
+      },
     });
 
     console.log('✅ Test user created successfully!');
@@ -50,5 +50,3 @@ async function createTestUser() {
 }
 
 createTestUser();
-
-

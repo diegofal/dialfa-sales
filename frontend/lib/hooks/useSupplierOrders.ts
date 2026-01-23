@@ -1,13 +1,20 @@
 import { useMutation, useQuery, useQueryClient, UseQueryOptions } from '@tanstack/react-query';
-import { supplierOrdersApi } from '../api/supplierOrders';
-import { SupplierOrder, SupplierOrderFormData, SupplierOrderStatus } from '@/types/supplierOrder';
 import { toast } from 'sonner';
+import type {
+  SupplierOrder,
+  SupplierOrderFormData,
+  SupplierOrderStatus,
+} from '@/types/supplierOrder';
+import { supplierOrdersApi } from '../api/supplierOrders';
 
 interface SupplierOrdersResponse {
   success: boolean;
   data: SupplierOrder[];
 }
 
+/**
+ * Fetch all supplier orders with optional filters
+ */
 export function useSupplierOrders(
   params?: { status?: SupplierOrderStatus; supplierId?: number },
   options?: Omit<UseQueryOptions<SupplierOrdersResponse>, 'queryKey' | 'queryFn'>
@@ -19,21 +26,26 @@ export function useSupplierOrders(
   });
 }
 
+/**
+ * Fetch single supplier order by ID
+ */
 export function useSupplierOrder(id: number) {
   return useQuery({
     queryKey: ['supplier-orders', id],
     queryFn: () => supplierOrdersApi.getById(id),
-    enabled: !!id,
+    enabled: !!id && id > 0,
   });
 }
 
+/**
+ * Create supplier order (supports silent mode for optimistic updates)
+ */
 export function useCreateSupplierOrder(options?: { silent?: boolean }) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (order: SupplierOrderFormData) => supplierOrdersApi.create(order),
     onSuccess: () => {
-      // Don't invalidate if silent - we'll manage state optimistically
       if (!options?.silent) {
         queryClient.invalidateQueries({ queryKey: ['supplier-orders'] });
         toast.success('Pedido creado exitosamente');
@@ -47,6 +59,9 @@ export function useCreateSupplierOrder(options?: { silent?: boolean }) {
   });
 }
 
+/**
+ * Update supplier order (supports silent mode for optimistic updates)
+ */
 export function useUpdateSupplierOrder(options?: { silent?: boolean }) {
   const queryClient = useQueryClient();
 
@@ -54,7 +69,6 @@ export function useUpdateSupplierOrder(options?: { silent?: boolean }) {
     mutationFn: ({ id, order }: { id: number; order: Partial<SupplierOrderFormData> }) =>
       supplierOrdersApi.update(id, order),
     onSuccess: () => {
-      // Don't invalidate if silent - we'll manage state optimistically
       if (!options?.silent) {
         queryClient.invalidateQueries({ queryKey: ['supplier-orders'] });
         toast.success('Pedido actualizado exitosamente');
@@ -68,6 +82,9 @@ export function useUpdateSupplierOrder(options?: { silent?: boolean }) {
   });
 }
 
+/**
+ * Update supplier order status
+ */
 export function useUpdateSupplierOrderStatus() {
   const queryClient = useQueryClient();
 
@@ -84,6 +101,9 @@ export function useUpdateSupplierOrderStatus() {
   });
 }
 
+/**
+ * Delete supplier order
+ */
 export function useDeleteSupplierOrder() {
   const queryClient = useQueryClient();
 
@@ -98,4 +118,3 @@ export function useDeleteSupplierOrder() {
     },
   });
 }
-

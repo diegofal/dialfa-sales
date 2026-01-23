@@ -62,7 +62,7 @@ export function useQuickCart() {
   const addItem = (article: Article, quantity: number = 1) => {
     const current = getCartFromStorage();
     const existingIndex = current.findIndex((item) => item.article.id === article.id);
-    
+
     let updated: QuickCartItem[];
     if (existingIndex >= 0) {
       // Update quantity if item already exists
@@ -75,7 +75,7 @@ export function useQuickCart() {
       // Add new item
       updated = [...current, { article, quantity }];
     }
-    
+
     saveCartToStorage(updated);
     setItems(updated);
   };
@@ -125,5 +125,3 @@ export function useQuickCart() {
     getTotalValue,
   };
 }
-
-

@@ -1,19 +1,14 @@
 'use client';
 
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { useCreatePaymentTerm, useUpdatePaymentTerm } from '@/lib/hooks/usePaymentTerms';
 import type { PaymentTerm, PaymentTermFormData } from '@/types/paymentTerm';
 
@@ -96,27 +91,14 @@ export function PaymentTermDialog({ isOpen, onClose, paymentTerm }: PaymentTermD
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="code">Código *</Label>
-            <Input
-              id="code"
-              {...register('code')}
-              placeholder="Ej: 30D"
-              disabled={isEditing}
-            />
-            {errors.code && (
-              <p className="text-sm text-destructive">{errors.code.message}</p>
-            )}
+            <Input id="code" {...register('code')} placeholder="Ej: 30D" disabled={isEditing} />
+            {errors.code && <p className="text-destructive text-sm">{errors.code.message}</p>}
           </div>
 
           <div className="space-y-2">
             <Label htmlFor="name">Nombre *</Label>
-            <Input
-              id="name"
-              {...register('name')}
-              placeholder="Ej: 30 días"
-            />
-            {errors.name && (
-              <p className="text-sm text-destructive">{errors.name.message}</p>
-            )}
+            <Input id="name" {...register('name')} placeholder="Ej: 30 días" />
+            {errors.name && <p className="text-destructive text-sm">{errors.name.message}</p>}
           </div>
 
           <div className="space-y-2">
@@ -127,12 +109,8 @@ export function PaymentTermDialog({ isOpen, onClose, paymentTerm }: PaymentTermD
               {...register('days', { valueAsNumber: true })}
               placeholder="0"
             />
-            {errors.days && (
-              <p className="text-sm text-destructive">{errors.days.message}</p>
-            )}
-            <p className="text-sm text-muted-foreground">
-              0 = Contado, 30 = 30 días, etc.
-            </p>
+            {errors.days && <p className="text-destructive text-sm">{errors.days.message}</p>}
+            <p className="text-muted-foreground text-sm">0 = Contado, 30 = 30 días, etc.</p>
           </div>
 
           <div className="flex items-center space-x-2">
@@ -159,4 +137,3 @@ export function PaymentTermDialog({ isOpen, onClose, paymentTerm }: PaymentTermD
     </Dialog>
   );
 }
-

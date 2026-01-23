@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { getActivityLogs } from '@/lib/api/activityLogs';
+import { getActivityLogChanges, getActivityLogs } from '@/lib/api/activityLogs';
 import { ActivityLogsFilters } from '@/types/activityLog';
 
 export function useActivityLogs(filters: ActivityLogsFilters = {}) {
@@ -9,8 +9,10 @@ export function useActivityLogs(filters: ActivityLogsFilters = {}) {
   });
 }
 
-
-
-
-
-
+export function useActivityLogChanges(id: number, enabled: boolean) {
+  return useQuery({
+    queryKey: ['activity-log-changes', id],
+    queryFn: () => getActivityLogChanges(id),
+    enabled,
+  });
+}

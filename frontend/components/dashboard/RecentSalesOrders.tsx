@@ -1,43 +1,19 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Loader2, ShoppingCart, TrendingUp, Clock } from 'lucide-react';
 import Link from 'next/link';
-import type { SalesOrder } from '@/types/salesOrder';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ROUTES } from '@/lib/constants/routes';
+import { useSalesOrders } from '@/lib/hooks/useSalesOrders';
 
 interface RecentSalesOrdersProps {
   limit?: number;
 }
 
 export function RecentSalesOrders({ limit = 5 }: RecentSalesOrdersProps) {
-  const [orders, setOrders] = useState<SalesOrder[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function fetchRecentOrders() {
-      try {
-        setLoading(true);
-        const response = await fetch(`/api/sales-orders?limit=${limit}&page=1`);
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch recent orders');
-        }
-
-        const data = await response.json();
-        setOrders(data.data || []);
-      } catch (err) {
-        console.error('Error fetching recent orders:', err);
-        setError('No se pudieron cargar los pedidos recientes');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchRecentOrders();
-  }, [limit]);
+  const { data, isLoading: loading, error } = useSalesOrders({ pageSize: limit, pageNumber: 1 });
+  const orders = data?.data ?? [];
 
   const getStatusBadge = (status: string) => {
     const statusConfig = {
@@ -70,7 +46,20 @@ export function RecentSalesOrders({ limit = 5 }: RecentSalesOrdersProps) {
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const day = date.getDate().toString().padStart(2, '0');
-    const months = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+    const months = [
+      'ene',
+      'feb',
+      'mar',
+      'abr',
+      'may',
+      'jun',
+      'jul',
+      'ago',
+      'sep',
+      'oct',
+      'nov',
+      'dic',
+    ];
     const month = months[date.getMonth()];
     const year = date.getFullYear();
     const hours = date.getHours().toString().padStart(2, '0');
@@ -86,13 +75,11 @@ export function RecentSalesOrders({ limit = 5 }: RecentSalesOrdersProps) {
             <ShoppingCart className="h-5 w-5" />
             Últimos Pedidos
           </CardTitle>
-          <CardDescription>
-            Los {limit} pedidos creados más recientemente
-          </CardDescription>
+          <CardDescription>Los {limit} pedidos creados más recientemente</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+            <Loader2 className="text-muted-foreground h-8 w-8 animate-spin" />
           </div>
         </CardContent>
       </Card>
@@ -107,13 +94,11 @@ export function RecentSalesOrders({ limit = 5 }: RecentSalesOrdersProps) {
             <ShoppingCart className="h-5 w-5" />
             Últimos Pedidos
           </CardTitle>
-          <CardDescription>
-            Los {limit} pedidos creados más recientemente
-          </CardDescription>
+          <CardDescription>Los {limit} pedidos creados más recientemente</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
-            <p>{error}</p>
+          <div className="text-muted-foreground py-8 text-center">
+            <p>No se pudieron cargar los pedidos recientes</p>
           </div>
         </CardContent>
       </Card>
@@ -128,12 +113,10 @@ export function RecentSalesOrders({ limit = 5 }: RecentSalesOrdersProps) {
             <ShoppingCart className="h-5 w-5" />
             Últimos Pedidos
           </CardTitle>
-          <CardDescription>
-            Los {limit} pedidos creados más recientemente
-          </CardDescription>
+          <CardDescription>Los {limit} pedidos creados más recientemente</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="text-center py-8 text-muted-foreground">
+          <div className="text-muted-foreground py-8 text-center">
             <p>No hay pedidos disponibles</p>
           </div>
         </CardContent>
@@ -150,13 +133,11 @@ export function RecentSalesOrders({ limit = 5 }: RecentSalesOrdersProps) {
               <ShoppingCart className="h-5 w-5" />
               Últimos Pedidos
             </CardTitle>
-            <CardDescription>
-              Los {limit} pedidos creados más recientemente
-            </CardDescription>
+            <CardDescription>Los {limit} pedidos creados más recientemente</CardDescription>
           </div>
-          <Link 
-            href="/dashboard/sales-orders"
-            className="text-sm text-primary hover:underline flex items-center gap-1"
+          <Link
+            href={ROUTES.SALES_ORDERS}
+            className="text-primary flex items-center gap-1 text-sm hover:underline"
           >
             Ver todos
             <TrendingUp className="h-4 w-4" />
@@ -168,34 +149,30 @@ export function RecentSalesOrders({ limit = 5 }: RecentSalesOrdersProps) {
           {orders.map((order) => (
             <Link
               key={order.id}
-              href={`/dashboard/sales-orders/${order.id}`}
-              className="block p-4 rounded-lg border bg-card hover:bg-accent hover:shadow-md transition-all duration-200"
+              href={`${ROUTES.SALES_ORDERS}/${order.id}`}
+              className="bg-card hover:bg-accent block rounded-lg border p-4 transition-all duration-200 hover:shadow-md"
             >
               <div className="flex items-start justify-between gap-4">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <p className="text-sm font-semibold text-foreground">
-                      {order.orderNumber}
-                    </p>
+                <div className="min-w-0 flex-1">
+                  <div className="mb-1 flex items-center gap-2">
+                    <p className="text-foreground text-sm font-semibold">{order.orderNumber}</p>
                     {getStatusBadge(order.status)}
                   </div>
-                  
-                  <p className="text-sm text-muted-foreground truncate mb-1">
+
+                  <p className="text-muted-foreground mb-1 truncate text-sm">
                     {order.clientBusinessName}
                   </p>
-                  
-                  <div className="flex items-center gap-3 text-xs text-muted-foreground">
+
+                  <div className="text-muted-foreground flex items-center gap-3 text-xs">
                     <span className="flex items-center gap-1">
                       <Clock className="h-3 w-3" />
-                      {formatDate(order.createdAt)}
+                      {formatDate(order.orderDate)}
                     </span>
                   </div>
                 </div>
-                
-                <div className="text-right flex-shrink-0">
-                  <p className="text-sm font-bold text-foreground">
-                    {formatCurrency(order.total)}
-                  </p>
+
+                <div className="flex-shrink-0 text-right">
+                  <p className="text-foreground text-sm font-bold">{formatCurrency(order.total)}</p>
                 </div>
               </div>
             </Link>
@@ -205,4 +182,3 @@ export function RecentSalesOrders({ limit = 5 }: RecentSalesOrdersProps) {
     </Card>
   );
 }
-

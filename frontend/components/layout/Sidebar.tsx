@@ -1,13 +1,9 @@
 'use client';
 
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
-import { cn } from '@/lib/utils';
-import { 
-  LayoutDashboard, 
-  Users, 
+import {
+  LayoutDashboard,
+  Users,
   FolderTree,
-  Package, 
   Truck,
   Settings,
   FileCheck,
@@ -19,22 +15,26 @@ import {
   DollarSign,
   CalendarClock,
 } from 'lucide-react';
-import PedidosMenuItem from './PedidosMenuItem';
-import FacturasMenuItem from './FacturasMenuItem';
-import RemitosMenuItem from './RemitosMenuItem';
-import ArticulosMenuItem from './ArticulosMenuItem';
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { ROUTES } from '@/lib/constants/routes';
+import { cn } from '@/lib/utils';
 import { useAuthStore } from '@/store/authStore';
+import ArticulosMenuItem from './ArticulosMenuItem';
+import FacturasMenuItem from './FacturasMenuItem';
+import PedidosMenuItem from './PedidosMenuItem';
+import RemitosMenuItem from './RemitosMenuItem';
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: LayoutDashboard },
-  { name: 'Clientes', href: '/dashboard/clients', icon: Users },
-  { name: 'Categorías', href: '/dashboard/categories', icon: FolderTree },
+  { name: 'Dashboard', href: ROUTES.DASHBOARD, icon: LayoutDashboard },
+  { name: 'Clientes', href: ROUTES.CLIENTS, icon: Users },
+  { name: 'Categorías', href: ROUTES.CATEGORIES, icon: FolderTree },
 ];
 
 const navigationAfterRemitos = [
-  { name: 'Certificados', href: '/dashboard/certificates', icon: FileCheck },
-  { name: 'Feedback', href: '/dashboard/feedback', icon: MessageSquare },
-  { name: 'Configuración', href: '/dashboard/settings', icon: Settings },
+  { name: 'Certificados', href: ROUTES.CERTIFICATES, icon: FileCheck },
+  { name: 'Feedback', href: ROUTES.FEEDBACK, icon: MessageSquare },
+  { name: 'Configuración', href: ROUTES.SETTINGS, icon: Settings },
 ];
 
 export default function Sidebar() {
@@ -43,11 +43,11 @@ export default function Sidebar() {
   const isAdmin = user?.role?.toLowerCase() === 'admin';
 
   return (
-    <div className="flex h-full w-64 flex-col bg-sidebar text-sidebar-foreground">
-      <div className="flex h-16 items-center border-b border-sidebar-border px-6 flex-shrink-0">
-        <h1 className="text-2xl font-bold text-sidebar-primary">SPISA</h1>
+    <div className="bg-sidebar text-sidebar-foreground flex h-full w-64 flex-col">
+      <div className="border-sidebar-border flex h-16 flex-shrink-0 items-center border-b px-6">
+        <h1 className="text-sidebar-primary text-2xl font-bold">SPISA</h1>
       </div>
-      <nav className="flex-1 space-y-1 px-3 py-4 overflow-y-auto">
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
         {navigation.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
@@ -66,29 +66,29 @@ export default function Sidebar() {
             </Link>
           );
         })}
-        
+
         {/* Artículos with expandable sub-items */}
         <ArticulosMenuItem />
-        
+
         {/* Pedidos with expandable sub-items */}
         <PedidosMenuItem />
-        
+
         {/* Facturas with expandable sub-items */}
         <FacturasMenuItem />
-        
+
         {/* Remitos with expandable sub-items */}
         <RemitosMenuItem />
 
         {/* Proveedores section */}
         <div className="mt-4 mb-2">
-          <p className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          <p className="text-muted-foreground mb-2 px-3 text-xs font-semibold tracking-wider uppercase">
             Compras
           </p>
           <Link
-            href="/dashboard/suppliers"
+            href={ROUTES.SUPPLIERS}
             className={cn(
               'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-              pathname.startsWith('/dashboard/suppliers')
+              pathname.startsWith(ROUTES.SUPPLIERS)
                 ? 'bg-primary text-primary-foreground'
                 : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
             )}
@@ -97,10 +97,10 @@ export default function Sidebar() {
             Proveedores
           </Link>
           <Link
-            href="/dashboard/supplier-orders"
+            href={ROUTES.SUPPLIER_ORDERS}
             className={cn(
               'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-              pathname.startsWith('/dashboard/supplier-orders')
+              pathname.startsWith(ROUTES.SUPPLIER_ORDERS)
                 ? 'bg-primary text-primary-foreground'
                 : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
             )}
@@ -109,7 +109,7 @@ export default function Sidebar() {
             Pedidos a Proveedores
           </Link>
         </div>
-        
+
         {navigationAfterRemitos.map((item) => {
           const isActive = pathname === item.href || pathname.startsWith(item.href + '/');
           return (
@@ -130,15 +130,15 @@ export default function Sidebar() {
         })}
 
         {isAdmin && (
-          <div className="mt-6 pt-4 border-t border-sidebar-border">
-            <p className="px-3 mb-2 text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+          <div className="border-sidebar-border mt-6 border-t pt-4">
+            <p className="text-muted-foreground mb-2 px-3 text-xs font-semibold tracking-wider uppercase">
               Administración
             </p>
             <Link
-              href="/dashboard/price-lists"
+              href={ROUTES.PRICE_LISTS}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                pathname.startsWith('/dashboard/price-lists')
+                pathname.startsWith(ROUTES.PRICE_LISTS)
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
               )}
@@ -147,10 +147,10 @@ export default function Sidebar() {
               Listas de Precios
             </Link>
             <Link
-              href="/dashboard/payment-terms"
+              href={ROUTES.PAYMENT_TERMS}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                pathname.startsWith('/dashboard/payment-terms')
+                pathname.startsWith(ROUTES.PAYMENT_TERMS)
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
               )}
@@ -159,10 +159,10 @@ export default function Sidebar() {
               Condiciones de Pago
             </Link>
             <Link
-              href="/dashboard/users"
+              href={ROUTES.USERS}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                pathname.startsWith('/dashboard/users')
+                pathname.startsWith(ROUTES.USERS)
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
               )}
@@ -171,10 +171,10 @@ export default function Sidebar() {
               Usuarios
             </Link>
             <Link
-              href="/dashboard/activity"
+              href={ROUTES.ACTIVITY}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                pathname.startsWith('/dashboard/activity')
+                pathname.startsWith(ROUTES.ACTIVITY)
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
               )}
@@ -183,10 +183,10 @@ export default function Sidebar() {
               Actividad
             </Link>
             <Link
-              href="/dashboard/feedback/admin"
+              href={ROUTES.FEEDBACK_ADMIN}
               className={cn(
                 'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
-                pathname.startsWith('/dashboard/feedback/admin')
+                pathname.startsWith(ROUTES.FEEDBACK_ADMIN)
                   ? 'bg-primary text-primary-foreground'
                   : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
               )}
@@ -200,5 +200,3 @@ export default function Sidebar() {
     </div>
   );
 }
-
-

@@ -1,11 +1,18 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { useClients } from '@/lib/hooks/useClients';
-import type { SalesOrderFormData, SalesOrderItemFormData } from '@/types/salesOrder';
 import { formatCuit } from '@/lib/utils';
+import type { SalesOrderFormData, SalesOrderItemFormData } from '@/types/salesOrder';
 
 interface OrderSummaryStepProps {
   formData: SalesOrderFormData;
@@ -63,19 +70,19 @@ export function OrderSummaryStep({ formData }: OrderSummaryStepProps) {
         <CardContent className="space-y-2">
           <div className="grid gap-2 md:grid-cols-2">
             <div>
-              <p className="text-sm text-muted-foreground">Razón Social</p>
+              <p className="text-muted-foreground text-sm">Razón Social</p>
               <p className="font-medium">{selectedClient?.businessName}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">CUIT</p>
-              <p className="font-medium font-mono">{formatCuit(selectedClient?.cuit)}</p>
+              <p className="text-muted-foreground text-sm">CUIT</p>
+              <p className="font-mono font-medium">{formatCuit(selectedClient?.cuit)}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Domicilio</p>
+              <p className="text-muted-foreground text-sm">Domicilio</p>
               <p className="font-medium">{selectedClient?.address}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Localidad</p>
+              <p className="text-muted-foreground text-sm">Localidad</p>
               <p className="font-medium">
                 {selectedClient?.city}, {selectedClient?.provinceName}
               </p>
@@ -93,20 +100,20 @@ export function OrderSummaryStep({ formData }: OrderSummaryStepProps) {
           <div className="grid gap-2 md:grid-cols-2">
             {formData.orderDate && (
               <div>
-                <p className="text-sm text-muted-foreground">Fecha de Pedido</p>
+                <p className="text-muted-foreground text-sm">Fecha de Pedido</p>
                 <p className="font-medium">{formatDate(formData.orderDate)}</p>
               </div>
             )}
             {formData.deliveryDate && (
               <div>
-                <p className="text-sm text-muted-foreground">Fecha de Entrega</p>
+                <p className="text-muted-foreground text-sm">Fecha de Entrega</p>
                 <p className="font-medium">{formatDate(formData.deliveryDate)}</p>
               </div>
             )}
           </div>
           {formData.notes && (
             <div>
-              <p className="text-sm text-muted-foreground">Notas</p>
+              <p className="text-muted-foreground text-sm">Notas</p>
               <p className="font-medium">{formData.notes}</p>
             </div>
           )}
@@ -168,7 +175,7 @@ export function OrderSummaryStep({ formData }: OrderSummaryStepProps) {
               <span>- {formatCurrency(calculateTotalDiscount())}</span>
             </div>
           )}
-          <div className="flex justify-between text-xl font-bold border-t pt-2">
+          <div className="flex justify-between border-t pt-2 text-xl font-bold">
             <span>Total:</span>
             <span>{formatCurrency(calculateTotal())}</span>
           </div>
@@ -177,6 +184,3 @@ export function OrderSummaryStep({ formData }: OrderSummaryStepProps) {
     </div>
   );
 }
-
-
-

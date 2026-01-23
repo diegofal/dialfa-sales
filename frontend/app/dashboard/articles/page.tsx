@@ -1,25 +1,18 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { Plus, Search, Filter, Package, History } from 'lucide-react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { Plus, Search, Filter, Package, History, ShoppingCart } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Pagination } from '@/components/ui/pagination';
-import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
-import { usePagination } from '@/lib/hooks/usePagination';
-import { useArticles, useDeleteArticle } from '@/lib/hooks/useArticles';
-import { useCategories } from '@/lib/hooks/useCategories';
-import { useStockMovements } from '@/lib/hooks/useStockMovements';
-import { useSupplierOrderDraft } from '@/lib/hooks/useSupplierOrderDraft';
-import { useUpdateSupplierOrderStatus } from '@/lib/hooks/useSupplierOrders';
-import { ArticlesTable } from '@/components/articles/ArticlesTable';
+import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { ArticleDialog } from '@/components/articles/ArticleDialog';
+import { ArticlesTable } from '@/components/articles/ArticlesTable';
 import { StockMovementsTable } from '@/components/articles/StockMovementsTable';
 import { SupplierOrderPanel } from '@/components/articles/SupplierOrderPanel';
-import { Article } from '@/types/article';
-import { useAuthStore } from '@/store/authStore';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Pagination } from '@/components/ui/pagination';
 import {
   Select,
   SelectContent,
@@ -27,16 +20,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
+import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { toast } from 'sonner';
+import { ROUTES } from '@/lib/constants/routes';
+import { useArticles, useDeleteArticle } from '@/lib/hooks/useArticles';
+import { useCategories } from '@/lib/hooks/useCategories';
+import { usePagination } from '@/lib/hooks/usePagination';
+import { useStockMovements } from '@/lib/hooks/useStockMovements';
+import { useSupplierOrderDraft } from '@/lib/hooks/useSupplierOrderDraft';
+import { useUpdateSupplierOrderStatus } from '@/lib/hooks/useSupplierOrders';
+import { useAuthStore } from '@/store/authStore';
+import { Article } from '@/types/article';
 
 export default function ArticlesPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { isAdmin } = useAuthStore();
-  
+
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
@@ -50,13 +51,13 @@ export default function ArticlesPage() {
   // Supplier order mode
   const [supplierOrderMode, setSupplierOrderMode] = useState(false);
   const [selectedArticleIds, setSelectedArticleIds] = useState<Set<number>>(new Set());
-  
+
   // Supplier order draft hook with trendMonths
   const supplierOrder = useSupplierOrderDraft(supplierOrderTrendMonths);
   const updateStatusMutation = useUpdateSupplierOrderStatus();
 
   const canCreateEdit = isAdmin();
-  
+
   // Get initial tab from URL or default to 'articles'
   const [currentTab, setCurrentTab] = useState<string>(() => {
     return searchParams.get('tab') || 'articles';
@@ -78,12 +79,7 @@ export default function ArticlesPage() {
     router.push(`${pathname}?${params.toString()}`);
   };
 
-  const {
-    pagination,
-    setPage,
-    setPageSize,
-    setSorting,
-  } = usePagination(10);
+  const { pagination, setPage, setPageSize, setSorting } = usePagination(10);
 
   const {
     pagination: movementsPagination,
@@ -169,26 +165,26 @@ export default function ArticlesPage() {
       toast.error('Agrega al menos un artículo para crear el pedido');
       return;
     }
-    
+
     if (!supplierOrder.currentDraftId) {
       toast.error('Error: No hay borrador activo');
       return;
     }
-    
+
     try {
       // Change status from draft to confirmed
       await updateStatusMutation.mutateAsync({
         id: supplierOrder.currentDraftId,
         status: 'confirmed',
       });
-      
+
       // Clear the draft and redirect
       supplierOrder.clear();
       setSupplierOrderMode(false);
       setSelectedArticleIds(new Set());
-      
+
       toast.success('Pedido confirmado exitosamente');
-      router.push(`/dashboard/supplier-orders/${supplierOrder.currentDraftId}`);
+      router.push(`${ROUTES.SUPPLIER_ORDERS}/${supplierOrder.currentDraftId}`);
     } catch (error) {
       toast.error('Error al confirmar el pedido');
     }
@@ -207,16 +203,14 @@ export default function ArticlesPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Artículos</h1>
-          <p className="text-muted-foreground">
-            Gestión de artículos e inventario
-          </p>
+          <p className="text-muted-foreground">Gestión de artículos e inventario</p>
         </div>
         <div className="flex items-center gap-4">
           {canCreateEdit && (
             <>
               {/* Supplier Order Mode Toggle */}
-              <div className="flex items-center gap-2 px-3 py-2 border rounded-md">
-                <Label htmlFor="supplier-mode" className="text-sm cursor-pointer">
+              <div className="flex items-center gap-2 rounded-md border px-3 py-2">
+                <Label htmlFor="supplier-mode" className="cursor-pointer text-sm">
                   Pedido a Proveedor
                 </Label>
                 <Switch
@@ -225,9 +219,9 @@ export default function ArticlesPage() {
                   onCheckedChange={handleSupplierOrderModeToggle}
                 />
               </div>
-              
+
               <Button onClick={handleNewArticle} disabled={supplierOrderMode}>
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="mr-2 h-4 w-4" />
                 Nuevo Artículo
               </Button>
             </>
@@ -254,7 +248,7 @@ export default function ArticlesPage() {
             <div className="flex-1 space-y-2">
               <label className="text-sm font-medium">Buscar</label>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                 <Input
                   placeholder="Buscar por código, descripción o categoría..."
                   value={searchTerm}
@@ -335,7 +329,10 @@ export default function ArticlesPage() {
             {/* Trend Months Filter */}
             <div className="space-y-2 md:w-[180px]">
               <label className="text-sm font-medium">Tendencia (meses)</label>
-              <Select value={trendMonths.toString()} onValueChange={(v) => setTrendMonths(parseInt(v))}>
+              <Select
+                value={trendMonths.toString()}
+                onValueChange={(v) => setTrendMonths(parseInt(v))}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="12 meses" />
                 </SelectTrigger>
@@ -362,7 +359,7 @@ export default function ArticlesPage() {
                   setPage(1);
                 }}
               >
-                <Filter className="h-4 w-4 mr-2" />
+                <Filter className="mr-2 h-4 w-4" />
                 Limpiar ({activeFiltersCount})
               </Button>
             )}
@@ -370,31 +367,31 @@ export default function ArticlesPage() {
 
           {/* Stats */}
           {data && (
-            <div className="flex gap-4 flex-wrap">
-              <Badge variant="secondary" className="text-sm py-1.5 px-3">
+            <div className="flex flex-wrap gap-4">
+              <Badge variant="secondary" className="px-3 py-1.5 text-sm">
                 Total: {data.pagination.total} artículos
               </Badge>
               {abcFilter !== 'all' && (
-                <Badge 
-                  variant="outline" 
-                  className={`text-sm py-1.5 px-3 ${
-                    abcFilter === 'A' 
-                      ? 'border-green-500 text-green-700 dark:text-green-400' 
-                      : abcFilter === 'B' 
-                      ? 'border-blue-500 text-blue-700 dark:text-blue-400' 
-                      : 'border-gray-500 text-gray-700 dark:text-gray-400'
+                <Badge
+                  variant="outline"
+                  className={`px-3 py-1.5 text-sm ${
+                    abcFilter === 'A'
+                      ? 'border-green-500 text-green-700 dark:text-green-400'
+                      : abcFilter === 'B'
+                        ? 'border-blue-500 text-blue-700 dark:text-blue-400'
+                        : 'border-gray-500 text-gray-700 dark:text-gray-400'
                   }`}
                 >
                   Clase {abcFilter}: {data.pagination.total} artículos
                 </Badge>
               )}
               {salesSortFilter !== 'none' && (
-                <Badge variant="outline" className="text-sm py-1.5 px-3">
+                <Badge variant="outline" className="px-3 py-1.5 text-sm">
                   {salesSortFilter === 'most' ? '📈 Más vendidos' : '📉 Menos vendidos'}
                 </Badge>
               )}
               {stockFilter === 'low' && (
-                <Badge variant="destructive" className="text-sm py-1.5 px-3">
+                <Badge variant="destructive" className="px-3 py-1.5 text-sm">
                   {data.data.filter((a) => a.isLowStock).length} con stock bajo
                 </Badge>
               )}
@@ -403,7 +400,7 @@ export default function ArticlesPage() {
 
           {/* Table */}
           {isLoading ? (
-            <div className="flex justify-center items-center py-12">
+            <div className="flex items-center justify-center py-12">
               <p className="text-muted-foreground">Cargando artículos...</p>
             </div>
           ) : data && data.data.length > 0 ? (
@@ -430,7 +427,7 @@ export default function ArticlesPage() {
               </div>
             </>
           ) : (
-            <div className="text-center py-12 text-muted-foreground">
+            <div className="text-muted-foreground py-12 text-center">
               No se encontraron artículos
             </div>
           )}
@@ -467,8 +464,8 @@ export default function ArticlesPage() {
         <TabsContent value="movements" className="space-y-4">
           {/* Stats */}
           {movementsData && (
-            <div className="flex gap-4 flex-wrap">
-              <Badge variant="secondary" className="text-sm py-1.5 px-3">
+            <div className="flex flex-wrap gap-4">
+              <Badge variant="secondary" className="px-3 py-1.5 text-sm">
                 Total: {movementsData.pagination.total} movimientos
               </Badge>
             </div>
@@ -476,7 +473,7 @@ export default function ArticlesPage() {
 
           {/* Movements Table */}
           {isLoadingMovements ? (
-            <div className="flex justify-center items-center py-12">
+            <div className="flex items-center justify-center py-12">
               <p className="text-muted-foreground">Cargando movimientos...</p>
             </div>
           ) : movementsData && movementsData.data.length > 0 ? (
@@ -493,7 +490,7 @@ export default function ArticlesPage() {
               </div>
             </>
           ) : (
-            <div className="text-center py-12 text-muted-foreground">
+            <div className="text-muted-foreground py-12 text-center">
               No se encontraron movimientos de stock
             </div>
           )}
@@ -501,13 +498,7 @@ export default function ArticlesPage() {
       </Tabs>
 
       {/* Dialog */}
-      <ArticleDialog
-        open={dialogOpen}
-        onOpenChange={handleDialogClose}
-        article={selectedArticle}
-      />
+      <ArticleDialog open={dialogOpen} onOpenChange={handleDialogClose} article={selectedArticle} />
     </div>
   );
 }
-
-

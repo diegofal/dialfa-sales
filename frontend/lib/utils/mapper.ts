@@ -1,31 +1,220 @@
+/** Converts BigInt/number/Decimal to integer */
+export function toInt(value: unknown): number {
+  return parseInt(String(value));
+}
+
+/** Converts Decimal/BigInt/number to float */
+export function toFloat(value: unknown): number {
+  return parseFloat(String(value));
+}
+
+/** Converts value to float or null if falsy */
+export function toFloatOrNull(value: unknown): number | null {
+  return value ? parseFloat(String(value)) : null;
+}
+
+export interface ArticleDTO {
+  id: number;
+  code: string;
+  description: string;
+  categoryId: number;
+  categoryName: string;
+  unitPrice: number;
+  stock: number;
+  minimumStock: number;
+  location: string | null;
+  isDiscontinued: boolean;
+  notes: string | null;
+  costPrice: number | null;
+  displayOrder: number | null;
+  historicalPrice1: number | null;
+  series: string | null;
+  size: string | null;
+  supplierId: bigint | null;
+  thickness: string | null;
+  type: string | null;
+  weightKg: number | null;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CategoryDTO {
+  id: number;
+  code: string;
+  name: string;
+  description: string | null;
+  defaultDiscountPercent: number;
+  isActive: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface ClientDTO {
+  id: number;
+  code: string;
+  businessName: string;
+  cuit: string | null;
+  taxConditionId: bigint;
+  taxConditionName: string;
+  address: string | null;
+  city: string | null;
+  postalCode: string | null;
+  provinceId: bigint | null;
+  provinceName: string;
+  phone: string | null;
+  email: string | null;
+  operationTypeId: bigint;
+  operationTypeName: string;
+  transporterId: bigint | null;
+  transporterName: string;
+  paymentTermId: number;
+  paymentTermName: string | null;
+  creditLimit: number | null;
+  currentBalance: number;
+  isActive: boolean;
+  sellerId: bigint | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SalesOrderItemDTO {
+  id: number;
+  articleId: number;
+  articleCode: string;
+  articleDescription: string;
+  quantity: number;
+  unitPrice: number;
+  discountPercent: number;
+  lineTotal: number;
+  stock?: number;
+}
+
+export interface SalesOrderDTO {
+  id: number;
+  clientId: number;
+  clientBusinessName: string;
+  clientCuit: string;
+  orderNumber: string;
+  orderDate: Date;
+  deliveryDate: Date | null;
+  status: string;
+  paymentTermId: number | null;
+  paymentTermName: string | null;
+  total: number;
+  notes: string | null;
+  specialDiscountPercent: number;
+  itemsCount: number;
+  isDeleted: boolean;
+  hasInvoice: boolean;
+  invoicePrinted: boolean;
+  items: SalesOrderItemDTO[];
+  invoice: { id: number; invoiceNumber: string; isPrinted: boolean; isCancelled: boolean } | null;
+  deliveryNote: { id: number; deliveryNumber: string; deliveryDate: string } | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface InvoiceItemDTO {
+  id: number;
+  salesOrderItemId: number | null;
+  articleId: number;
+  articleCode: string;
+  articleDescription: string;
+  quantity: number;
+  unitPriceUsd: number;
+  unitPriceArs: number;
+  discountPercent: number;
+  lineTotal: number;
+  createdAt: string;
+}
+
+export interface InvoiceDTO {
+  id: number;
+  invoiceNumber: string;
+  salesOrderId: number;
+  salesOrderNumber: string;
+  clientId: number;
+  clientBusinessName: string;
+  clientCuit: string;
+  clientTaxCondition: string;
+  invoiceDate: Date;
+  paymentTermId: number | null;
+  paymentTermName: string | null;
+  usdExchangeRate: number | null;
+  specialDiscountPercent: number;
+  netAmount: number;
+  taxAmount: number;
+  totalAmount: number;
+  isPrinted: boolean;
+  printedAt: Date | null;
+  isCancelled: boolean;
+  cancelledAt: Date | null;
+  cancellationReason: string | null;
+  isCreditNote: boolean;
+  isQuotation: boolean;
+  notes: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+  items: InvoiceItemDTO[];
+}
+
+export interface DeliveryNoteItemDTO {
+  id: number;
+  salesOrderItemId: number | null;
+  articleId: number;
+  articleCode: string;
+  articleDescription: string;
+  quantity: number;
+  createdAt: string;
+}
+
+export interface DeliveryNoteDTO {
+  id: number;
+  deliveryNumber: string;
+  salesOrderId: number;
+  salesOrderNumber: string;
+  clientBusinessName: string;
+  deliveryDate: string;
+  transporterId: number | null;
+  transporterName: string | null;
+  weightKg: number | null;
+  packagesCount: number | null;
+  declaredValue: number | null;
+  notes: string | null;
+  createdAt: string;
+  updatedAt: string;
+  items: DeliveryNoteItemDTO[];
+}
+
 /**
  * Maps article data from Prisma (snake_case) to frontend format (camelCase)
  */
-export function mapArticleToDTO(article: unknown) {
+export function mapArticleToDTO(article: unknown): ArticleDTO {
   const a = article as Record<string, unknown>;
   const categories = a.categories as { name?: string } | undefined;
-  
+
   return {
-    id: parseInt(String((a.id as bigint | number))),
+    id: toInt(a.id as bigint | number),
     code: a.code as string,
     description: a.description as string,
-    categoryId: parseInt(String((a.category_id as bigint | number))),
+    categoryId: toInt(a.category_id as bigint | number),
     categoryName: categories?.name || '',
-    unitPrice: parseFloat(String(a.unit_price)),
-    stock: parseFloat(String(a.stock)),
-    minimumStock: parseFloat(String(a.minimum_stock)),
+    unitPrice: toFloat(a.unit_price),
+    stock: toFloat(a.stock),
+    minimumStock: toFloat(a.minimum_stock),
     location: a.location as string | null,
     isDiscontinued: a.is_discontinued as boolean,
     notes: a.notes as string | null,
-    costPrice: a.cost_price ? parseFloat(String(a.cost_price)) : null,
+    costPrice: toFloatOrNull(a.cost_price),
     displayOrder: a.display_order as number | null,
-    historicalPrice1: a.historical_price1 ? parseFloat(String(a.historical_price1)) : null,
+    historicalPrice1: toFloatOrNull(a.historical_price1),
     series: a.series as string | null,
     size: a.size as string | null,
     supplierId: a.supplier_id as bigint | null,
     thickness: a.thickness as string | null,
     type: a.type as string | null,
-    weightKg: a.weight_kg ? parseFloat(String(a.weight_kg)) : null,
+    weightKg: toFloatOrNull(a.weight_kg),
     isActive: a.is_active as boolean,
     createdAt: a.created_at as Date,
     updatedAt: a.updated_at as Date,
@@ -35,15 +224,15 @@ export function mapArticleToDTO(article: unknown) {
 /**
  * Maps category data from Prisma (snake_case) to frontend format (camelCase)
  */
-export function mapCategoryToDTO(category: unknown) {
+export function mapCategoryToDTO(category: unknown): CategoryDTO {
   const c = category as Record<string, unknown>;
-  
+
   return {
-    id: parseInt(String((c.id as bigint | number))),
+    id: toInt(c.id as bigint | number),
     code: c.code as string,
     name: c.name as string,
     description: c.description as string | null,
-    defaultDiscountPercent: parseFloat(String(c.default_discount_percent)),
+    defaultDiscountPercent: toFloat(c.default_discount_percent),
     isActive: c.is_active as boolean,
     createdAt: c.created_at as Date,
     updatedAt: c.updated_at as Date,
@@ -53,16 +242,16 @@ export function mapCategoryToDTO(category: unknown) {
 /**
  * Maps client data from Prisma (snake_case) to frontend format (camelCase)
  */
-export function mapClientToDTO(client: unknown) {
+export function mapClientToDTO(client: unknown): ClientDTO {
   const c = client as Record<string, unknown>;
   const taxConditions = c.tax_conditions as { name?: string } | undefined;
   const provinces = c.provinces as { name?: string } | undefined;
   const operationTypes = c.operation_types as { name?: string } | undefined;
   const transporters = c.transporters as { name?: string } | undefined;
   const paymentTerms = c.payment_terms as { name?: string } | undefined;
-  
+
   return {
-    id: parseInt(String((c.id as bigint | number))),
+    id: toInt(c.id as bigint | number),
     code: c.code as string,
     businessName: c.business_name as string,
     cuit: c.cuit as string | null,
@@ -81,8 +270,8 @@ export function mapClientToDTO(client: unknown) {
     transporterName: transporters?.name || '',
     paymentTermId: c.payment_term_id as number,
     paymentTermName: paymentTerms?.name || null,
-    creditLimit: c.credit_limit ? parseFloat(String(c.credit_limit)) : null,
-    currentBalance: parseFloat(String(c.current_balance)),
+    creditLimit: toFloatOrNull(c.credit_limit),
+    currentBalance: toFloat(c.current_balance),
     isActive: c.is_active as boolean,
     sellerId: c.seller_id as bigint | null,
     createdAt: (c.created_at as Date).toISOString(),
@@ -93,68 +282,74 @@ export function mapClientToDTO(client: unknown) {
 /**
  * Maps sales order data from Prisma (snake_case) to frontend format (camelCase)
  */
-export function mapSalesOrderToDTO(order: unknown) {
+export function mapSalesOrderToDTO(order: unknown): SalesOrderDTO {
   const o = order as Record<string, unknown>;
   const clients = o.clients as { business_name?: string; cuit?: string } | undefined;
   const paymentTerms = o.payment_terms as { name?: string } | undefined;
   const salesOrderItems = (o.sales_order_items as Array<Record<string, unknown>>) || [];
   const invoices = (o.invoices as Array<Record<string, unknown>>) || [];
   const deliveryNotes = (o.delivery_notes as Array<Record<string, unknown>>) || [];
-  
+
   // Get the first (most recent) invoice and delivery note
   const invoice = invoices[0];
   const deliveryNote = deliveryNotes[0];
-  
+
   return {
-    id: parseInt(String((o.id as bigint | number))),
-    clientId: parseInt(String((o.client_id as bigint | number))),
+    id: toInt(o.id as bigint | number),
+    clientId: toInt(o.client_id as bigint | number),
     clientBusinessName: clients?.business_name || '',
     clientCuit: clients?.cuit || '',
     orderNumber: o.order_number as string,
     orderDate: o.order_date as Date,
     deliveryDate: o.delivery_date as Date | null,
     status: o.status as string,
-    paymentTermId: o.payment_term_id ? parseInt(String(o.payment_term_id)) : null,
+    paymentTermId: o.payment_term_id ? toInt(o.payment_term_id) : null,
     paymentTermName: paymentTerms?.name || null,
-    total: parseFloat(String(o.total)),
+    total: toFloat(o.total),
     notes: o.notes as string | null,
-    specialDiscountPercent: parseFloat(String(o.special_discount_percent)),
+    specialDiscountPercent: toFloat(o.special_discount_percent),
     itemsCount: salesOrderItems.length,
     isDeleted: !!o.deleted_at,
     // For permission calculations
     hasInvoice: !!invoice && !(invoice.is_cancelled as boolean),
     invoicePrinted: invoice ? (invoice.is_printed as boolean) : false,
     items: salesOrderItems.map((item) => {
-      const articles = item.articles as { 
-        code?: string; 
-        description?: string;
-        stock?: number;
-      } | undefined;
-      
+      const articles = item.articles as
+        | {
+            code?: string;
+            description?: string;
+            stock?: number;
+          }
+        | undefined;
+
       return {
-        id: parseInt(String((item.id as bigint | number))),
-        articleId: parseInt(String((item.article_id as bigint | number))),
+        id: toInt(item.id as bigint | number),
+        articleId: toInt(item.article_id as bigint | number),
         articleCode: articles?.code || '',
         articleDescription: articles?.description || '',
         quantity: item.quantity as number,
-        unitPrice: parseFloat(String(item.unit_price)),
-        discountPercent: parseFloat(String(item.discount_percent)),
-        lineTotal: parseFloat(String(item.line_total)),
-        stock: articles?.stock !== undefined ? parseFloat(String(articles.stock)) : undefined,
+        unitPrice: toFloat(item.unit_price),
+        discountPercent: toFloat(item.discount_percent),
+        lineTotal: toFloat(item.line_total),
+        stock: articles?.stock !== undefined ? toFloat(articles.stock) : undefined,
       };
     }),
     // Related documents for permission calculations
-    invoice: invoice ? {
-      id: parseInt(String((invoice.id as bigint | number))),
-      invoiceNumber: invoice.invoice_number as string,
-      isPrinted: invoice.is_printed as boolean,
-      isCancelled: invoice.is_cancelled as boolean,
-    } : null,
-    deliveryNote: deliveryNote ? {
-      id: parseInt(String((deliveryNote.id as bigint | number))),
-      deliveryNumber: deliveryNote.delivery_number as string,
-      deliveryDate: (deliveryNote.delivery_date as Date).toISOString(),
-    } : null,
+    invoice: invoice
+      ? {
+          id: toInt(invoice.id as bigint | number),
+          invoiceNumber: invoice.invoice_number as string,
+          isPrinted: invoice.is_printed as boolean,
+          isCancelled: invoice.is_cancelled as boolean,
+        }
+      : null,
+    deliveryNote: deliveryNote
+      ? {
+          id: toInt(deliveryNote.id as bigint | number),
+          deliveryNumber: deliveryNote.delivery_number as string,
+          deliveryDate: (deliveryNote.delivery_date as Date).toISOString(),
+        }
+      : null,
     createdAt: o.created_at as Date,
     updatedAt: o.updated_at as Date,
   };
@@ -163,39 +358,43 @@ export function mapSalesOrderToDTO(order: unknown) {
 /**
  * Maps invoice data from Prisma (snake_case) to frontend format (camelCase)
  */
-export function mapInvoiceToDTO(invoice: unknown) {
+export function mapInvoiceToDTO(invoice: unknown): InvoiceDTO {
   const i = invoice as Record<string, unknown>;
-  const salesOrders = i.sales_orders as {
-    order_number?: string;
-    clients?: { 
-      business_name?: string;
-      cuit?: string;
-      tax_conditions?: { name?: string };
-    };
-    special_discount_percent?: number;
-  } | undefined;
+  const salesOrders = i.sales_orders as
+    | {
+        order_number?: string;
+        clients?: {
+          business_name?: string;
+          cuit?: string;
+          tax_conditions?: { name?: string };
+        };
+        special_discount_percent?: number;
+      }
+    | undefined;
   const paymentTerms = i.payment_terms as { name?: string } | undefined;
-  
+
   // Use invoice_items instead of sales_order_items
   const invoiceItems = (i.invoice_items || []) as Array<Record<string, unknown>>;
-  
+
   return {
-    id: parseInt(String((i.id as bigint | number))),
+    id: toInt(i.id as bigint | number),
     invoiceNumber: i.invoice_number as string,
-    salesOrderId: parseInt(String((i.sales_order_id as bigint | number))),
+    salesOrderId: toInt(i.sales_order_id as bigint | number),
     salesOrderNumber: salesOrders?.order_number || '',
-    clientId: parseInt(String((salesOrders?.clients as Record<string, unknown>)?.id || 0)),
+    clientId: toInt((salesOrders?.clients as Record<string, unknown>)?.id || 0),
     clientBusinessName: salesOrders?.clients?.business_name || '',
     clientCuit: salesOrders?.clients?.cuit || '',
     clientTaxCondition: salesOrders?.clients?.tax_conditions?.name || '',
     invoiceDate: i.invoice_date as Date,
-    paymentTermId: i.payment_term_id ? parseInt(String(i.payment_term_id)) : null,
+    paymentTermId: i.payment_term_id ? toInt(i.payment_term_id) : null,
     paymentTermName: paymentTerms?.name || null,
-    usdExchangeRate: i.usd_exchange_rate ? parseFloat(String(i.usd_exchange_rate)) : null,
-    specialDiscountPercent: salesOrders?.special_discount_percent ? parseFloat(String(salesOrders.special_discount_percent)) : 0,
-    netAmount: parseFloat(String(i.net_amount)),
-    taxAmount: parseFloat(String(i.tax_amount)),
-    totalAmount: parseFloat(String(i.total_amount)),
+    usdExchangeRate: toFloatOrNull(i.usd_exchange_rate),
+    specialDiscountPercent: salesOrders?.special_discount_percent
+      ? toFloat(salesOrders.special_discount_percent)
+      : 0,
+    netAmount: toFloat(i.net_amount),
+    taxAmount: toFloat(i.tax_amount),
+    totalAmount: toFloat(i.total_amount),
     isPrinted: i.is_printed as boolean,
     printedAt: i.printed_at as Date | null,
     isCancelled: i.is_cancelled as boolean,
@@ -208,16 +407,18 @@ export function mapInvoiceToDTO(invoice: unknown) {
     updatedAt: i.updated_at as Date,
     items: invoiceItems.map((item) => {
       return {
-        id: parseInt(String((item.id as bigint | number))),
-        salesOrderItemId: item.sales_order_item_id ? parseInt(String(item.sales_order_item_id as bigint | number)) : null,
-        articleId: parseInt(String((item.article_id as bigint | number))),
+        id: toInt(item.id as bigint | number),
+        salesOrderItemId: item.sales_order_item_id
+          ? toInt(item.sales_order_item_id as bigint | number)
+          : null,
+        articleId: toInt(item.article_id as bigint | number),
         articleCode: item.article_code as string,
         articleDescription: item.article_description as string,
         quantity: item.quantity as number,
-        unitPriceUsd: parseFloat(String(item.unit_price_usd)),
-        unitPriceArs: parseFloat(String(item.unit_price_ars)),
-        discountPercent: parseFloat(String(item.discount_percent)),
-        lineTotal: parseFloat(String(item.line_total)),
+        unitPriceUsd: toFloat(item.unit_price_usd),
+        unitPriceArs: toFloat(item.unit_price_ars),
+        discountPercent: toFloat(item.discount_percent),
+        lineTotal: toFloat(item.line_total),
         createdAt: (item.created_at as Date).toISOString(),
       };
     }),
@@ -227,37 +428,41 @@ export function mapInvoiceToDTO(invoice: unknown) {
 /**
  * Maps delivery note data from Prisma (snake_case) to frontend format (camelCase)
  */
-export function mapDeliveryNoteToDTO(deliveryNote: unknown) {
+export function mapDeliveryNoteToDTO(deliveryNote: unknown): DeliveryNoteDTO {
   const d = deliveryNote as Record<string, unknown>;
-  const salesOrders = d.sales_orders as {
-    order_number?: string;
-    clients?: { business_name?: string };
-  } | undefined;
+  const salesOrders = d.sales_orders as
+    | {
+        order_number?: string;
+        clients?: { business_name?: string };
+      }
+    | undefined;
   const transporters = d.transporters as { name?: string } | undefined;
-  
+
   // Use delivery_note_items instead of sales_order_items
   const deliveryNoteItems = (d.delivery_note_items || []) as Array<Record<string, unknown>>;
-  
+
   return {
-    id: parseInt(String((d.id as bigint | number))),
+    id: toInt(d.id as bigint | number),
     deliveryNumber: d.delivery_number as string,
-    salesOrderId: parseInt(String((d.sales_order_id as bigint | number))),
+    salesOrderId: toInt(d.sales_order_id as bigint | number),
     salesOrderNumber: salesOrders?.order_number || '',
     clientBusinessName: salesOrders?.clients?.business_name || '',
     deliveryDate: (d.delivery_date as Date).toISOString(),
-    transporterId: d.transporter_id ? parseInt(String(d.transporter_id)) : null,
+    transporterId: d.transporter_id ? toInt(d.transporter_id) : null,
     transporterName: transporters?.name || null,
-    weightKg: d.weight_kg ? parseFloat(String(d.weight_kg)) : null,
+    weightKg: toFloatOrNull(d.weight_kg),
     packagesCount: d.packages_count ? Number(d.packages_count) : null,
-    declaredValue: d.declared_value ? parseFloat(String(d.declared_value)) : null,
+    declaredValue: toFloatOrNull(d.declared_value),
     notes: d.notes as string | null,
     createdAt: (d.created_at as Date).toISOString(),
     updatedAt: (d.updated_at as Date).toISOString(),
     items: deliveryNoteItems.map((item) => {
       return {
-        id: parseInt(String((item.id as bigint | number))),
-        salesOrderItemId: item.sales_order_item_id ? parseInt(String(item.sales_order_item_id as bigint | number)) : null,
-        articleId: parseInt(String((item.article_id as bigint | number))),
+        id: toInt(item.id as bigint | number),
+        salesOrderItemId: item.sales_order_item_id
+          ? toInt(item.sales_order_item_id as bigint | number)
+          : null,
+        articleId: toInt(item.article_id as bigint | number),
         articleCode: item.article_code as string,
         articleDescription: item.article_description as string,
         quantity: item.quantity as number,
@@ -266,5 +471,3 @@ export function mapDeliveryNoteToDTO(deliveryNote: unknown) {
     }),
   };
 }
-
-

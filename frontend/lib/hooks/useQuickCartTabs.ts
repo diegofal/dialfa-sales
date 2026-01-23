@@ -41,7 +41,7 @@ const getStateFromStorage = (): QuickCartState => {
   } catch (error) {
     console.error('Error loading quick cart:', error);
   }
-  
+
   // Default state with no tabs initially
   return {
     tabs: [],
@@ -98,12 +98,13 @@ export function useQuickCartTabs() {
   }, []);
 
   // Get active tab
-  const activeTab = state.tabs.find(tab => tab.id === state.activeTabId) || state.tabs[0] || {
-    id: '',
-    name: '',
-    items: [],
-    createdAt: Date.now(),
-  };
+  const activeTab = state.tabs.find((tab) => tab.id === state.activeTabId) ||
+    state.tabs[0] || {
+      id: '',
+      name: '',
+      items: [],
+      createdAt: Date.now(),
+    };
 
   // Ensure at least one tab exists when needed
   const ensureTabExists = () => {
@@ -120,28 +121,31 @@ export function useQuickCartTabs() {
       items: [],
       createdAt: Date.now(),
     };
-    
+
     const newState: QuickCartState = {
       tabs: [...state.tabs, newTab],
       activeTabId: newTab.id,
     };
-    
+
     saveStateToStorage(newState);
     setState(newState);
   };
 
   // Remove tab
   const removeTab = (tabId: string) => {
-    const filteredTabs = state.tabs.filter(tab => tab.id !== tabId);
-    const newActiveTabId = tabId === state.activeTabId 
-      ? (filteredTabs.length > 0 ? filteredTabs[0].id : '')
-      : state.activeTabId;
-    
+    const filteredTabs = state.tabs.filter((tab) => tab.id !== tabId);
+    const newActiveTabId =
+      tabId === state.activeTabId
+        ? filteredTabs.length > 0
+          ? filteredTabs[0].id
+          : ''
+        : state.activeTabId;
+
     const newState: QuickCartState = {
       tabs: filteredTabs,
       activeTabId: newActiveTabId,
     };
-    
+
     saveStateToStorage(newState);
     setState(newState);
   };
@@ -152,76 +156,72 @@ export function useQuickCartTabs() {
       ...state,
       activeTabId: tabId,
     };
-    
+
     saveStateToStorage(newState);
     setState(newState);
   };
 
   // Set client for active tab
   const setClient = (clientId: number, clientName: string) => {
-    const updatedTabs = state.tabs.map(tab =>
-      tab.id === state.activeTabId
-        ? { ...tab, clientId, clientName, name: clientName }
-        : tab
+    const updatedTabs = state.tabs.map((tab) =>
+      tab.id === state.activeTabId ? { ...tab, clientId, clientName, name: clientName } : tab
     );
-    
+
     const newState: QuickCartState = {
       ...state,
       tabs: updatedTabs,
     };
-    
+
     saveStateToStorage(newState);
     setState(newState);
   };
 
   // Clear client for active tab
   const clearClient = () => {
-    const tabIndex = state.tabs.findIndex(tab => tab.id === state.activeTabId);
+    const tabIndex = state.tabs.findIndex((tab) => tab.id === state.activeTabId);
     const tabName = tabIndex >= 0 ? `Pedido ${tabIndex + 1}` : 'Pedido';
-    
-    const updatedTabs = state.tabs.map(tab =>
+
+    const updatedTabs = state.tabs.map((tab) =>
       tab.id === state.activeTabId
         ? { ...tab, clientId: undefined, clientName: undefined, name: tabName }
         : tab
     );
-    
+
     const newState: QuickCartState = {
       ...state,
       tabs: updatedTabs,
     };
-    
+
     saveStateToStorage(newState);
     setState(newState);
   };
 
   // Clear client for a specific tab
   const clearSpecificClient = (tabId: string) => {
-    const tabIndex = state.tabs.findIndex(tab => tab.id === tabId);
+    const tabIndex = state.tabs.findIndex((tab) => tab.id === tabId);
     const tabName = tabIndex >= 0 ? `Pedido ${tabIndex + 1}` : 'Pedido';
-    
-    const updatedTabs = state.tabs.map(tab =>
-      tab.id === tabId
-        ? { ...tab, clientId: undefined, clientName: undefined, name: tabName }
-        : tab
+
+    const updatedTabs = state.tabs.map((tab) =>
+      tab.id === tabId ? { ...tab, clientId: undefined, clientName: undefined, name: tabName } : tab
     );
-    
+
     const newState: QuickCartState = {
       ...state,
       tabs: updatedTabs,
     };
-    
+
     saveStateToStorage(newState);
     setState(newState);
   };
 
   // Add item to active tab
   const addItem = (article: Article, quantity: number = 1, discountPercent?: number) => {
-    const updatedTabs = state.tabs.map(tab => {
+    const updatedTabs = state.tabs.map((tab) => {
       if (tab.id !== state.activeTabId) return tab;
-      
-      const existingIndex = tab.items.findIndex(item => item.article.id === article.id);
+
+      const existingIndex = tab.items.findIndex((item) => item.article.id === article.id);
       let updatedItems: QuickCartItem[];
-      
+
       if (existingIndex >= 0) {
         updatedItems = [...tab.items];
         updatedItems[existingIndex] = {
@@ -230,40 +230,43 @@ export function useQuickCartTabs() {
           // Mantener descuento existente al sumar cantidad
         };
       } else {
-        updatedItems = [...tab.items, { 
-          article, 
-          quantity,
-          discountPercent: discountPercent ?? article.categoryDefaultDiscount ?? 0
-        }];
+        updatedItems = [
+          ...tab.items,
+          {
+            article,
+            quantity,
+            discountPercent: discountPercent ?? article.categoryDefaultDiscount ?? 0,
+          },
+        ];
       }
-      
+
       return { ...tab, items: updatedItems };
     });
-    
+
     const newState: QuickCartState = {
       ...state,
       tabs: updatedTabs,
     };
-    
+
     saveStateToStorage(newState);
     setState(newState);
   };
 
   // Remove item from active tab
   const removeItem = (articleId: number) => {
-    const updatedTabs = state.tabs.map(tab => {
+    const updatedTabs = state.tabs.map((tab) => {
       if (tab.id !== state.activeTabId) return tab;
       return {
         ...tab,
-        items: tab.items.filter(item => item.article.id !== articleId),
+        items: tab.items.filter((item) => item.article.id !== articleId),
       };
     });
-    
+
     const newState: QuickCartState = {
       ...state,
       tabs: updatedTabs,
     };
-    
+
     saveStateToStorage(newState);
     setState(newState);
   };
@@ -275,85 +278,85 @@ export function useQuickCartTabs() {
       return;
     }
 
-    const updatedTabs = state.tabs.map(tab => {
+    const updatedTabs = state.tabs.map((tab) => {
       if (tab.id !== state.activeTabId) return tab;
       return {
         ...tab,
-        items: tab.items.map(item =>
+        items: tab.items.map((item) =>
           item.article.id === articleId ? { ...item, quantity } : item
         ),
       };
     });
-    
+
     const newState: QuickCartState = {
       ...state,
       tabs: updatedTabs,
     };
-    
+
     saveStateToStorage(newState);
     setState(newState);
   };
 
   // Replace an item with another article, keeping the quantity
   const replaceItem = (oldArticleId: number, newArticle: Article) => {
-    const updatedTabs = state.tabs.map(tab => {
+    const updatedTabs = state.tabs.map((tab) => {
       if (tab.id !== state.activeTabId) return tab;
-      
+
       return {
         ...tab,
-        items: tab.items.map(item =>
-          item.article.id === oldArticleId 
-            ? { article: newArticle, quantity: item.quantity, discountPercent: item.discountPercent }
+        items: tab.items.map((item) =>
+          item.article.id === oldArticleId
+            ? {
+                article: newArticle,
+                quantity: item.quantity,
+                discountPercent: item.discountPercent,
+              }
             : item
         ),
       };
     });
-    
+
     const newState: QuickCartState = {
       ...state,
       tabs: updatedTabs,
     };
-    
+
     saveStateToStorage(newState);
     setState(newState);
   };
 
   // Update discount for an item in active tab
   const updateItemDiscount = (articleId: number, discountPercent: number) => {
-    const updatedTabs = state.tabs.map(tab => {
+    const updatedTabs = state.tabs.map((tab) => {
       if (tab.id !== state.activeTabId) return tab;
       return {
         ...tab,
-        items: tab.items.map(item =>
-          item.article.id === articleId 
-            ? { ...item, discountPercent } 
-            : item
+        items: tab.items.map((item) =>
+          item.article.id === articleId ? { ...item, discountPercent } : item
         ),
       };
     });
-    
+
     const newState: QuickCartState = {
       ...state,
       tabs: updatedTabs,
     };
-    
+
     saveStateToStorage(newState);
     setState(newState);
   };
 
   // Clear items in active tab
   const clearCart = () => {
-    const updatedTabs = state.tabs.map(tab =>
-      tab.id === state.activeTabId
-        ? { ...tab, items: [] }
-        : tab
+    const updatedTabs = state.tabs.map((tab) =>
+      tab.id === state.activeTabId ? { ...tab, items: [] } : tab
     );
-    
+
     const newState: QuickCartState = {
       ...state,
       tabs: updatedTabs,
     };
-    
+
     saveStateToStorage(newState);
     setState(newState);
   };
@@ -365,68 +368,68 @@ export function useQuickCartTabs() {
 
   // Get total value in active tab
   const getTotalValue = () => {
-    return activeTab.items.reduce((sum, item) => 
-      sum + item.article.unitPrice * item.quantity, 0
-    );
+    return activeTab.items.reduce((sum, item) => sum + item.article.unitPrice * item.quantity, 0);
   };
 
   // Get items from a specific tab by ID
   const getTabItems = (tabId: string): QuickCartItem[] => {
-    const tab = state.tabs.find(t => t.id === tabId);
+    const tab = state.tabs.find((t) => t.id === tabId);
     return tab?.items || [];
   };
 
   // Clear items in a specific tab
   const clearSpecificCart = (tabId: string) => {
-    const updatedTabs = state.tabs.map(tab =>
-      tab.id === tabId
-        ? { ...tab, items: [] }
-        : tab
-    );
-    
+    const updatedTabs = state.tabs.map((tab) => (tab.id === tabId ? { ...tab, items: [] } : tab));
+
     const newState: QuickCartState = {
       ...state,
       tabs: updatedTabs,
     };
-    
+
     saveStateToStorage(newState);
     setState(newState);
   };
 
   // Clear both items and client from a specific tab
   const clearSpecificTabCompletely = (tabId: string) => {
-    const tabIndex = state.tabs.findIndex(tab => tab.id === tabId);
+    const tabIndex = state.tabs.findIndex((tab) => tab.id === tabId);
     const tabName = tabIndex >= 0 ? `Pedido ${tabIndex + 1}` : 'Pedido';
-    
-    const updatedTabs = state.tabs.map(tab =>
+
+    const updatedTabs = state.tabs.map((tab) =>
       tab.id === tabId
-        ? { 
-            ...tab, 
-            items: [], 
-            clientId: undefined, 
-            clientName: undefined, 
-            name: tabName 
+        ? {
+            ...tab,
+            items: [],
+            clientId: undefined,
+            clientName: undefined,
+            name: tabName,
           }
         : tab
     );
-    
+
     const newState: QuickCartState = {
       ...state,
       tabs: updatedTabs,
     };
-    
+
     saveStateToStorage(newState);
     setState(newState);
   };
 
   // Add or update a tab for editing a saved order (for sidebar navigation)
   // NOTE: This creates a tab but does NOT sync with QuickCart popup
-  const addOrUpdateOrderTab = (orderId: number, orderNumber: string, clientId: number, clientName: string, items: QuickCartItem[] = []) => {
+  const addOrUpdateOrderTab = (
+    orderId: number,
+    orderNumber: string,
+    clientId: number,
+    clientName: string,
+    items: QuickCartItem[] = []
+  ) => {
     console.log('addOrUpdateOrderTab called:', { orderId, orderNumber, clientId, clientName });
-    
+
     // Check if a tab for this order already exists
-    const existingTabIndex = state.tabs.findIndex(tab => tab.orderId === orderId);
-    
+    const existingTabIndex = state.tabs.findIndex((tab) => tab.orderId === orderId);
+
     if (existingTabIndex >= 0) {
       console.log('Updating existing order tab at index:', existingTabIndex);
       // Update existing tab and set as active
@@ -439,12 +442,12 @@ export function useQuickCartTabs() {
         orderNumber,
         items, // Update items too
       };
-      
+
       const newState: QuickCartState = {
         tabs: updatedTabs,
         activeTabId: updatedTabs[existingTabIndex].id,
       };
-      
+
       saveStateToStorage(newState);
       setState(newState);
       console.log('Order tab updated, returning ID:', updatedTabs[existingTabIndex].id);
@@ -462,12 +465,12 @@ export function useQuickCartTabs() {
         orderId,
         orderNumber,
       };
-      
+
       const newState: QuickCartState = {
         tabs: [...state.tabs, newTab],
         activeTabId: newTab.id,
       };
-      
+
       saveStateToStorage(newState);
       setState(newState);
       console.log('Order tab created, returning ID:', newTab.id);
@@ -478,10 +481,8 @@ export function useQuickCartTabs() {
   // Get total items across all tabs (ONLY count draft tabs, not saved orders)
   const getTotalItems = () => {
     return state.tabs
-      .filter(tab => !tab.orderId) // Only count drafts
-      .reduce((sum, tab) => 
-        sum + tab.items.reduce((tabSum, item) => tabSum + item.quantity, 0), 0
-      );
+      .filter((tab) => !tab.orderId) // Only count drafts
+      .reduce((sum, tab) => sum + tab.items.reduce((tabSum, item) => tabSum + item.quantity, 0), 0);
   };
 
   return {
@@ -512,5 +513,3 @@ export function useQuickCartTabs() {
     ensureTabExists,
   };
 }
-
-

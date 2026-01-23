@@ -1,117 +1,98 @@
-import { useState, useEffect, useCallback } from 'react';
-import { Feedback, CreateFeedbackDTO, UpdateFeedbackDTO, FeedbackResponse, FeedbackType, FeedbackStatus } from '@/types/feedback';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
+import { feedbackApi } from '@/lib/api/feedback';
+import type {
+  CreateFeedbackDTO,
+  UpdateFeedbackDTO,
+  FeedbackType,
+  FeedbackStatus,
+} from '@/types/feedback';
 
-export function useFeedback() {
-  const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [pagination, setPagination] = useState({
-    page: 1,
-    limit: 50,
-    total: 0,
-    totalPages: 0,
-  });
-
-  const fetchFeedbacks = useCallback(async (
-    page = 1, 
-    status?: FeedbackStatus,
-    type?: FeedbackType
-  ) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const params = new URLSearchParams({
-        page: page.toString(),
-        limit: pagination.limit.toString(),
-      });
-      
-      if (status) params.append('status', status);
-      if (type) params.append('type', type);
-
-      const response = await fetch(`/api/feedback?${params}`);
-      if (!response.ok) {
-        throw new Error('Failed to fetch feedback');
-      }
-      const data: FeedbackResponse = await response.json();
-      setFeedbacks(data.data);
-      setPagination(data.pagination);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [pagination.limit]);
-
-  useEffect(() => {
-    fetchFeedbacks();
-  }, []);
-
-  const createFeedback = async (data: CreateFeedbackDTO) => {
-    try {
-      const response = await fetch('/api/feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) {
-        throw new Error('Failed to create feedback');
-      }
-      const newFeedback: Feedback = await response.json();
-      setFeedbacks(prev => [newFeedback, ...prev]);
-      return newFeedback;
-    } catch (err) {
-      throw err instanceof Error ? err : new Error('An error occurred');
-    }
-  };
-
-  const updateFeedback = async (id: number, data: UpdateFeedbackDTO) => {
-    try {
-      const response = await fetch(`/api/feedback/${id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
-      });
-      if (!response.ok) {
-        throw new Error('Failed to update feedback');
-      }
-      const updatedFeedback: Feedback = await response.json();
-      setFeedbacks(prev => 
-        prev.map(f => f.id === id ? updatedFeedback : f)
-      );
-      return updatedFeedback;
-    } catch (err) {
-      throw err instanceof Error ? err : new Error('An error occurred');
-    }
-  };
-
-  const deleteFeedback = async (id: number) => {
-    try {
-      const response = await fetch(`/api/feedback/${id}`, {
-        method: 'DELETE',
-      });
-      if (!response.ok) {
-        throw new Error('Failed to delete feedback');
-      }
-      setFeedbacks(prev => prev.filter(f => f.id !== id));
-    } catch (err) {
-      throw err instanceof Error ? err : new Error('An error occurred');
-    }
-  };
-
-  return {
-    feedbacks,
-    isLoading,
-    error,
-    pagination,
-    fetchFeedbacks,
-    createFeedback,
-    updateFeedback,
-    deleteFeedback,
-  };
+interface UseFeedbackParams {
+  page?: number;
+  limit?: number;
+  status?: FeedbackStatus;
+  type?: FeedbackType;
 }
 
+/**
+ * Fetch paginated feedback list with optional filters
+ */
+export function useFeedback(params: UseFeedbackParams = {}) {
+  return useQuery({
+    queryKey: ['feedback', params],
+    queryFn: () =>
+      feedbackApi.getAll({
+        page: params.page || 1,
+        limit: params.limit || 50,
+        status: params.status,
+        type: params.type,
+      }),
+  });
+}
 
+/**
+ * Fetch single feedback by ID
+ */
+export function useFeedbackById(id: number) {
+  return useQuery({
+    queryKey: ['feedback', id],
+    queryFn: () => feedbackApi.getById(id),
+    enabled: !!id && id > 0,
+  });
+}
 
+/**
+ * Create new feedback
+ */
+export function useCreateFeedback() {
+  const queryClient = useQueryClient();
 
+  return useMutation({
+    mutationFn: (data: CreateFeedbackDTO) => feedbackApi.create(data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['feedback'] });
+      toast.success('Feedback enviado exitosamente');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Error al enviar el feedback');
+    },
+  });
+}
 
+/**
+ * Update existing feedback (admin only)
+ */
+export function useUpdateFeedback() {
+  const queryClient = useQueryClient();
 
+  return useMutation({
+    mutationFn: ({ id, data }: { id: number; data: UpdateFeedbackDTO }) =>
+      feedbackApi.update(id, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['feedback'] });
+      toast.success('Feedback actualizado exitosamente');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Error al actualizar el feedback');
+    },
+  });
+}
+
+/**
+ * Delete feedback
+ */
+export function useDeleteFeedback() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: number) => feedbackApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['feedback'] });
+      toast.success('Feedback eliminado exitosamente');
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Error al eliminar el feedback');
+    },
+  });
+}

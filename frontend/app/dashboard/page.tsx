@@ -1,10 +1,10 @@
 'use client';
 
-import { useAuthStore } from '@/store/authStore';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Keyboard, TrendingUp } from 'lucide-react';
 import { DashboardMetrics } from '@/components/dashboard/DashboardMetrics';
 import { RecentSalesOrders } from '@/components/dashboard/RecentSalesOrders';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useAuthStore } from '@/store/authStore';
 
 export default function DashboardPage() {
   const user = useAuthStore((state) => state.user);
@@ -13,8 +13,8 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
-            <TrendingUp className="h-8 w-8 text-primary" />
+          <h1 className="flex items-center gap-2 text-3xl font-bold">
+            <TrendingUp className="text-primary h-8 w-8" />
             Business Intelligence Dashboard
           </h1>
           <p className="text-muted-foreground mt-2">
@@ -22,7 +22,7 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="text-right">
-          <p className="text-sm text-muted-foreground">Bienvenido,</p>
+          <p className="text-muted-foreground text-sm">Bienvenido,</p>
           <p className="font-semibold">{user?.fullName || user?.username || 'Usuario'}</p>
         </div>
       </div>
@@ -36,51 +36,49 @@ export default function DashboardPage() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Keyboard className="h-5 w-5 text-primary" />
+            <Keyboard className="text-primary h-5 w-5" />
             <CardTitle>Atajos de Teclado</CardTitle>
           </div>
-          <CardDescription>
-            Utiliza estos atajos para trabajar más rápido
-          </CardDescription>
+          <CardDescription>Utiliza estos atajos para trabajar más rápido</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid gap-3 md:grid-cols-2">
-            <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+            <div className="bg-muted/30 flex items-center justify-between rounded-lg border p-3">
               <div>
                 <p className="text-sm font-medium">Abrir/Cerrar Carrito</p>
-                <p className="text-xs text-muted-foreground mt-1">Toggle del carrito de pedidos</p>
+                <p className="text-muted-foreground mt-1 text-xs">Toggle del carrito de pedidos</p>
               </div>
-              <kbd className="px-3 py-1.5 text-sm font-semibold bg-background border border-border rounded shadow-sm">
+              <kbd className="bg-background border-border rounded border px-3 py-1.5 text-sm font-semibold shadow-sm">
                 SPACE
               </kbd>
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30">
+            <div className="bg-muted/30 flex items-center justify-between rounded-lg border p-3">
               <div>
                 <p className="text-sm font-medium">Cerrar Carrito</p>
-                <p className="text-xs text-muted-foreground mt-1">Cierra el carrito de pedidos</p>
+                <p className="text-muted-foreground mt-1 text-xs">Cierra el carrito de pedidos</p>
               </div>
-              <kbd className="px-3 py-1.5 text-sm font-semibold bg-background border border-border rounded shadow-sm">
+              <kbd className="bg-background border-border rounded border px-3 py-1.5 text-sm font-semibold shadow-sm">
                 ESC
               </kbd>
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 opacity-60">
+            <div className="bg-muted/30 flex items-center justify-between rounded-lg border p-3 opacity-60">
               <div>
                 <p className="text-sm font-medium">Buscar Artículos</p>
-                <p className="text-xs text-muted-foreground mt-1">Próximamente</p>
+                <p className="text-muted-foreground mt-1 text-xs">Próximamente</p>
               </div>
-              <kbd className="px-3 py-1.5 text-sm font-semibold bg-background border border-border rounded shadow-sm">
+              <kbd className="bg-background border-border rounded border px-3 py-1.5 text-sm font-semibold shadow-sm">
                 Ctrl + K
               </kbd>
             </div>
 
-            <div className="flex items-center justify-between p-3 rounded-lg border bg-muted/30 opacity-60">
+            <div className="bg-muted/30 flex items-center justify-between rounded-lg border p-3 opacity-60">
               <div>
                 <p className="text-sm font-medium">Nuevo Pedido</p>
-                <p className="text-xs text-muted-foreground mt-1">Próximamente</p>
+                <p className="text-muted-foreground mt-1 text-xs">Próximamente</p>
               </div>
-              <kbd className="px-3 py-1.5 text-sm font-semibold bg-background border border-border rounded shadow-sm">
+              <kbd className="bg-background border-border rounded border px-3 py-1.5 text-sm font-semibold shadow-sm">
                 Ctrl + N
               </kbd>
             </div>
@@ -90,5 +88,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-

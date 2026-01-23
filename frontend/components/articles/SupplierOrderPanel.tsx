@@ -1,10 +1,18 @@
 'use client';
 
-import { SupplierOrderItem } from '@/types/supplierOrder';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card } from '@/components/ui/card';
+import {
+  Trash2,
+  ShoppingCart,
+  AlertTriangle,
+  CheckCircle2,
+  Loader2,
+  Clock,
+  Download,
+} from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
@@ -12,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { SparklineWithTooltip } from '@/components/ui/sparkline';
 import {
   Table,
   TableBody,
@@ -20,15 +29,9 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { Trash2, ShoppingCart, AlertTriangle, CheckCircle2, Loader2, Clock, Download } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { formatSaleTime } from '@/lib/utils/salesCalculations';
-import { SparklineWithTooltip } from '@/components/ui/sparkline';
+import { SupplierOrderItem } from '@/types/supplierOrder';
 
 interface SupplierOrderPanelProps {
   items: SupplierOrderItem[];
@@ -69,16 +72,16 @@ export function SupplierOrderPanel({
     if (!isFinite(months) || months === 0) {
       return '∞ Infinito';
     }
-    
+
     if (months < 1) {
       const days = Math.round(months * 30);
       return `~${days} días`;
     }
-    
+
     if (months < 2) {
       return '~1 mes';
     }
-    
+
     return `~${months.toFixed(1)} meses`;
   };
 
@@ -89,19 +92,26 @@ export function SupplierOrderPanel({
     if (items.length === 0) return;
 
     // Generate SVG for sparklines
-    const generateSparklineSVG = (data: number[], width: number, height: number, color: string): string => {
+    const generateSparklineSVG = (
+      data: number[],
+      width: number,
+      height: number,
+      color: string
+    ): string => {
       if (!data || data.length === 0) return '';
-      
+
       const max = Math.max(...data, 1);
       const min = Math.min(...data, 0);
       const range = max - min || 1;
-      
-      const points = data.map((value, index) => {
-        const x = (index / (data.length - 1)) * width;
-        const y = height - ((value - min) / range) * height;
-        return `${x},${y}`;
-      }).join(' ');
-      
+
+      const points = data
+        .map((value, index) => {
+          const x = (index / (data.length - 1)) * width;
+          const y = height - ((value - min) / range) * height;
+          return `${x},${y}`;
+        })
+        .join(' ');
+
       return `<svg width="${width}" height="${height}" style="display: inline-block; vertical-align: middle;">
         <polyline 
           points="${points}" 
@@ -242,9 +252,9 @@ export function SupplierOrderPanel({
 <body>
   <div class="container">
     <h1>🛒 Pedido a Proveedor</h1>
-    <p class="subtitle">Generado el ${new Date().toLocaleString('es-AR', { 
-      dateStyle: 'long', 
-      timeStyle: 'short' 
+    <p class="subtitle">Generado el ${new Date().toLocaleString('es-AR', {
+      dateStyle: 'long',
+      timeStyle: 'short',
     })}</p>
 
     <div class="summary">
@@ -282,34 +292,39 @@ export function SupplierOrderPanel({
         </tr>
       </thead>
       <tbody>
-        ${items.map((item) => {
-          const isLowStock = item.currentStock < item.minimumStock;
-          const abcClass = item.article.abcClass || 'C';
-          const sparklineColor = abcClass === 'A' ? '#22c55e' : abcClass === 'B' ? '#3b82f6' : '#6b7280';
-          const sparklineSVG = item.article.salesTrend && item.article.salesTrend.length > 0
-            ? generateSparklineSVG(item.article.salesTrend, 120, 30, sparklineColor)
-            : '<span style="color: #9ca3af; font-size: 12px;">Sin datos</span>';
-          
-          const lastSaleDateFormatted = item.article.lastSaleDate
-            ? new Date(item.article.lastSaleDate).toLocaleDateString('es-AR', {
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric'
-              })
-            : '<span style="color: #9ca3af; font-size: 12px;">Nunca</span>';
-          
-          const formatValue = (val?: number) => {
-            if (!val || val === 0) return '<span style="color: #9ca3af; font-size: 12px;">0.0</span>';
-            return val.toFixed(1);
-          };
-          
-          const formatBadge = (time?: number) => {
-            const timeValue = time ?? Infinity;
-            const badgeClass = !isFinite(timeValue) || timeValue === 0 ? 'badge-gray' : (abcClass === 'A' ? 'badge-green' : abcClass === 'B' ? 'badge-blue' : 'badge-gray');
-            return `<span class="badge ${badgeClass}">${formatSaleTimeLocal(timeValue)}</span>`;
-          };
-          
-          return `
+        ${items
+          .map((item) => {
+            const isLowStock = item.currentStock < item.minimumStock;
+            const abcClass = item.article.abcClass || 'C';
+            const sparklineColor =
+              abcClass === 'A' ? '#22c55e' : abcClass === 'B' ? '#3b82f6' : '#6b7280';
+            const sparklineSVG =
+              item.article.salesTrend && item.article.salesTrend.length > 0
+                ? generateSparklineSVG(item.article.salesTrend, 120, 30, sparklineColor)
+                : '<span style="color: #9ca3af; font-size: 12px;">Sin datos</span>';
+
+            const lastSaleDateFormatted = item.article.lastSaleDate
+              ? new Date(item.article.lastSaleDate).toLocaleDateString('es-AR', {
+                  day: '2-digit',
+                  month: '2-digit',
+                  year: 'numeric',
+                })
+              : '<span style="color: #9ca3af; font-size: 12px;">Nunca</span>';
+
+            const formatBadge = (time?: number) => {
+              const timeValue = time ?? Infinity;
+              const badgeClass =
+                !isFinite(timeValue) || timeValue === 0
+                  ? 'badge-gray'
+                  : abcClass === 'A'
+                    ? 'badge-green'
+                    : abcClass === 'B'
+                      ? 'badge-blue'
+                      : 'badge-gray';
+              return `<span class="badge ${badgeClass}">${formatSaleTimeLocal(timeValue)}</span>`;
+            };
+
+            return `
           <tr>
             <td class="code">${item.article.code}</td>
             <td>${item.article.description}</td>
@@ -323,7 +338,8 @@ export function SupplierOrderPanel({
             <td>${lastSaleDateFormatted}</td>
           </tr>
           `;
-        }).join('')}
+          })
+          .join('')}
       </tbody>
     </table>
 
@@ -340,12 +356,12 @@ export function SupplierOrderPanel({
     const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
-    
+
     const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
     link.setAttribute('href', url);
     link.setAttribute('download', `pedido-proveedor-${timestamp}.html`);
     link.style.visibility = 'hidden';
-    
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -355,10 +371,10 @@ export function SupplierOrderPanel({
   if (items.length === 0) {
     return (
       <Card className="p-6">
-        <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground">
-          <ShoppingCart className="h-12 w-12 mb-3 opacity-30" />
+        <div className="text-muted-foreground flex flex-col items-center justify-center py-8 text-center">
+          <ShoppingCart className="mb-3 h-12 w-12 opacity-30" />
           <p className="text-sm">No hay artículos seleccionados para el pedido</p>
-          <p className="text-xs mt-1">Selecciona artículos de la tabla para agregarlos</p>
+          <p className="mt-1 text-xs">Selecciona artículos de la tabla para agregarlos</p>
         </div>
       </Card>
     );
@@ -370,37 +386,43 @@ export function SupplierOrderPanel({
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h3 className="text-lg font-semibold flex items-center gap-2">
+            <h3 className="flex items-center gap-2 text-lg font-semibold">
               <ShoppingCart className="h-5 w-5" />
               Pedido a Proveedor
               {isSaving && (
-                <span className="flex items-center gap-1 text-xs text-muted-foreground font-normal">
+                <span className="text-muted-foreground flex items-center gap-1 text-xs font-normal">
                   <Loader2 className="h-3 w-3 animate-spin" />
                   Guardando...
                 </span>
               )}
               {!isSaving && !isLoading && items.length > 0 && (
-                <span className="flex items-center gap-1 text-xs text-green-600 font-normal">
+                <span className="flex items-center gap-1 text-xs font-normal text-green-600">
                   <CheckCircle2 className="h-3 w-3" />
                   Guardado
                 </span>
               )}
             </h3>
-            <p className="text-sm text-muted-foreground">
-              {totalItems} artículo{totalItems !== 1 ? 's' : ''} seleccionado{totalItems !== 1 ? 's' : ''}
+            <p className="text-muted-foreground text-sm">
+              {totalItems} artículo{totalItems !== 1 ? 's' : ''} seleccionado
+              {totalItems !== 1 ? 's' : ''}
             </p>
           </div>
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" onClick={handleExportToHTML} disabled={items.length === 0}>
-              <Download className="h-4 w-4 mr-2" />
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleExportToHTML}
+              disabled={items.length === 0}
+            >
+              <Download className="mr-2 h-4 w-4" />
               Exportar HTML
             </Button>
             <Button variant="outline" size="sm" onClick={onClear} disabled={isSaving}>
-              <Trash2 className="h-4 w-4 mr-2" />
+              <Trash2 className="mr-2 h-4 w-4" />
               Limpiar
             </Button>
             <Button size="sm" onClick={onCreateOrder} disabled={isSaving}>
-              <ShoppingCart className="h-4 w-4 mr-2" />
+              <ShoppingCart className="mr-2 h-4 w-4" />
               Crear Pedido
             </Button>
           </div>
@@ -408,11 +430,14 @@ export function SupplierOrderPanel({
 
         {/* Trend Months Selector */}
         {onTrendMonthsChange && (
-          <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-            <Clock className="h-4 w-4 text-muted-foreground" />
+          <div className="bg-muted/50 flex items-center gap-2 rounded-lg p-3">
+            <Clock className="text-muted-foreground h-4 w-4" />
             <span className="text-sm font-medium">Tendencia de ventas:</span>
-            <Select value={trendMonths.toString()} onValueChange={(v) => onTrendMonthsChange(parseInt(v))}>
-              <SelectTrigger className="w-[140px] h-8">
+            <Select
+              value={trendMonths.toString()}
+              onValueChange={(v) => onTrendMonthsChange(parseInt(v))}
+            >
+              <SelectTrigger className="h-8 w-[140px]">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -427,7 +452,7 @@ export function SupplierOrderPanel({
         )}
 
         {/* Table */}
-        <div className="rounded-md border overflow-x-auto">
+        <div className="overflow-x-auto rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
@@ -440,7 +465,7 @@ export function SupplierOrderPanel({
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <TableHead className="text-right cursor-help">Precio Unit.</TableHead>
+                      <TableHead className="cursor-help text-right">Precio Unit.</TableHead>
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs">Precio unitario del artículo</p>
@@ -448,18 +473,18 @@ export function SupplierOrderPanel({
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <TableHead className="text-right cursor-help">Prom Ponderado</TableHead>
+                      <TableHead className="cursor-help text-right">Prom Ponderado</TableHead>
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs">
-                        Promedio ponderado de ventas (WMA) sobre los últimos {trendMonths} meses.
-                        Da más peso a los meses recientes. Recomendado por análisis estadístico.
+                        Promedio ponderado de ventas (WMA) sobre los últimos {trendMonths} meses. Da
+                        más peso a los meses recientes. Recomendado por análisis estadístico.
                       </p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <TableHead className="text-right cursor-help">T. Est. Venta</TableHead>
+                      <TableHead className="cursor-help text-right">T. Est. Venta</TableHead>
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs">
@@ -472,7 +497,9 @@ export function SupplierOrderPanel({
                       <TableHead className="cursor-help">Última Venta</TableHead>
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="max-w-xs">Fecha de la última factura emitida que incluye este artículo</p>
+                      <p className="max-w-xs">
+                        Fecha de la última factura emitida que incluye este artículo
+                      </p>
                     </TooltipContent>
                   </Tooltip>
                 </TooltipProvider>
@@ -482,9 +509,7 @@ export function SupplierOrderPanel({
             <TableBody>
               {items.map((item) => (
                 <TableRow key={item.article.id}>
-                  <TableCell className="font-medium font-mono">
-                    {item.article.code}
-                  </TableCell>
+                  <TableCell className="font-mono font-medium">{item.article.code}</TableCell>
                   <TableCell>
                     <div className="max-w-md truncate">{item.article.description}</div>
                   </TableCell>
@@ -497,22 +522,20 @@ export function SupplierOrderPanel({
                         const newQty = parseInt(e.target.value) || 1;
                         onQuantityChange(item.article.id, newQty);
                       }}
-                      className="w-24 h-8 text-right"
+                      className="h-8 w-24 text-right"
                       onFocus={(e) => e.target.select()}
                     />
                   </TableCell>
                   <TableCell className="text-right">
                     <span
                       className={
-                        item.currentStock < item.minimumStock
-                          ? 'text-red-600 font-semibold'
-                          : ''
+                        item.currentStock < item.minimumStock ? 'font-semibold text-red-600' : ''
                       }
                     >
                       {item.currentStock.toFixed(0)}
                     </span>
                   </TableCell>
-                  <TableCell className="text-right text-muted-foreground">
+                  <TableCell className="text-muted-foreground text-right">
                     {item.minimumStock.toFixed(0)}
                   </TableCell>
                   <TableCell>
@@ -526,28 +549,28 @@ export function SupplierOrderPanel({
                           item.article.abcClass === 'A'
                             ? 'rgb(34, 197, 94)' // green-500
                             : item.article.abcClass === 'B'
-                            ? 'rgb(59, 130, 246)' // blue-500
-                            : 'rgb(107, 114, 128)' // gray-500
+                              ? 'rgb(59, 130, 246)' // blue-500
+                              : 'rgb(107, 114, 128)' // gray-500
                         }
                         fillColor={
                           item.article.abcClass === 'A'
                             ? 'rgba(34, 197, 94, 0.1)'
                             : item.article.abcClass === 'B'
-                            ? 'rgba(59, 130, 246, 0.1)'
-                            : 'rgba(107, 114, 128, 0.1)'
+                              ? 'rgba(59, 130, 246, 0.1)'
+                              : 'rgba(107, 114, 128, 0.1)'
                         }
                         formatValue={(v) => `${v} unidades`}
                       />
                     ) : (
-                      <span className="text-xs text-muted-foreground">Sin datos</span>
+                      <span className="text-muted-foreground text-xs">Sin datos</span>
                     )}
                   </TableCell>
-                  
+
                   {/* Precio Unitario */}
                   <TableCell className="text-right font-medium">
                     {formatPrice(item.article.unitPrice)}
                   </TableCell>
-                  
+
                   {/* Prom Ponderado (WMA) */}
                   <TableCell className="text-right">
                     {item.avgMonthlySales > 0 ? (
@@ -560,14 +583,21 @@ export function SupplierOrderPanel({
                       <span className="text-muted-foreground text-xs">-</span>
                     )}
                   </TableCell>
-                  
+
                   {/* T. Est. Venta */}
                   <TableCell className="text-right">
-                    <Badge variant={isFinite(item.estimatedSaleTime) && item.estimatedSaleTime > 0 ? 'secondary' : 'outline'} className="text-xs">
+                    <Badge
+                      variant={
+                        isFinite(item.estimatedSaleTime) && item.estimatedSaleTime > 0
+                          ? 'secondary'
+                          : 'outline'
+                      }
+                      className="text-xs"
+                    >
                       {formatSaleTime(item.estimatedSaleTime)}
                     </Badge>
                   </TableCell>
-                  
+
                   {/* Última Venta */}
                   <TableCell>
                     {item.article.lastSaleDate ? (
@@ -575,14 +605,14 @@ export function SupplierOrderPanel({
                         {new Date(item.article.lastSaleDate).toLocaleDateString('es-AR', {
                           day: '2-digit',
                           month: '2-digit',
-                          year: 'numeric'
+                          year: 'numeric',
                         })}
                       </span>
                     ) : (
-                      <span className="text-xs text-muted-foreground">Nunca</span>
+                      <span className="text-muted-foreground text-xs">Nunca</span>
                     )}
                   </TableCell>
-                  
+
                   {/* Actions */}
                   <TableCell>
                     <Button
@@ -602,18 +632,18 @@ export function SupplierOrderPanel({
         </div>
 
         {/* Footer with totals */}
-        <div className="flex items-center justify-between pt-2 border-t">
+        <div className="flex items-center justify-between border-t pt-2">
           <div className="flex gap-6">
             <div>
-              <div className="text-xs text-muted-foreground">Total Artículos</div>
+              <div className="text-muted-foreground text-xs">Total Artículos</div>
               <div className="text-lg font-semibold">{totalItems}</div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground">Total Unidades</div>
+              <div className="text-muted-foreground text-xs">Total Unidades</div>
               <div className="text-lg font-semibold">{totalQuantity}</div>
             </div>
             <div>
-              <div className="text-xs text-muted-foreground flex items-center gap-1">
+              <div className="text-muted-foreground flex items-center gap-1 text-xs">
                 Tiempo Prom. Est. Venta
                 {!isFinite(totalEstimatedTime) && (
                   <AlertTriangle className="h-3 w-3 text-amber-500" />
@@ -631,4 +661,3 @@ export function SupplierOrderPanel({
     </Card>
   );
 }
-

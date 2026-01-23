@@ -1,13 +1,13 @@
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
-import { LucideIcon } from "lucide-react"
+import { LucideIcon } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 interface PageHeaderProps {
-  title: string
-  description?: string
-  icon?: LucideIcon
-  children?: React.ReactNode
-  className?: string
+  title: string;
+  description?: string;
+  icon?: LucideIcon;
+  children?: React.ReactNode;
+  className?: string;
 }
 
 export function PageHeader({
@@ -18,31 +18,25 @@ export function PageHeader({
   className,
 }: PageHeaderProps) {
   return (
-    <div className={cn("flex items-start justify-between", className)}>
+    <div className={cn('flex items-start justify-between', className)}>
       <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight flex items-center gap-2">
-          {Icon && <Icon className="h-8 w-8 text-primary" />}
+        <h1 className="flex items-center gap-2 text-3xl font-bold tracking-tight">
+          {Icon && <Icon className="text-primary h-8 w-8" />}
           {title}
         </h1>
-        {description && (
-          <p className="text-muted-foreground">{description}</p>
-        )}
+        {description && <p className="text-muted-foreground">{description}</p>}
       </div>
-      {children && (
-        <div className="flex items-center gap-2">
-          {children}
-        </div>
-      )}
+      {children && <div className="flex items-center gap-2">{children}</div>}
     </div>
-  )
+  );
 }
 
 interface PageHeaderActionProps {
-  label: string
-  icon?: LucideIcon
-  onClick: () => void
-  disabled?: boolean
-  variant?: "default" | "secondary" | "outline" | "ghost" | "destructive"
+  label: string;
+  icon?: LucideIcon;
+  onClick: () => void;
+  disabled?: boolean;
+  variant?: 'default' | 'secondary' | 'outline' | 'ghost' | 'destructive';
 }
 
 export function PageHeaderAction({
@@ -50,12 +44,12 @@ export function PageHeaderAction({
   icon: Icon,
   onClick,
   disabled,
-  variant = "default",
+  variant = 'default',
 }: PageHeaderActionProps) {
   return (
     <Button onClick={onClick} disabled={disabled} variant={variant}>
-      {Icon && <Icon className="h-4 w-4 mr-2" />}
+      {Icon && <Icon className="mr-2 h-4 w-4" />}
       {label}
     </Button>
-  )
+  );
 }

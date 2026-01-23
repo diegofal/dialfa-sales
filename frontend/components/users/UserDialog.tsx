@@ -1,27 +1,27 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogFooter 
-} from '@/components/ui/dialog';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { User, CreateUserDTO } from '@/types/user';
-import { toast } from 'sonner';
 import { useCreateUser, useUpdateUser } from '@/lib/hooks/useUsers';
+import { User, CreateUserDTO } from '@/types/user';
 
 interface UserDialogProps {
   user: User | null;
@@ -66,18 +66,21 @@ export default function UserDialog({ user, isOpen, onClose }: UserDialogProps) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (user) {
-      updateUserMutation.mutate({
-        id: user.id,
-        data: formData,
-      }, {
-        onSuccess: () => {
-          toast.success('Usuario actualizado correctamente');
-          onClose();
+      updateUserMutation.mutate(
+        {
+          id: user.id,
+          data: formData,
         },
-        onError: (error: Error) => toast.error(error.message),
-      });
+        {
+          onSuccess: () => {
+            toast.success('Usuario actualizado correctamente');
+            onClose();
+          },
+          onError: (error: Error) => toast.error(error.message),
+        }
+      );
     } else {
       if (!formData.password) {
         toast.error('La contraseña es obligatoria para nuevos usuarios');
@@ -131,8 +134,8 @@ export default function UserDialog({ user, isOpen, onClose }: UserDialogProps) {
             </div>
             <div className="grid gap-2">
               <Label htmlFor="role">Rol</Label>
-              <Select 
-                value={formData.role} 
+              <Select
+                value={formData.role}
                 onValueChange={(value) => setFormData({ ...formData, role: value })}
               >
                 <SelectTrigger>
@@ -158,8 +161,8 @@ export default function UserDialog({ user, isOpen, onClose }: UserDialogProps) {
             </div>
             {user && (
               <div className="flex items-center space-x-2 py-2">
-                <Checkbox 
-                  id="isActive" 
+                <Checkbox
+                  id="isActive"
                   checked={formData.isActive}
                   onCheckedChange={(checked) => setFormData({ ...formData, isActive: !!checked })}
                 />
@@ -171,7 +174,10 @@ export default function UserDialog({ user, isOpen, onClose }: UserDialogProps) {
             <Button type="button" variant="outline" onClick={onClose}>
               Cancelar
             </Button>
-            <Button type="submit" disabled={createUserMutation.isPending || updateUserMutation.isPending}>
+            <Button
+              type="submit"
+              disabled={createUserMutation.isPending || updateUserMutation.isPending}
+            >
               {user ? 'Guardar Cambios' : 'Crear Usuario'}
             </Button>
           </DialogFooter>
@@ -180,4 +186,3 @@ export default function UserDialog({ user, isOpen, onClose }: UserDialogProps) {
     </Dialog>
   );
 }
-

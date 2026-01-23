@@ -1,26 +1,44 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { salesOrdersApi } from '../api/salesOrders';
-import { PaginationParams } from '@/types/pagination';
-import type { CreateSalesOrderRequest, UpdateSalesOrderRequest, SalesOrderUpdateResponse } from '@/types/salesOrder';
-import type { Invoice } from '@/types/invoice';
-import type { DeliveryNote } from '@/types/deliveryNote';
 import { toast } from 'sonner';
-import { useQuickInvoiceTabs } from './useQuickInvoiceTabs';
+import type { DeliveryNote } from '@/types/deliveryNote';
+import type { Invoice } from '@/types/invoice';
+import { PaginationParams } from '@/types/pagination';
+import type {
+  CreateSalesOrderRequest,
+  UpdateSalesOrderRequest,
+  SalesOrderUpdateResponse,
+} from '@/types/salesOrder';
+import { salesOrdersApi } from '../api/salesOrders';
+import { createCRUDHooks } from './api/createCRUDHooks';
 import { useQuickDeliveryNoteTabs } from './useQuickDeliveryNoteTabs';
+import { useQuickInvoiceTabs } from './useQuickInvoiceTabs';
 
-export const useSalesOrders = (params: PaginationParams & {
+type SalesOrderListParams = PaginationParams & {
   clientId?: number;
   status?: string;
   fromDate?: string;
   toDate?: string;
   activeOnly?: boolean;
-} = {}) => {
-  return useQuery({
-    queryKey: ['salesOrders', params],
-    queryFn: () => salesOrdersApi.getAll(params),
-  });
 };
 
+// Generate standard CRUD hooks using factory pattern
+const { useList, useById } = createCRUDHooks<
+  any, // SalesOrder type
+  CreateSalesOrderRequest,
+  UpdateSalesOrderRequest,
+  SalesOrderListParams
+>({
+  entityName: 'Pedido',
+  api: salesOrdersApi,
+  queryKey: 'salesOrders',
+});
+
+// Export standard CRUD hooks with semantic names
+export { useList as useSalesOrders };
+
+/**
+ * Fetch single sales order with custom retry logic for deleted orders
+ */
 export const useSalesOrder = (id: number, options?: { enabled?: boolean }) => {
   return useQuery({
     queryKey: ['salesOrders', id],
@@ -39,6 +57,9 @@ export const useSalesOrder = (id: number, options?: { enabled?: boolean }) => {
   });
 };
 
+/**
+ * Create sales order
+ */
 export const useCreateSalesOrder = () => {
   const queryClient = useQueryClient();
 
@@ -55,28 +76,38 @@ export const useCreateSalesOrder = () => {
   });
 };
 
+/**
+ * Update sales order with document regeneration support
+ */
 export const useUpdateSalesOrder = () => {
   const queryClient = useQueryClient();
 
-  return useMutation<SalesOrderUpdateResponse, Error, { id: number; data: UpdateSalesOrderRequest }>({
+  return useMutation<
+    SalesOrderUpdateResponse,
+    Error,
+    { id: number; data: UpdateSalesOrderRequest }
+  >({
     mutationFn: ({ id, data }: { id: number; data: UpdateSalesOrderRequest }) =>
       salesOrdersApi.update(id, data),
     onSuccess: (data, variables) => {
       // Invalidate all sales orders queries (list)
       queryClient.invalidateQueries({ queryKey: ['salesOrders'] });
-      
+
       // Invalidate the specific sales order query to force refetch
       queryClient.invalidateQueries({ queryKey: ['salesOrders', variables.id] });
-      
+
       // If documents were regenerated, invalidate invoices and delivery notes
-      if (data.regenerated && (data.regenerated.invoices > 0 || data.regenerated.deliveryNotes > 0)) {
+      if (
+        data.regenerated &&
+        (data.regenerated.invoices > 0 || data.regenerated.deliveryNotes > 0)
+      ) {
         queryClient.invalidateQueries({ queryKey: ['invoices'] });
         queryClient.invalidateQueries({ queryKey: ['delivery-notes'] });
       }
-      
+
       // Show success message
       toast.success('Pedido actualizado exitosamente');
-      
+
       // Show additional info if documents were updated
       if (data.regenerated) {
         toast.info(data.regenerated.message, {
@@ -92,6 +123,9 @@ export const useUpdateSalesOrder = () => {
   });
 };
 
+/**
+ * Cancel sales order
+ */
 export const useCancelSalesOrder = () => {
   const queryClient = useQueryClient();
 
@@ -108,6 +142,9 @@ export const useCancelSalesOrder = () => {
   });
 };
 
+/**
+ * Delete sales order with tab cleanup and affected documents handling
+ */
 export const useDeleteSalesOrder = () => {
   const queryClient = useQueryClient();
   const { removeTabByInvoiceId } = useQuickInvoiceTabs();
@@ -118,30 +155,30 @@ export const useDeleteSalesOrder = () => {
     onSuccess: (data) => {
       // Remove tabs from sidebar for affected invoices and delivery notes
       if (data.affectedInvoices && data.affectedInvoices.length > 0) {
-        data.affectedInvoices.forEach(invoice => {
+        data.affectedInvoices.forEach((invoice) => {
           removeTabByInvoiceId(parseInt(invoice.id));
         });
       }
-      
+
       if (data.affectedDeliveryNotes && data.affectedDeliveryNotes.length > 0) {
-        data.affectedDeliveryNotes.forEach(deliveryNoteId => {
+        data.affectedDeliveryNotes.forEach((deliveryNoteId) => {
           removeTabByDeliveryNoteId(parseInt(deliveryNoteId));
         });
       }
-      
+
       // Invalidate sales orders queries
       queryClient.invalidateQueries({ queryKey: ['salesOrders'] });
       // Invalidate invoices and delivery notes queries since they may have been deleted/cancelled
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['delivery-notes'] });
-      
+
       // Build detailed success message
       let message = `Pedido ${data.orderNumber || ''} eliminado exitosamente`;
-      
+
       if (data.affectedInvoices && data.affectedInvoices.length > 0) {
-        const cancelledCount = data.affectedInvoices.filter(inv => inv.wasCancelled).length;
-        const deletedCount = data.affectedInvoices.filter(inv => !inv.wasCancelled).length;
-        
+        const cancelledCount = data.affectedInvoices.filter((inv) => inv.wasCancelled).length;
+        const deletedCount = data.affectedInvoices.filter((inv) => !inv.wasCancelled).length;
+
         if (cancelledCount > 0) {
           message += `. ${cancelledCount} factura(s) impresa(s) cancelada(s) y stock devuelto`;
         }
@@ -149,11 +186,11 @@ export const useDeleteSalesOrder = () => {
           message += `. ${deletedCount} factura(s) no impresa(s) eliminada(s)`;
         }
       }
-      
+
       if (data.affectedDeliveryNotes && data.affectedDeliveryNotes.length > 0) {
         message += `. ${data.affectedDeliveryNotes.length} remito(s) eliminado(s)`;
       }
-      
+
       toast.success(message);
     },
     onError: (error: unknown) => {
@@ -163,6 +200,9 @@ export const useDeleteSalesOrder = () => {
   });
 };
 
+/**
+ * Generate invoice from sales order
+ */
 export const useGenerateInvoice = () => {
   const queryClient = useQueryClient();
 
@@ -182,12 +222,18 @@ export const useGenerateInvoice = () => {
   });
 };
 
+/**
+ * Generate delivery note from sales order
+ */
 export const useGenerateDeliveryNote = () => {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, deliveryData }: { 
-      id: number; 
+    mutationFn: ({
+      id,
+      deliveryData,
+    }: {
+      id: number;
       deliveryData?: {
         deliveryDate?: string;
         transporterId?: number;
@@ -195,7 +241,7 @@ export const useGenerateDeliveryNote = () => {
         packagesCount?: number;
         declaredValue?: number;
         notes?: string;
-      }
+      };
     }) => salesOrdersApi.generateDeliveryNote(id, deliveryData),
     onSuccess: (deliveryNote: DeliveryNote) => {
       queryClient.invalidateQueries({ queryKey: ['salesOrders'] });
@@ -209,5 +255,3 @@ export const useGenerateDeliveryNote = () => {
     },
   });
 };
-
-

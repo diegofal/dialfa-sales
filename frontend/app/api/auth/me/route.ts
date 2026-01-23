@@ -1,25 +1,17 @@
-import { NextResponse } from 'next/server';
-import { getSession } from '@/lib/auth/jwt';
+﻿import { NextResponse } from 'next/server';
+import { handleError } from '@/lib/errors';
+import * as AuthService from '@/lib/services/AuthService';
 
 export async function GET() {
-  const session = await getSession();
+  try {
+    const user = await AuthService.validateSession();
 
-  if (!session) {
-    return NextResponse.json(
-      { error: 'Unauthorized' },
-      { status: 401 }
-    );
+    if (!user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 });
+    }
+
+    return NextResponse.json({ user });
+  } catch (error) {
+    return handleError(error);
   }
-
-  return NextResponse.json({
-    user: {
-      id: session.userId,
-      username: session.username,
-      email: session.email,
-      fullName: session.fullName,
-      role: session.role,
-    },
-  });
 }
-
-

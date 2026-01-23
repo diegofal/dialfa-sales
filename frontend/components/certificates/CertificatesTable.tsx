@@ -1,16 +1,7 @@
 'use client';
 
-import { CertificateResponse } from '@/types/certificate';
-import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
+import { format } from 'date-fns';
+import { es } from 'date-fns/locale';
 import { Eye, Trash2, Download, FileText, FileImage, FileSpreadsheet } from 'lucide-react';
 import {
   AlertDialog,
@@ -23,8 +14,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { format } from 'date-fns';
-import { es } from 'date-fns/locale';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { CertificateResponse } from '@/types/certificate';
 
 interface CertificatesTableProps {
   certificates: CertificateResponse[];
@@ -38,7 +38,7 @@ interface CertificatesTableProps {
 function getFileIcon(fileType: string) {
   const imageTypes = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'tif', 'tiff'];
   const spreadsheetTypes = ['xls', 'xlsx'];
-  
+
   if (imageTypes.includes(fileType.toLowerCase())) {
     return <FileImage className="h-4 w-4" />;
   }
@@ -49,7 +49,9 @@ function getFileIcon(fileType: string) {
 }
 
 // Category badge color
-function getCategoryVariant(category: string | null): "default" | "secondary" | "destructive" | "outline" {
+function getCategoryVariant(
+  category: string | null
+): 'default' | 'secondary' | 'destructive' | 'outline' {
   switch (category?.toUpperCase()) {
     case 'ACCESORIOS':
       return 'default';
@@ -73,25 +75,25 @@ function formatFileSize(bytes: string | null): string {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
-export function CertificatesTable({ 
-  certificates, 
+export function CertificatesTable({
+  certificates,
   isLoading,
   onView,
-  onDownload, 
-  onDelete 
+  onDownload,
+  onDelete,
 }: CertificatesTableProps) {
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-10">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+        <div className="border-primary h-8 w-8 animate-spin rounded-full border-b-2"></div>
       </div>
     );
   }
 
   if (certificates.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-        <FileText className="h-12 w-12 mb-4" />
+      <div className="text-muted-foreground flex flex-col items-center justify-center py-10">
+        <FileText className="mb-4 h-12 w-12" />
         <p className="text-lg font-medium">No se encontraron certificados</p>
         <p className="text-sm">Intenta con otros filtros de búsqueda o sube un nuevo certificado</p>
       </div>
@@ -109,17 +111,15 @@ export function CertificatesTable({
             <TableHead>Coladas</TableHead>
             <TableHead className="text-right">Tamaño</TableHead>
             <TableHead>Fecha</TableHead>
-            <TableHead className="text-right w-[150px]">Acciones</TableHead>
+            <TableHead className="w-[150px] text-right">Acciones</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {certificates.map((certificate) => (
-            <TableRow key={certificate.id} className="cursor-pointer hover:bg-muted/50">
-              <TableCell>
-                {getFileIcon(certificate.file_type)}
-              </TableCell>
-              <TableCell 
-                className="font-medium max-w-[300px] truncate"
+            <TableRow key={certificate.id} className="hover:bg-muted/50 cursor-pointer">
+              <TableCell>{getFileIcon(certificate.file_type)}</TableCell>
+              <TableCell
+                className="max-w-[300px] truncate font-medium"
                 title={certificate.file_name}
                 onClick={() => onView(certificate)}
               >
@@ -146,7 +146,7 @@ export function CertificatesTable({
                   )}
                 </div>
               </TableCell>
-              <TableCell className="text-right text-muted-foreground">
+              <TableCell className="text-muted-foreground text-right">
                 {formatFileSize(certificate.file_size_bytes)}
               </TableCell>
               <TableCell className="text-muted-foreground">
@@ -185,7 +185,7 @@ export function CertificatesTable({
                       <AlertDialogHeader>
                         <AlertDialogTitle>¿Eliminar certificado?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          Esta acción eliminará el certificado &quot;{certificate.file_name}&quot; 
+                          Esta acción eliminará el certificado &quot;{certificate.file_name}&quot;
                           permanentemente. Esta acción no se puede deshacer.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
@@ -209,4 +209,3 @@ export function CertificatesTable({
     </div>
   );
 }
-

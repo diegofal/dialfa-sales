@@ -41,7 +41,7 @@ const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 horas en ms
 /**
  * Calcula las tendencias de ventas mensuales para todos los artículos
  * Retorna un mapa de articleId -> array de ventas por mes
- * 
+ *
  * @param monthsToShow - Cantidad de meses a mostrar (por defecto 12)
  * @param forceRefresh - Si true, recalcula ignorando el caché
  * @returns Map con articleId -> array de cantidades vendidas por mes
@@ -61,9 +61,8 @@ export async function calculateSalesTrends(
   ) {
     const cachedDataForMonths = salesTrendCache.data.get(monthsToShow);
     const cachedLabels = salesTrendCache.labels.get(monthsToShow);
-    
+
     if (cachedDataForMonths && cachedLabels) {
-      console.log(`Sales Trends: Using cached data for ${monthsToShow} months`);
       return {
         data: cachedDataForMonths,
         labels: cachedLabels,
@@ -71,14 +70,11 @@ export async function calculateSalesTrends(
     }
   }
 
-  console.log(`Sales Trends: Calculating fresh data for ${monthsToShow} months...`);
-  const startTime = Date.now();
-
   try {
     // 1. Generar array de los últimos N meses
     const monthsArray: { year: number; month: number; label: string }[] = [];
     const today = new Date();
-    
+
     for (let i = monthsToShow - 1; i >= 0; i--) {
       const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
       monthsArray.push({
@@ -90,7 +86,7 @@ export async function calculateSalesTrends(
 
     // 2. Obtener ventas por artículo y mes
     const salesByMonth = new Map<string, Map<string, number>>();
-    
+
     for (const monthData of monthsArray) {
       const startDate = new Date(monthData.year, monthData.month - 1, 1);
       const endDate = new Date(monthData.year, monthData.month, 0, 23, 59, 59);
@@ -99,10 +95,12 @@ export async function calculateSalesTrends(
 
       // Query para obtener ventas del mes
       // Usamos sales_order_items como fuente de verdad
-      const salesData = await prisma.$queryRaw<Array<{
-        article_id: bigint;
-        total_quantity: number;
-      }>>`
+      const salesData = await prisma.$queryRaw<
+        Array<{
+          article_id: bigint;
+          total_quantity: number;
+        }>
+      >`
         SELECT 
           soi.article_id,
           SUM(soi.quantity) as total_quantity
@@ -152,23 +150,16 @@ export async function calculateSalesTrends(
     if (!salesTrendCache.labels) {
       salesTrendCache.labels = new Map();
     }
-    
+
     salesTrendCache.data.set(monthsToShow, trendsMap);
     salesTrendCache.labels.set(monthsToShow, labels);
     salesTrendCache.timestamp = now;
-
-    const duration = Date.now() - startTime;
-    console.log(
-      `Sales Trends: Calculated for ${trendsMap.size} articles (${monthsToShow} months) in ${duration}ms`
-    );
-    console.log(`  - Months: ${labels.join(', ')}`);
 
     return {
       data: trendsMap,
       labels,
     };
   } catch (error) {
-    console.error('Error calculating sales trends:', error);
     throw error;
   }
 }
@@ -232,8 +223,7 @@ export function getSalesTrendsCacheInfo(monthsToShow: number = 12) {
     ageHours: (age / (1000 * 60 * 60)).toFixed(2),
     articlesCount: cachedData?.size || 0,
     expiresIn: expiresIn > 0 ? expiresIn : 0,
-    expiresInHours:
-      expiresIn > 0 ? (expiresIn / (1000 * 60 * 60)).toFixed(2) : 0,
+    expiresInHours: expiresIn > 0 ? (expiresIn / (1000 * 60 * 60)).toFixed(2) : 0,
     monthsTracked: monthsToShow,
     labels: salesTrendCache.labels?.get(monthsToShow) || [],
   };
@@ -254,21 +244,19 @@ export async function calculateLastSaleDates(
     lastSaleDateCache.timestamp &&
     now - lastSaleDateCache.timestamp < CACHE_DURATION
   ) {
-    console.log('Last Sale Dates: Using cached data');
     return lastSaleDateCache.data;
   }
-
-  console.log('Last Sale Dates: Calculating fresh data...');
-  const startTime = Date.now();
 
   try {
     // Obtener la última fecha de venta por artículo
     // Los artículos vendidos están en sales_order_items, no en invoice_items
     // Hacemos JOIN: sales_order_items -> sales_orders -> invoices
-    const lastSales = await prisma.$queryRaw<Array<{
-      article_id: bigint;
-      last_sale_date: Date | null;
-    }>>`
+    const lastSales = await prisma.$queryRaw<
+      Array<{
+        article_id: bigint;
+        last_sale_date: Date | null;
+      }>
+    >`
       SELECT 
         soi.article_id,
         MAX(i.invoice_date) as last_sale_date
@@ -285,24 +273,15 @@ export async function calculateLastSaleDates(
     // Convertir a Map
     const lastSaleDateMap = new Map<string, Date | null>();
     lastSales.forEach((row) => {
-      lastSaleDateMap.set(
-        row.article_id.toString(),
-        row.last_sale_date
-      );
+      lastSaleDateMap.set(row.article_id.toString(), row.last_sale_date);
     });
 
     // Actualizar caché
     lastSaleDateCache.data = lastSaleDateMap;
     lastSaleDateCache.timestamp = now;
 
-    const duration = Date.now() - startTime;
-    console.log(
-      `Last Sale Dates: Calculated for ${lastSaleDateMap.size} articles in ${duration}ms`
-    );
-
     return lastSaleDateMap;
   } catch (error) {
-    console.error('Error calculating last sale dates:', error);
     throw error;
   }
 }
@@ -313,4 +292,3 @@ export async function calculateLastSaleDates(
 export async function refreshLastSaleDates(): Promise<void> {
   await calculateLastSaleDates(true);
 }
-

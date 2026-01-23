@@ -1,22 +1,16 @@
 'use client';
 
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Info } from 'lucide-react';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Article, ArticleFormData } from '@/types/article';
-import { useCreateArticle, useUpdateArticle } from '@/lib/hooks/useArticles';
-import { useCategories } from '@/lib/hooks/useCategories';
 import {
   Select,
   SelectContent,
@@ -24,10 +18,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
+import { Textarea } from '@/components/ui/textarea';
+import { useCreateArticle, useUpdateArticle } from '@/lib/hooks/useArticles';
+import { useCategories } from '@/lib/hooks/useCategories';
 import { useAuthStore } from '@/store/authStore';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Info } from 'lucide-react';
+import { Article, ArticleFormData } from '@/types/article';
 
 const articleSchema = z.object({
   code: z.string().min(1, 'El código es requerido').max(50, 'Máximo 50 caracteres'),
@@ -128,7 +123,7 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
 
     try {
       if (isEditing) {
-        await updateMutation.mutateAsync({ id: article.id, article: formData });
+        await updateMutation.mutateAsync({ id: article.id, data: formData });
       } else {
         await createMutation.mutateAsync(formData);
       }
@@ -151,8 +146,8 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
           <Alert>
             <Info className="h-4 w-4" />
             <AlertDescription>
-              Solo los administradores pueden {isEditing ? 'editar' : 'crear'} artículos. 
-              Los vendedores solo pueden ajustar el stock desde la tabla de artículos.
+              Solo los administradores pueden {isEditing ? 'editar' : 'crear'} artículos. Los
+              vendedores solo pueden ajustar el stock desde la tabla de artículos.
             </AlertDescription>
           </Alert>
         )}
@@ -163,9 +158,7 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
             <div className="space-y-2">
               <Label htmlFor="code">Código *</Label>
               <Input id="code" {...register('code')} disabled={!canEdit} />
-              {errors.code && (
-                <p className="text-sm text-destructive">{errors.code.message}</p>
-              )}
+              {errors.code && <p className="text-destructive text-sm">{errors.code.message}</p>}
             </div>
 
             {/* Category */}
@@ -194,7 +187,7 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
                 </SelectContent>
               </Select>
               {errors.categoryId && (
-                <p className="text-sm text-destructive">{errors.categoryId.message}</p>
+                <p className="text-destructive text-sm">{errors.categoryId.message}</p>
               )}
             </div>
           </div>
@@ -204,7 +197,7 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
             <Label htmlFor="description">Descripción *</Label>
             <Textarea id="description" {...register('description')} rows={2} disabled={!canEdit} />
             {errors.description && (
-              <p className="text-sm text-destructive">{errors.description.message}</p>
+              <p className="text-destructive text-sm">{errors.description.message}</p>
             )}
           </div>
 
@@ -220,7 +213,7 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
                 disabled={!canEdit}
               />
               {errors.unitPrice && (
-                <p className="text-sm text-destructive">{errors.unitPrice.message}</p>
+                <p className="text-destructive text-sm">{errors.unitPrice.message}</p>
               )}
             </div>
 
@@ -233,11 +226,9 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
                 {...register('stock', { valueAsNumber: true })}
                 disabled={!canEdit}
               />
-              {errors.stock && (
-                <p className="text-sm text-destructive">{errors.stock.message}</p>
-              )}
+              {errors.stock && <p className="text-destructive text-sm">{errors.stock.message}</p>}
               {isVendedorUser && (
-                <p className="text-[10px] text-muted-foreground">
+                <p className="text-muted-foreground text-[10px]">
                   Use el botón de ajuste de stock en la tabla
                 </p>
               )}
@@ -253,7 +244,7 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
                 disabled={!canEdit}
               />
               {errors.minimumStock && (
-                <p className="text-sm text-destructive">{errors.minimumStock.message}</p>
+                <p className="text-destructive text-sm">{errors.minimumStock.message}</p>
               )}
             </div>
           </div>
@@ -261,9 +252,14 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
           {/* Location */}
           <div className="space-y-2">
             <Label htmlFor="location">Ubicación</Label>
-            <Input id="location" {...register('location')} placeholder="Ej: Depósito A - Estante 3" disabled={!canEdit} />
+            <Input
+              id="location"
+              {...register('location')}
+              placeholder="Ej: Depósito A - Estante 3"
+              disabled={!canEdit}
+            />
             {errors.location && (
-              <p className="text-sm text-destructive">{errors.location.message}</p>
+              <p className="text-destructive text-sm">{errors.location.message}</p>
             )}
           </div>
 
@@ -271,9 +267,7 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
           <div className="space-y-2">
             <Label htmlFor="notes">Notas</Label>
             <Textarea id="notes" {...register('notes')} rows={3} disabled={!canEdit} />
-            {errors.notes && (
-              <p className="text-sm text-destructive">{errors.notes.message}</p>
-            )}
+            {errors.notes && <p className="text-destructive text-sm">{errors.notes.message}</p>}
           </div>
 
           {/* Is Discontinued */}
@@ -284,7 +278,7 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
               onCheckedChange={(checked) => setValue('isDiscontinued', checked as boolean)}
               disabled={!canEdit}
             />
-            <Label htmlFor="isDiscontinued" className="font-normal cursor-pointer">
+            <Label htmlFor="isDiscontinued" className="cursor-pointer font-normal">
               Producto descontinuado
             </Label>
           </div>
@@ -294,10 +288,7 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
               {canEdit ? 'Cancelar' : 'Cerrar'}
             </Button>
             {canEdit && (
-              <Button
-                type="submit"
-                disabled={createMutation.isPending || updateMutation.isPending}
-              >
+              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
                 {isEditing ? 'Actualizar' : 'Crear'}
               </Button>
             )}
@@ -307,5 +298,3 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
     </Dialog>
   );
 }
-
-

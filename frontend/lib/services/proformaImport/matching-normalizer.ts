@@ -135,7 +135,9 @@ export class MatchingKeyNormalizer {
 
     // For reducer tees/reducers: normalize the dual size format
     // Examples: "6 X 3" -> "6 X 3", "6x3" -> "6 X 3", "6*3" -> "6 X 3", "6 * 3" -> "6 X 3"
-    const dualSizeMatch = normalized.match(/^(\d+(?:\s*\d+\/\d+)?)\s*[Xx\*×]\s*(\d+(?:\s*\d+\/\d+)?)/);
+    const dualSizeMatch = normalized.match(
+      /^(\d+(?:\s*\d+\/\d+)?)\s*[Xx\*×]\s*(\d+(?:\s*\d+\/\d+)?)/
+    );
     if (dualSizeMatch) {
       const size1 = dualSizeMatch[1].trim();
       const size2 = dualSizeMatch[2].trim();
@@ -189,12 +191,12 @@ export class MatchingKeyNormalizer {
    */
   static extractTypeFromDescription(description: string): string {
     const desc = description.toUpperCase().trim();
-    
+
     // Extract just the type part (before size/schedule info)
     // For "SORF S-150" -> "SORF"
     // For "W.N.R.F. S-150 SCH STD" -> "W.N.R.F."
     // For "THREADED S-150" -> "THREADED"
-    
+
     // Remove series info (S-150, S-300, S-600)
     let type = desc
       .replace(/\s+S[-.]?\d+/i, '')
@@ -202,14 +204,14 @@ export class MatchingKeyNormalizer {
       .replace(/\s+S\.\d+.*$/i, '')
       .replace(/\s+\d+["'].*$/i, '')
       .trim();
-    
+
     // If it's too long, try to extract just the main type
     if (type.length > 30) {
       // Get first few words
       const words = type.split(/\s+/);
       type = words.slice(0, 3).join(' ');
     }
-    
+
     return type;
   }
 
@@ -219,22 +221,21 @@ export class MatchingKeyNormalizer {
    */
   static extractSeriesFromDescription(description: string): number | null {
     const desc = description.toUpperCase().trim();
-    
+
     // Match S-150, S-300, S-600, S.150, etc.
     // Valid series are typically 150, 300, 600, 900, 1500, 2500
     const validSeries = [150, 300, 600, 900, 1500, 2500];
-    
+
     // Look for all S-XXX patterns
     const seriesMatches = desc.matchAll(/S[-.]?(\d+)/gi);
-    
+
     for (const match of seriesMatches) {
       const series = parseInt(match[1], 10);
       if (validSeries.includes(series)) {
         return series;
       }
     }
-    
+
     return null;
   }
 }
-

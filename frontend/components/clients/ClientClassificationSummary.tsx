@@ -1,8 +1,8 @@
 'use client';
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
 import { Users, TrendingUp, TrendingDown, UserX, ShoppingCart } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ClientStatus } from '@/types/clientClassification';
 
 interface ClassificationSummary {
@@ -36,15 +36,15 @@ export default function ClientClassificationSummary({
 
   if (isLoading) {
     return (
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
         {[...Array(5)].map((_, i) => (
           <Card key={i} className="animate-pulse">
             <CardHeader className="pb-2">
-              <div className="h-4 bg-gray-300 rounded w-20"></div>
+              <div className="h-4 w-20 rounded bg-gray-300"></div>
             </CardHeader>
             <CardContent>
-              <div className="h-8 bg-gray-300 rounded w-16 mb-2"></div>
-              <div className="h-4 bg-gray-200 rounded w-24"></div>
+              <div className="mb-2 h-8 w-16 rounded bg-gray-300"></div>
+              <div className="h-4 w-24 rounded bg-gray-200"></div>
             </CardContent>
           </Card>
         ))}
@@ -54,16 +54,14 @@ export default function ClientClassificationSummary({
 
   if (!summary) return null;
 
-  const totalClients = 
-    summary.active.count + 
-    summary.slow_moving.count + 
-    summary.inactive.count + 
+  const totalClients =
+    summary.active.count +
+    summary.slow_moving.count +
+    summary.inactive.count +
     summary.never_purchased.count;
 
-  const totalRevenue = 
-    summary.active.revenue + 
-    summary.slow_moving.revenue + 
-    summary.inactive.revenue;
+  const totalRevenue =
+    summary.active.revenue + summary.slow_moving.revenue + summary.inactive.revenue;
 
   const cards = [
     {
@@ -84,7 +82,8 @@ export default function ClientClassificationSummary({
       icon: TrendingUp,
       color: 'text-green-600',
       bgColor: 'bg-green-50 dark:bg-green-950',
-      borderColor: selectedStatus === ClientStatus.ACTIVE ? 'border-green-600' : 'border-transparent',
+      borderColor:
+        selectedStatus === ClientStatus.ACTIVE ? 'border-green-600' : 'border-transparent',
     },
     {
       status: ClientStatus.SLOW_MOVING,
@@ -94,7 +93,8 @@ export default function ClientClassificationSummary({
       icon: ShoppingCart,
       color: 'text-yellow-600',
       bgColor: 'bg-yellow-50 dark:bg-yellow-950',
-      borderColor: selectedStatus === ClientStatus.SLOW_MOVING ? 'border-yellow-600' : 'border-transparent',
+      borderColor:
+        selectedStatus === ClientStatus.SLOW_MOVING ? 'border-yellow-600' : 'border-transparent',
     },
     {
       status: ClientStatus.INACTIVE,
@@ -104,7 +104,8 @@ export default function ClientClassificationSummary({
       icon: TrendingDown,
       color: 'text-red-600',
       bgColor: 'bg-red-50 dark:bg-red-950',
-      borderColor: selectedStatus === ClientStatus.INACTIVE ? 'border-red-600' : 'border-transparent',
+      borderColor:
+        selectedStatus === ClientStatus.INACTIVE ? 'border-red-600' : 'border-transparent',
     },
     {
       status: ClientStatus.NEVER_PURCHASED,
@@ -114,12 +115,13 @@ export default function ClientClassificationSummary({
       icon: UserX,
       color: 'text-gray-600',
       bgColor: 'bg-gray-50 dark:bg-gray-950',
-      borderColor: selectedStatus === ClientStatus.NEVER_PURCHASED ? 'border-gray-600' : 'border-transparent',
+      borderColor:
+        selectedStatus === ClientStatus.NEVER_PURCHASED ? 'border-gray-600' : 'border-transparent',
     },
   ];
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
       {cards.map((card) => {
         const Icon = card.icon;
         const percentage = totalClients > 0 ? (card.count / totalClients) * 100 : 0;
@@ -127,12 +129,12 @@ export default function ClientClassificationSummary({
         return (
           <Card
             key={card.status}
-            className={`cursor-pointer transition-all hover:shadow-lg border-2 ${card.borderColor} ${card.bgColor}`}
+            className={`cursor-pointer border-2 transition-all hover:shadow-lg ${card.borderColor} ${card.bgColor}`}
             onClick={() => onStatusClick(card.status)}
           >
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
+                <CardTitle className="text-muted-foreground text-sm font-medium">
                   {card.label}
                 </CardTitle>
                 <Icon className={`h-4 w-4 ${card.color}`} />
@@ -147,9 +149,7 @@ export default function ClientClassificationSummary({
                   </Badge>
                 </div>
                 {card.revenue > 0 && (
-                  <p className="text-xs text-muted-foreground">
-                    {formatCurrency(card.revenue)}
-                  </p>
+                  <p className="text-muted-foreground text-xs">{formatCurrency(card.revenue)}</p>
                 )}
               </div>
             </CardContent>
@@ -159,4 +159,3 @@ export default function ClientClassificationSummary({
     </div>
   );
 }
-

@@ -1,27 +1,27 @@
 'use client';
 
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
-  DialogFooter 
-} from '@/components/ui/dialog';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { STOCK_ADJUSTMENT_REASONS } from '@/lib/constants/stockMovementTypes';
-import { toast } from 'sonner';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
 
 interface StockAdjustDialogProps {
   articleId: number;
@@ -46,7 +46,12 @@ export default function StockAdjustDialog({
   const queryClient = useQueryClient();
 
   const adjustStockMutation = useMutation({
-    mutationFn: async (data: { articleId: number; quantity: number; reason: string; notes: string }) => {
+    mutationFn: async (data: {
+      articleId: number;
+      quantity: number;
+      reason: string;
+      notes: string;
+    }) => {
       const response = await fetch('/api/stock-movements/adjust', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -102,10 +107,10 @@ export default function StockAdjustDialog({
           <div className="grid gap-4 py-4">
             <div className="flex flex-col gap-1">
               <span className="text-sm font-semibold">{articleCode}</span>
-              <span className="text-xs text-muted-foreground">{articleDescription}</span>
-              <span className="text-xs font-medium mt-1">Stock actual: {currentStock}</span>
+              <span className="text-muted-foreground text-xs">{articleDescription}</span>
+              <span className="mt-1 text-xs font-medium">Stock actual: {currentStock}</span>
             </div>
-            
+
             <div className="grid gap-2">
               <Label htmlFor="quantity">Cantidad a ajustar (+/-)</Label>
               <Input
@@ -117,7 +122,7 @@ export default function StockAdjustDialog({
                 onChange={(e) => setQuantity(e.target.value)}
                 autoFocus
               />
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-muted-foreground text-[10px]">
                 Use valores positivos para agregar stock y negativos para quitar.
               </p>
             </div>
@@ -161,4 +166,3 @@ export default function StockAdjustDialog({
     </Dialog>
   );
 }
-

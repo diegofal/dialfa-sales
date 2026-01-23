@@ -1,13 +1,13 @@
 'use client';
 
-import { useState, useEffect } from 'react';
 import { Save, DollarSign } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useSystemSettings, useUpdateSystemSettings } from '@/lib/hooks/useSettings';
-import { toast } from 'sonner';
 
 export default function SettingsPage() {
   const { data: settings, isLoading } = useSystemSettings();
@@ -45,7 +45,7 @@ export default function SettingsPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-96">
+      <div className="flex h-96 items-center justify-center">
         <p className="text-muted-foreground">Cargando configuración...</p>
       </div>
     );
@@ -55,9 +55,7 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Configuración del Sistema</h1>
-        <p className="text-muted-foreground">
-          Configura los parámetros globales del sistema
-        </p>
+        <p className="text-muted-foreground">Configura los parámetros globales del sistema</p>
       </div>
 
       <form onSubmit={handleSubmit}>
@@ -68,8 +66,8 @@ export default function SettingsPage() {
               <CardTitle>Tipo de Cambio USD a ARS</CardTitle>
             </div>
             <CardDescription>
-              Este valor se utilizará como predeterminado al crear nuevas facturas.
-              Puede modificarse individualmente en cada factura.
+              Este valor se utilizará como predeterminado al crear nuevas facturas. Puede
+              modificarse individualmente en cada factura.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -85,23 +83,20 @@ export default function SettingsPage() {
                 onChange={(e) => setExchangeRate(e.target.value)}
                 required
               />
-              <p className="text-sm text-muted-foreground">
-                Los precios de los artículos están en USD. Este valor se multiplicará
-                por el precio en USD para obtener el precio en ARS en las facturas.
+              <p className="text-muted-foreground text-sm">
+                Los precios de los artículos están en USD. Este valor se multiplicará por el precio
+                en USD para obtener el precio en ARS en las facturas.
               </p>
             </div>
 
             {settings && settings.updatedAt && (
-              <div className="text-sm text-muted-foreground">
+              <div className="text-muted-foreground text-sm">
                 Última actualización: {new Date(settings.updatedAt).toLocaleString('es-AR')}
               </div>
             )}
 
             <div className="flex justify-end gap-4 pt-4">
-              <Button
-                type="submit"
-                disabled={updateSettingsMutation.isPending || !exchangeRate}
-              >
+              <Button type="submit" disabled={updateSettingsMutation.isPending || !exchangeRate}>
                 <Save className="mr-2 h-4 w-4" />
                 {updateSettingsMutation.isPending ? 'Guardando...' : 'Guardar Configuración'}
               </Button>
@@ -116,20 +111,19 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-2 text-sm">
           <div>
-            <strong>• Inmutabilidad de facturas:</strong> Una vez creada, cada factura guarda
-            su propio tipo de cambio. Cambiar este valor no afecta facturas existentes.
+            <strong>• Inmutabilidad de facturas:</strong> Una vez creada, cada factura guarda su
+            propio tipo de cambio. Cambiar este valor no afecta facturas existentes.
           </div>
           <div>
-            <strong>• Precios en USD:</strong> Todos los artículos tienen precios en USD.
-            La conversión a ARS se realiza al momento de crear la factura.
+            <strong>• Precios en USD:</strong> Todos los artículos tienen precios en USD. La
+            conversión a ARS se realiza al momento de crear la factura.
           </div>
           <div>
-            <strong>• Edición de facturas:</strong> Puede editar el tipo de cambio de una
-            factura individual antes de imprimirla, lo que recalculará todos los importes.
+            <strong>• Edición de facturas:</strong> Puede editar el tipo de cambio de una factura
+            individual antes de imprimirla, lo que recalculará todos los importes.
           </div>
         </CardContent>
       </Card>
     </div>
   );
 }
-

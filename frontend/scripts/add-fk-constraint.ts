@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   console.log('Verificando y agregando foreign key constraint...');
-  
+
   try {
     // Intenta agregar el constraint (si ya existe, fallará silenciosamente)
     await prisma.$executeRawUnsafe(`
@@ -20,7 +20,7 @@ async function main() {
       console.error('Error al agregar constraint:', error.message);
     }
   }
-  
+
   console.log('✓ Migración completada');
 }
 
@@ -32,8 +32,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-
-
-
-
-

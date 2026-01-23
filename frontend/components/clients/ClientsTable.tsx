@@ -1,20 +1,7 @@
 'use client';
 
+import { Pencil, Trash2, TrendingUp, TrendingDown, Minus } from 'lucide-react';
 import { useState } from 'react';
-import type { ClientDto } from '@/types/api';
-import { useDeleteClient } from '@/lib/hooks/useClients';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { ClickableTableRow } from '@/components/ui/clickable-table-row';
-import { SortableTableHead } from '@/components/ui/sortable-table-head';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,10 +12,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Pencil, Trash2, TrendingUp, TrendingDown, Minus } from 'lucide-react';
-import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
-import { formatCuit } from '@/lib/utils';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { ClickableTableRow } from '@/components/ui/clickable-table-row';
+import { SortableTableHead } from '@/components/ui/sortable-table-head';
 import { SparklineWithTooltip } from '@/components/ui/sparkline';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
+import { useDeleteClient } from '@/lib/hooks/useClients';
+import { formatCuit } from '@/lib/utils';
+import type { ClientDto } from '@/types/api';
 
 interface ClientsTableProps {
   clients: ClientDto[];
@@ -38,12 +38,12 @@ interface ClientsTableProps {
   onSort?: (sortBy: string, sortDescending: boolean) => void;
 }
 
-export default function ClientsTable({ 
-  clients, 
+export default function ClientsTable({
+  clients,
   onEdit,
   currentSortBy,
   currentSortDescending,
-  onSort 
+  onSort,
 }: ClientsTableProps) {
   const [clientToDelete, setClientToDelete] = useState<ClientDto | null>(null);
   const deleteClientMutation = useDeleteClient();
@@ -67,19 +67,19 @@ export default function ClientsTable({
   // Calculate trend direction
   const calculateTrend = (salesTrend: number[] | undefined) => {
     if (!salesTrend || salesTrend.length < 2) return 'none';
-    
+
     const midPoint = Math.floor(salesTrend.length / 2);
     const firstHalf = salesTrend.slice(0, midPoint);
     const secondHalf = salesTrend.slice(midPoint);
-    
+
     const avgFirst = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
     const avgSecond = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
-    
+
     if (avgFirst === 0 && avgSecond === 0) return 'none';
     if (avgFirst === 0) return 'increasing';
-    
+
     const changePercent = ((avgSecond - avgFirst) / avgFirst) * 100;
-    
+
     if (changePercent > 20) return 'increasing';
     if (changePercent < -20) return 'decreasing';
     return 'stable';
@@ -88,20 +88,33 @@ export default function ClientsTable({
   const getTrendIcon = (trend: string) => {
     switch (trend) {
       case 'increasing':
-        return <TrendingUp className="h-3 w-3 text-success" />;
+        return <TrendingUp className="text-success h-3 w-3" />;
       case 'decreasing':
-        return <TrendingDown className="h-3 w-3 text-destructive" />;
+        return <TrendingDown className="text-destructive h-3 w-3" />;
       case 'stable':
-        return <Minus className="h-3 w-3 text-info" />;
+        return <Minus className="text-info h-3 w-3" />;
       default:
-        return <Minus className="h-3 w-3 text-muted-foreground" />;
+        return <Minus className="text-muted-foreground h-3 w-3" />;
     }
   };
 
   const getClientStatusBadge = (status: ClientDto['clientStatus']) => {
     if (!status) return null;
 
-    const badgeConfig: Record<string, { variant: 'default' | 'secondary' | 'destructive' | 'outline' | 'success' | 'warning' | 'info'; label: string }> = {
+    const badgeConfig: Record<
+      string,
+      {
+        variant:
+          | 'default'
+          | 'secondary'
+          | 'destructive'
+          | 'outline'
+          | 'success'
+          | 'warning'
+          | 'info';
+        label: string;
+      }
+    > = {
       active: { variant: 'success', label: 'Activo' },
       slow_moving: { variant: 'warning', label: 'Lento' },
       inactive: { variant: 'destructive', label: 'Inactivo' },
@@ -109,11 +122,7 @@ export default function ClientsTable({
     };
 
     const config = badgeConfig[status] || badgeConfig.never_purchased;
-    return (
-      <Badge variant={config.variant}>
-        {config.label}
-      </Badge>
-    );
+    return <Badge variant={config.variant}>{config.label}</Badge>;
   };
 
   return (
@@ -164,7 +173,7 @@ export default function ClientsTable({
           <TableBody>
             {clients.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={9} className="text-center text-muted-foreground">
+                <TableCell colSpan={9} className="text-muted-foreground text-center">
                   No hay clientes registrados
                 </TableCell>
               </TableRow>
@@ -186,10 +195,12 @@ export default function ClientsTable({
                       <div className="space-y-1">
                         <div className="flex items-center gap-1">
                           {getTrendIcon(calculateTrend(client.salesTrend))}
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-muted-foreground text-xs">
                             {formatCurrency(
-                              client.salesTrend.reduce((a, b) => a + b, 0) / client.salesTrend.length
-                            )}/mes
+                              client.salesTrend.reduce((a, b) => a + b, 0) /
+                                client.salesTrend.length
+                            )}
+                            /mes
                           </span>
                         </div>
                         <SparklineWithTooltip
@@ -201,26 +212,24 @@ export default function ClientsTable({
                             calculateTrend(client.salesTrend) === 'increasing'
                               ? 'rgb(34, 197, 94)' // green
                               : calculateTrend(client.salesTrend) === 'decreasing'
-                              ? 'rgb(239, 68, 68)' // red
-                              : 'rgb(59, 130, 246)' // blue
+                                ? 'rgb(239, 68, 68)' // red
+                                : 'rgb(59, 130, 246)' // blue
                           }
                           fillColor={
                             calculateTrend(client.salesTrend) === 'increasing'
                               ? 'rgba(34, 197, 94, 0.1)'
                               : calculateTrend(client.salesTrend) === 'decreasing'
-                              ? 'rgba(239, 68, 68, 0.1)'
-                              : 'rgba(59, 130, 246, 0.1)'
+                                ? 'rgba(239, 68, 68, 0.1)'
+                                : 'rgba(59, 130, 246, 0.1)'
                           }
                           formatValue={(v) => formatCurrency(v)}
                         />
                       </div>
                     ) : (
-                      <span className="text-xs text-muted-foreground">Sin datos</span>
+                      <span className="text-muted-foreground text-xs">Sin datos</span>
                     )}
                   </TableCell>
-                  <TableCell>
-                    {getClientStatusBadge(client.clientStatus)}
-                  </TableCell>
+                  <TableCell>{getClientStatusBadge(client.clientStatus)}</TableCell>
                   <TableCell>
                     {client.lastPurchaseDate ? (
                       <div className="space-y-1">
@@ -232,13 +241,14 @@ export default function ClientsTable({
                           })}
                         </div>
                         {client.daysSinceLastPurchase !== null && (
-                          <div className="text-xs text-muted-foreground">
-                            Hace {client.daysSinceLastPurchase} día{client.daysSinceLastPurchase !== 1 ? 's' : ''}
+                          <div className="text-muted-foreground text-xs">
+                            Hace {client.daysSinceLastPurchase} día
+                            {client.daysSinceLastPurchase !== 1 ? 's' : ''}
                           </div>
                         )}
                       </div>
                     ) : (
-                      <span className="text-xs text-muted-foreground">Nunca</span>
+                      <span className="text-muted-foreground text-xs">Nunca</span>
                     )}
                   </TableCell>
                   {/* Estado columna removida - isActive no existe en la tabla */}
@@ -279,8 +289,8 @@ export default function ClientsTable({
           <AlertDialogHeader>
             <AlertDialogTitle>¿Estás seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción eliminará el cliente <strong>{clientToDelete?.businessName}</strong>.
-              Esta acción no se puede deshacer.
+              Esta acción eliminará el cliente <strong>{clientToDelete?.businessName}</strong>. Esta
+              acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

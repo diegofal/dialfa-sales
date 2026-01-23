@@ -16,7 +16,7 @@ export function AuthInitializer() {
   useEffect(() => {
     // Only validate once after hydration
     if (!hydrated || hasValidated.current) return;
-    
+
     hasValidated.current = true;
 
     const validateSession = async () => {
@@ -53,4 +53,3 @@ export function AuthInitializer() {
   // This component doesn't render anything
   return null;
 }
-

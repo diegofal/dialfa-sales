@@ -1,104 +1,104 @@
 {
-    "name": "Default Invoice",
-    "version": "1.0.1",
-    "type": "invoice",
-    "pageSize": {
-        "width": 595,
-        "height": 842
+  "name": "Default Invoice",
+  "version": "1.0.1",
+  "type": "invoice",
+  "pageSize": {
+    "width": 595,
+    "height": 842
+  },
+  "margins": {
+    "top": 20,
+    "bottom": 20,
+    "left": 20,
+    "right": 20
+  },
+  "globalOffset": {
+    "x": 0,
+    "y": 0
+  },
+  "font": {
+    "family": "Courier",
+    "size": 10
+  },
+  "fields": {
+    "fecha": {
+      "x": 389,
+      "y": 65,
+      "align": "left"
     },
-    "margins": {
-        "top": 20,
-        "bottom": 20,
-        "left": 20,
-        "right": 20
+    "numeroFactura": {
+      "x": 389,
+      "y": 80,
+      "align": "left",
+      "fontWeight": "bold"
     },
-    "globalOffset": {
-        "x": 0,
-        "y": 0
+    "razonSocial": {
+      "x": 72,
+      "y": 130,
+      "fontWeight": "bold"
     },
-    "font": {
-        "family": "Courier",
-        "size": 10
+    "domicilio": {
+      "x": 72,
+      "y": 140
     },
-    "fields": {
-        "fecha": {
-            "x": 389,
-            "y": 65,
-            "align": "left"
-        },
-        "numeroFactura": {
-            "x": 389,
-            "y": 80,
-            "align": "left",
-            "fontWeight": "bold"
-        },
-        "razonSocial": {
-            "x": 72,
-            "y": 130,
-            "fontWeight": "bold"
-        },
-        "domicilio": {
-            "x": 72,
-            "y": 140
-        },
-        "localidad": {
-            "x": 72,
-            "y": 151
-        },
-        "provincia": {
-            "x": 72,
-            "y": 169
-        },
-        "condicionIVA": {
-            "x": 72,
-            "y": 191
-        },
-        "cuit": {
-            "x": 331,
-            "y": 191
-        },
-        "subTotal": {
-            "x": 29,
-            "y": 720,
-            "align": "left"
-        },
-        "iva": {
-            "x": 310,
-            "y": 720,
-            "align": "left"
-        },
-        "total": {
-            "x": 497,
-            "y": 720,
-            "align": "right",
-            "fontWeight": "bold",
-            "fontSize": 12
-        }
+    "localidad": {
+      "x": 72,
+      "y": 151
     },
-    "items": {
-        "startY": 252,
-        "spacing": 12,
-        "maxRows": 35,
-        "columns": {
-            "cantidad": {
-                "x": 58,
-                "align": "left"
-            },
-            "descripcion": {
-                "x": 94,
-                "width": 250,
-                "align": "left"
-            },
-            "precioUnitario": {
-                "x": 461,
-                "align": "right",
-                "maxWidth": 70
-            },
-            "precioTotal": {
-                "x": 540,
-                "align": "right",
-                "maxWidth": 80
-            }
-        }
+    "provincia": {
+      "x": 72,
+      "y": 169
+    },
+    "condicionIVA": {
+      "x": 72,
+      "y": 191
+    },
+    "cuit": {
+      "x": 331,
+      "y": 191
+    },
+    "subTotal": {
+      "x": 29,
+      "y": 720,
+      "align": "left"
+    },
+    "iva": {
+      "x": 310,
+      "y": 720,
+      "align": "left"
+    },
+    "total": {
+      "x": 497,
+      "y": 720,
+      "align": "right",
+      "fontWeight": "bold",
+      "fontSize": 12
     }
+  },
+  "items": {
+    "startY": 252,
+    "spacing": 12,
+    "maxRows": 35,
+    "columns": {
+      "cantidad": {
+        "x": 58,
+        "align": "left"
+      },
+      "descripcion": {
+        "x": 94,
+        "width": 250,
+        "align": "left"
+      },
+      "precioUnitario": {
+        "x": 461,
+        "align": "right",
+        "maxWidth": 70
+      },
+      "precioTotal": {
+        "x": 540,
+        "align": "right",
+        "maxWidth": 80
+      }
+    }
+  }
 }

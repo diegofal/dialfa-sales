@@ -2,11 +2,21 @@ import { z } from 'zod';
 
 // Article Validation Schema
 export const createArticleSchema = z.object({
-  code: z.string().min(1, 'El código es requerido').max(50, 'El código no puede exceder 50 caracteres'),
-  description: z.string().min(1, 'La descripción es requerida').max(500, 'La descripción no puede exceder 500 caracteres'),
-  categoryId: z.coerce.bigint().refine(val => val > 0, 'Debe seleccionar una categoría válida'),
+  code: z
+    .string()
+    .min(1, 'El código es requerido')
+    .max(50, 'El código no puede exceder 50 caracteres'),
+  description: z
+    .string()
+    .min(1, 'La descripción es requerida')
+    .max(500, 'La descripción no puede exceder 500 caracteres'),
+  categoryId: z.coerce.bigint().refine((val) => val > 0, 'Debe seleccionar una categoría válida'),
   unitPrice: z.coerce.number().min(0, 'El precio unitario no puede ser negativo'),
-  costPrice: z.coerce.number().min(0, 'El precio de costo no puede ser negativo').optional().nullable(),
+  costPrice: z.coerce
+    .number()
+    .min(0, 'El precio de costo no puede ser negativo')
+    .optional()
+    .nullable(),
   stock: z.coerce.number().min(0, 'El stock no puede ser negativo').default(0),
   minimumStock: z.coerce.number().min(0, 'El stock mínimo no puede ser negativo').default(0),
   displayOrder: z.string().max(20).optional().nullable(),
@@ -18,30 +28,59 @@ export const createArticleSchema = z.object({
   size: z.string().max(100).optional().nullable(),
   supplierId: z.coerce.number().int().optional().nullable(),
   weightKg: z.coerce.number().optional().nullable(),
-  lastPurchasePrice: z.coerce.number().min(0, 'El precio de última compra no puede ser negativo').optional().nullable(),
-  cifPercentage: z.coerce.number().min(0).max(100, 'El porcentaje CIF debe estar entre 0 y 100').optional().nullable(),
+  lastPurchasePrice: z.coerce
+    .number()
+    .min(0, 'El precio de última compra no puede ser negativo')
+    .optional()
+    .nullable(),
+  cifPercentage: z.coerce
+    .number()
+    .min(0)
+    .max(100, 'El porcentaje CIF debe estar entre 0 y 100')
+    .optional()
+    .nullable(),
   historicalPrice1: z.coerce.number().optional().nullable(),
   location: z.string().max(200).optional().nullable(),
   notes: z.string().max(1000).optional().nullable(),
 });
 
-export const updateArticleSchema = createArticleSchema.partial().required({ code: true, description: true, categoryId: true });
+export const updateArticleSchema = createArticleSchema
+  .partial()
+  .required({ code: true, description: true, categoryId: true });
 
 // Category Validation Schema
 export const createCategorySchema = z.object({
-  code: z.string().min(1, 'El código es requerido').max(20, 'El código no puede exceder 20 caracteres'),
-  name: z.string().min(1, 'El nombre es requerido').max(100, 'El nombre no puede exceder 100 caracteres'),
+  code: z
+    .string()
+    .min(1, 'El código es requerido')
+    .max(20, 'El código no puede exceder 20 caracteres'),
+  name: z
+    .string()
+    .min(1, 'El nombre es requerido')
+    .max(100, 'El nombre no puede exceder 100 caracteres'),
   description: z.string().max(500).optional().nullable(),
-  defaultDiscountPercent: z.coerce.number().min(0).max(100, 'El descuento debe estar entre 0 y 100').default(0),
+  defaultDiscountPercent: z.coerce
+    .number()
+    .min(0)
+    .max(100, 'El descuento debe estar entre 0 y 100')
+    .default(0),
   isActive: z.boolean().optional().default(false),
 });
 
-export const updateCategorySchema = createCategorySchema.partial().required({ code: true, name: true });
+export const updateCategorySchema = createCategorySchema
+  .partial()
+  .required({ code: true, name: true });
 
 // Client Validation Schema
 export const createClientSchema = z.object({
-  code: z.string().min(1, 'El código es requerido').max(20, 'El código no puede exceder 20 caracteres'),
-  businessName: z.string().min(1, 'La razón social es requerida').max(200, 'La razón social no puede exceder 200 caracteres'),
+  code: z
+    .string()
+    .min(1, 'El código es requerido')
+    .max(20, 'El código no puede exceder 20 caracteres'),
+  businessName: z
+    .string()
+    .min(1, 'La razón social es requerida')
+    .max(200, 'La razón social no puede exceder 200 caracteres'),
   cuit: z.string().max(11).optional().nullable(),
   taxConditionId: z.coerce.number().int().min(1, 'Debe seleccionar una condición de IVA'),
   address: z.string().max(200).optional().nullable(),
@@ -57,19 +96,25 @@ export const createClientSchema = z.object({
   paymentTermId: z.coerce.number().int().min(1, 'Debe seleccionar una condición de pago'),
 });
 
-export const updateClientSchema = createClientSchema.partial().required({ code: true, businessName: true, taxConditionId: true, operationTypeId: true });
+export const updateClientSchema = createClientSchema
+  .partial()
+  .required({ code: true, businessName: true, taxConditionId: true, operationTypeId: true });
 
 // Sales Order Item Schema
 export const salesOrderItemSchema = z.object({
-  articleId: z.coerce.bigint().refine(val => val > 0, 'ArticleId must be greater than 0'),
+  articleId: z.coerce.bigint().refine((val) => val > 0, 'ArticleId must be greater than 0'),
   quantity: z.coerce.number().int().min(1, 'Quantity must be greater than 0'),
   unitPrice: z.coerce.number().min(0, 'UnitPrice must be greater than or equal to 0'),
-  discountPercent: z.coerce.number().min(0).max(100, 'DiscountPercent must be between 0 and 100').default(0),
+  discountPercent: z.coerce
+    .number()
+    .min(0)
+    .max(100, 'DiscountPercent must be between 0 and 100')
+    .default(0),
 });
 
 // Sales Order Validation Schema
 export const createSalesOrderSchema = z.object({
-  clientId: z.coerce.bigint().refine(val => val > 0, 'ClientId must be greater than 0'),
+  clientId: z.coerce.bigint().refine((val) => val > 0, 'ClientId must be greater than 0'),
   orderDate: z.coerce.date().optional(),
   deliveryDate: z.coerce.date().optional().nullable(),
   status: z.string().optional().default('PENDING'),
@@ -83,8 +128,11 @@ export const updateSalesOrderSchema = createSalesOrderSchema.partial().required(
 
 // Invoice Validation Schema
 export const createInvoiceSchema = z.object({
-  salesOrderId: z.coerce.bigint().refine(val => val > 0, 'Sales Order ID is required'),
-  invoiceDate: z.coerce.date().optional().default(() => new Date()),
+  salesOrderId: z.coerce.bigint().refine((val) => val > 0, 'Sales Order ID is required'),
+  invoiceDate: z.coerce
+    .date()
+    .optional()
+    .default(() => new Date()),
   paymentTermId: z.coerce.number().int().optional().nullable(),
   usdExchangeRate: z.coerce.number().min(0).optional().nullable(),
   isCreditNote: z.boolean().optional().default(false),
@@ -97,14 +145,14 @@ export const updateInvoiceSchema = createInvoiceSchema.partial();
 // Delivery Note Validation Schema
 export const deliveryNoteItemSchema = z.object({
   salesOrderItemId: z.coerce.bigint().optional().nullable(),
-  articleId: z.coerce.bigint().refine(val => val > 0, 'Article ID is required'),
+  articleId: z.coerce.bigint().refine((val) => val > 0, 'Article ID is required'),
   articleCode: z.string().min(1, 'Article code is required'),
   articleDescription: z.string().min(1, 'Article description is required'),
   quantity: z.coerce.number().int().min(1, 'Quantity must be at least 1'),
 });
 
 export const createDeliveryNoteSchema = z.object({
-  salesOrderId: z.coerce.bigint().refine(val => val > 0, 'Sales Order ID is required'),
+  salesOrderId: z.coerce.bigint().refine((val) => val > 0, 'Sales Order ID is required'),
   deliveryDate: z.coerce.date(),
   transporterId: z.coerce.number().int().optional().nullable(),
   weightKg: z.coerce.number().min(0).optional().nullable(),
@@ -137,4 +185,3 @@ export type CreateInvoiceInput = z.infer<typeof createInvoiceSchema>;
 export type UpdateInvoiceInput = z.infer<typeof updateInvoiceSchema>;
 export type CreateDeliveryNoteInput = z.infer<typeof createDeliveryNoteSchema>;
 export type UpdateDeliveryNoteInput = z.infer<typeof updateDeliveryNoteSchema>;
-

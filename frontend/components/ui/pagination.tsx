@@ -1,7 +1,13 @@
-import * as React from "react"
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight, MoreHorizontal } from "lucide-react"
-import { cn } from "@/lib/utils"
-import { Button } from "@/components/ui/button"
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  MoreHorizontal,
+} from 'lucide-react';
+import * as React from 'react';
+import { Button } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export interface PaginationProps extends React.HTMLAttributes<HTMLDivElement> {
   totalCount: number;
@@ -66,16 +72,13 @@ export function Pagination({
   const pages = getPageNumbers();
 
   return (
-    <div
-      className={cn("flex items-center justify-between px-2", className)}
-      {...props}
-    >
+    <div className={cn('flex items-center justify-between px-2', className)} {...props}>
       <div className="flex items-center space-x-2">
         <p className="text-sm font-medium">Filas por página:</p>
         <select
           value={pageSize}
           onChange={(e) => onPageSizeChange?.(Number(e.target.value))}
-          className="h-8 w-[70px] rounded-md border border-input bg-background px-2 text-sm"
+          className="border-input bg-background h-8 w-[70px] rounded-md border px-2 text-sm"
         >
           {pageSizeOptions.map((size) => (
             <option key={size} value={size}>
@@ -83,8 +86,9 @@ export function Pagination({
             </option>
           ))}
         </select>
-        <p className="text-sm text-muted-foreground">
-          {((currentPage - 1) * pageSize) + 1}-{Math.min(currentPage * pageSize, totalCount)} de {totalCount}
+        <p className="text-muted-foreground text-sm">
+          {(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, totalCount)} de{' '}
+          {totalCount}
         </p>
       </div>
 
@@ -127,11 +131,11 @@ export function Pagination({
             return (
               <Button
                 key={page}
-                variant={page === currentPage ? "default" : "outline"}
+                variant={page === currentPage ? 'default' : 'outline'}
                 size="icon"
                 onClick={() => onPageChange(page as number)}
                 aria-label={`Ir a la página ${page}`}
-                aria-current={page === currentPage ? "page" : undefined}
+                aria-current={page === currentPage ? 'page' : undefined}
               >
                 {page}
               </Button>
@@ -161,5 +165,3 @@ export function Pagination({
     </div>
   );
 }
-
-

@@ -1,8 +1,10 @@
 import { PriceHistoryResponse, PriceHistoryFilters } from '@/types/priceHistory';
 
-export async function fetchPriceHistory(filters?: PriceHistoryFilters): Promise<PriceHistoryResponse> {
+export async function fetchPriceHistory(
+  filters?: PriceHistoryFilters
+): Promise<PriceHistoryResponse> {
   const params = new URLSearchParams();
-  
+
   if (filters?.articleId) params.append('articleId', filters.articleId.toString());
   if (filters?.categoryId) params.append('categoryId', filters.categoryId.toString());
   if (filters?.changeType) params.append('changeType', filters.changeType);
@@ -23,4 +25,3 @@ export async function fetchPriceHistory(filters?: PriceHistoryFilters): Promise<
 
   return response.json();
 }
-

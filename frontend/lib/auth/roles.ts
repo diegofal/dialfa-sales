@@ -5,7 +5,7 @@ export const ROLES = {
   VENDEDOR: 'vendedor',
 } as const;
 
-export type Role = typeof ROLES[keyof typeof ROLES];
+export type Role = (typeof ROLES)[keyof typeof ROLES];
 
 export function getUserFromRequest(request: NextRequest) {
   return {
@@ -17,7 +17,7 @@ export function getUserFromRequest(request: NextRequest) {
 
 export function requireAdmin(request: NextRequest) {
   const user = getUserFromRequest(request);
-  
+
   // Normalize role to lowercase for comparison
   if (user.role?.toLowerCase() !== ROLES.ADMIN) {
     return {
@@ -29,7 +29,6 @@ export function requireAdmin(request: NextRequest) {
       ),
     };
   }
-  
+
   return { authorized: true, user, error: null };
 }
-

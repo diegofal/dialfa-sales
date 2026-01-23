@@ -1,6 +1,9 @@
 'use client';
 
+import { Upload, X, FileUp } from 'lucide-react';
 import { useState, useRef } from 'react';
+import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -12,7 +15,6 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import {
   Select,
   SelectContent,
@@ -20,11 +22,9 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Upload, X, FileUp } from 'lucide-react';
-import { CERTIFICATE_CATEGORIES } from '@/types/certificate';
+import { Textarea } from '@/components/ui/textarea';
 import { useUploadCertificate } from '@/lib/hooks/useCertificates';
-import { toast } from 'sonner';
+import { CERTIFICATE_CATEGORIES } from '@/types/certificate';
 
 interface UploadCertificateDialogProps {
   open: boolean;
@@ -55,23 +55,36 @@ export function UploadCertificateDialog({ open, onOpenChange }: UploadCertificat
       'application/msword',
       'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
     ];
-    
+
     // Also check extension for tif files which may not have correct MIME type
     const ext = selectedFile.name.split('.').pop()?.toLowerCase();
-    const allowedExtensions = ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'tif', 'tiff', 'bmp', 'xls', 'xlsx', 'doc', 'docx'];
-    
+    const allowedExtensions = [
+      'pdf',
+      'jpg',
+      'jpeg',
+      'png',
+      'gif',
+      'tif',
+      'tiff',
+      'bmp',
+      'xls',
+      'xlsx',
+      'doc',
+      'docx',
+    ];
+
     if (!allowedTypes.includes(selectedFile.type) && !allowedExtensions.includes(ext || '')) {
       toast.error('Tipo de archivo no permitido');
       return;
     }
-    
+
     setFile(selectedFile);
   };
 
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     if (e.dataTransfer.files.length > 0) {
       handleFileSelect(e.dataTransfer.files[0]);
     }
@@ -95,7 +108,7 @@ export function UploadCertificateDialog({ open, onOpenChange }: UploadCertificat
   };
 
   const removeColada = (colada: string) => {
-    setColadas(coladas.filter(c => c !== colada));
+    setColadas(coladas.filter((c) => c !== colada));
   };
 
   const handleColadaKeyDown = (e: React.KeyboardEvent) => {
@@ -122,7 +135,7 @@ export function UploadCertificateDialog({ open, onOpenChange }: UploadCertificat
         coladas,
         notes: notes || undefined,
       });
-      
+
       toast.success('Certificado subido correctamente');
       resetForm();
       onOpenChange(false);
@@ -152,12 +165,7 @@ export function UploadCertificateDialog({ open, onOpenChange }: UploadCertificat
         <div className="grid gap-4 py-4">
           {/* File Drop Zone */}
           <div
-            className={`
-              border-2 border-dashed rounded-lg p-6 text-center cursor-pointer
-              transition-colors
-              ${isDragging ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'}
-              ${file ? 'bg-muted' : 'hover:border-primary/50'}
-            `}
+            className={`cursor-pointer rounded-lg border-2 border-dashed p-6 text-center transition-colors ${isDragging ? 'border-primary bg-primary/5' : 'border-muted-foreground/25'} ${file ? 'bg-muted' : 'hover:border-primary/50'} `}
             onDrop={handleDrop}
             onDragOver={handleDragOver}
             onDragLeave={handleDragLeave}
@@ -173,8 +181,8 @@ export function UploadCertificateDialog({ open, onOpenChange }: UploadCertificat
             {file ? (
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <FileUp className="h-5 w-5 text-primary" />
-                  <span className="font-medium truncate max-w-[300px]">{file.name}</span>
+                  <FileUp className="text-primary h-5 w-5" />
+                  <span className="max-w-[300px] truncate font-medium">{file.name}</span>
                 </div>
                 <Button
                   variant="ghost"
@@ -189,13 +197,11 @@ export function UploadCertificateDialog({ open, onOpenChange }: UploadCertificat
               </div>
             ) : (
               <>
-                <Upload className="h-10 w-10 mx-auto text-muted-foreground mb-2" />
-                <p className="text-sm text-muted-foreground">
+                <Upload className="text-muted-foreground mx-auto mb-2 h-10 w-10" />
+                <p className="text-muted-foreground text-sm">
                   Arrastra un archivo aquí o haz clic para seleccionar
                 </p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  PDF, imágenes, Excel, Word
-                </p>
+                <p className="text-muted-foreground mt-1 text-xs">PDF, imágenes, Excel, Word</p>
               </>
             )}
           </div>
@@ -233,19 +239,16 @@ export function UploadCertificateDialog({ open, onOpenChange }: UploadCertificat
               </Button>
             </div>
             {coladas.length > 0 && (
-              <div className="flex flex-wrap gap-1 mt-2">
+              <div className="mt-2 flex flex-wrap gap-1">
                 {coladas.map((colada) => (
                   <Badge key={colada} variant="secondary" className="gap-1">
                     {colada}
-                    <X
-                      className="h-3 w-3 cursor-pointer"
-                      onClick={() => removeColada(colada)}
-                    />
+                    <X className="h-3 w-3 cursor-pointer" onClick={() => removeColada(colada)} />
                   </Badge>
                 ))}
               </div>
             )}
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               Presiona Enter o coma para agregar múltiples coladas
             </p>
           </div>
@@ -267,10 +270,7 @@ export function UploadCertificateDialog({ open, onOpenChange }: UploadCertificat
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancelar
           </Button>
-          <Button 
-            onClick={handleSubmit} 
-            disabled={uploadMutation.isPending}
-          >
+          <Button onClick={handleSubmit} disabled={uploadMutation.isPending}>
             {uploadMutation.isPending ? 'Subiendo...' : 'Subir Certificado'}
           </Button>
         </DialogFooter>
@@ -278,12 +278,3 @@ export function UploadCertificateDialog({ open, onOpenChange }: UploadCertificat
     </Dialog>
   );
 }
-
-
-
-
-
-
-
-
-

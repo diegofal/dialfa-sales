@@ -1,18 +1,19 @@
 'use client';
 
-import { useState } from 'react';
 import { Plus, Filter, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { InvoicesTable } from '@/components/invoices/InvoicesTable';
+import { PDFPreviewModal } from '@/components/print/PDFPreviewModal';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
-import { usePagination } from '@/lib/hooks/usePagination';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { InvoicesTable } from '@/components/invoices/InvoicesTable';
-import { useInvoices, useCancelInvoice, useDeleteInvoice } from '@/lib/hooks/useInvoices';
-import { useRouter } from 'next/navigation';
 import { usePrintDocument } from '@/hooks/usePrintDocument';
-import { PDFPreviewModal } from '@/components/print/PDFPreviewModal';
+import { ROUTES } from '@/lib/constants/routes';
+import { useInvoices, useCancelInvoice, useDeleteInvoice } from '@/lib/hooks/useInvoices';
+import { usePagination } from '@/lib/hooks/usePagination';
 
 export default function InvoicesPage() {
   const router = useRouter();
@@ -44,7 +45,7 @@ export default function InvoicesPage() {
     printDocument,
     previewUrl,
     isLoading: isPrintLoading,
-    closePreview
+    closePreview,
   } = usePrintDocument('invoice');
 
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
@@ -66,11 +67,11 @@ export default function InvoicesPage() {
   };
 
   const handleViewInvoice = (id: number) => {
-    router.push(`/dashboard/invoices/${id}`);
+    router.push(`${ROUTES.INVOICES}/${id}`);
   };
 
   const handleViewSalesOrder = (id: number) => {
-    router.push(`/dashboard/sales-orders/${id}`);
+    router.push(`${ROUTES.SALES_ORDERS}/${id}`);
   };
 
   const handleCancelInvoice = (id: number) => {
@@ -104,7 +105,7 @@ export default function InvoicesPage() {
   };
 
   const handleCreateInvoice = () => {
-    router.push('/dashboard/invoices/new');
+    router.push(ROUTES.INVOICES_NEW);
   };
 
   const totalInvoices = data?.pagination.total || 0;
@@ -174,9 +175,7 @@ export default function InvoicesPage() {
             <div className="flex items-center gap-2">
               <Filter className="h-5 w-5" />
               <CardTitle>Filtros</CardTitle>
-              {activeFiltersCount > 0 && (
-                <Badge variant="secondary">{activeFiltersCount}</Badge>
-              )}
+              {activeFiltersCount > 0 && <Badge variant="secondary">{activeFiltersCount}</Badge>}
             </div>
             {activeFiltersCount > 0 && (
               <Button variant="ghost" size="sm" onClick={handleClearFilters}>
@@ -254,9 +253,7 @@ export default function InvoicesPage() {
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">
-              Cargando facturas...
-            </div>
+            <div className="text-muted-foreground py-8 text-center">Cargando facturas...</div>
           ) : data && data.data.length > 0 ? (
             <>
               <InvoicesTable
@@ -281,9 +278,7 @@ export default function InvoicesPage() {
               </div>
             </>
           ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              No se encontraron facturas
-            </div>
+            <div className="text-muted-foreground py-8 text-center">No se encontraron facturas</div>
           )}
         </CardContent>
       </Card>
@@ -300,5 +295,3 @@ export default function InvoicesPage() {
     </div>
   );
 }
-
-

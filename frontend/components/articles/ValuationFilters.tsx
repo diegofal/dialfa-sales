@@ -1,12 +1,18 @@
+import { RefreshCw, Info } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { RefreshCw, Info } from 'lucide-react';
-import { StockClassificationConfig, StockStatus } from '@/types/stockValuation';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { StockClassificationConfig, StockStatus } from '@/types/stockValuation';
 
 interface ValuationFiltersProps {
   config: StockClassificationConfig;
@@ -31,7 +37,6 @@ export function ValuationFilters({
   trendMonths,
   onTrendMonthsChange,
 }: ValuationFiltersProps) {
-  
   const handleThresholdChange = (field: keyof StockClassificationConfig, value: string) => {
     onConfigChange({
       ...config,
@@ -60,18 +65,21 @@ export function ValuationFilters({
       </CardHeader>
       <CardContent>
         {/* Trend Configuration */}
-        <div className="mb-4 pb-4 border-b">
+        <div className="mb-4 border-b pb-4">
           <div className="flex items-center gap-4">
             <div className="space-y-2">
-              <Label htmlFor="trendMonthsDisplay" className="text-sm font-semibold flex items-center gap-1">
+              <Label
+                htmlFor="trendMonthsDisplay"
+                className="flex items-center gap-1 text-sm font-semibold"
+              >
                 Período de Tendencia (Gráficos)
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                      <Info className="text-muted-foreground h-3 w-3 cursor-help" />
                     </TooltipTrigger>
                     <TooltipContent>
-                      <p className="text-xs max-w-xs">
+                      <p className="max-w-xs text-xs">
                         Meses históricos para mostrar en los gráficos sparkline
                       </p>
                     </TooltipContent>
@@ -120,20 +128,22 @@ export function ValuationFilters({
 
         {/* Classification Configuration */}
         <div className="mb-2">
-          <p className="text-sm font-semibold text-muted-foreground mb-3">Configuración de Clasificación</p>
+          <p className="text-muted-foreground mb-3 text-sm font-semibold">
+            Configuración de Clasificación
+          </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
           {/* Active Threshold */}
           <div className="space-y-2">
-            <Label htmlFor="activeThreshold" className="text-xs flex items-center gap-1">
+            <Label htmlFor="activeThreshold" className="flex items-center gap-1 text-xs">
               Activo (días)
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                    <Info className="text-muted-foreground h-3 w-3 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="text-xs max-w-xs">
+                    <p className="max-w-xs text-xs">
                       Artículos con venta reciente dentro de este período
                     </p>
                   </TooltipContent>
@@ -158,17 +168,15 @@ export function ValuationFilters({
 
           {/* Slow Moving Threshold */}
           <div className="space-y-2">
-            <Label htmlFor="slowThreshold" className="text-xs flex items-center gap-1">
+            <Label htmlFor="slowThreshold" className="flex items-center gap-1 text-xs">
               Lento (días)
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                    <Info className="text-muted-foreground h-3 w-3 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="text-xs max-w-xs">
-                      Artículos con ventas esporádicas o bajas
-                    </p>
+                    <p className="max-w-xs text-xs">Artículos con ventas esporádicas o bajas</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -191,17 +199,15 @@ export function ValuationFilters({
 
           {/* Dead Stock Threshold */}
           <div className="space-y-2">
-            <Label htmlFor="deadThreshold" className="text-xs flex items-center gap-1">
+            <Label htmlFor="deadThreshold" className="flex items-center gap-1 text-xs">
               Muerto (días)
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                    <Info className="text-muted-foreground h-3 w-3 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="text-xs max-w-xs">
-                      Artículos sin ventas por período prolongado
-                    </p>
+                    <p className="max-w-xs text-xs">Artículos sin ventas por período prolongado</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -225,15 +231,15 @@ export function ValuationFilters({
 
           {/* Min Sales for Active */}
           <div className="space-y-2">
-            <Label htmlFor="minSales" className="text-xs flex items-center gap-1">
+            <Label htmlFor="minSales" className="flex items-center gap-1 text-xs">
               Ventas Mín/Mes
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                    <Info className="text-muted-foreground h-3 w-3 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="text-xs max-w-xs">
+                    <p className="max-w-xs text-xs">
                       Mínimo de unidades vendidas por mes para considerarse activo
                     </p>
                   </TooltipContent>
@@ -259,15 +265,15 @@ export function ValuationFilters({
 
           {/* Trend Months for Classification */}
           <div className="space-y-2">
-            <Label htmlFor="trendMonths" className="text-xs flex items-center gap-1">
+            <Label htmlFor="trendMonths" className="flex items-center gap-1 text-xs">
               Período Clasificación
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                    <Info className="text-muted-foreground h-3 w-3 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="text-xs max-w-xs">
+                    <p className="max-w-xs text-xs">
                       Meses para calcular promedios de ventas y clasificación
                     </p>
                   </TooltipContent>
@@ -293,19 +299,19 @@ export function ValuationFilters({
         </div>
 
         {/* Incluir Sin Stock */}
-        <div className="mt-4 pt-4 border-t">
+        <div className="mt-4 border-t pt-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Label htmlFor="includeZeroStock" className="text-sm cursor-pointer">
+              <Label htmlFor="includeZeroStock" className="cursor-pointer text-sm">
                 Incluir artículos sin stock
               </Label>
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                    <Info className="text-muted-foreground h-3 w-3 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="text-xs max-w-xs">
+                    <p className="max-w-xs text-xs">
                       Mostrar también artículos con stock = 0 (valor siempre será $0)
                     </p>
                   </TooltipContent>
@@ -323,13 +329,8 @@ export function ValuationFilters({
         {/* Refresh Button */}
         {onRefresh && (
           <div className="mt-4 flex justify-end">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onRefresh}
-              disabled={isRefreshing}
-            >
-              <RefreshCw className={`h-4 w-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <Button variant="outline" size="sm" onClick={onRefresh} disabled={isRefreshing}>
+              <RefreshCw className={`mr-2 h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
               {isRefreshing ? 'Recalculando...' : 'Recalcular Ahora'}
             </Button>
           </div>
@@ -338,4 +339,3 @@ export function ValuationFilters({
     </Card>
   );
 }
-

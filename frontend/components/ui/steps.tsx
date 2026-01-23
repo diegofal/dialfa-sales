@@ -28,8 +28,8 @@ export function Steps({ steps, currentStep }: StepsProps) {
                     isCompleted
                       ? 'border-primary bg-primary text-primary-foreground'
                       : isCurrent
-                      ? 'border-primary bg-background text-primary'
-                      : 'border-muted bg-muted text-muted-foreground'
+                        ? 'border-primary bg-background text-primary'
+                        : 'border-muted bg-muted text-muted-foreground'
                   )}
                 >
                   {isCompleted ? (
@@ -47,16 +47,11 @@ export function Steps({ steps, currentStep }: StepsProps) {
                   >
                     {step.title}
                   </div>
-                  <div className="text-xs text-muted-foreground">{step.description}</div>
+                  <div className="text-muted-foreground text-xs">{step.description}</div>
                 </div>
               </div>
               {index < steps.length - 1 && (
-                <div
-                  className={cn(
-                    'mx-4 h-0.5 flex-1',
-                    isCompleted ? 'bg-primary' : 'bg-muted'
-                  )}
-                />
+                <div className={cn('mx-4 h-0.5 flex-1', isCompleted ? 'bg-primary' : 'bg-muted')} />
               )}
             </div>
           );
@@ -65,6 +60,3 @@ export function Steps({ steps, currentStep }: StepsProps) {
     </div>
   );
 }
-
-
-

@@ -18,7 +18,7 @@ export const CART_CONSTANTS = {
     MIN_WIDTH: 400,
     MIN_HEIGHT: 350, // Reduced from 400 to allow more flexibility
     Z_INDEX: 50,
-    
+
     // Responsive breakpoints
     MOBILE_MAX_WIDTH: 640, // sm breakpoint
     TABLET_MAX_WIDTH: 1024, // lg breakpoint
@@ -45,16 +45,19 @@ export const CART_CONSTANTS = {
  */
 export function calculateCartPositions(bottomBarHeight: number, windowWidth?: number) {
   // Ensure we have valid numbers
-  const safeBottomBarHeight = typeof bottomBarHeight === 'number' && !isNaN(bottomBarHeight) ? bottomBarHeight : 0;
-  const safeWindowWidth = typeof windowWidth === 'number' && !isNaN(windowWidth) ? windowWidth : 1024;
-  
+  const safeBottomBarHeight =
+    typeof bottomBarHeight === 'number' && !isNaN(bottomBarHeight) ? bottomBarHeight : 0;
+  const safeWindowWidth =
+    typeof windowWidth === 'number' && !isNaN(windowWidth) ? windowWidth : 1024;
+
   const isMobile = safeWindowWidth < CART_CONSTANTS.POPUP.MOBILE_MAX_WIDTH;
   const isTablet = safeWindowWidth < CART_CONSTANTS.POPUP.TABLET_MAX_WIDTH;
 
   // Calculate button position
-  const buttonBottom = safeBottomBarHeight > 0
-    ? safeBottomBarHeight + CART_CONSTANTS.BUTTON.MARGIN_NORMAL
-    : CART_CONSTANTS.BUTTON.MARGIN_NORMAL;
+  const buttonBottom =
+    safeBottomBarHeight > 0
+      ? safeBottomBarHeight + CART_CONSTANTS.BUTTON.MARGIN_NORMAL
+      : CART_CONSTANTS.BUTTON.MARGIN_NORMAL;
 
   // Calculate popup position (above button with gap)
   const popupBottom = buttonBottom + CART_CONSTANTS.BUTTON.SIZE + CART_CONSTANTS.POPUP.GAP;
@@ -92,7 +95,7 @@ export function calculateCartPositions(bottomBarHeight: number, windowWidth?: nu
     isMobile,
     isTablet,
   };
-  
+
   // Debug logging in development
   if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
     console.log('📐 calculateCartPositions:', {
@@ -100,7 +103,6 @@ export function calculateCartPositions(bottomBarHeight: number, windowWidth?: nu
       output: result,
     });
   }
-  
+
   return result;
 }
-

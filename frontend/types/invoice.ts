@@ -75,5 +75,3 @@ export interface UpdateInvoiceRequest {
 export interface CancelInvoiceRequest {
   cancellationReason: string;
 }
-
-

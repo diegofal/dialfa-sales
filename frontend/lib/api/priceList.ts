@@ -2,15 +2,15 @@ import { PriceListResponse, PriceListFilters, BulkPriceUpdate } from '@/types/pr
 
 export async function fetchPriceLists(filters?: PriceListFilters): Promise<PriceListResponse> {
   const params = new URLSearchParams();
-  
+
   if (filters?.categoryId) {
     params.append('categoryId', filters.categoryId.toString());
   }
-  
+
   if (filters?.search) {
     params.append('search', filters.search);
   }
-  
+
   // Only send activeOnly if it's explicitly true
   if (filters?.activeOnly === true) {
     params.append('activeOnly', 'true');
@@ -63,4 +63,3 @@ export async function updatePrices(payload: {
 
   return response.json();
 }
-

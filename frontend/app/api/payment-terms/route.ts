@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { handleError } from '@/lib/errors';
 
 export async function GET(request: NextRequest) {
   try {
@@ -14,7 +15,7 @@ export async function GET(request: NextRequest) {
     });
 
     return NextResponse.json({
-      data: paymentTerms.map(pt => ({
+      data: paymentTerms.map((pt) => ({
         id: pt.id,
         code: pt.code,
         name: pt.name,
@@ -23,10 +24,6 @@ export async function GET(request: NextRequest) {
       })),
     });
   } catch (error) {
-    console.error('Error fetching payment terms:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch payment terms' },
-      { status: 500 }
-    );
+    return handleError(error);
   }
 }

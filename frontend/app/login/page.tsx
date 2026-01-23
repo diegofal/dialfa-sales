@@ -1,13 +1,12 @@
 'use client';
 
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useLogin } from '@/lib/hooks/useAuth';
-import { useAuthStore } from '@/store/authStore';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Form,
   FormControl,
@@ -17,8 +16,10 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { ROUTES } from '@/lib/constants/routes';
+import { useLogin } from '@/lib/hooks/useAuth';
+import { useAuthStore } from '@/store/authStore';
 
 const loginSchema = z.object({
   username: z.string().min(1, 'El usuario es requerido'),
@@ -42,7 +43,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (isAuthenticated) {
-      router.push('/dashboard');
+      router.push(ROUTES.DASHBOARD);
     }
   }, [isAuthenticated, router]);
 
@@ -51,18 +52,16 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 p-4">
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 p-4 dark:from-slate-900 dark:to-slate-800">
       {/* Theme Toggle in top-right corner */}
       <div className="fixed top-4 right-4 z-50">
         <ThemeToggle />
       </div>
-      
+
       <Card className="w-full max-w-md">
         <CardHeader className="space-y-1 text-center">
           <CardTitle className="text-3xl font-bold">SPISA</CardTitle>
-          <CardDescription>
-            Sistema de Gestión de Inventario y Ventas
-          </CardDescription>
+          <CardDescription>Sistema de Gestión de Inventario y Ventas</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -74,11 +73,7 @@ export default function LoginPage() {
                   <FormItem>
                     <FormLabel>Usuario</FormLabel>
                     <FormControl>
-                      <Input
-                        placeholder="Ingrese su usuario"
-                        {...field}
-                        autoComplete="username"
-                      />
+                      <Input placeholder="Ingrese su usuario" {...field} autoComplete="username" />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -102,17 +97,13 @@ export default function LoginPage() {
                   </FormItem>
                 )}
               />
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={loginMutation.isPending}
-              >
+              <Button type="submit" className="w-full" disabled={loginMutation.isPending}>
                 {loginMutation.isPending ? 'Iniciando sesión...' : 'Iniciar Sesión'}
               </Button>
             </form>
           </Form>
 
-          <div className="mt-6 text-center text-sm text-muted-foreground">
+          <div className="text-muted-foreground mt-6 text-center text-sm">
             <p>Usuarios de prueba:</p>
             <p className="mt-1">admin / admin123</p>
             <p>user / user123</p>
@@ -122,5 +113,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-

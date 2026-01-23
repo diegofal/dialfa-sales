@@ -1,9 +1,15 @@
 'use client';
 
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useClients } from '@/lib/hooks/useClients';
 import type { SalesOrderFormData } from '@/types/salesOrder';
 
@@ -22,12 +28,12 @@ export function ClientSelectionStep({ formData, setFormData }: ClientSelectionSt
         <Label htmlFor="client">Cliente *</Label>
         <Select
           value={formData.clientId?.toString()}
-          onValueChange={(value) =>
-            setFormData({ ...formData, clientId: parseInt(value) })
-          }
+          onValueChange={(value) => setFormData({ ...formData, clientId: parseInt(value) })}
         >
           <SelectTrigger id="client">
-            <SelectValue placeholder={isLoading ? 'Cargando clientes...' : 'Selecciona un cliente'} />
+            <SelectValue
+              placeholder={isLoading ? 'Cargando clientes...' : 'Selecciona un cliente'}
+            />
           </SelectTrigger>
           <SelectContent>
             {clients.map((client) => (
@@ -37,9 +43,7 @@ export function ClientSelectionStep({ formData, setFormData }: ClientSelectionSt
             ))}
           </SelectContent>
         </Select>
-        <p className="text-sm text-muted-foreground">
-          Selecciona el cliente para el pedido
-        </p>
+        <p className="text-muted-foreground text-sm">Selecciona el cliente para el pedido</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
@@ -63,9 +67,7 @@ export function ClientSelectionStep({ formData, setFormData }: ClientSelectionSt
             onChange={(e) => setFormData({ ...formData, deliveryDate: e.target.value })}
             min={formData.orderDate}
           />
-          <p className="text-sm text-muted-foreground">
-            Fecha estimada de entrega
-          </p>
+          <p className="text-muted-foreground text-sm">Fecha estimada de entrega</p>
         </div>
       </div>
 
@@ -82,6 +84,3 @@ export function ClientSelectionStep({ formData, setFormData }: ClientSelectionSt
     </div>
   );
 }
-
-
-

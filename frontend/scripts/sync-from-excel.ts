@@ -1,11 +1,11 @@
 /**
  * Script para sincronizar certificados desde el archivo Excel
- * 
+ *
  * Funciones:
  * 1. Lee el Excel actualizado
  * 2. Sube archivos nuevos que no estén en la base de datos
  * 3. Actualiza coladas de certificados existentes
- * 
+ *
  * Uso:
  *   npm run sync:excel
  *   npm run sync:excel /ruta/al/archivo.xlsx
@@ -13,9 +13,13 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import * as XLSX from 'xlsx';
 import { PrismaClient } from '@prisma/client';
-import { uploadCertificateFile, getFileExtension, isAllowedFileType } from '../lib/storage/supabase';
+import * as XLSX from 'xlsx';
+import {
+  uploadCertificateFile,
+  getFileExtension,
+  isAllowedFileType,
+} from '../lib/storage/supabase';
 
 // Configuración
 const CERTIFICATES_SOURCE_DIR = 'G:\\Shared drives\\Dialfa\\CERTIFICADOS DIALFA';
@@ -24,14 +28,14 @@ const DEFAULT_EXCEL_PATH = 'C:\\Users\\User\\Desktop\\Certificados.xlsx';
 // Mapeo de carpetas a categorías
 const FOLDER_TO_CATEGORY: Record<string, string> = {
   'ACCESORIOS 2023': 'ACCESORIOS',
-  'ACCESORIOS': 'ACCESORIOS',
+  ACCESORIOS: 'ACCESORIOS',
   'BRIDAS 2023': 'BRIDAS',
-  'BRIDAS': 'BRIDAS',
+  BRIDAS: 'BRIDAS',
   'ESPARRAGOS 2023': 'ESPARRAGOS',
-  'ESPARRAGOS': 'ESPARRAGOS',
+  ESPARRAGOS: 'ESPARRAGOS',
   'Forjado 2023': 'FORJADO',
-  'FORJADO': 'FORJADO',
-  'Certificados': 'ACCESORIOS'
+  FORJADO: 'FORJADO',
+  Certificados: 'ACCESORIOS',
 };
 
 const prisma = new PrismaClient();
@@ -53,7 +57,7 @@ const stats: Stats = {
   alreadyExisted: 0,
   fileNotFound: 0,
   failed: 0,
-  errors: []
+  errors: [],
 };
 
 /**
@@ -61,20 +65,20 @@ const stats: Stats = {
  */
 async function loadExcelMapping(excelPath: string): Promise<Map<string, string[]>> {
   const fileToColadas = new Map<string, string[]>();
-  
+
   try {
     console.log(`📊 Leyendo Excel: ${excelPath}\n`);
-    
+
     const workbook = XLSX.readFile(excelPath);
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const data: any[] = XLSX.utils.sheet_to_json(sheet, { defval: null });
-    
+
     let currentFile = '';
-    
+
     for (const row of data) {
       const fileName = row['NOMBRE DEL ARCHIVO  ']; // Nota: columna tiene espacios
       const colada = row['COLADA'];
-      
+
       // Si hay nombre de archivo, actualizar el archivo actual
       if (fileName && fileName.toString().trim()) {
         currentFile = fileName.toString().trim();
@@ -82,7 +86,7 @@ async function loadExcelMapping(excelPath: string): Promise<Map<string, string[]
           fileToColadas.set(currentFile, []);
         }
       }
-      
+
       // Si hay colada, agregarla al archivo actual
       if (colada && colada.toString().trim() && currentFile) {
         const coladaStr = colada.toString().trim();
@@ -92,10 +96,10 @@ async function loadExcelMapping(excelPath: string): Promise<Map<string, string[]
         }
       }
     }
-    
+
     stats.totalInExcel = fileToColadas.size;
     console.log(`✅ Excel cargado: ${fileToColadas.size} archivos mapeados\n`);
-    
+
     return fileToColadas;
   } catch (error) {
     console.error('❌ Error leyendo Excel:', error);
@@ -109,10 +113,10 @@ async function loadExcelMapping(excelPath: string): Promise<Map<string, string[]
 async function findFileInDirectory(fileName: string, dir: string): Promise<string | null> {
   try {
     const entries = await fs.readdir(dir, { withFileTypes: true });
-    
+
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
-      
+
       if (entry.isDirectory()) {
         // Buscar recursivamente
         const found = await findFileInDirectory(fileName, fullPath);
@@ -124,7 +128,7 @@ async function findFileInDirectory(fileName: string, dir: string): Promise<strin
   } catch (error) {
     // Ignorar errores de acceso a directorios
   }
-  
+
   return null;
 }
 
@@ -134,12 +138,12 @@ async function findFileInDirectory(fileName: string, dir: string): Promise<strin
 function getCategoryFromPath(filePath: string): string {
   const relativePath = filePath.replace(CERTIFICATES_SOURCE_DIR, '');
   const parts = relativePath.split(path.sep).filter(Boolean);
-  
+
   if (parts.length > 0) {
     const folder = parts[0];
     return FOLDER_TO_CATEGORY[folder] || 'ACCESORIOS';
   }
-  
+
   return 'ACCESORIOS';
 }
 
@@ -150,7 +154,7 @@ async function findOrCreateColada(coladaNumber: string) {
   return prisma.coladas.upsert({
     where: { colada_number: coladaNumber },
     create: { colada_number: coladaNumber },
-    update: {}
+    update: {},
   });
 }
 
@@ -164,29 +168,29 @@ async function updateCertificateColadas(
   try {
     // Eliminar relaciones existentes
     await prisma.certificate_coladas.deleteMany({
-      where: { certificate_id: certificateId }
+      where: { certificate_id: certificateId },
     });
-    
+
     if (coladaNumbers.length === 0) {
       return true;
     }
-    
+
     // Crear o encontrar coladas
-    const coladas = await Promise.all(
-      coladaNumbers.map(num => findOrCreateColada(num))
-    );
-    
+    const coladas = await Promise.all(coladaNumbers.map((num) => findOrCreateColada(num)));
+
     // Crear nuevas relaciones
     await prisma.certificate_coladas.createMany({
-      data: coladas.map(colada => ({
+      data: coladas.map((colada) => ({
         certificate_id: certificateId,
-        colada_id: colada.id
-      }))
+        colada_id: colada.id,
+      })),
     });
-    
+
     return true;
   } catch (error) {
-    console.error(`    ❌ Error actualizando coladas: ${error instanceof Error ? error.message : 'Unknown'}`);
+    console.error(
+      `    ❌ Error actualizando coladas: ${error instanceof Error ? error.message : 'Unknown'}`
+    );
     return false;
   }
 }
@@ -194,42 +198,41 @@ async function updateCertificateColadas(
 /**
  * Procesa un archivo del Excel
  */
-async function processFileFromExcel(
-  fileName: string,
-  coladaNumbers: string[]
-): Promise<void> {
+async function processFileFromExcel(fileName: string, coladaNumbers: string[]): Promise<void> {
   try {
     // Verificar si ya existe en la base de datos
     const existing = await prisma.certificates.findFirst({
-      where: { 
+      where: {
         file_name: fileName,
-        deleted_at: null
+        deleted_at: null,
       },
       include: {
         certificate_coladas: {
           include: {
-            colada: true
-          }
-        }
-      }
+            colada: true,
+          },
+        },
+      },
     });
-    
+
     if (existing) {
       // Archivo existe: verificar si las coladas cambiaron
       const currentColadas = existing.certificate_coladas
-        .map(cc => cc.colada.colada_number)
+        .map((cc) => cc.colada.colada_number)
         .sort();
       const newColadas = [...coladaNumbers].sort();
-      
-      const needsUpdate = 
+
+      const needsUpdate =
         currentColadas.length !== newColadas.length ||
         !currentColadas.every((val, idx) => val === newColadas[idx]);
-      
+
       if (needsUpdate) {
         console.log(`  🔄 Actualizando coladas...`);
-        console.log(`     Antes: ${currentColadas.length > 0 ? currentColadas.join(', ') : 'ninguna'}`);
+        console.log(
+          `     Antes: ${currentColadas.length > 0 ? currentColadas.join(', ') : 'ninguna'}`
+        );
         console.log(`     Ahora: ${newColadas.length > 0 ? newColadas.join(', ') : 'ninguna'}`);
-        
+
         const success = await updateCertificateColadas(existing.id, coladaNumbers);
         if (success) {
           console.log(`     ✅ Coladas actualizadas`);
@@ -243,65 +246,59 @@ async function processFileFromExcel(
       }
       return;
     }
-    
+
     // Archivo NO existe: buscar y subir
     console.log(`  🔍 Buscando archivo en sistema...`);
     const filePath = await findFileInDirectory(fileName, CERTIFICATES_SOURCE_DIR);
-    
+
     if (!filePath) {
       console.log(`  ⚠️  Archivo no encontrado en sistema`);
       stats.fileNotFound++;
       stats.errors.push({
         file: fileName,
-        error: 'Archivo no encontrado en el sistema de archivos'
+        error: 'Archivo no encontrado en el sistema de archivos',
       });
       return;
     }
-    
+
     console.log(`  📂 Encontrado: ${filePath.replace(CERTIFICATES_SOURCE_DIR, '')}`);
-    
+
     // Verificar tipo de archivo
     if (!isAllowedFileType(fileName)) {
       console.log(`  ⚠️  Tipo de archivo no permitido`);
       stats.failed++;
       return;
     }
-    
+
     // Leer archivo
     const fileBuffer = await fs.readFile(filePath);
     const category = getCategoryFromPath(filePath);
     const fileSizeMB = (fileBuffer.length / (1024 * 1024)).toFixed(2);
-    
+
     // Verificar tamaño (Supabase límite: 50MB)
     if (fileBuffer.length > 50 * 1024 * 1024) {
       console.log(`  ⚠️  Archivo muy grande (${fileSizeMB} MB, límite: 50 MB)`);
       stats.failed++;
       stats.errors.push({
         file: fileName,
-        error: `Archivo excede 50MB (${fileSizeMB} MB)`
+        error: `Archivo excede 50MB (${fileSizeMB} MB)`,
       });
       return;
     }
-    
+
     console.log(`  📁 Categoría: ${category}`);
     console.log(`  📊 Tamaño: ${fileSizeMB} MB`);
     console.log(`  🔢 Coladas: ${coladaNumbers.length > 0 ? coladaNumbers.join(', ') : 'ninguna'}`);
     console.log(`  ⬆️  Subiendo a Supabase...`);
-    
+
     // Subir a Supabase
-    const { storagePath } = await uploadCertificateFile(
-      fileBuffer,
-      fileName,
-      category
-    );
-    
+    const { storagePath } = await uploadCertificateFile(fileBuffer, fileName, category);
+
     console.log(`  ✅ Subido: ${storagePath}`);
-    
+
     // Crear/obtener coladas
-    const coladas = await Promise.all(
-      coladaNumbers.map(num => findOrCreateColada(num))
-    );
-    
+    const coladas = await Promise.all(coladaNumbers.map((num) => findOrCreateColada(num)));
+
     // Registrar en base de datos
     const certificate = await prisma.certificates.create({
       data: {
@@ -312,22 +309,21 @@ async function processFileFromExcel(
         file_size_bytes: BigInt(fileBuffer.length),
         category,
         certificate_coladas: {
-          create: coladas.map(colada => ({
-            colada_id: colada.id
-          }))
-        }
-      }
+          create: coladas.map((colada) => ({
+            colada_id: colada.id,
+          })),
+        },
+      },
     });
-    
+
     console.log(`  💾 Registrado en DB: ID ${certificate.id}`);
     stats.newUploaded++;
-    
   } catch (error) {
     console.error(`  ❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     stats.failed++;
     stats.errors.push({
       file: fileName,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
   }
 }
@@ -337,14 +333,14 @@ async function processFileFromExcel(
  */
 async function main() {
   const excelPath = process.argv[2] || DEFAULT_EXCEL_PATH;
-  
+
   console.log('╔════════════════════════════════════════════════════════════╗');
   console.log('║  🔄 SINCRONIZACIÓN DESDE EXCEL                             ║');
   console.log('╚════════════════════════════════════════════════════════════╝\n');
-  
+
   console.log(`📂 Directorio de certificados: ${CERTIFICATES_SOURCE_DIR}`);
   console.log(`📊 Archivo Excel: ${excelPath}\n`);
-  
+
   try {
     // Verificar que el Excel existe
     await fs.access(excelPath);
@@ -352,31 +348,31 @@ async function main() {
     console.error(`❌ No se puede acceder al Excel: ${excelPath}`);
     process.exit(1);
   }
-  
+
   try {
     // Cargar mapeo del Excel
     const excelMapping = await loadExcelMapping(excelPath);
-    
+
     if (excelMapping.size === 0) {
       console.log('⚠️  No hay archivos en el Excel');
       return;
     }
-    
+
     console.log('🚀 Iniciando sincronización...\n');
     console.log('='.repeat(60));
-    
+
     // Procesar cada archivo del Excel
     let count = 0;
     for (const [fileName, coladaNumbers] of excelMapping) {
       count++;
       console.log(`\n[${count}/${excelMapping.size}] ${fileName}`);
-      
+
       await processFileFromExcel(fileName, coladaNumbers);
-      
+
       // Pausa pequeña para evitar rate limiting
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
-    
+
     // Resumen final
     console.log('\n' + '='.repeat(60));
     console.log('📊 RESUMEN DE SINCRONIZACIÓN');
@@ -388,7 +384,7 @@ async function main() {
     console.log(`⚠️  Archivo no encontrado:  ${stats.fileNotFound}`);
     console.log(`❌ Fallidos:               ${stats.failed}`);
     console.log('='.repeat(60));
-    
+
     if (stats.errors.length > 0) {
       console.log('\n⚠️  ARCHIVOS CON PROBLEMAS:');
       stats.errors.slice(0, 10).forEach((err, i) => {
@@ -399,9 +395,8 @@ async function main() {
         console.log(`   ... y ${stats.errors.length - 10} más`);
       }
     }
-    
+
     console.log('\n✅ Sincronización completada');
-    
   } catch (error) {
     console.error('\n❌ Error fatal:', error);
     process.exit(1);
@@ -412,4 +407,3 @@ async function main() {
 
 // Ejecutar
 main();
-

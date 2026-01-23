@@ -5,6 +5,7 @@ Scripts para migrar certificados existentes desde la carpeta de red a Supabase S
 ## Requisitos Previos
 
 1. **Variables de entorno configuradas** en `.env`:
+
    ```env
    DATABASE_URL=postgresql://...
    SUPABASE_URL=https://kyunrotrgpnzxtpeeire.supabase.co
@@ -31,6 +32,7 @@ npm run migrate:test
 ```
 
 **Qué hace:**
+
 - ✅ Verifica conexión a PostgreSQL
 - ✅ Verifica conexión a Supabase Storage
 - ✅ Verifica acceso a carpeta de certificados
@@ -38,6 +40,7 @@ npm run migrate:test
 - ✅ Registra el archivo en la base de datos
 
 **Salida esperada:**
+
 ```
 🧪 Prueba de conexiones
 
@@ -69,6 +72,7 @@ npm run migrate:certificates
 ```
 
 **Qué hace:**
+
 1. Escanea recursivamente la carpeta `CERTIFICADOS DIALFA`
 2. Identifica archivos válidos (PDF, imágenes, Excel, Word)
 3. Extrae números de colada de los nombres de archivo (patrón: `\d{3,4}U\d{2}[A-Z]{1,2}`)
@@ -78,6 +82,7 @@ npm run migrate:certificates
 7. Asocia coladas automáticamente
 
 **Mapeo de carpetas a categorías:**
+
 ```
 ACCESORIOS 2023  → ACCESORIOS
 BRIDAS 2023      → BRIDAS
@@ -87,6 +92,7 @@ Certificados     → OTROS
 ```
 
 **Proceso:**
+
 ```
 🚀 Iniciando migración de certificados...
 
@@ -132,12 +138,12 @@ Los scripts extraen automáticamente números de colada de los nombres de archiv
 
 **Ejemplos de detección:**
 
-| Nombre de Archivo | Coladas Detectadas |
-|-------------------|-------------------|
-| `2010 12 27 - 011U07GI - Nipples.pdf` | `011U07GI` |
+| Nombre de Archivo                                | Coladas Detectadas     |
+| ------------------------------------------------ | ---------------------- |
+| `2010 12 27 - 011U07GI - Nipples.pdf`            | `011U07GI`             |
 | `2009 03 27 - 902U02GI - 804U08GI - Forjado.pdf` | `902U02GI`, `804U08GI` |
-| `CERTIFICADO 805U02GI FORJADO.pdf` | `805U02GI` |
-| `CERTIFICADO ACCESORIOS 20170001.jpg` | *(ninguna)* |
+| `CERTIFICADO 805U02GI FORJADO.pdf`               | `805U02GI`             |
+| `CERTIFICADO ACCESORIOS 20170001.jpg`            | _(ninguna)_            |
 
 **Patrón regex:** `/\d{3,4}U\d{2}[A-Z]{1,2}/gi`
 
@@ -148,6 +154,7 @@ Si un archivo no tiene coladas en su nombre, se registrará sin coladas asociada
 ## Estructura de Datos
 
 ### Tabla `certificates`
+
 ```sql
 id              BIGSERIAL PRIMARY KEY
 file_name       VARCHAR(500)         -- Nombre original
@@ -161,6 +168,7 @@ created_at      TIMESTAMPTZ
 ```
 
 ### Tabla `coladas`
+
 ```sql
 id            BIGSERIAL PRIMARY KEY
 colada_number VARCHAR(50) UNIQUE     -- 011U07GI, etc.
@@ -171,6 +179,7 @@ created_at    TIMESTAMPTZ
 ```
 
 ### Tabla `certificate_coladas` (relación N:N)
+
 ```sql
 certificate_id BIGINT → certificates.id
 colada_id      BIGINT → coladas.id
@@ -181,6 +190,7 @@ colada_id      BIGINT → coladas.id
 ## Troubleshooting
 
 ### Error: "No se puede acceder a carpeta"
+
 ```bash
 # Verificar que la ruta es correcta
 ls "G:\Shared drives\Dialfa\CERTIFICADOS DIALFA"
@@ -190,6 +200,7 @@ ls "G:\Shared drives\Dialfa\CERTIFICADOS DIALFA"
 ```
 
 ### Error: "Missing SUPABASE_URL"
+
 ```bash
 # Verificar variables de entorno
 echo $SUPABASE_URL
@@ -199,6 +210,7 @@ echo $SUPABASE_SERVICE_KEY
 ```
 
 ### Error: "P1001: Can't reach database"
+
 ```bash
 # Verificar que PostgreSQL esté corriendo
 docker compose up postgres -d
@@ -208,6 +220,7 @@ echo $DATABASE_URL
 ```
 
 ### Migración interrumpida
+
 Los scripts son **idempotentes**: si se interrumpen, puedes volver a ejecutarlos y solo procesarán los archivos faltantes (verifica que no haya duplicados en Supabase Storage manualmente).
 
 ---
@@ -217,6 +230,7 @@ Los scripts son **idempotentes**: si se interrumpen, puedes volver a ejecutarlos
 Después de migrar:
 
 1. **Verificar en la aplicación**:
+
    ```
    http://localhost:3000/dashboard/certificates
    ```
@@ -237,21 +251,24 @@ Después de migrar:
 Para modificar el comportamiento:
 
 ### Cambiar carpeta origen
+
 ```typescript
 // En ambos scripts:
 const CERTIFICATES_SOURCE_DIR = 'C:\\Tu\\Carpeta\\Aqui';
 ```
 
 ### Agregar más categorías
+
 ```typescript
 const FOLDER_TO_CATEGORY: Record<string, string> = {
   'ACCESORIOS 2023': 'ACCESORIOS',
-  'TU_CARPETA': 'TU_CATEGORIA',
+  TU_CARPETA: 'TU_CATEGORIA',
   // ...
 };
 ```
 
 ### Modificar patrón de coladas
+
 ```typescript
 // En extractColadasFromFilename():
 const pattern = /TU_PATRON_REGEX/gi;
@@ -262,11 +279,3 @@ const pattern = /TU_PATRON_REGEX/gi;
 ## Contacto
 
 Si encuentras problemas o necesitas ayuda, consulta los logs del script o contacta al administrador del sistema.
-
-
-
-
-
-
-
-

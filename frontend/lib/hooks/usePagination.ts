@@ -75,6 +75,3 @@ export const usePagination = (initialPageSize: number = 10): UsePaginationResult
     goToLastPage,
   };
 };
-
-
-

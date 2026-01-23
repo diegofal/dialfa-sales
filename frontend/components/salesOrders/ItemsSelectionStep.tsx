@@ -1,12 +1,25 @@
 'use client';
 
-import { useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { useArticles } from '@/lib/hooks/useArticles';
 import type { SalesOrderFormData, SalesOrderItemFormData } from '@/types/salesOrder';
 
@@ -82,10 +95,10 @@ export function ItemsSelectionStep({ formData, setFormData }: ItemsSelectionStep
   return (
     <div className="space-y-6">
       {/* Add Item Form */}
-      <div className="rounded-lg border p-4 space-y-4">
+      <div className="space-y-4 rounded-lg border p-4">
         <h3 className="font-medium">Agregar Artículo</h3>
         <div className="grid gap-4 md:grid-cols-5">
-          <div className="md:col-span-2 space-y-2">
+          <div className="space-y-2 md:col-span-2">
             <Label>Artículo</Label>
             <Select
               value={newItem.articleId?.toString()}
@@ -111,7 +124,7 @@ export function ItemsSelectionStep({ formData, setFormData }: ItemsSelectionStep
               </SelectContent>
             </Select>
             {selectedArticle && (
-              <p className="text-xs text-muted-foreground">
+              <p className="text-muted-foreground text-xs">
                 Stock: {selectedArticle.stock} | Precio: {formatCurrency(selectedArticle.unitPrice)}
               </p>
             )}
@@ -134,7 +147,9 @@ export function ItemsSelectionStep({ formData, setFormData }: ItemsSelectionStep
               step="0.01"
               min="0"
               value={newItem.unitPrice || ''}
-              onChange={(e) => setNewItem({ ...newItem, unitPrice: parseFloat(e.target.value) || 0 })}
+              onChange={(e) =>
+                setNewItem({ ...newItem, unitPrice: parseFloat(e.target.value) || 0 })
+              }
             />
           </div>
 
@@ -190,11 +205,7 @@ export function ItemsSelectionStep({ formData, setFormData }: ItemsSelectionStep
                     {formatCurrency(calculateLineTotal(item))}
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => handleRemoveItem(index)}
-                    >
+                    <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(index)}>
                       <Trash2 className="h-4 w-4 text-red-600" />
                     </Button>
                   </TableCell>
@@ -204,7 +215,7 @@ export function ItemsSelectionStep({ formData, setFormData }: ItemsSelectionStep
                 <TableCell colSpan={5} className="text-right font-bold">
                   Total:
                 </TableCell>
-                <TableCell className="text-right font-bold text-lg">
+                <TableCell className="text-right text-lg font-bold">
                   {formatCurrency(calculateTotal())}
                 </TableCell>
                 <TableCell />
@@ -213,13 +224,10 @@ export function ItemsSelectionStep({ formData, setFormData }: ItemsSelectionStep
           </Table>
         </div>
       ) : (
-        <div className="rounded-lg border border-dashed p-8 text-center text-muted-foreground">
+        <div className="text-muted-foreground rounded-lg border border-dashed p-8 text-center">
           No hay artículos agregados. Agrega al menos un artículo para continuar.
         </div>
       )}
     </div>
   );
 }
-
-
-

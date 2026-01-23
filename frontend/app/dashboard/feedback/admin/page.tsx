@@ -1,20 +1,46 @@
 'use client';
 
+import {
+  Bug,
+  Lightbulb,
+  Sparkles,
+  MessageSquare,
+  Loader2,
+  AlertCircle,
+  Trash2,
+} from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useFeedback } from '@/lib/hooks/useFeedback';
+import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { toast } from 'sonner';
-import { Feedback, FeedbackType, FeedbackStatus, FeedbackPriority } from '@/types/feedback';
-import { Bug, Lightbulb, Sparkles, MessageSquare, Loader2, AlertCircle, Trash2 } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { useFeedback } from '@/lib/hooks/useFeedback';
 import { useAuthStore } from '@/store/authStore';
+import { Feedback, FeedbackType, FeedbackStatus, FeedbackPriority } from '@/types/feedback';
 
-const feedbackTypes: { value: FeedbackType; label: string; icon: React.ElementType; color: string }[] = [
+const feedbackTypes: {
+  value: FeedbackType;
+  label: string;
+  icon: React.ElementType;
+  color: string;
+}[] = [
   { value: 'bug', label: 'Error', icon: Bug, color: 'bg-red-500' },
   { value: 'improvement', label: 'Mejora', icon: Lightbulb, color: 'bg-yellow-500' },
   { value: 'feature', label: 'Nueva Funcionalidad', icon: Sparkles, color: 'bg-blue-500' },
@@ -52,14 +78,14 @@ const priorityColors: Record<string, string> = {
 export default function AdminFeedbackPage() {
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.role?.toLowerCase() === 'admin';
-  
+
   const { feedbacks, isLoading, updateFeedback, deleteFeedback, fetchFeedbacks } = useFeedback();
   const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [filterStatus, setFilterStatus] = useState<FeedbackStatus | 'all'>('all');
   const [filterType, setFilterType] = useState<FeedbackType | 'all'>('all');
-  
+
   const [updateData, setUpdateData] = useState({
     status: '' as FeedbackStatus,
     priority: 'none' as FeedbackPriority | 'none',
@@ -74,16 +100,14 @@ export default function AdminFeedbackPage() {
 
   if (!isAdmin) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
         <Card className="max-w-md">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <AlertCircle className="h-5 w-5 text-destructive" />
+              <AlertCircle className="text-destructive h-5 w-5" />
               Acceso Denegado
             </CardTitle>
-            <CardDescription>
-              No tienes permisos para acceder a esta página
-            </CardDescription>
+            <CardDescription>No tienes permisos para acceder a esta página</CardDescription>
           </CardHeader>
         </Card>
       </div>
@@ -102,13 +126,12 @@ export default function AdminFeedbackPage() {
 
   const handleUpdate = async () => {
     if (!selectedFeedback) return;
-    
+
     setUpdating(true);
     try {
-      const priorityValue = updateData.priority === 'none' 
-        ? null 
-        : (updateData.priority as FeedbackPriority);
-      
+      const priorityValue =
+        updateData.priority === 'none' ? null : (updateData.priority as FeedbackPriority);
+
       await updateFeedback(selectedFeedback.id, {
         status: updateData.status,
         priority: priorityValue,
@@ -127,7 +150,7 @@ export default function AdminFeedbackPage() {
 
   const handleDelete = async (id: number) => {
     if (!confirm('¿Estás seguro de que deseas eliminar este feedback?')) return;
-    
+
     try {
       await deleteFeedback(id);
       toast.success('Feedback eliminado');
@@ -142,9 +165,9 @@ export default function AdminFeedbackPage() {
 
   const stats = {
     total: feedbacks.length,
-    pending: feedbacks.filter(f => f.status === 'pending').length,
-    inReview: feedbacks.filter(f => f.status === 'in-review').length,
-    resolved: feedbacks.filter(f => f.status === 'resolved').length,
+    pending: feedbacks.filter((f) => f.status === 'pending').length,
+    inReview: feedbacks.filter((f) => f.status === 'in-review').length,
+    resolved: feedbacks.filter((f) => f.status === 'resolved').length,
   };
 
   return (
@@ -232,46 +255,49 @@ export default function AdminFeedbackPage() {
         <CardContent>
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <Loader2 className="text-muted-foreground h-8 w-8 animate-spin" />
             </div>
           ) : filteredFeedbacks.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <MessageSquare className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <div className="text-muted-foreground py-8 text-center">
+              <MessageSquare className="mx-auto mb-4 h-12 w-12 opacity-50" />
               <p>No hay feedback para mostrar</p>
             </div>
           ) : (
             <div className="space-y-4">
               {filteredFeedbacks.map((feedback) => {
-                const typeInfo = feedbackTypes.find(t => t.value === feedback.type);
+                const typeInfo = feedbackTypes.find((t) => t.value === feedback.type);
                 const TypeIcon = typeInfo?.icon || MessageSquare;
-                
+
                 return (
                   <div
                     key={feedback.id}
-                    className="p-4 border rounded-lg hover:bg-accent/50 transition-colors cursor-pointer"
+                    className="hover:bg-accent/50 cursor-pointer rounded-lg border p-4 transition-colors"
                     onClick={() => handleOpenDialog(feedback)}
                   >
                     <div className="flex items-start justify-between gap-4">
-                      <div className="flex items-start gap-3 flex-1">
-                        <div className={`p-2 rounded-lg ${typeInfo?.color} text-white`}>
+                      <div className="flex flex-1 items-start gap-3">
+                        <div className={`rounded-lg p-2 ${typeInfo?.color} text-white`}>
                           <TypeIcon className="h-5 w-5" />
                         </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                        <div className="min-w-0 flex-1">
+                          <div className="mb-1 flex flex-wrap items-center gap-2">
                             <h3 className="font-semibold">{feedback.subject}</h3>
                             <Badge variant="outline" className={statusColors[feedback.status]}>
                               {statusLabels[feedback.status]}
                             </Badge>
                             {feedback.priority && (
-                              <Badge variant="outline" className={priorityColors[feedback.priority]}>
+                              <Badge
+                                variant="outline"
+                                className={priorityColors[feedback.priority]}
+                              >
                                 {priorityLabels[feedback.priority]}
                               </Badge>
                             )}
                           </div>
-                          <p className="text-sm text-muted-foreground line-clamp-2 mb-2">
+                          <p className="text-muted-foreground mb-2 line-clamp-2 text-sm">
                             {feedback.description}
                           </p>
-                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                          <div className="text-muted-foreground flex items-center gap-4 text-xs">
                             <span className="font-medium">{feedback.fullName}</span>
                             <span>•</span>
                             <span>
@@ -294,7 +320,7 @@ export default function AdminFeedbackPage() {
                           handleDelete(feedback.id);
                         }}
                       >
-                        <Trash2 className="h-4 w-4 text-destructive" />
+                        <Trash2 className="text-destructive h-4 w-4" />
                       </Button>
                     </div>
                   </div>
@@ -306,7 +332,7 @@ export default function AdminFeedbackPage() {
       </Card>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Gestionar Feedback</DialogTitle>
             <DialogDescription>
@@ -316,18 +342,21 @@ export default function AdminFeedbackPage() {
 
           {selectedFeedback && (
             <div className="space-y-4">
-              <div className="p-4 border rounded-lg bg-muted/50">
-                <div className="flex items-center gap-2 mb-2">
+              <div className="bg-muted/50 rounded-lg border p-4">
+                <div className="mb-2 flex items-center gap-2">
                   <h4 className="font-semibold">{selectedFeedback.subject}</h4>
                   <Badge variant="outline">
-                    {feedbackTypes.find(t => t.value === selectedFeedback.type)?.label}
+                    {feedbackTypes.find((t) => t.value === selectedFeedback.type)?.label}
                   </Badge>
                 </div>
-                <p className="text-sm mb-3">{selectedFeedback.description}</p>
-                <div className="text-xs text-muted-foreground">
-                  <p>Reportado por: {selectedFeedback.fullName} ({selectedFeedback.username})</p>
+                <p className="mb-3 text-sm">{selectedFeedback.description}</p>
+                <div className="text-muted-foreground text-xs">
                   <p>
-                    Fecha: {new Date(selectedFeedback.createdAt).toLocaleDateString('es-AR', {
+                    Reportado por: {selectedFeedback.fullName} ({selectedFeedback.username})
+                  </p>
+                  <p>
+                    Fecha:{' '}
+                    {new Date(selectedFeedback.createdAt).toLocaleDateString('es-AR', {
                       day: '2-digit',
                       month: '2-digit',
                       year: 'numeric',
@@ -342,7 +371,9 @@ export default function AdminFeedbackPage() {
                 <Label htmlFor="status">Estado</Label>
                 <Select
                   value={updateData.status}
-                  onValueChange={(value) => setUpdateData({ ...updateData, status: value as FeedbackStatus })}
+                  onValueChange={(value) =>
+                    setUpdateData({ ...updateData, status: value as FeedbackStatus })
+                  }
                 >
                   <SelectTrigger id="status">
                     <SelectValue />
@@ -360,7 +391,9 @@ export default function AdminFeedbackPage() {
                 <Label htmlFor="priority">Prioridad</Label>
                 <Select
                   value={updateData.priority}
-                  onValueChange={(value) => setUpdateData({ ...updateData, priority: value as FeedbackPriority | 'none' })}
+                  onValueChange={(value) =>
+                    setUpdateData({ ...updateData, priority: value as FeedbackPriority | 'none' })
+                  }
                 >
                   <SelectTrigger id="priority">
                     <SelectValue placeholder="Seleccionar prioridad" />
@@ -408,4 +441,3 @@ export default function AdminFeedbackPage() {
     </div>
   );
 }
-

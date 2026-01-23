@@ -1,20 +1,16 @@
 'use client';
 
-import { Suspense, useState } from 'react';
-import { ArrowLeft, AlertTriangle, Truck } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { SingleStepOrderForm } from '@/components/salesOrders/SingleStepOrderForm';
+import { ArrowLeft, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { useSalesOrder } from '@/lib/hooks/useSalesOrders';
+import { Suspense } from 'react';
+import { SingleStepOrderForm } from '@/components/salesOrders/SingleStepOrderForm';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ROUTES } from '@/lib/constants/routes';
 import { useSalesOrderPermissions } from '@/lib/hooks/useSalesOrderPermissions';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+import { useSalesOrder } from '@/lib/hooks/useSalesOrders';
 
 export default function EditSalesOrderPage() {
   const params = useParams();
@@ -33,7 +29,7 @@ export default function EditSalesOrderPage() {
 
   const getStatusBadge = () => {
     if (!existingOrder) return null;
-    
+
     // Solo mostrar badge de factura si existe y NO está cancelada
     if (existingOrder.invoice && !existingOrder.invoice.isCancelled) {
       if (existingOrder.invoice.isPrinted) {
@@ -41,13 +37,16 @@ export default function EditSalesOrderPage() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Badge variant="default" className="bg-red-600 hover:bg-red-700 cursor-help">
-                  <AlertTriangle className="h-3 w-3 mr-1" />
+                <Badge variant="default" className="cursor-help bg-red-600 hover:bg-red-700">
+                  <AlertTriangle className="mr-1 h-3 w-3" />
                   Factura Impresa
                 </Badge>
               </TooltipTrigger>
               <TooltipContent>
-                <p className="max-w-xs">Este pedido tiene una factura impresa. No se pueden realizar modificaciones. El stock ya fue debitado y el movimiento contable fue registrado.</p>
+                <p className="max-w-xs">
+                  Este pedido tiene una factura impresa. No se pueden realizar modificaciones. El
+                  stock ya fue debitado y el movimiento contable fue registrado.
+                </p>
               </TooltipContent>
             </Tooltip>
           </TooltipProvider>
@@ -57,7 +56,9 @@ export default function EditSalesOrderPage() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Badge variant="default" className="bg-blue-600 cursor-help">Con Factura</Badge>
+                <Badge variant="default" className="cursor-help bg-blue-600">
+                  Con Factura
+                </Badge>
               </TooltipTrigger>
               <TooltipContent>
                 <p>Este pedido tiene una factura asociada (no impresa).</p>
@@ -67,13 +68,15 @@ export default function EditSalesOrderPage() {
         );
       }
     }
-    
+
     if (existingOrder.deliveryNote) {
       return (
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Badge variant="default" className="bg-purple-600 cursor-help">Con Remito</Badge>
+              <Badge variant="default" className="cursor-help bg-purple-600">
+                Con Remito
+              </Badge>
             </TooltipTrigger>
             <TooltipContent>
               <p>Este pedido tiene un remito asociado.</p>
@@ -82,12 +85,14 @@ export default function EditSalesOrderPage() {
         </TooltipProvider>
       );
     }
-    
+
     return (
       <TooltipProvider>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Badge variant="secondary" className="cursor-help">Pendiente</Badge>
+            <Badge variant="secondary" className="cursor-help">
+              Pendiente
+            </Badge>
           </TooltipTrigger>
           <TooltipContent>
             <p>Pedido pendiente sin factura ni remito.</p>
@@ -101,7 +106,7 @@ export default function EditSalesOrderPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Link href="/dashboard/sales-orders">
+          <Link href={ROUTES.SALES_ORDERS}>
             <Button variant="ghost" size="icon">
               <ArrowLeft className="h-5 w-5" />
             </Button>
@@ -117,7 +122,9 @@ export default function EditSalesOrderPage() {
                   <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
-                        <Badge variant="outline" className="cursor-help">Solo lectura</Badge>
+                        <Badge variant="outline" className="cursor-help">
+                          Solo lectura
+                        </Badge>
                       </TooltipTrigger>
                       <TooltipContent>
                         <p>Este pedido no puede ser modificado.</p>
@@ -138,7 +145,7 @@ export default function EditSalesOrderPage() {
                 variant="outline"
                 onClick={() => {
                   console.log('🚚 Ver Remito clicked');
-                  router.push(`/dashboard/delivery-notes/${existingOrder.deliveryNote?.id}`);
+                  router.push(`${ROUTES.DELIVERY_NOTES}/${existingOrder.deliveryNote?.id}`);
                 }}
               >
                 Ver Remito
@@ -148,11 +155,9 @@ export default function EditSalesOrderPage() {
         )}
       </div>
 
-      <Suspense fallback={<div className="text-center py-12">Cargando...</div>}>
+      <Suspense fallback={<div className="py-12 text-center">Cargando...</div>}>
         <SingleStepOrderForm orderId={orderId} />
       </Suspense>
     </div>
   );
 }
-
-

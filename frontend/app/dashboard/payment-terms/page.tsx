@@ -1,12 +1,12 @@
 'use client';
 
+import { Plus, Pencil, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { PaymentTermDialog } from '@/components/paymentTerms/PaymentTermDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
-import { usePaymentTerms, useDeletePaymentTerm } from '@/lib/hooks/usePaymentTerms';
-import { PaymentTermDialog } from '@/components/paymentTerms/PaymentTermDialog';
 import { LoadingSpinner } from '@/components/ui/spinner';
+import { usePaymentTerms, useDeletePaymentTerm } from '@/lib/hooks/usePaymentTerms';
 import type { PaymentTerm } from '@/types/paymentTerm';
 
 export default function PaymentTermsPage() {
@@ -34,12 +34,10 @@ export default function PaymentTermsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Condiciones de Pago</h1>
-          <p className="text-muted-foreground">
-            Administrar las condiciones de pago disponibles
-          </p>
+          <p className="text-muted-foreground">Administrar las condiciones de pago disponibles</p>
         </div>
         <Button onClick={() => setIsDialogOpen(true)}>
           <Plus className="mr-2 h-4 w-4" />
@@ -50,49 +48,43 @@ export default function PaymentTermsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Lista de Condiciones de Pago</CardTitle>
-          <CardDescription>
-            {paymentTerms?.length || 0} condiciones registradas
-          </CardDescription>
+          <CardDescription>{paymentTerms?.length || 0} condiciones registradas</CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading && (
-            <LoadingSpinner size="md" className="py-8" />
-          )}
+          {isLoading && <LoadingSpinner size="md" className="py-8" />}
 
           {paymentTerms && paymentTerms.length > 0 && (
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 px-4">Código</th>
-                    <th className="text-left py-3 px-4">Nombre</th>
-                    <th className="text-right py-3 px-4">Días</th>
-                    <th className="text-center py-3 px-4">Estado</th>
-                    <th className="text-right py-3 px-4">Acciones</th>
+                    <th className="px-4 py-3 text-left">Código</th>
+                    <th className="px-4 py-3 text-left">Nombre</th>
+                    <th className="px-4 py-3 text-right">Días</th>
+                    <th className="px-4 py-3 text-center">Estado</th>
+                    <th className="px-4 py-3 text-right">Acciones</th>
                   </tr>
                 </thead>
                 <tbody>
                   {paymentTerms.map((term) => (
-                    <tr key={term.id} className="border-b hover:bg-muted">
-                      <td className="py-3 px-4 font-medium">{term.code}</td>
-                      <td className="py-3 px-4">{term.name}</td>
-                      <td className="py-3 px-4 text-right">{term.days}</td>
-                      <td className="py-3 px-4 text-center">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          term.isActive 
-                            ? 'bg-green-100 text-green-800' 
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
+                    <tr key={term.id} className="hover:bg-muted border-b">
+                      <td className="px-4 py-3 font-medium">{term.code}</td>
+                      <td className="px-4 py-3">{term.name}</td>
+                      <td className="px-4 py-3 text-right">{term.days}</td>
+                      <td className="px-4 py-3 text-center">
+                        <span
+                          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                            term.isActive
+                              ? 'bg-green-100 text-green-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}
+                        >
                           {term.isActive ? 'Activo' : 'Inactivo'}
                         </span>
                       </td>
-                      <td className="py-3 px-4 text-right">
+                      <td className="px-4 py-3 text-right">
                         <div className="flex justify-end gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEdit(term)}
-                          >
+                          <Button variant="ghost" size="sm" onClick={() => handleEdit(term)}>
                             <Pencil className="h-4 w-4" />
                           </Button>
                           <Button
@@ -113,7 +105,7 @@ export default function PaymentTermsPage() {
           )}
 
           {paymentTerms && paymentTerms.length === 0 && !isLoading && (
-            <div className="text-center py-8 text-muted-foreground">
+            <div className="text-muted-foreground py-8 text-center">
               No hay condiciones de pago registradas
             </div>
           )}
@@ -128,4 +120,3 @@ export default function PaymentTermsPage() {
     </div>
   );
 }
-

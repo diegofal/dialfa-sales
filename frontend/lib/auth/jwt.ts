@@ -1,10 +1,11 @@
 import { SignJWT, jwtVerify } from 'jose';
 import { cookies } from 'next/headers';
 
-const JWT_SECRET = process.env.JWT_SECRET || 'spisa-development-jwt-key-minimum-32-characters-long-for-local-dev-2025';
+const JWT_SECRET =
+  process.env.JWT_SECRET ||
+  'spisa-development-jwt-key-minimum-32-characters-long-for-local-dev-2025';
 const JWT_ISSUER = process.env.JWT_ISSUER || 'spisa-api';
 const JWT_AUDIENCE = process.env.JWT_AUDIENCE || 'spisa-frontend';
-const JWT_EXPIRATION_MINUTES = parseInt(process.env.JWT_EXPIRATION_MINUTES || '60');
 
 const secret = new TextEncoder().encode(JWT_SECRET);
 
@@ -69,5 +70,3 @@ export async function clearAuthCookie() {
   const cookieStore = await cookies();
   cookieStore.delete('auth-token');
 }
-
-

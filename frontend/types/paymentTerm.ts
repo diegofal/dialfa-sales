@@ -27,4 +27,3 @@ export interface CategoryPaymentDiscountFormData {
   paymentTermId: number;
   discountPercent: number;
 }
-

@@ -1,8 +1,8 @@
 'use client';
 
+import { LogOut, User, ShoppingCart } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useAuthStore } from '@/store/authStore';
-import { useLogout } from '@/lib/hooks/useAuth';
+import { QuickCartPopup } from '@/components/articles/QuickCartPopup';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -12,23 +12,22 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { LogOut, User, ShoppingCart } from 'lucide-react';
-import { QuickCartPopup } from '@/components/articles/QuickCartPopup';
-import { useQuickCartTabs } from '@/lib/hooks/useQuickCartTabs';
-import { useFixedBottomBar, useWindowSize } from '@/lib/hooks/useFixedBottomBar';
-import { calculateCartPositions, CART_CONSTANTS } from '@/lib/constants/cart';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
+import { calculateCartPositions, CART_CONSTANTS } from '@/lib/constants/cart';
+import { useLogout } from '@/lib/hooks/useAuth';
+import { useFixedBottomBar, useWindowSize } from '@/lib/hooks/useFixedBottomBar';
+import { useAuthStore } from '@/store/authStore';
 
 export default function Navbar() {
   const user = useAuthStore((state) => state.user);
   const logout = useLogout();
   const [cartOpen, setCartOpen] = useState(false);
-  
+
   // Automatically detect bottom bar and calculate positions
   const { bottomBarHeight, isDetecting } = useFixedBottomBar();
   const { width: windowWidth } = useWindowSize();
   const cartPositions = calculateCartPositions(bottomBarHeight, windowWidth);
-  
+
   // Debug logging
   if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
     console.log('🎯 Navbar cart positions:', {
@@ -38,7 +37,7 @@ export default function Navbar() {
       cartPositions,
     });
   }
-  
+
   // Handle SPACE key to toggle cart
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -46,14 +45,12 @@ export default function Navbar() {
       // 1. Not focused on an input, textarea, or contenteditable element
       // 2. SPACE key is pressed
       const target = e.target as HTMLElement;
-      const isInputFocused = 
-        target.tagName === 'INPUT' || 
-        target.tagName === 'TEXTAREA' || 
-        target.isContentEditable;
+      const isInputFocused =
+        target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable;
 
       if (e.code === 'Space' && !isInputFocused) {
         e.preventDefault(); // Prevent page scroll
-        setCartOpen(prev => !prev);
+        setCartOpen((prev) => !prev);
       }
     };
 
@@ -65,16 +62,16 @@ export default function Navbar() {
 
   return (
     <>
-      <header className="flex h-16 items-center justify-between gap-4 border-b bg-card px-6">
+      <header className="bg-card flex h-16 items-center justify-between gap-4 border-b px-6">
         <div className="flex items-center gap-4">
           <h2 className="text-lg font-semibold whitespace-nowrap">SPISA</h2>
-          <p className="text-sm text-muted-foreground">Sistema de Gestión de Inventario y Ventas</p>
+          <p className="text-muted-foreground text-sm">Sistema de Gestión de Inventario y Ventas</p>
         </div>
 
         <div className="flex items-center gap-2">
           {/* Theme Toggle */}
           <ThemeToggle />
-          
+
           {/* User Menu */}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -121,19 +118,11 @@ export default function Navbar() {
       </Button>
 
       {/* Quick Cart Popup with Dynamic Position */}
-      <QuickCartPopup 
-        isOpen={cartOpen} 
-        onClose={() => setCartOpen(false)} 
+      <QuickCartPopup
+        isOpen={cartOpen}
+        onClose={() => setCartOpen(false)}
         positions={cartPositions}
       />
     </>
   );
 }
-
-
-
-
-
-
-
-

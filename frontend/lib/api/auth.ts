@@ -1,5 +1,5 @@
-import apiClient from './client';
 import type { LoginRequest, LoginResponse } from '@/types/api';
+import apiClient from './client';
 
 export const authApi = {
   login: async (credentials: LoginRequest): Promise<LoginResponse> => {
@@ -26,6 +26,3 @@ export const authApi = {
     // Cookie is cleared by the server
   },
 };
-
-
-

@@ -1,18 +1,20 @@
-import { apiClient } from './client';
-import { PagedResult, PaginationParams } from '@/types/pagination';
-import type { 
-  DeliveryNote, 
-  DeliveryNoteListDto, 
-  CreateDeliveryNoteRequest, 
-  UpdateDeliveryNoteRequest 
+import type {
+  DeliveryNote,
+  DeliveryNoteListDto,
+  CreateDeliveryNoteRequest,
+  UpdateDeliveryNoteRequest,
 } from '@/types/deliveryNote';
+import { PagedResult, PaginationParams } from '@/types/pagination';
+import { apiClient } from './client';
 
 export const deliveryNotesApi = {
-  getAll: async (params: PaginationParams & {
-    salesOrderId?: number;
-    fromDate?: string;
-    toDate?: string;
-  } = {}): Promise<PagedResult<DeliveryNoteListDto>> => {
+  getAll: async (
+    params: PaginationParams & {
+      salesOrderId?: number;
+      fromDate?: string;
+      toDate?: string;
+    } = {}
+  ): Promise<PagedResult<DeliveryNoteListDto>> => {
     const apiParams = {
       page: params.pageNumber || 1,
       limit: params.pageSize || 50,
@@ -20,11 +22,11 @@ export const deliveryNotesApi = {
       fromDate: params.fromDate,
       toDate: params.toDate,
     };
-    
+
     const { data } = await apiClient.get<PagedResult<DeliveryNoteListDto>>('/delivery-notes', {
       params: apiParams,
     });
-    
+
     return data;
   },
 
@@ -58,7 +60,7 @@ export const deliveryNotesApi = {
     link.setAttribute('download', `remito-${id}.pdf`);
     document.body.appendChild(link);
     link.click();
-    
+
     // Cleanup
     if (link.parentNode) {
       link.parentNode.removeChild(link);
@@ -67,9 +69,13 @@ export const deliveryNotesApi = {
   },
 
   print: async (id: number): Promise<void> => {
-    const response = await apiClient.post(`/delivery-notes/${id}/print`, {}, {
-      responseType: 'blob',
-    });
+    const response = await apiClient.post(
+      `/delivery-notes/${id}/print`,
+      {},
+      {
+        responseType: 'blob',
+      }
+    );
 
     // Create blob URL from the PDF
     const pdfBlob = new Blob([response.data], { type: 'application/pdf' });
@@ -105,5 +111,3 @@ export const deliveryNotesApi = {
     };
   },
 };
-
-

@@ -1,12 +1,12 @@
 /**
  * Script de migración de certificados
- * 
+ *
  * Sube todos los archivos de certificados desde la carpeta local
  * a Supabase Storage y registra su metadata en PostgreSQL.
- * 
+ *
  * Uso:
  *   npx tsx scripts/migrate-certificates.ts
- * 
+ *
  * Variables de entorno requeridas:
  *   - DATABASE_URL
  *   - SUPABASE_URL
@@ -15,9 +15,13 @@
 
 import * as fs from 'fs/promises';
 import * as path from 'path';
-import * as XLSX from 'xlsx';
 import { PrismaClient } from '@prisma/client';
-import { uploadCertificateFile, getFileExtension, isAllowedFileType } from '../lib/storage/supabase';
+import * as XLSX from 'xlsx';
+import {
+  uploadCertificateFile,
+  getFileExtension,
+  isAllowedFileType,
+} from '../lib/storage/supabase';
 
 // Configuración
 const CERTIFICATES_SOURCE_DIR = 'G:\\Shared drives\\Dialfa\\CERTIFICADOS DIALFA';
@@ -26,14 +30,14 @@ const EXCEL_FILE_PATH = 'C:\\Users\\User\\Desktop\\Certificados.xlsx';
 // Mapeo de carpetas a categorías
 const FOLDER_TO_CATEGORY: Record<string, string> = {
   'ACCESORIOS 2023': 'ACCESORIOS',
-  'ACCESORIOS': 'ACCESORIOS',
+  ACCESORIOS: 'ACCESORIOS',
   'BRIDAS 2023': 'BRIDAS',
-  'BRIDAS': 'BRIDAS',
+  BRIDAS: 'BRIDAS',
   'ESPARRAGOS 2023': 'ESPARRAGOS',
-  'ESPARRAGOS': 'ESPARRAGOS',
+  ESPARRAGOS: 'ESPARRAGOS',
   'Forjado 2023': 'FORJADO',
-  'FORJADO': 'FORJADO',
-  'Certificados': 'ACCESORIOS'
+  FORJADO: 'FORJADO',
+  Certificados: 'ACCESORIOS',
 };
 
 const prisma = new PrismaClient();
@@ -52,7 +56,7 @@ const stats: MigrationStats = {
   uploaded: 0,
   failed: 0,
   skipped: 0,
-  errors: []
+  errors: [],
 };
 
 /**
@@ -60,20 +64,20 @@ const stats: MigrationStats = {
  */
 async function loadExcelMapping(): Promise<Map<string, string[]>> {
   const fileToColadas = new Map<string, string[]>();
-  
+
   try {
     console.log('📊 Leyendo archivo Excel...\n');
-    
+
     const workbook = XLSX.readFile(EXCEL_FILE_PATH);
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const data: any[] = XLSX.utils.sheet_to_json(sheet, { defval: null });
-    
+
     let currentFile = '';
-    
+
     for (const row of data) {
       const fileName = row['NOMBRE DEL ARCHIVO  ']; // Nota: columna tiene espacios
       const colada = row['COLADA'];
-      
+
       // Si hay nombre de archivo, actualizar el archivo actual
       if (fileName && fileName.toString().trim()) {
         currentFile = fileName.toString().trim();
@@ -81,7 +85,7 @@ async function loadExcelMapping(): Promise<Map<string, string[]>> {
           fileToColadas.set(currentFile, []);
         }
       }
-      
+
       // Si hay colada, agregarla al archivo actual
       if (colada && colada.toString().trim() && currentFile) {
         const coladaStr = colada.toString().trim();
@@ -91,9 +95,9 @@ async function loadExcelMapping(): Promise<Map<string, string[]>> {
         }
       }
     }
-    
+
     console.log(`✅ Excel cargado: ${fileToColadas.size} archivos con coladas definidas\n`);
-    
+
     return fileToColadas;
   } catch (error) {
     console.warn('⚠️  No se pudo leer el Excel, se usará extracción de nombres de archivo');
@@ -108,15 +112,15 @@ async function loadExcelMapping(): Promise<Map<string, string[]>> {
  */
 function extractColadasFromFilename(filename: string): string[] {
   const coladas: string[] = [];
-  
+
   // Patrón: números + letra + números + letras (ej: 011U07GI)
   const pattern = /\d{3,4}U\d{2}[A-Z]{1,2}/gi;
   const matches = filename.match(pattern);
-  
+
   if (matches) {
-    coladas.push(...matches.map(m => m.toUpperCase()));
+    coladas.push(...matches.map((m) => m.toUpperCase()));
   }
-  
+
   return [...new Set(coladas)]; // Eliminar duplicados
 }
 
@@ -126,12 +130,12 @@ function extractColadasFromFilename(filename: string): string[] {
 function getCategoryFromPath(filePath: string): string {
   const relativePath = filePath.replace(CERTIFICATES_SOURCE_DIR, '');
   const parts = relativePath.split(path.sep).filter(Boolean);
-  
+
   if (parts.length > 0) {
     const folder = parts[0];
     return FOLDER_TO_CATEGORY[folder] || 'ACCESORIOS';
   }
-  
+
   return 'ACCESORIOS';
 }
 
@@ -140,13 +144,13 @@ function getCategoryFromPath(filePath: string): string {
  */
 async function scanDirectory(dir: string): Promise<string[]> {
   const files: string[] = [];
-  
+
   try {
     const entries = await fs.readdir(dir, { withFileTypes: true });
-    
+
     for (const entry of entries) {
       const fullPath = path.join(dir, entry.name);
-      
+
       if (entry.isDirectory()) {
         // Recursión en subdirectorios
         const subFiles = await scanDirectory(fullPath);
@@ -161,7 +165,7 @@ async function scanDirectory(dir: string): Promise<string[]> {
   } catch (error) {
     console.error(`Error escaneando ${dir}:`, error);
   }
-  
+
   return files;
 }
 
@@ -172,43 +176,46 @@ async function findOrCreateColada(coladaNumber: string) {
   return prisma.coladas.upsert({
     where: { colada_number: coladaNumber },
     create: { colada_number: coladaNumber },
-    update: {}
+    update: {},
   });
 }
 
 /**
  * Migra un archivo individual
  */
-async function migrateFile(filePath: string, excelMapping: Map<string, string[]>): Promise<boolean> {
+async function migrateFile(
+  filePath: string,
+  excelMapping: Map<string, string[]>
+): Promise<boolean> {
   const fileName = path.basename(filePath);
-  
+
   try {
     console.log(`\n📄 Procesando: ${fileName}`);
-    
+
     // Verificar si ya existe en la base de datos
     const existing = await prisma.certificates.findFirst({
-      where: { 
+      where: {
         file_name: fileName,
-        deleted_at: null
-      }
+        deleted_at: null,
+      },
     });
-    
+
     if (existing) {
       console.log(`  ⏭️  Ya existe en la base de datos (ID: ${existing.id})`);
       stats.skipped++;
       return true;
     }
-    
+
     // Leer archivo
     const fileBuffer = await fs.readFile(filePath);
     const category = getCategoryFromPath(filePath);
-    
+
     console.log(`  📁 Categoría: ${category}`);
-    
+
     // Obtener coladas: primero del Excel, luego del nombre de archivo
     let coladaNumbers: string[] = [];
     let source = '';
-    
+
     if (excelMapping.has(fileName)) {
       coladaNumbers = excelMapping.get(fileName)!;
       source = 'Excel';
@@ -216,24 +223,20 @@ async function migrateFile(filePath: string, excelMapping: Map<string, string[]>
       coladaNumbers = extractColadasFromFilename(fileName);
       source = 'nombre de archivo';
     }
-    
-    console.log(`  🔢 Coladas (${source}): ${coladaNumbers.length > 0 ? coladaNumbers.join(', ') : 'ninguna'}`);
-    
+
+    console.log(
+      `  🔢 Coladas (${source}): ${coladaNumbers.length > 0 ? coladaNumbers.join(', ') : 'ninguna'}`
+    );
+
     // Subir a Supabase Storage
     console.log(`  ⬆️  Subiendo a Supabase...`);
-    const { storagePath } = await uploadCertificateFile(
-      fileBuffer,
-      fileName,
-      category
-    );
-    
+    const { storagePath } = await uploadCertificateFile(fileBuffer, fileName, category);
+
     console.log(`  ✅ Subido: ${storagePath}`);
-    
+
     // Crear/obtener coladas
-    const coladas = await Promise.all(
-      coladaNumbers.map(num => findOrCreateColada(num))
-    );
-    
+    const coladas = await Promise.all(coladaNumbers.map((num) => findOrCreateColada(num)));
+
     // Registrar en base de datos
     const certificate = await prisma.certificates.create({
       data: {
@@ -244,23 +247,22 @@ async function migrateFile(filePath: string, excelMapping: Map<string, string[]>
         file_size_bytes: BigInt(fileBuffer.length),
         category,
         certificate_coladas: {
-          create: coladas.map(colada => ({
-            colada_id: colada.id
-          }))
-        }
-      }
+          create: coladas.map((colada) => ({
+            colada_id: colada.id,
+          })),
+        },
+      },
     });
-    
+
     console.log(`  💾 Registrado en DB: ID ${certificate.id}`);
     stats.uploaded++;
     return true;
-    
   } catch (error) {
     console.error(`  ❌ Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
     stats.failed++;
     stats.errors.push({
       file: fileName,
-      error: error instanceof Error ? error.message : 'Unknown error'
+      error: error instanceof Error ? error.message : 'Unknown error',
     });
     return false;
   }
@@ -274,7 +276,7 @@ async function main() {
   console.log(`📂 Origen: ${CERTIFICATES_SOURCE_DIR}`);
   console.log(`🗄️  Base de datos: ${process.env.DATABASE_URL?.split('@')[1] || 'unknown'}`);
   console.log(`☁️  Storage: ${process.env.SUPABASE_URL}\n`);
-  
+
   // Verificar que el directorio existe
   try {
     await fs.access(CERTIFICATES_SOURCE_DIR);
@@ -282,35 +284,35 @@ async function main() {
     console.error(`❌ No se puede acceder a: ${CERTIFICATES_SOURCE_DIR}`);
     process.exit(1);
   }
-  
+
   // Cargar mapeo del Excel
   const excelMapping = await loadExcelMapping();
-  
+
   // Escanear todos los archivos
   console.log('🔍 Escaneando archivos...');
   const files = await scanDirectory(CERTIFICATES_SOURCE_DIR);
   stats.totalFiles = files.length;
-  
+
   console.log(`\n✨ Encontrados ${stats.totalFiles} archivos para migrar\n`);
-  console.log('=' .repeat(60));
-  
+  console.log('='.repeat(60));
+
   // Confirmar antes de proceder
   console.log('\n⚠️  ADVERTENCIA: Esta operación subirá archivos y modificará la base de datos.');
   console.log('Presiona Ctrl+C para cancelar, o espera 5 segundos para continuar...\n');
-  
-  await new Promise(resolve => setTimeout(resolve, 5000));
-  
+
+  await new Promise((resolve) => setTimeout(resolve, 5000));
+
   console.log('▶️  Iniciando migración...\n');
-  
+
   // Migrar cada archivo
   for (let i = 0; i < files.length; i++) {
     console.log(`\n[${i + 1}/${files.length}]`);
     await migrateFile(files[i], excelMapping);
-    
+
     // Pausa pequeña para evitar rate limiting
-    await new Promise(resolve => setTimeout(resolve, 100));
+    await new Promise((resolve) => setTimeout(resolve, 100));
   }
-  
+
   // Resumen final
   console.log('\n' + '='.repeat(60));
   console.log('📊 RESUMEN DE MIGRACIÓN');
@@ -320,7 +322,7 @@ async function main() {
   console.log(`❌ Fallidos:             ${stats.failed}`);
   console.log(`⏭️  Omitidos:             ${stats.skipped}`);
   console.log('='.repeat(60));
-  
+
   if (stats.errors.length > 0) {
     console.log('\n❌ ERRORES:');
     stats.errors.forEach((err, i) => {
@@ -328,7 +330,7 @@ async function main() {
       console.log(`   ${err.error}\n`);
     });
   }
-  
+
   console.log('\n✅ Migración completada');
 }
 
@@ -341,4 +343,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-

@@ -1,20 +1,20 @@
 import { useMemo } from 'react';
-import type { SalesOrder } from '@/types/salesOrder';
-import type { SalesOrderPermissions } from '@/types/permissions';
 import { calculateSalesOrderPermissions } from '@/lib/permissions/salesOrders';
+import type { SalesOrderPermissions } from '@/types/permissions';
+import type { SalesOrder } from '@/types/salesOrder';
 
 /**
  * React hook to calculate permissions for a sales order
- * 
+ *
  * @param salesOrder - The sales order entity
  * @param hasUnsavedChanges - Whether the form has unsaved changes
  * @returns Computed permissions object
- * 
+ *
  * @example
  * ```tsx
  * const permissions = useSalesOrderPermissions(salesOrder, hasUnsavedChanges);
- * 
- * <Button 
+ *
+ * <Button
  *   onClick={handleDelete}
  *   disabled={!permissions.canDelete}
  * >
@@ -39,5 +39,3 @@ export function useSalesOrderPermissions(
 
   return permissions;
 }
-
-

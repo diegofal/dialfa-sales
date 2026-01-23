@@ -30,8 +30,3 @@ export interface SupplierListDto {
   suppliers: Supplier[];
   total: number;
 }
-
-
-
-
-

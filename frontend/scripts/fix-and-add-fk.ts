@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   console.log('1. Limpiando supplier_id inválidos en articles...');
-  
+
   try {
     const result = await prisma.$executeRawUnsafe(`
       UPDATE articles SET supplier_id = NULL WHERE supplier_id IS NOT NULL
@@ -13,9 +13,9 @@ async function main() {
   } catch (error: any) {
     console.error('Error al limpiar:', error.message);
   }
-  
+
   console.log('\n2. Intentando agregar foreign key constraint...');
-  
+
   try {
     await prisma.$executeRawUnsafe(`
       ALTER TABLE articles 
@@ -31,7 +31,7 @@ async function main() {
       throw error;
     }
   }
-  
+
   console.log('\n✓ Migración completada exitosamente');
 }
 
@@ -43,8 +43,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-
-
-
-
-

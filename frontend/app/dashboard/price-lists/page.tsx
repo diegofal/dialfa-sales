@@ -1,44 +1,55 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import {
+  AlertCircle,
+  Save,
+  X,
+  DollarSign,
+  Download,
+  Upload,
+  History,
+  List,
+  FileDown,
+  FileSpreadsheet,
+} from 'lucide-react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
-import { usePriceLists, useUpdatePrices } from '@/lib/hooks/usePriceLists';
-import { useCategories } from '@/lib/hooks/useCategories';
-import { useAuthStore } from '@/store/authStore';
-import { usePriceImportDraft } from '@/lib/hooks/usePriceImportDraft';
+import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
+import * as XLSX from 'xlsx';
+import { PriceHistoryTable } from '@/components/priceLists/PriceHistoryTable';
+import { PriceImportDialog } from '@/components/priceLists/PriceImportDialog';
 import { PriceListFilters } from '@/components/priceLists/PriceListFilters';
 import { PriceListTable } from '@/components/priceLists/PriceListTable';
-import { PriceHistoryTable } from '@/components/priceLists/PriceHistoryTable';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   Accordion,
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
 } from '@/components/ui/accordion';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { AlertCircle, Save, X, DollarSign, Download, Upload, History, List, FileDown, FileSpreadsheet } from 'lucide-react';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { BulkPriceUpdate } from '@/types/priceList';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { useCategories } from '@/lib/hooks/useCategories';
+import { usePriceImportDraft } from '@/lib/hooks/usePriceImportDraft';
+import { usePriceLists, useUpdatePrices } from '@/lib/hooks/usePriceLists';
 import { sortArticlesByCategory } from '@/lib/utils/articleSorting';
-import { toast } from 'sonner';
-import { PriceImportDialog } from '@/components/priceLists/PriceImportDialog';
-import * as XLSX from 'xlsx';
+import { useAuthStore } from '@/store/authStore';
+import { BulkPriceUpdate } from '@/types/priceList';
 
 export default function PriceListsPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const { isAdmin } = useAuthStore();
-  
+
   // Get initial tab from URL or default to 'price-lists'
   const [currentTab, setCurrentTab] = useState<string>(() => {
     return searchParams.get('tab') || 'price-lists';
@@ -59,7 +70,7 @@ export default function PriceListsPage() {
     params.set('tab', newTab);
     router.push(`${pathname}?${params.toString()}`);
   };
-  
+
   // State - DEBE estar antes del early return
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('all');
   const [searchTerm, setSearchTerm] = useState<string>('');
@@ -70,14 +81,17 @@ export default function PriceListsPage() {
 
   // Queries - DEBEN estar antes del early return
   const { data: categoriesData } = useCategories({ activeOnly: true, pageSize: 500 });
-  
+
   // Debug: Ver qué categorías está trayendo
   useEffect(() => {
     if (categoriesData?.data) {
-      console.log('Categorías cargadas:', categoriesData.data.map(c => ({ code: c.code, name: c.name })));
+      console.log(
+        'Categorías cargadas:',
+        categoriesData.data.map((c) => ({ code: c.code, name: c.name }))
+      );
     }
   }, [categoriesData]);
-  
+
   const { data, isLoading } = usePriceLists({
     categoryId: selectedCategoryId !== 'all' ? parseInt(selectedCategoryId) : undefined,
     search: searchTerm || undefined,
@@ -85,7 +99,7 @@ export default function PriceListsPage() {
   });
   const updatePricesMutation = useUpdatePrices();
   const { loadDraft, saveDraft, deleteDraft, isSaving } = usePriceImportDraft();
-  
+
   // Cargar borrador guardado al montar el componente
   useEffect(() => {
     const loadSavedDraft = async () => {
@@ -97,18 +111,19 @@ export default function PriceListsPage() {
         });
       }
     };
-    
+
     loadSavedDraft();
   }, [loadDraft]);
-  
+
   // Verificar permisos DESPUÉS de los hooks
   if (!isAdmin()) {
     return (
-      <div className="flex items-center justify-center h-[calc(100vh-4rem)]">
+      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
         <Alert variant="destructive" className="max-w-md">
           <AlertCircle className="h-4 w-4" />
           <AlertDescription>
-            No tienes permisos para acceder a esta página. Solo los administradores pueden ver y editar listas de precios.
+            No tienes permisos para acceder a esta página. Solo los administradores pueden ver y
+            editar listas de precios.
           </AlertDescription>
         </Alert>
       </div>
@@ -157,16 +172,18 @@ export default function PriceListsPage() {
   const handleImportConfirm = async (updates: Array<{ articleId: number; newPrice: number }>) => {
     // Guardar los precios propuestos sin aplicarlos inmediatamente
     const newProposedPrices = new Map<number, number>();
-    updates.forEach(update => {
+    updates.forEach((update) => {
       newProposedPrices.set(update.articleId, update.newPrice);
     });
     setProposedPrices(newProposedPrices);
-    
+
     // Guardar en base de datos
     const saved = await saveDraft(newProposedPrices);
-    
+
     if (saved) {
-      toast.success(`${updates.length} precios preparados y guardados. Revisa y confirma los cambios.`);
+      toast.success(
+        `${updates.length} precios preparados y guardados. Revisa y confirma los cambios.`
+      );
     } else {
       toast.warning(`${updates.length} precios preparados (no se pudo guardar en BD)`);
     }
@@ -189,10 +206,10 @@ export default function PriceListsPage() {
         changeType: 'csv_import',
         notes: 'Importación masiva desde CSV',
       });
-      
+
       // Eliminar borrador de la BD después de confirmar
       await deleteDraft();
-      
+
       setProposedPrices(new Map()); // Limpiar precios propuestos
       toast.success('Precios actualizados exitosamente');
     } catch {
@@ -203,36 +220,38 @@ export default function PriceListsPage() {
   const handleCancelProposedPrices = async () => {
     // Eliminar de la BD
     await deleteDraft();
-    
+
     // Limpiar estado local
     setProposedPrices(new Map());
-    
+
     toast.info('Precios propuestos cancelados y eliminados');
   };
 
   // Crear array plano de todos los artículos para el import con payment discounts
-  const allArticles = data?.data.flatMap(category => 
-    category.items.map(item => ({
-      id: item.id,
-      code: item.code,
-      description: item.description,
-      unitPrice: item.unitPrice,
-      stock: item.stock,
-      costPrice: item.costPrice,
-      cifPercentage: item.cifPercentage,
-      categoryId: item.categoryId,
-      paymentDiscounts: category.paymentDiscounts,
-    }))
-  ) || [];
+  const allArticles =
+    data?.data.flatMap((category) =>
+      category.items.map((item) => ({
+        id: item.id,
+        code: item.code,
+        description: item.description,
+        unitPrice: item.unitPrice,
+        stock: item.stock,
+        costPrice: item.costPrice,
+        cifPercentage: item.cifPercentage,
+        categoryId: item.categoryId,
+        paymentDiscounts: category.paymentDiscounts,
+      }))
+    ) || [];
 
   // Obtener todos los payment terms únicos
-  const allPaymentTerms = data?.data
-    .flatMap(category => category.paymentDiscounts)
-    .filter((discount, index, self) => 
-      index === self.findIndex(d => d.paymentTermId === discount.paymentTermId)
-    )
-    .sort((a, b) => a.paymentTermCode.localeCompare(b.paymentTermCode))
-    || [];
+  const allPaymentTerms =
+    data?.data
+      .flatMap((category) => category.paymentDiscounts)
+      .filter(
+        (discount, index, self) =>
+          index === self.findIndex((d) => d.paymentTermId === discount.paymentTermId)
+      )
+      .sort((a, b) => a.paymentTermCode.localeCompare(b.paymentTermCode)) || [];
 
   // Ordenar items usando el algoritmo global de ordenamiento
   // Ver: lib/utils/articleSorting.ts para documentación completa
@@ -241,59 +260,58 @@ export default function PriceListsPage() {
   // Calcular stock valorizado por condición de pago SOLO para items modificados
   const calculateStockValue = () => {
     if (!data || proposedPrices.size === 0) return { before: {}, after: {} };
-    
+
     const beforeByPaymentTerm: Record<string, number> = {};
     const afterByPaymentTerm: Record<string, number> = {};
-    
+
     // Inicializar con todos los payment terms
-    allPaymentTerms.forEach(pt => {
+    allPaymentTerms.forEach((pt) => {
       beforeByPaymentTerm[pt.paymentTermCode] = 0;
       afterByPaymentTerm[pt.paymentTermCode] = 0;
     });
-    
+
     // Iterar solo sobre los items que tienen precio propuesto
-    sortedData.forEach(category => {
-      category.items.forEach(item => {
+    sortedData.forEach((category) => {
+      category.items.forEach((item) => {
         const proposedPrice = proposedPrices.get(item.id);
-        
+
         // SOLO calcular si este item tiene un precio propuesto
         if (!proposedPrice) return;
-        
+
         const basePrice = item.unitPrice;
-        
+
         // Calcular valorización por cada payment term
-        category.paymentDiscounts.forEach(pd => {
+        category.paymentDiscounts.forEach((pd) => {
           const currentPrice = basePrice * (1 - pd.discountPercent / 100);
           const newPrice = proposedPrice * (1 - pd.discountPercent / 100);
-          
+
           beforeByPaymentTerm[pd.paymentTermCode] += item.stock * currentPrice;
           afterByPaymentTerm[pd.paymentTermCode] += item.stock * newPrice;
         });
       });
     });
-    
+
     return { before: beforeByPaymentTerm, after: afterByPaymentTerm };
   };
 
   const stockValue = calculateStockValue();
 
   // Filtrar datos: Si hay precios propuestos, mostrar solo items modificados
-  const displayData = proposedPrices.size > 0
-    ? sortedData
-        .map(category => ({
-          ...category,
-          items: category.items.filter(item => proposedPrices.has(item.id)),
-        }))
-        .filter(category => category.items.length > 0) // Solo categorías con items modificados
-    : sortedData;
+  const displayData =
+    proposedPrices.size > 0
+      ? sortedData
+          .map((category) => ({
+            ...category,
+            items: category.items.filter((item) => proposedPrices.has(item.id)),
+          }))
+          .filter((category) => category.items.length > 0) // Solo categorías con items modificados
+      : sortedData;
 
   const handleDownloadHTML = () => {
     if (!data || displayData.length === 0) {
       toast.error('No hay datos para descargar');
       return;
     }
-
-    const hasProposedPrices = proposedPrices.size > 0;
 
     const html = `
 <!DOCTYPE html>
@@ -470,7 +488,9 @@ export default function PriceListsPage() {
     </div>
   </div>
 
-   ${displayData.map(category => `
+   ${displayData
+     .map(
+       (category) => `
     <div class="category">
       <div class="category-header">
         <div>
@@ -489,14 +509,15 @@ export default function PriceListsPage() {
           </tr>
         </thead>
         <tbody>
-          ${category.items.map(item => {
-            const proposedPrice = proposedPrices.get(item.id);
-            const priceToUse = proposedPrice || item.unitPrice;
-            const priceChange = proposedPrice 
-              ? ((proposedPrice - item.unitPrice) / item.unitPrice * 100)
-              : 0;
-            
-            return `
+          ${category.items
+            .map((item) => {
+              const proposedPrice = proposedPrices.get(item.id);
+              const priceToUse = proposedPrice || item.unitPrice;
+              const priceChange = proposedPrice
+                ? ((proposedPrice - item.unitPrice) / item.unitPrice) * 100
+                : 0;
+
+              return `
             <tr>
               <td style="font-family: monospace; font-size: 12px;">${item.code}</td>
               <td style="font-size: 12px;">
@@ -510,11 +531,14 @@ export default function PriceListsPage() {
               </td>
             </tr>
           `;
-          }).join('')}
+            })
+            .join('')}
         </tbody>
       </table>
     </div>
-  `).join('')}
+  `
+     )
+     .join('')}
 
   <div class="footer">
     <p>Generado el ${new Date().toLocaleString('es-AR')} | SPISA - Sistema de Gestión de Inventario y Ventas</p>
@@ -532,7 +556,7 @@ export default function PriceListsPage() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
+
     toast.success('Lista de precios descargada correctamente');
   };
 
@@ -544,9 +568,9 @@ export default function PriceListsPage() {
 
     // Generar CSV con Código y Precio Propuesto
     let csvContent = 'Codigo,PrecioPropuesto\n';
-    
-    displayData.forEach(category => {
-      category.items.forEach(item => {
+
+    displayData.forEach((category) => {
+      category.items.forEach((item) => {
         const proposedPrice = proposedPrices.get(item.id);
         const priceToUse = proposedPrice || item.unitPrice;
         csvContent += `${item.code},${priceToUse.toFixed(2)}\n`;
@@ -563,7 +587,7 @@ export default function PriceListsPage() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
+
     toast.success('CSV exportado correctamente');
   };
 
@@ -575,14 +599,14 @@ export default function PriceListsPage() {
 
     // Preparar datos para Excel
     const excelData: Array<{ Codigo: string; PrecioPropuesto: number }> = [];
-    
-    displayData.forEach(category => {
-      category.items.forEach(item => {
+
+    displayData.forEach((category) => {
+      category.items.forEach((item) => {
         const proposedPrice = proposedPrices.get(item.id);
         const priceToUse = proposedPrice || item.unitPrice;
         excelData.push({
           Codigo: item.code,
-          PrecioPropuesto: Number(priceToUse.toFixed(2))
+          PrecioPropuesto: Number(priceToUse.toFixed(2)),
         });
       });
     });
@@ -595,12 +619,12 @@ export default function PriceListsPage() {
     // Ajustar ancho de columnas
     ws['!cols'] = [
       { wch: 15 }, // Codigo
-      { wch: 18 }  // PrecioPropuesto
+      { wch: 18 }, // PrecioPropuesto
     ];
 
     // Descargar archivo
     XLSX.writeFile(wb, `precios-propuestos-${new Date().toISOString().split('T')[0]}.xlsx`);
-    
+
     toast.success('Excel exportado correctamente');
   };
 
@@ -616,8 +640,25 @@ export default function PriceListsPage() {
 
     // Definir el orden de diámetros
     const sizeOrder = [
-      '1/2"', '3/4"', '1"', '1 1/4"', '1 1/2"', '2"', '2 1/2"', '3"', '4"', 
-      '5"', '6"', '8"', '10"', '12"', '14"', '16"', '18"', '20"', '24"'
+      '1/2"',
+      '3/4"',
+      '1"',
+      '1 1/4"',
+      '1 1/2"',
+      '2"',
+      '2 1/2"',
+      '3"',
+      '4"',
+      '5"',
+      '6"',
+      '8"',
+      '10"',
+      '12"',
+      '14"',
+      '16"',
+      '18"',
+      '20"',
+      '24"',
     ];
 
     // Normalizar tamaño para comparación
@@ -634,30 +675,30 @@ export default function PriceListsPage() {
     // Mapear tipos a columnas (incluir códigos cortos y variantes)
     const typeToColumn: Record<string, string> = {
       // Livianas
-      'LIVIANA': 'LIVIANAS',
-      'L': 'LIVIANAS',
+      LIVIANA: 'LIVIANAS',
+      L: 'LIVIANAS',
       // S.O.R.F. (Slip On Raised Face)
-      'SORF': 'S.O.R.F.',
+      SORF: 'S.O.R.F.',
       'S.O.R.F.': 'S.O.R.F.',
-      'S': 'S.O.R.F.',
-      'SO': 'S.O.R.F.',
+      S: 'S.O.R.F.',
+      SO: 'S.O.R.F.',
       'SLIP ON': 'S.O.R.F.',
       // W.N.R.F. (Welding Neck Raised Face)
-      'WNRF': 'W.N.R.F.',
+      WNRF: 'W.N.R.F.',
       'W.N.R.F.': 'W.N.R.F.',
-      'W': 'W.N.R.F.',
-      'WN': 'W.N.R.F.',
+      W: 'W.N.R.F.',
+      WN: 'W.N.R.F.',
       'WELDING NECK': 'W.N.R.F.',
       // Ciegas (Blind)
-      'CIEGA': 'CIEGAS',
-      'BLIND': 'CIEGAS',
-      'C': 'CIEGAS',
-      'BL': 'CIEGAS',
+      CIEGA: 'CIEGAS',
+      BLIND: 'CIEGAS',
+      C: 'CIEGAS',
+      BL: 'CIEGAS',
       // Roscadas (Threaded)
-      'ROSCADA': 'ROSCADAS',
-      'THREADED': 'ROSCADAS',
-      'R': 'ROSCADAS',
-      'TH': 'ROSCADAS',
+      ROSCADA: 'ROSCADAS',
+      THREADED: 'ROSCADAS',
+      R: 'ROSCADAS',
+      TH: 'ROSCADAS',
     };
 
     // Estructura para almacenar datos por serie
@@ -682,20 +723,22 @@ export default function PriceListsPage() {
       if (!thickness) return true; // Si no tiene espesor, asumimos estándar
       const t = thickness.toUpperCase().trim();
       // STD, 40, Sch. 40, SCH40, S.40 son espesores estándar
-      return t === 'STD' || t === '40' || t === 'SCH. 40' || t === 'SCH40' || t === 'S.40' || t === '';
+      return (
+        t === 'STD' || t === '40' || t === 'SCH. 40' || t === 'SCH40' || t === 'S.40' || t === ''
+      );
     };
 
     // Procesar todos los artículos
-    displayData.forEach(category => {
-      category.items.forEach(item => {
+    displayData.forEach((category) => {
+      category.items.forEach((item) => {
         const series = item.series;
         const type = item.type?.toUpperCase();
         const size = normalizeSize(item.size);
         const thickness = item.thickness;
-        
+
         if (!series || ![150, 300, 600].includes(series)) return;
         if (!type || !size) return;
-        
+
         // Solo exportar artículos con espesor estándar
         if (!isStandardThickness(thickness)) return;
 
@@ -715,8 +758,20 @@ export default function PriceListsPage() {
 
     // Obtener mes y año actual
     const now = new Date();
-    const monthNames = ['ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 
-                        'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'];
+    const monthNames = [
+      'ENERO',
+      'FEBRERO',
+      'MARZO',
+      'ABRIL',
+      'MAYO',
+      'JUNIO',
+      'JULIO',
+      'AGOSTO',
+      'SEPTIEMBRE',
+      'OCTUBRE',
+      'NOVIEMBRE',
+      'DICIEMBRE',
+    ];
     const currentMonth = monthNames[now.getMonth()];
     const currentYear = now.getFullYear();
 
@@ -737,7 +792,10 @@ export default function PriceListsPage() {
       // Subtítulo de serie
       const seriesStartRow = sheetData.length;
       sheetData.push([`S-${series}`]);
-      merges.push({ s: { r: seriesStartRow, c: 0 }, e: { r: seriesStartRow, c: columns.length - 1 } });
+      merges.push({
+        s: { r: seriesStartRow, c: 0 },
+        e: { r: seriesStartRow, c: columns.length - 1 },
+      });
       sheetData.push([]); // Fila vacía
 
       // Encabezados
@@ -747,10 +805,10 @@ export default function PriceListsPage() {
       sheetData.push(headerRow);
 
       // Datos ordenados por tamaño
-      sizeOrder.forEach(size => {
+      sizeOrder.forEach((size) => {
         if (seriesRows[size]) {
           const row: (string | number | null)[] = [size];
-          columns.slice(1).forEach(col => {
+          columns.slice(1).forEach((col) => {
             const value = seriesRows[size][col];
             row.push(value !== undefined ? value : null);
           });
@@ -780,12 +838,12 @@ export default function PriceListsPage() {
 
     // Ajustar ancho de columnas
     ws['!cols'] = [
-      { wch: 12 },  // DIAMETRO
-      { wch: 10 },  // LIVIANAS / S.O.R.F.
-      { wch: 10 },  // S.O.R.F. / W.N.R.F.
-      { wch: 10 },  // W.N.R.F. / CIEGAS
-      { wch: 10 },  // CIEGAS
-      { wch: 10 },  // ROSCADAS
+      { wch: 12 }, // DIAMETRO
+      { wch: 10 }, // LIVIANAS / S.O.R.F.
+      { wch: 10 }, // S.O.R.F. / W.N.R.F.
+      { wch: 10 }, // W.N.R.F. / CIEGAS
+      { wch: 10 }, // CIEGAS
+      { wch: 10 }, // ROSCADAS
     ];
 
     // Aplicar merges
@@ -798,7 +856,7 @@ export default function PriceListsPage() {
     // Descargar archivo
     const filename = `BRIDAS_DIALFA_${currentMonth}_${currentYear}.xlsx`;
     XLSX.writeFile(wb, filename);
-    
+
     toast.success(`Archivo "${filename}" exportado correctamente`);
   };
 
@@ -807,13 +865,11 @@ export default function PriceListsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold flex items-center gap-2">
+          <h1 className="flex items-center gap-2 text-3xl font-bold">
             <DollarSign className="h-8 w-8" />
             Listas de Precios
           </h1>
-          <p className="text-muted-foreground">
-            Gestión de precios unitarios por categoría
-          </p>
+          <p className="text-muted-foreground">Gestión de precios unitarios por categoría</p>
         </div>
       </div>
 
@@ -832,242 +888,248 @@ export default function PriceListsPage() {
 
         {/* Price Lists Tab */}
         <TabsContent value="price-lists" className="space-y-6">
-          <div className="flex gap-2 justify-end">
+          <div className="flex justify-end gap-2">
             <Button
               onClick={() => setImportDialogOpen(true)}
               disabled={isLoading}
               variant="default"
             >
-              <Upload className="h-4 w-4 mr-2" />
+              <Upload className="mr-2 h-4 w-4" />
               Importar CSV
             </Button>
-            
+
             {/* Dropdown para exportar */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button
-                  disabled={isLoading || !data || displayData.length === 0}
-                  variant="outline"
-                >
-                  <FileDown className="h-4 w-4 mr-2" />
+                <Button disabled={isLoading || !data || displayData.length === 0} variant="outline">
+                  <FileDown className="mr-2 h-4 w-4" />
                   Exportar
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end">
                 <DropdownMenuItem onClick={handleExportDialfa}>
-                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  <FileSpreadsheet className="mr-2 h-4 w-4" />
                   XLS Dialfa (Bridas)
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleExportCSV}>
-                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  <FileSpreadsheet className="mr-2 h-4 w-4" />
                   Exportar CSV
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleExportExcel}>
-                  <FileSpreadsheet className="h-4 w-4 mr-2" />
+                  <FileSpreadsheet className="mr-2 h-4 w-4" />
                   Exportar Excel (XLS)
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={handleDownloadHTML}>
-                  <Download className="h-4 w-4 mr-2" />
+                  <Download className="mr-2 h-4 w-4" />
                   Descargar HTML
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </div>
 
-      {/* Filters */}
-      <PriceListFilters
-        categories={categoriesData?.data || []}
-        selectedCategoryId={selectedCategoryId}
-        searchTerm={searchTerm}
-        activeOnly={activeOnly}
-        onCategoryChange={setSelectedCategoryId}
-        onSearchChange={setSearchTerm}
-        onActiveOnlyChange={setActiveOnly}
-      />
+          {/* Filters */}
+          <PriceListFilters
+            categories={categoriesData?.data || []}
+            selectedCategoryId={selectedCategoryId}
+            searchTerm={searchTerm}
+            activeOnly={activeOnly}
+            onCategoryChange={setSelectedCategoryId}
+            onSearchChange={setSearchTerm}
+            onActiveOnlyChange={setActiveOnly}
+          />
 
-      {/* Pending Changes Alert */}
-      {editingPrices.size > 0 && (
-        <Alert>
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription className="flex items-center justify-between">
-            <span>
-              Tienes <strong>{editingPrices.size}</strong> cambios sin guardar
-            </span>
-            <div className="flex gap-2">
-              <Button
-                size="sm"
-                onClick={handleSaveChanges}
-                disabled={updatePricesMutation.isPending}
-              >
-                <Save className="h-4 w-4 mr-2" />
-                Guardar Cambios
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={handleDiscardChanges}
-                disabled={updatePricesMutation.isPending}
-              >
-                <X className="h-4 w-4 mr-2" />
-                Descartar
-              </Button>
-            </div>
-          </AlertDescription>
-        </Alert>
-      )}
+          {/* Pending Changes Alert */}
+          {editingPrices.size > 0 && (
+            <Alert>
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="flex items-center justify-between">
+                <span>
+                  Tienes <strong>{editingPrices.size}</strong> cambios sin guardar
+                </span>
+                <div className="flex gap-2">
+                  <Button
+                    size="sm"
+                    onClick={handleSaveChanges}
+                    disabled={updatePricesMutation.isPending}
+                  >
+                    <Save className="mr-2 h-4 w-4" />
+                    Guardar Cambios
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={handleDiscardChanges}
+                    disabled={updatePricesMutation.isPending}
+                  >
+                    <X className="mr-2 h-4 w-4" />
+                    Descartar
+                  </Button>
+                </div>
+              </AlertDescription>
+            </Alert>
+          )}
 
-      {/* Proposed Prices Alert */}
-      {proposedPrices.size > 0 && (
-        <Alert className="border-blue-600 bg-blue-50 dark:bg-blue-950">
-          <AlertCircle className="h-4 w-4 text-blue-600" />
-          <AlertDescription className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex-1">
-                <div className="font-semibold mb-1 flex items-center gap-2">
-                  Tienes <strong>{proposedPrices.size}</strong> precios propuestos desde CSV
-                  {isSaving && (
-                    <span className="text-xs text-blue-600 animate-pulse">
-                      Guardando...
-                    </span>
-                  )}
-                </div>
-                <div className="text-xs text-gray-600 dark:text-gray-400 mb-3">
-                  Valorización del stock de los <strong>{proposedPrices.size} artículos modificados</strong> (no incluye el resto del inventario)
-                </div>
-                <div className="text-sm space-y-3">
-                  {/* Valorización por condición de pago */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                    {allPaymentTerms.map(pt => {
-                      const before = stockValue.before[pt.paymentTermCode] || 0;
-                      const after = stockValue.after[pt.paymentTermCode] || 0;
-                      const diff = after - before;
-                      const diffPercent = before > 0 ? (diff / before * 100) : 0;
-                      
-                      return (
-                        <div key={pt.paymentTermCode} className="border border-gray-200 dark:border-gray-700 rounded-md p-3 bg-white dark:bg-gray-800">
-                          <div className="font-semibold text-gray-700 dark:text-gray-300 mb-2">
-                            {pt.paymentTermName} ({pt.discountPercent}%)
-                          </div>
-                          <div className="space-y-1 text-xs">
-                            <div className="flex justify-between">
-                              <span>Actual:</span>
-                              <span className="font-mono text-gray-900 dark:text-gray-100">
-                                ${before.toFixed(2)}
-                              </span>
+          {/* Proposed Prices Alert */}
+          {proposedPrices.size > 0 && (
+            <Alert className="border-blue-600 bg-blue-50 dark:bg-blue-950">
+              <AlertCircle className="h-4 w-4 text-blue-600" />
+              <AlertDescription className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex-1">
+                    <div className="mb-1 flex items-center gap-2 font-semibold">
+                      Tienes <strong>{proposedPrices.size}</strong> precios propuestos desde CSV
+                      {isSaving && (
+                        <span className="animate-pulse text-xs text-blue-600">Guardando...</span>
+                      )}
+                    </div>
+                    <div className="mb-3 text-xs text-gray-600 dark:text-gray-400">
+                      Valorización del stock de los{' '}
+                      <strong>{proposedPrices.size} artículos modificados</strong> (no incluye el
+                      resto del inventario)
+                    </div>
+                    <div className="space-y-3 text-sm">
+                      {/* Valorización por condición de pago */}
+                      <div className="grid grid-cols-1 gap-3 md:grid-cols-2 lg:grid-cols-3">
+                        {allPaymentTerms.map((pt) => {
+                          const before = stockValue.before[pt.paymentTermCode] || 0;
+                          const after = stockValue.after[pt.paymentTermCode] || 0;
+                          const diff = after - before;
+                          const diffPercent = before > 0 ? (diff / before) * 100 : 0;
+
+                          return (
+                            <div
+                              key={pt.paymentTermCode}
+                              className="rounded-md border border-gray-200 bg-white p-3 dark:border-gray-700 dark:bg-gray-800"
+                            >
+                              <div className="mb-2 font-semibold text-gray-700 dark:text-gray-300">
+                                {pt.paymentTermName} ({pt.discountPercent}%)
+                              </div>
+                              <div className="space-y-1 text-xs">
+                                <div className="flex justify-between">
+                                  <span>Actual:</span>
+                                  <span className="font-mono text-gray-900 dark:text-gray-100">
+                                    ${before.toFixed(2)}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span>Propuesto:</span>
+                                  <span
+                                    className={`font-mono ${after > before ? 'text-green-600' : 'text-red-600'}`}
+                                  >
+                                    ${after.toFixed(2)}
+                                  </span>
+                                </div>
+                                <div className="flex justify-between border-t border-gray-200 pt-1 dark:border-gray-700">
+                                  <span>Diferencia:</span>
+                                  <span
+                                    className={`font-mono font-semibold ${diff > 0 ? 'text-green-600' : 'text-red-600'}`}
+                                  >
+                                    {diff > 0 ? '+' : ''}${diff.toFixed(2)} (
+                                    {diffPercent.toFixed(1)}%)
+                                  </span>
+                                </div>
+                              </div>
                             </div>
-                            <div className="flex justify-between">
-                              <span>Propuesto:</span>
-                              <span className={`font-mono ${after > before ? 'text-green-600' : 'text-red-600'}`}>
-                                ${after.toFixed(2)}
-                              </span>
-                            </div>
-                            <div className="flex justify-between pt-1 border-t border-gray-200 dark:border-gray-700">
-                              <span>Diferencia:</span>
-                              <span className={`font-mono font-semibold ${diff > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                {diff > 0 ? '+' : ''}${diff.toFixed(2)} ({diffPercent.toFixed(1)}%)
-                              </span>
-                            </div>
-                          </div>
-                        </div>
-                      );
-                    })}
+                          );
+                        })}
+                      </div>
+                    </div>
+                  </div>
+                  <div className="ml-4 flex gap-2">
+                    <Button
+                      size="sm"
+                      onClick={handleConfirmProposedPrices}
+                      disabled={updatePricesMutation.isPending}
+                      className="bg-blue-600 hover:bg-blue-700"
+                    >
+                      <Save className="mr-2 h-4 w-4" />
+                      Confirmar Nuevos Precios
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={handleCancelProposedPrices}
+                      disabled={updatePricesMutation.isPending}
+                    >
+                      <X className="mr-2 h-4 w-4" />
+                      Cancelar
+                    </Button>
                   </div>
                 </div>
-              </div>
-              <div className="flex gap-2 ml-4">
-                <Button
-                  size="sm"
-                  onClick={handleConfirmProposedPrices}
-                  disabled={updatePricesMutation.isPending}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  <Save className="h-4 w-4 mr-2" />
-                  Confirmar Nuevos Precios
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={handleCancelProposedPrices}
-                  disabled={updatePricesMutation.isPending}
-                >
-                  <X className="h-4 w-4 mr-2" />
-                  Cancelar
-                </Button>
-              </div>
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Stats */}
+          {data && (
+            <div className="flex flex-wrap gap-4">
+              <Badge variant="secondary" className="px-3 py-1.5 text-sm">
+                {displayData.length} categorías {proposedPrices.size > 0 && '(con cambios)'}
+              </Badge>
+              <Badge variant="secondary" className="px-3 py-1.5 text-sm">
+                {displayData.reduce((sum, cat) => sum + cat.items.length, 0)} artículos{' '}
+                {proposedPrices.size > 0 && '(modificados)'}
+              </Badge>
             </div>
-          </AlertDescription>
-        </Alert>
-      )}
+          )}
 
-      {/* Stats */}
-      {data && (
-        <div className="flex gap-4 flex-wrap">
-          <Badge variant="secondary" className="text-sm py-1.5 px-3">
-            {displayData.length} categorías {proposedPrices.size > 0 && '(con cambios)'}
-          </Badge>
-          <Badge variant="secondary" className="text-sm py-1.5 px-3">
-            {displayData.reduce((sum, cat) => sum + cat.items.length, 0)} artículos {proposedPrices.size > 0 && '(modificados)'}
-          </Badge>
-        </div>
-      )}
-
-      {/* Content */}
-      {isLoading ? (
-        <div className="flex justify-center items-center py-12">
-          <p className="text-muted-foreground">Cargando listas de precios...</p>
-        </div>
-       ) : data && displayData.length > 0 ? (
-        <Accordion type="multiple" className="space-y-4" defaultValue={displayData.map(c => c.categoryId.toString())}>
-          {displayData.map((category) => (
-            <AccordionItem
-              key={category.categoryId}
-              value={category.categoryId.toString()}
-              className="border rounded-lg"
+          {/* Content */}
+          {isLoading ? (
+            <div className="flex items-center justify-center py-12">
+              <p className="text-muted-foreground">Cargando listas de precios...</p>
+            </div>
+          ) : data && displayData.length > 0 ? (
+            <Accordion
+              type="multiple"
+              className="space-y-4"
+              defaultValue={displayData.map((c) => c.categoryId.toString())}
             >
-              <AccordionTrigger className="px-6 hover:no-underline hover:bg-accent/50">
-                <div className="flex items-center justify-between w-full pr-4">
-                  <div className="flex items-center gap-3">
-                    <span className="font-semibold text-lg">
-                      {category.categoryName}
-                    </span>
-                    <Badge variant="outline">{category.categoryCode}</Badge>
-                  </div>
-                  <Badge variant="secondary">
-                    {category.totalItems} artículos
-                  </Badge>
-                </div>
-              </AccordionTrigger>
-              <AccordionContent className="px-6 pb-6">
-                <PriceListTable
-                  items={category.items}
-                  paymentDiscounts={category.paymentDiscounts}
-                  onPriceChange={handlePriceChange}
-                  editingPrices={editingPrices}
-                  proposedPrices={proposedPrices}
-                />
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
-      ) : (
-        <Card>
-          <CardHeader>
-            <CardTitle>No se encontraron artículos</CardTitle>
-            <CardDescription>
-              No hay artículos que coincidan con los filtros seleccionados.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-      )}
-      
-      {/* Import Dialog */}
-      <PriceImportDialog
-        open={importDialogOpen}
-        onOpenChange={setImportDialogOpen}
-        onConfirm={handleImportConfirm}
-        articles={allArticles}
-        paymentTerms={allPaymentTerms}
-      />
+              {displayData.map((category) => (
+                <AccordionItem
+                  key={category.categoryId}
+                  value={category.categoryId.toString()}
+                  className="rounded-lg border"
+                >
+                  <AccordionTrigger className="hover:bg-accent/50 px-6 hover:no-underline">
+                    <div className="flex w-full items-center justify-between pr-4">
+                      <div className="flex items-center gap-3">
+                        <span className="text-lg font-semibold">{category.categoryName}</span>
+                        <Badge variant="outline">{category.categoryCode}</Badge>
+                      </div>
+                      <Badge variant="secondary">{category.totalItems} artículos</Badge>
+                    </div>
+                  </AccordionTrigger>
+                  <AccordionContent className="px-6 pb-6">
+                    <PriceListTable
+                      items={category.items}
+                      paymentDiscounts={category.paymentDiscounts}
+                      onPriceChange={handlePriceChange}
+                      editingPrices={editingPrices}
+                      proposedPrices={proposedPrices}
+                    />
+                  </AccordionContent>
+                </AccordionItem>
+              ))}
+            </Accordion>
+          ) : (
+            <Card>
+              <CardHeader>
+                <CardTitle>No se encontraron artículos</CardTitle>
+                <CardDescription>
+                  No hay artículos que coincidan con los filtros seleccionados.
+                </CardDescription>
+              </CardHeader>
+            </Card>
+          )}
+
+          {/* Import Dialog */}
+          <PriceImportDialog
+            open={importDialogOpen}
+            onOpenChange={setImportDialogOpen}
+            onConfirm={handleImportConfirm}
+            articles={allArticles}
+            paymentTerms={allPaymentTerms}
+          />
         </TabsContent>
 
         {/* History Tab */}
@@ -1078,4 +1140,3 @@ export default function PriceListsPage() {
     </div>
   );
 }
-

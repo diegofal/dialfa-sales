@@ -36,33 +36,3 @@ export const ACTION_BUTTON_CONFIG = {
     title: 'Cancelar',
   },
 } as const;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

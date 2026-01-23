@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/db';
-import { calculateSalesTrends, calculateLastSaleDates } from './salesTrends';
+import { calculateTrendDirection } from '@/lib/utils/salesCalculations';
 import {
   StockStatus,
   StockClassificationConfig,
@@ -9,6 +9,7 @@ import {
   CategoryValuationData,
   PaymentTermValuation,
 } from '@/types/stockValuation';
+import { calculateSalesTrends, calculateLastSaleDates } from './salesTrends';
 
 // Cache en memoria
 const stockValuationCache: {
@@ -37,7 +38,6 @@ export async function calculateStockValuation(
   config: Partial<StockClassificationConfig> = {},
   forceRefresh = false
 ): Promise<StockValuationSummary> {
-  
   const fullConfig: StockClassificationConfig = {
     activeThresholdDays: config.activeThresholdDays ?? 90,
     slowMovingThresholdDays: config.slowMovingThresholdDays ?? 180,
@@ -58,12 +58,8 @@ export async function calculateStockValuation(
     stockValuationCache.configKey === configKey &&
     now - stockValuationCache.timestamp < CACHE_DURATION
   ) {
-    console.log('Stock Valuation: Using cached data');
     return stockValuationCache.data;
   }
-
-  console.log('Stock Valuation: Calculating fresh data...');
-  const startTime = Date.now();
 
   try {
     // 1. Obtener payment terms activas
@@ -141,15 +137,16 @@ export async function calculateStockValuation(
       const articleId = article.id.toString();
       const salesTrend = trendsData.data.get(articleId) || [];
       const lastSaleDate = lastSaleDates.get(articleId) || null;
-      
+
       const currentStock = Number(article.stock);
       // Usar last_purchase_price como costo, con cost_price como fallback
       // Usar ?? (nullish coalescing) en lugar de || para permitir valor 0
-      const costPrice = article.last_purchase_price !== null && article.last_purchase_price !== undefined
-        ? Number(article.last_purchase_price)
-        : article.cost_price !== null && article.cost_price !== undefined
-          ? Number(article.cost_price)
-          : 0;
+      const costPrice =
+        article.last_purchase_price !== null && article.last_purchase_price !== undefined
+          ? Number(article.last_purchase_price)
+          : article.cost_price !== null && article.cost_price !== undefined
+            ? Number(article.cost_price)
+            : 0;
       const unitPrice = Number(article.unit_price || 0);
 
       // Calcular días desde última venta
@@ -159,9 +156,7 @@ export async function calculateStockValuation(
 
       // Calcular promedio de ventas mensuales
       const totalSalesInPeriod = salesTrend.reduce((a, b) => a + b, 0);
-      const avgMonthlySales = salesTrend.length > 0 
-        ? totalSalesInPeriod / salesTrend.length 
-        : 0;
+      const avgMonthlySales = salesTrend.length > 0 ? totalSalesInPeriod / salesTrend.length : 0;
 
       // Calcular tendencia
       const trendDirection = calculateTrendDirection(salesTrend);
@@ -170,14 +165,11 @@ export async function calculateStockValuation(
       const rotationVelocity = avgMonthlySales;
 
       // Estimar días para agotar stock
-      const estimatedDaysToSellOut = avgMonthlySales > 0 
-        ? Math.ceil((currentStock / avgMonthlySales) * 30) 
-        : null;
+      const estimatedDaysToSellOut =
+        avgMonthlySales > 0 ? Math.ceil((currentStock / avgMonthlySales) * 30) : null;
 
       // Meses de inventario
-      const monthsOfInventory = avgMonthlySales > 0
-        ? currentStock / avgMonthlySales
-        : 999;
+      const monthsOfInventory = avgMonthlySales > 0 ? currentStock / avgMonthlySales : 999;
 
       // Clasificar status
       const status = classifyStockStatus(
@@ -191,14 +183,14 @@ export async function calculateStockValuation(
 
       // Obtener descuento de la categoría
       const categoryId = Number(article.category_id);
-      
+
       // Valores monetarios base (necesarios para calcular paymentTermsValuation)
       const stockValue = currentStock * costPrice;
       const stockValueAtListPrice = currentStock * unitPrice;
       const potentialProfitAtListPrice = stockValueAtListPrice - stockValue;
-      
+
       // Calcular valorización por cada payment term
-      const paymentTermsValuation: PaymentTermValuation[] = paymentTerms.map(pt => {
+      const paymentTermsValuation: PaymentTermValuation[] = paymentTerms.map((pt) => {
         const discountKey = `${categoryId}-${pt.id}`;
         const discountPercent = discountMap.get(discountKey) || 0;
         const unitPriceWithDiscount = unitPrice * (1 - discountPercent / 100);
@@ -249,7 +241,7 @@ export async function calculateStockValuation(
         count: 0,
         totalValue: 0,
         totalValueAtListPrice: 0,
-        paymentTermsValuation: paymentTerms.map(pt => ({
+        paymentTermsValuation: paymentTerms.map((pt) => ({
           paymentTermId: pt.id,
           paymentTermCode: pt.code,
           paymentTermName: pt.name,
@@ -264,7 +256,7 @@ export async function calculateStockValuation(
         count: 0,
         totalValue: 0,
         totalValueAtListPrice: 0,
-        paymentTermsValuation: paymentTerms.map(pt => ({
+        paymentTermsValuation: paymentTerms.map((pt) => ({
           paymentTermId: pt.id,
           paymentTermCode: pt.code,
           paymentTermName: pt.name,
@@ -279,7 +271,7 @@ export async function calculateStockValuation(
         count: 0,
         totalValue: 0,
         totalValueAtListPrice: 0,
-        paymentTermsValuation: paymentTerms.map(pt => ({
+        paymentTermsValuation: paymentTerms.map((pt) => ({
           paymentTermId: pt.id,
           paymentTermCode: pt.code,
           paymentTermName: pt.name,
@@ -294,7 +286,7 @@ export async function calculateStockValuation(
         count: 0,
         totalValue: 0,
         totalValueAtListPrice: 0,
-        paymentTermsValuation: paymentTerms.map(pt => ({
+        paymentTermsValuation: paymentTerms.map((pt) => ({
           paymentTermId: pt.id,
           paymentTermCode: pt.code,
           paymentTermName: pt.name,
@@ -312,27 +304,28 @@ export async function calculateStockValuation(
       group.count++;
       group.totalValue += metric.stockValue;
       group.totalValueAtListPrice += metric.stockValueAtListPrice;
-      
+
       // Agregar valores por payment term
       metric.paymentTermsValuation.forEach((ptv, index) => {
-        group.paymentTermsValuation[index].stockValueAtDiscountedPrice += ptv.stockValueAtDiscountedPrice;
+        group.paymentTermsValuation[index].stockValueAtDiscountedPrice +=
+          ptv.stockValueAtDiscountedPrice;
         group.paymentTermsValuation[index].potentialProfit += ptv.potentialProfit;
       });
-      
+
       group.articles.push(metric);
     }
 
     // Ordenar artículos dentro de cada grupo por valor descendente
-    Object.values(byStatus).forEach(group => {
+    Object.values(byStatus).forEach((group) => {
       group.articles.sort((a, b) => b.stockValue - a.stockValue);
     });
 
     // 5. Agrupar por categoría
     const categoryMap = new Map<number, CategoryValuationData>();
-    
+
     for (const metric of metrics) {
       const categoryId = metric.categoryId;
-      
+
       if (!categoryMap.has(categoryId)) {
         categoryMap.set(categoryId, {
           categoryId,
@@ -341,7 +334,7 @@ export async function calculateStockValuation(
           count: 0,
           totalValue: 0,
           totalValueAtListPrice: 0,
-          paymentTermsValuation: paymentTerms.map(pt => {
+          paymentTermsValuation: paymentTerms.map((pt) => {
             const discountKey = `${categoryId}-${pt.id}`;
             const discountPercent = discountMap.get(discountKey) || 0;
             return {
@@ -362,32 +355,31 @@ export async function calculateStockValuation(
           },
         });
       }
-      
+
       const category = categoryMap.get(categoryId)!;
       category.count++;
       category.totalValue += metric.stockValue;
       category.totalValueAtListPrice += metric.stockValueAtListPrice;
-      
+
       // Agregar valores por payment term
       metric.paymentTermsValuation.forEach((ptv, index) => {
-        category.paymentTermsValuation[index].stockValueAtDiscountedPrice += ptv.stockValueAtDiscountedPrice;
+        category.paymentTermsValuation[index].stockValueAtDiscountedPrice +=
+          ptv.stockValueAtDiscountedPrice;
         category.paymentTermsValuation[index].potentialProfit += ptv.potentialProfit;
       });
-      
+
       category.byStatus[metric.status]++;
     }
-    
+
     // Ordenar categorías por valor total descendente
-    const byCategory = Array.from(categoryMap.values()).sort(
-      (a, b) => b.totalValue - a.totalValue
-    );
+    const byCategory = Array.from(categoryMap.values()).sort((a, b) => b.totalValue - a.totalValue);
 
     // 6. Calcular totales
     const totals = {
       totalArticles: metrics.length,
       totalStockValue: metrics.reduce((sum, m) => sum + m.stockValue, 0),
       totalValueAtListPrice: metrics.reduce((sum, m) => sum + m.stockValueAtListPrice, 0),
-      paymentTermsValuation: paymentTerms.map(pt => ({
+      paymentTermsValuation: paymentTerms.map((pt) => ({
         paymentTermId: pt.id,
         paymentTermCode: pt.code,
         paymentTermName: pt.name,
@@ -399,9 +391,10 @@ export async function calculateStockValuation(
     };
 
     // Agregar valores por payment term a los totales
-    metrics.forEach(metric => {
+    metrics.forEach((metric) => {
       metric.paymentTermsValuation.forEach((ptv, index) => {
-        totals.paymentTermsValuation[index].stockValueAtDiscountedPrice += ptv.stockValueAtDiscountedPrice;
+        totals.paymentTermsValuation[index].stockValueAtDiscountedPrice +=
+          ptv.stockValueAtDiscountedPrice;
         totals.paymentTermsValuation[index].potentialProfit += ptv.potentialProfit;
       });
     });
@@ -419,51 +412,17 @@ export async function calculateStockValuation(
     stockValuationCache.timestamp = now;
     stockValuationCache.configKey = configKey;
 
-    const duration = Date.now() - startTime;
-    console.log(`Stock Valuation: Calculated for ${metrics.length} articles in ${duration}ms`);
-    console.log(`  - Dead Stock: ${byStatus.dead_stock.count} ($${byStatus.dead_stock.totalValue.toFixed(2)})`);
-    console.log(`  - Slow Moving: ${byStatus.slow_moving.count} ($${byStatus.slow_moving.totalValue.toFixed(2)})`);
-    console.log(`  - Active: ${byStatus.active.count} ($${byStatus.active.totalValue.toFixed(2)})`);
-    console.log(`  - Never Sold: ${byStatus.never_sold.count} ($${byStatus.never_sold.totalValue.toFixed(2)})`);
-
     return summary;
   } catch (error) {
-    console.error('Error calculating stock valuation:', error);
     throw error;
   }
-}
-
-/**
- * Calcula la dirección de la tendencia de ventas
- */
-function calculateTrendDirection(
-  salesTrend: number[]
-): 'increasing' | 'stable' | 'decreasing' | 'none' {
-  if (salesTrend.length < 2) return 'none';
-
-  const midPoint = Math.floor(salesTrend.length / 2);
-  const firstHalf = salesTrend.slice(0, midPoint);
-  const secondHalf = salesTrend.slice(midPoint);
-
-  const avgFirstHalf = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
-  const avgSecondHalf = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
-
-  // Evitar división por cero
-  if (avgFirstHalf === 0 && avgSecondHalf === 0) return 'none';
-  if (avgFirstHalf === 0) return 'increasing';
-
-  const changePercent = ((avgSecondHalf - avgFirstHalf) / avgFirstHalf) * 100;
-
-  if (changePercent > 20) return 'increasing';
-  if (changePercent < -20) return 'decreasing';
-  return 'stable';
 }
 
 /**
  * Clasifica el status del stock según los criterios configurados
  * IMPORTANTE: Esta función asume que currentStock > 0
  */
-function classifyStockStatus(
+export function classifyStockStatus(
   lastSaleDate: Date | null,
   daysSinceLastSale: number | null,
   avgMonthlySales: number,
@@ -471,10 +430,7 @@ function classifyStockStatus(
   currentStock: number,
   config: StockClassificationConfig
 ): StockStatus {
-  
-  // Validación: No debería llegar stock = 0 aquí (se filtra en la query)
   if (currentStock <= 0) {
-    console.warn(`Article with stock ${currentStock} reached classification - should be filtered`);
     return StockStatus.NEVER_SOLD;
   }
 
@@ -553,4 +509,3 @@ export function getStockValuationCacheInfo(): StockValuationCacheInfo {
     config: stockValuationCache.data.config,
   };
 }
-

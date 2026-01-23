@@ -22,6 +22,3 @@ export interface PaginationState {
   sortBy?: string;
   sortDescending: boolean;
 }
-
-
-

@@ -1,11 +1,10 @@
 'use client';
 
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
-import { useCreateClient, useUpdateClient } from '@/lib/hooks/useClients';
-import type { ClientDto } from '@/types/api';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
@@ -23,7 +22,8 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
+import { useCreateClient, useUpdateClient } from '@/lib/hooks/useClients';
+import type { ClientDto } from '@/types/api';
 
 const clientSchema = z.object({
   code: z.string().min(1, 'El código es requerido'),
@@ -77,10 +77,10 @@ export default function ClientDialog({ open, onClose, client }: ClientDialogProp
         city: client.city || '',
         postalCode: client.postalCode || '',
         phone: client.phone || '',
-      email: client.email || '',
-      taxConditionId: 1, // You might want to extract this from the client object
-      operationTypeId: 1, // You might want to extract this from the client object
-    });
+        email: client.email || '',
+        taxConditionId: 1, // You might want to extract this from the client object
+        operationTypeId: 1, // You might want to extract this from the client object
+      });
     } else {
       form.reset({
         code: '',
@@ -90,10 +90,10 @@ export default function ClientDialog({ open, onClose, client }: ClientDialogProp
         city: '',
         postalCode: '',
         phone: '',
-      email: '',
-      taxConditionId: 1,
-      operationTypeId: 1,
-    });
+        email: '',
+        taxConditionId: 1,
+        operationTypeId: 1,
+      });
     }
   }, [client, form]);
 
@@ -126,13 +126,9 @@ export default function ClientDialog({ open, onClose, client }: ClientDialogProp
     <Dialog open={open} onOpenChange={handleClose}>
       <DialogContent size="lg">
         <DialogHeader>
-          <DialogTitle>
-            {isEditing ? 'Editar Cliente' : 'Nuevo Cliente'}
-          </DialogTitle>
+          <DialogTitle>{isEditing ? 'Editar Cliente' : 'Nuevo Cliente'}</DialogTitle>
           <DialogDescription>
-            {isEditing
-              ? 'Modifica los datos del cliente'
-              : 'Completa los datos del nuevo cliente'}
+            {isEditing ? 'Modifica los datos del cliente' : 'Completa los datos del nuevo cliente'}
           </DialogDescription>
         </DialogHeader>
 
@@ -302,15 +298,12 @@ export default function ClientDialog({ open, onClose, client }: ClientDialogProp
               <Button type="button" variant="outline" onClick={handleClose}>
                 Cancelar
               </Button>
-              <Button
-                type="submit"
-                disabled={createMutation.isPending || updateMutation.isPending}
-              >
+              <Button type="submit" disabled={createMutation.isPending || updateMutation.isPending}>
                 {createMutation.isPending || updateMutation.isPending
                   ? 'Guardando...'
                   : isEditing
-                  ? 'Actualizar'
-                  : 'Crear'}
+                    ? 'Actualizar'
+                    : 'Crear'}
               </Button>
             </DialogFooter>
           </form>
@@ -319,5 +312,3 @@ export default function ClientDialog({ open, onClose, client }: ClientDialogProp
     </Dialog>
   );
 }
-
-

@@ -4,7 +4,7 @@ const prisma = new PrismaClient();
 
 async function main() {
   console.log('Creating delivery_note_items table...');
-  
+
   try {
     // Create the table
     await prisma.$executeRawUnsafe(`
@@ -59,7 +59,3 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
-
-
-
-

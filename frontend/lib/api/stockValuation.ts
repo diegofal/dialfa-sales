@@ -23,14 +23,15 @@ export const stockValuationApi = {
       refresh: params.refresh,
     };
 
-    const { data } = await apiClient.get<StockValuationSummary>(
-      '/articles/valuation',
-      { params: apiParams }
-    );
+    const { data } = await apiClient.get<StockValuationSummary>('/articles/valuation', {
+      params: apiParams,
+    });
     return data;
   },
 
-  refreshValuation: async (config?: Partial<StockClassificationConfig>): Promise<StockValuationSummary> => {
+  refreshValuation: async (
+    config?: Partial<StockClassificationConfig>
+  ): Promise<StockValuationSummary> => {
     const { data } = await apiClient.post<{ valuation: StockValuationSummary }>(
       '/articles/valuation',
       { config }
@@ -38,4 +39,3 @@ export const stockValuationApi = {
     return data.valuation;
   },
 };
-

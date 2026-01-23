@@ -1,6 +1,8 @@
 'use client';
 
+import { Upload, FileSpreadsheet, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -9,8 +11,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Upload, FileSpreadsheet, CheckCircle, XCircle, AlertCircle } from 'lucide-react';
-import { toast } from 'sonner';
 
 interface SyncExcelDialogProps {
   open: boolean;
@@ -39,16 +39,18 @@ export function SyncExcelDialog({ open, onOpenChange, onComplete }: SyncExcelDia
       // Validar que sea un archivo Excel
       const validTypes = [
         'application/vnd.ms-excel',
-        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
       ];
-      
-      if (!validTypes.includes(selectedFile.type) && 
-          !selectedFile.name.endsWith('.xls') && 
-          !selectedFile.name.endsWith('.xlsx')) {
+
+      if (
+        !validTypes.includes(selectedFile.type) &&
+        !selectedFile.name.endsWith('.xls') &&
+        !selectedFile.name.endsWith('.xlsx')
+      ) {
         toast.error('Por favor selecciona un archivo Excel (.xls o .xlsx)');
         return;
       }
-      
+
       setFile(selectedFile);
       setStats(null);
     }
@@ -76,7 +78,7 @@ export function SyncExcelDialog({ open, onOpenChange, onComplete }: SyncExcelDia
 
       const result = await response.json();
       setStats(result.stats);
-      
+
       if (result.stats.newUploaded > 0 || result.stats.coladasUpdated > 0) {
         toast.success('Sincronización completada');
         onComplete?.();
@@ -113,16 +115,14 @@ export function SyncExcelDialog({ open, onOpenChange, onComplete }: SyncExcelDia
           {/* File Upload */}
           {!stats && (
             <div className="space-y-4">
-              <div className="border-2 border-dashed rounded-lg p-8 text-center">
-                <FileSpreadsheet className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <div className="rounded-lg border-2 border-dashed p-8 text-center">
+                <FileSpreadsheet className="text-muted-foreground mx-auto mb-4 h-12 w-12" />
                 <div className="space-y-2">
                   <label htmlFor="excel-file" className="cursor-pointer">
                     <div className="text-sm font-medium">
                       {file ? file.name : 'Seleccionar archivo Excel'}
                     </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      Formatos: .xls, .xlsx
-                    </div>
+                    <div className="text-muted-foreground mt-1 text-xs">Formatos: .xls, .xlsx</div>
                   </label>
                   <input
                     id="excel-file"
@@ -138,26 +138,22 @@ export function SyncExcelDialog({ open, onOpenChange, onComplete }: SyncExcelDia
                     variant="outline"
                     className="mt-4"
                   >
-                    <Upload className="h-4 w-4 mr-2" />
+                    <Upload className="mr-2 h-4 w-4" />
                     Seleccionar archivo
                   </Button>
                 )}
               </div>
 
               {file && (
-                <div className="bg-muted p-4 rounded-lg">
+                <div className="bg-muted rounded-lg p-4">
                   <div className="flex items-center justify-between">
                     <div>
                       <div className="font-medium">{file.name}</div>
-                      <div className="text-sm text-muted-foreground">
+                      <div className="text-muted-foreground text-sm">
                         {(file.size / 1024).toFixed(2)} KB
                       </div>
                     </div>
-                    <Button
-                      onClick={() => setFile(null)}
-                      variant="ghost"
-                      size="sm"
-                    >
+                    <Button onClick={() => setFile(null)} variant="ghost" size="sm">
                       Cambiar
                     </Button>
                   </div>
@@ -170,21 +166,21 @@ export function SyncExcelDialog({ open, onOpenChange, onComplete }: SyncExcelDia
           {stats && (
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
-                <div className="bg-muted p-4 rounded-lg">
+                <div className="bg-muted rounded-lg p-4">
                   <div className="text-2xl font-bold">{stats.totalInExcel}</div>
-                  <div className="text-sm text-muted-foreground">Total en Excel</div>
+                  <div className="text-muted-foreground text-sm">Total en Excel</div>
                 </div>
-                <div className="bg-green-50 dark:bg-green-950 p-4 rounded-lg">
+                <div className="rounded-lg bg-green-50 p-4 dark:bg-green-950">
                   <div className="text-2xl font-bold text-green-600">{stats.newUploaded}</div>
-                  <div className="text-sm text-muted-foreground">Nuevos subidos</div>
+                  <div className="text-muted-foreground text-sm">Nuevos subidos</div>
                 </div>
-                <div className="bg-blue-50 dark:bg-blue-950 p-4 rounded-lg">
+                <div className="rounded-lg bg-blue-50 p-4 dark:bg-blue-950">
                   <div className="text-2xl font-bold text-blue-600">{stats.coladasUpdated}</div>
-                  <div className="text-sm text-muted-foreground">Coladas actualizadas</div>
+                  <div className="text-muted-foreground text-sm">Coladas actualizadas</div>
                 </div>
-                <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-lg">
+                <div className="rounded-lg bg-gray-50 p-4 dark:bg-gray-900">
                   <div className="text-2xl font-bold">{stats.alreadyExisted}</div>
-                  <div className="text-sm text-muted-foreground">Sin cambios</div>
+                  <div className="text-muted-foreground text-sm">Sin cambios</div>
                 </div>
               </div>
 
@@ -194,10 +190,11 @@ export function SyncExcelDialog({ open, onOpenChange, onComplete }: SyncExcelDia
                     <AlertCircle className="h-4 w-4" />
                     Archivos con problemas
                   </div>
-                  <div className="bg-amber-50 dark:bg-amber-950 p-4 rounded-lg space-y-2">
+                  <div className="space-y-2 rounded-lg bg-amber-50 p-4 dark:bg-amber-950">
                     {stats.fileNotFound > 0 && (
                       <div className="text-sm">
-                        <span className="font-medium">{stats.fileNotFound}</span> no encontrados en sistema
+                        <span className="font-medium">{stats.fileNotFound}</span> no encontrados en
+                        sistema
                       </div>
                     )}
                     {stats.failed > 0 && (
@@ -206,12 +203,12 @@ export function SyncExcelDialog({ open, onOpenChange, onComplete }: SyncExcelDia
                       </div>
                     )}
                   </div>
-                  
+
                   {stats.errors.length > 0 && (
-                    <div className="max-h-40 overflow-y-auto bg-muted p-3 rounded text-xs space-y-1">
+                    <div className="bg-muted max-h-40 space-y-1 overflow-y-auto rounded p-3 text-xs">
                       {stats.errors.slice(0, 10).map((err, i) => (
                         <div key={i} className="flex gap-2">
-                          <XCircle className="h-3 w-3 text-red-500 flex-shrink-0 mt-0.5" />
+                          <XCircle className="mt-0.5 h-3 w-3 flex-shrink-0 text-red-500" />
                           <div>
                             <div className="font-medium">{err.file}</div>
                             <div className="text-muted-foreground">{err.error}</div>
@@ -232,26 +229,19 @@ export function SyncExcelDialog({ open, onOpenChange, onComplete }: SyncExcelDia
 
           {/* Actions */}
           <div className="flex justify-end gap-2">
-            <Button
-              variant="outline"
-              onClick={handleClose}
-              disabled={isUploading}
-            >
+            <Button variant="outline" onClick={handleClose} disabled={isUploading}>
               {stats ? 'Cerrar' : 'Cancelar'}
             </Button>
             {!stats && (
-              <Button
-                onClick={handleSync}
-                disabled={!file || isUploading}
-              >
+              <Button onClick={handleSync} disabled={!file || isUploading}>
                 {isUploading ? (
                   <>
-                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                    <div className="mr-2 h-4 w-4 animate-spin rounded-full border-b-2 border-white" />
                     Sincronizando...
                   </>
                 ) : (
                   <>
-                    <CheckCircle className="h-4 w-4 mr-2" />
+                    <CheckCircle className="mr-2 h-4 w-4" />
                     Sincronizar
                   </>
                 )}
@@ -263,11 +253,3 @@ export function SyncExcelDialog({ open, onOpenChange, onComplete }: SyncExcelDia
     </Dialog>
   );
 }
-
-
-
-
-
-
-
-

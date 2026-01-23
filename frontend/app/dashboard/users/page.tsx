@@ -1,29 +1,29 @@
 'use client';
 
-import { useState } from 'react';
-import UsersTable from '@/components/users/UsersTable';
-import UserDialog from '@/components/users/UserDialog';
-import { Button } from '@/components/ui/button';
 import { Plus } from 'lucide-react';
+import { useState } from 'react';
+import { toast } from 'sonner';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import { Button } from '@/components/ui/button';
+import UserDialog from '@/components/users/UserDialog';
+import UsersTable from '@/components/users/UsersTable';
 import { useUsers, useDeactivateUser } from '@/lib/hooks/useUsers';
 import { User } from '@/types/user';
-import { toast } from 'sonner';
-import { 
-  AlertDialog, 
-  AlertDialogAction, 
-  AlertDialogCancel, 
-  AlertDialogContent, 
-  AlertDialogDescription, 
-  AlertDialogFooter, 
-  AlertDialogHeader, 
-  AlertDialogTitle 
-} from '@/components/ui/alert-dialog';
 
 export default function UsersPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
   const [deactivatingUser, setDeactivatingUser] = useState<User | null>(null);
-  
+
   const { data, isLoading } = useUsers();
   const deactivateUserMutation = useDeactivateUser();
 
@@ -66,32 +66,27 @@ export default function UsersPage() {
         {isLoading ? (
           <div>Cargando usuarios...</div>
         ) : (
-          <UsersTable 
-            users={data?.data || []} 
-            onEdit={handleEdit} 
-            onDelete={handleDeactivate} 
-          />
+          <UsersTable users={data?.data || []} onEdit={handleEdit} onDelete={handleDeactivate} />
         )}
       </div>
 
-      <UserDialog 
-        user={editingUser} 
-        isOpen={isDialogOpen} 
-        onClose={() => setIsDialogOpen(false)} 
-      />
+      <UserDialog user={editingUser} isOpen={isDialogOpen} onClose={() => setIsDialogOpen(false)} />
 
       <AlertDialog open={!!deactivatingUser} onOpenChange={() => setDeactivatingUser(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción desactivará al usuario &quot;{deactivatingUser?.username}&quot;. 
-              No podrá volver a ingresar al sistema hasta que sea reactivado.
+              Esta acción desactivará al usuario &quot;{deactivatingUser?.username}&quot;. No podrá
+              volver a ingresar al sistema hasta que sea reactivado.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeactivate} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={confirmDeactivate}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Desactivar
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -100,9 +95,3 @@ export default function UsersPage() {
     </div>
   );
 }
-
-
-
-
-
-

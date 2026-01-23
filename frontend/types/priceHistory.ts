@@ -34,4 +34,3 @@ export interface PriceHistoryFilters {
   page?: number;
   limit?: number;
 }
-

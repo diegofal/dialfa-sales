@@ -1,7 +1,7 @@
 'use client';
 
-import { useState, useRef } from 'react';
 import { Upload, FileSpreadsheet, X } from 'lucide-react';
+import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useImportProforma } from '@/lib/hooks/useImportProforma';
@@ -101,7 +101,7 @@ export function ProformaDropZone({ onImportSuccess }: ProformaDropZoneProps) {
   return (
     <div className="space-y-4">
       <Card
-        className={`p-8 border-2 border-dashed transition-colors ${
+        className={`border-2 border-dashed p-8 transition-colors ${
           isDragging
             ? 'border-primary bg-primary/5'
             : 'border-muted-foreground/25 hover:border-muted-foreground/50'
@@ -111,21 +111,19 @@ export function ProformaDropZone({ onImportSuccess }: ProformaDropZoneProps) {
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
-        <div className="flex flex-col items-center justify-center text-center space-y-4">
-          <div
-            className={`p-4 rounded-full ${
-              isDragging ? 'bg-primary/10' : 'bg-muted'
-            }`}
-          >
-            <Upload className={`h-8 w-8 ${isDragging ? 'text-primary' : 'text-muted-foreground'}`} />
+        <div className="flex flex-col items-center justify-center space-y-4 text-center">
+          <div className={`rounded-full p-4 ${isDragging ? 'bg-primary/10' : 'bg-muted'}`}>
+            <Upload
+              className={`h-8 w-8 ${isDragging ? 'text-primary' : 'text-muted-foreground'}`}
+            />
           </div>
 
           <div className="space-y-2">
             <h3 className="text-lg font-semibold">Importar Proforma</h3>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               Arrastra un archivo Excel aquí o haz clic para seleccionar
             </p>
-            <p className="text-xs text-muted-foreground">
+            <p className="text-muted-foreground text-xs">
               Archivos compatibles: .xls, .xlsx (máx. 5MB)
             </p>
           </div>
@@ -149,20 +147,16 @@ export function ProformaDropZone({ onImportSuccess }: ProformaDropZoneProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <FileSpreadsheet className="h-5 w-5 text-green-600" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium truncate">{selectedFile.name}</p>
-                <p className="text-xs text-muted-foreground">
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium">{selectedFile.name}</p>
+                <p className="text-muted-foreground text-xs">
                   {(selectedFile.size / 1024).toFixed(1)} KB
                 </p>
               </div>
             </div>
 
             <div className="flex items-center gap-2">
-              <Button
-                onClick={handleImport}
-                disabled={importMutation.isPending}
-                size="sm"
-              >
+              <Button onClick={handleImport} disabled={importMutation.isPending} size="sm">
                 {importMutation.isPending ? 'Importando...' : 'Importar'}
               </Button>
               <Button
@@ -180,7 +174,3 @@ export function ProformaDropZone({ onImportSuccess }: ProformaDropZoneProps) {
     </div>
   );
 }
-
-
-
-

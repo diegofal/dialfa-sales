@@ -112,4 +112,3 @@ export interface SalesOrderItemFormData {
   unitPrice: number;
   discountPercent: number;
 }
-

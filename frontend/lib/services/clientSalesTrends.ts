@@ -15,7 +15,7 @@ const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 horas en ms
 /**
  * Calcula las tendencias de facturación mensuales para todos los clientes
  * Retorna un mapa de clientId -> array de facturación por mes
- * 
+ *
  * @param monthsToShow - Cantidad de meses a mostrar (por defecto 12)
  * @param forceRefresh - Si true, recalcula ignorando el caché
  * @returns Map con clientId -> array de montos facturados por mes
@@ -35,9 +35,8 @@ export async function calculateClientSalesTrends(
   ) {
     const cachedDataForMonths = clientSalesTrendCache.data.get(monthsToShow);
     const cachedLabels = clientSalesTrendCache.labels.get(monthsToShow);
-    
+
     if (cachedDataForMonths && cachedLabels) {
-      console.log(`Client Sales Trends: Using cached data for ${monthsToShow} months`);
       return {
         data: cachedDataForMonths,
         labels: cachedLabels,
@@ -45,14 +44,11 @@ export async function calculateClientSalesTrends(
     }
   }
 
-  console.log(`Client Sales Trends: Calculating fresh data for ${monthsToShow} months...`);
-  const startTime = Date.now();
-
   try {
     // 1. Generar array de los últimos N meses
     const monthsArray: { year: number; month: number; label: string }[] = [];
     const today = new Date();
-    
+
     for (let i = monthsToShow - 1; i >= 0; i--) {
       const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
       monthsArray.push({
@@ -64,7 +60,7 @@ export async function calculateClientSalesTrends(
 
     // 2. Obtener facturación por cliente y mes
     const salesByMonth = new Map<string, Map<string, number>>();
-    
+
     for (const monthData of monthsArray) {
       const startDate = new Date(monthData.year, monthData.month - 1, 1);
       const endDate = new Date(monthData.year, monthData.month, 0, 23, 59, 59);
@@ -73,10 +69,12 @@ export async function calculateClientSalesTrends(
 
       // Query para obtener facturación del mes por cliente
       // Obtenemos el total_amount de las facturas agrupadas por cliente
-      const salesData = await prisma.$queryRaw<Array<{
-        client_id: bigint;
-        total_amount: number;
-      }>>`
+      const salesData = await prisma.$queryRaw<
+        Array<{
+          client_id: bigint;
+          total_amount: number;
+        }>
+      >`
         SELECT 
           so.client_id,
           SUM(i.total_amount) as total_amount
@@ -125,23 +123,16 @@ export async function calculateClientSalesTrends(
     if (!clientSalesTrendCache.labels) {
       clientSalesTrendCache.labels = new Map();
     }
-    
+
     clientSalesTrendCache.data.set(monthsToShow, trendsMap);
     clientSalesTrendCache.labels.set(monthsToShow, labels);
     clientSalesTrendCache.timestamp = now;
-
-    const duration = Date.now() - startTime;
-    console.log(
-      `Client Sales Trends: Calculated for ${trendsMap.size} clients (${monthsToShow} months) in ${duration}ms`
-    );
-    console.log(`  - Months: ${labels.join(', ')}`);
 
     return {
       data: trendsMap,
       labels,
     };
   } catch (error) {
-    console.error('Error calculating client sales trends:', error);
     throw error;
   }
 }
@@ -178,11 +169,8 @@ export function getClientSalesTrendsCacheInfo(monthsToShow: number = 12) {
     ageHours: (age / (1000 * 60 * 60)).toFixed(2),
     clientsCount: cachedData?.size || 0,
     expiresIn: expiresIn > 0 ? expiresIn : 0,
-    expiresInHours:
-      expiresIn > 0 ? (expiresIn / (1000 * 60 * 60)).toFixed(2) : 0,
+    expiresInHours: expiresIn > 0 ? (expiresIn / (1000 * 60 * 60)).toFixed(2) : 0,
     monthsTracked: monthsToShow,
     labels: clientSalesTrendCache.labels?.get(monthsToShow) || [],
   };
 }
-
-

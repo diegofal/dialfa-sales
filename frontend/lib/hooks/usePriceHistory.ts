@@ -9,4 +9,3 @@ export function usePriceHistory(filters?: PriceHistoryFilters) {
     staleTime: 30 * 1000, // 30 segundos
   });
 }
-

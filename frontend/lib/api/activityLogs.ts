@@ -1,8 +1,10 @@
-import { ActivityLogsFilters, ActivityLogsResponse } from '@/types/activityLog';
+import { ActivityLogChange, ActivityLogsFilters, ActivityLogsResponse } from '@/types/activityLog';
 
-export async function getActivityLogs(filters: ActivityLogsFilters = {}): Promise<ActivityLogsResponse> {
+export async function getActivityLogs(
+  filters: ActivityLogsFilters = {}
+): Promise<ActivityLogsResponse> {
   const query = new URLSearchParams();
-  
+
   if (filters.page) query.append('page', filters.page.toString());
   if (filters.limit) query.append('limit', filters.limit.toString());
   if (filters.userId) query.append('userId', filters.userId);
@@ -12,7 +14,7 @@ export async function getActivityLogs(filters: ActivityLogsFilters = {}): Promis
   if (filters.search) query.append('search', filters.search);
 
   const response = await fetch(`/api/activity-logs?${query.toString()}`);
-  
+
   if (!response.ok) {
     throw new Error('Failed to fetch activity logs');
   }
@@ -20,8 +22,13 @@ export async function getActivityLogs(filters: ActivityLogsFilters = {}): Promis
   return response.json();
 }
 
+export async function getActivityLogChanges(id: number): Promise<ActivityLogChange[]> {
+  const response = await fetch(`/api/activity-logs/${id}/changes`);
 
+  if (!response.ok) {
+    throw new Error('Failed to fetch activity log changes');
+  }
 
-
-
-
+  const json = await response.json();
+  return json.data;
+}

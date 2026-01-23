@@ -8,14 +8,3 @@ export function useStockMovements(filters?: StockMovementFilters) {
     staleTime: 30000, // 30 seconds
   });
 }
-
-
-
-
-
-
-
-
-
-
-

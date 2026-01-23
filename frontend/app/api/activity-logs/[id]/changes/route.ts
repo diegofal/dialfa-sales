@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
 import { requireAdmin } from '@/lib/auth/roles';
+import { prisma } from '@/lib/db';
+import { handleError } from '@/lib/errors';
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { authorized, error } = requireAdmin(request);
     if (!authorized) return error!;
@@ -18,7 +16,7 @@ export async function GET(
       orderBy: { created_at: 'asc' },
     });
 
-    const serializedChanges = changes.map(change => ({
+    const serializedChanges = changes.map((change) => ({
       id: Number(change.id),
       entityType: change.entity_type,
       entityId: change.entity_id ? Number(change.entity_id) : null,
@@ -30,11 +28,6 @@ export async function GET(
 
     return NextResponse.json({ data: serializedChanges });
   } catch (error) {
-    console.error('Error fetching activity changes:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleError(error);
   }
 }
-

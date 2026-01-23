@@ -11,6 +11,7 @@ This system provides a reusable, type-safe way to implement client-side form val
 A generic React hook that manages validation state and logic.
 
 #### Features
+
 - Type-safe validation rules
 - Built-in common validators
 - Custom validation support
@@ -55,6 +56,7 @@ if (!validate(formData)) {
 A wrapper component that provides consistent styling and error display.
 
 #### Features
+
 - Automatic error message display
 - Required field indicator
 - Optional field description
@@ -79,27 +81,35 @@ A wrapper component that provides consistent styling and error display.
 ## Built-in Validators
 
 ### `validators.required(message?)`
+
 Ensures the field has a value (not null, undefined, empty string, or empty array).
 
 ### `validators.minLength(min, message?)`
+
 Validates string minimum length.
 
 ### `validators.maxLength(max, message?)`
+
 Validates string maximum length.
 
 ### `validators.min(min, message?)`
+
 Validates number minimum value.
 
 ### `validators.max(max, message?)`
+
 Validates number maximum value.
 
 ### `validators.email(message?)`
+
 Validates email format.
 
 ### `validators.pattern(regex, message)`
+
 Validates against a custom regex pattern.
 
 ### `validators.custom(validator, message)`
+
 Allows custom validation logic with access to the entire form data.
 
 ## Custom Validators
@@ -126,12 +136,14 @@ You can create custom validators by providing a validation function:
 To integrate this system into an existing form:
 
 1. **Import the hook and component**:
+
 ```typescript
 import { useFormValidation, validators } from '@/hooks/useFormValidation';
 import { FormField } from '@/components/ui/form-field';
 ```
 
 2. **Define validation rules**:
+
 ```typescript
 const { validate, hasError, getError, clearError } = useFormValidation([
   // ... your rules
@@ -139,6 +151,7 @@ const { validate, hasError, getError, clearError } = useFormValidation([
 ```
 
 3. **Wrap form fields with FormField**:
+
 ```tsx
 <FormField label="Field Name" required error={getError('fieldName')}>
   <Input value={value} onChange={onChange} />
@@ -146,6 +159,7 @@ const { validate, hasError, getError, clearError } = useFormValidation([
 ```
 
 4. **Validate on submit**:
+
 ```typescript
 const handleSubmit = () => {
   if (!validate(formData)) {
@@ -158,6 +172,7 @@ const handleSubmit = () => {
 ## Example: Sales Order Form
 
 See `components/salesOrders/SingleStepOrderForm.tsx` for a complete example of:
+
 - Payment term validation
 - Integration with existing form logic
 - API calls after validation
@@ -175,6 +190,7 @@ See `components/salesOrders/SingleStepOrderForm.tsx` for a complete example of:
 ## Future Enhancements
 
 Consider adding:
+
 - Async validation support
 - Field-level validation on blur
 - Cross-field validation helpers

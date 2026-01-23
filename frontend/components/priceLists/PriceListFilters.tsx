@@ -3,7 +3,6 @@
 import { Search } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
 import {
   Select,
   SelectContent,
@@ -11,6 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { Category } from '@/types/category';
 
 interface PriceListFiltersProps {
@@ -38,7 +38,7 @@ export function PriceListFilters({
       <div className="flex-1 space-y-2">
         <Label htmlFor="search">Buscar</Label>
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Search className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
           <Input
             id="search"
             placeholder="Buscar por código o descripción..."
@@ -68,17 +68,12 @@ export function PriceListFilters({
       </div>
 
       {/* Active Only Toggle */}
-      <div className="flex items-center gap-2 px-3 py-2 border rounded-md md:w-[180px]">
-        <Label htmlFor="active-only" className="text-sm cursor-pointer">
+      <div className="flex items-center gap-2 rounded-md border px-3 py-2 md:w-[180px]">
+        <Label htmlFor="active-only" className="cursor-pointer text-sm">
           Solo activos
         </Label>
-        <Switch
-          id="active-only"
-          checked={activeOnly}
-          onCheckedChange={onActiveOnlyChange}
-        />
+        <Switch id="active-only" checked={activeOnly} onCheckedChange={onActiveOnlyChange} />
       </div>
     </div>
   );
 }
-

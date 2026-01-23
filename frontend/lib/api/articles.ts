@@ -3,18 +3,20 @@ import { PagedResult, PaginationParams } from '@/types/pagination';
 import apiClient from './client';
 
 export const articlesApi = {
-  getAll: async (params: PaginationParams & {
-    activeOnly?: boolean;
-    lowStockOnly?: boolean;
-    hasStockOnly?: boolean;
-    zeroStockOnly?: boolean;
-    categoryId?: number;
-    searchTerm?: string;
-    includeABC?: boolean;
-    abcFilter?: string;
-    salesSort?: string;
-    trendMonths?: number;
-  } = {}): Promise<PagedResult<Article>> => {
+  getAll: async (
+    params: PaginationParams & {
+      activeOnly?: boolean;
+      lowStockOnly?: boolean;
+      hasStockOnly?: boolean;
+      zeroStockOnly?: boolean;
+      categoryId?: number;
+      searchTerm?: string;
+      includeABC?: boolean;
+      abcFilter?: string;
+      salesSort?: string;
+      trendMonths?: number;
+    } = {}
+  ): Promise<PagedResult<Article>> => {
     const apiParams = {
       page: params.pageNumber || 1,
       limit: params.pageSize || 50,
@@ -30,9 +32,9 @@ export const articlesApi = {
       hasStockOnly: params.hasStockOnly,
       zeroStockOnly: params.zeroStockOnly,
     };
-    
-    const { data } = await apiClient.get<PagedResult<Article>>('/articles', { 
-      params: apiParams 
+
+    const { data } = await apiClient.get<PagedResult<Article>>('/articles', {
+      params: apiParams,
     });
     return data;
   },

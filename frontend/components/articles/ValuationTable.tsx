@@ -1,3 +1,8 @@
+import { TrendingDown, TrendingUp, Minus, ExternalLink } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { SparklineWithTooltip } from '@/components/ui/sparkline';
 import {
   Table,
   TableBody,
@@ -6,12 +11,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { ROUTES } from '@/lib/constants/routes';
 import { StockStatus, StockValuationMetrics } from '@/types/stockValuation';
-import { Sparkline, SparklineWithTooltip } from '@/components/ui/sparkline';
-import { TrendingDown, TrendingUp, Minus, ExternalLink } from 'lucide-react';
-import { useRouter } from 'next/navigation';
 
 interface ValuationTableProps {
   articles: StockValuationMetrics[];
@@ -44,7 +45,7 @@ const trendConfig = {
   none: { icon: Minus, color: 'text-gray-600 dark:text-gray-400' },
 };
 
-export function ValuationTable({ articles, trendMonths = 6 }: ValuationTableProps) {
+export function ValuationTable({ articles }: ValuationTableProps) {
   const router = useRouter();
 
   const formatCurrency = (value: number) => {
@@ -80,23 +81,23 @@ export function ValuationTable({ articles, trendMonths = 6 }: ValuationTableProp
   };
 
   const handleViewDetails = (code: string) => {
-    router.push(`/dashboard/articles?search=${code}`);
+    router.push(`${ROUTES.ARTICLES}?search=${code}`);
   };
 
   return (
-    <div className="border rounded-lg">
+    <div className="rounded-lg border">
       <Table>
         <TableHeader>
           <TableRow>
             <TableHead className="w-[120px]">Código</TableHead>
             <TableHead>Descripción</TableHead>
             <TableHead className="w-[130px]">Estado</TableHead>
-            <TableHead className="text-right w-[80px]">Stock</TableHead>
+            <TableHead className="w-[80px] text-right">Stock</TableHead>
             <TableHead className="w-[110px]">Última Venta</TableHead>
             <TableHead className="w-[140px]">Tendencia</TableHead>
-            <TableHead className="text-right w-[100px]">Costo</TableHead>
-            <TableHead className="text-right w-[110px]">Valor Costo</TableHead>
-            <TableHead className="text-right w-[110px]">Precio Lista</TableHead>
+            <TableHead className="w-[100px] text-right">Costo</TableHead>
+            <TableHead className="w-[110px] text-right">Valor Costo</TableHead>
+            <TableHead className="w-[110px] text-right">Precio Lista</TableHead>
             <TableHead className="w-[80px]"></TableHead>
           </TableRow>
         </TableHeader>
@@ -112,9 +113,7 @@ export function ValuationTable({ articles, trendMonths = 6 }: ValuationTableProp
                   {article.articleDescription}
                 </TableCell>
                 <TableCell>
-                  <Badge className={`${statusConf.color} text-xs`}>
-                    {statusConf.label}
-                  </Badge>
+                  <Badge className={`${statusConf.color} text-xs`}>{statusConf.label}</Badge>
                 </TableCell>
                 <TableCell className="text-right font-semibold">
                   {article.currentStock.toFixed(2)}
@@ -123,10 +122,8 @@ export function ValuationTable({ articles, trendMonths = 6 }: ValuationTableProp
                   <div className="text-sm">
                     {article.daysSinceLastSale !== null ? (
                       <>
-                        <div className="font-semibold">
-                          Hace {article.daysSinceLastSale}d
-                        </div>
-                        <div className="text-xs text-muted-foreground">
+                        <div className="font-semibold">Hace {article.daysSinceLastSale}d</div>
+                        <div className="text-muted-foreground text-xs">
                           {formatDate(article.lastSaleDate)}
                         </div>
                       </>
@@ -140,9 +137,7 @@ export function ValuationTable({ articles, trendMonths = 6 }: ValuationTableProp
                     <div className="space-y-1">
                       <div className="flex items-center gap-1 text-xs">
                         <TrendIcon
-                          className={`h-3 w-3 ${
-                            trendConfig[article.salesTrendDirection].color
-                          }`}
+                          className={`h-3 w-3 ${trendConfig[article.salesTrendDirection].color}`}
                         />
                         <span className="text-muted-foreground">
                           {article.avgMonthlySales.toFixed(1)}/mes
@@ -153,22 +148,23 @@ export function ValuationTable({ articles, trendMonths = 6 }: ValuationTableProp
                         labels={Array.from({ length: article.salesTrend.length }, (_, i) => {
                           const date = new Date();
                           date.setMonth(date.getMonth() - (article.salesTrend.length - 1 - i));
-                          return date.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' });
+                          return date.toLocaleDateString('es-AR', {
+                            month: 'short',
+                            year: '2-digit',
+                          });
                         })}
                         width={100}
                         height={20}
                         color={getSparklineColor(article.salesTrendDirection)}
-                        fillColor={`${getSparklineColor(
-                          article.salesTrendDirection
-                        )}20`}
+                        fillColor={`${getSparklineColor(article.salesTrendDirection)}20`}
                         formatValue={(v) => `${v} unidades`}
                       />
                     </div>
                   ) : (
-                    <span className="text-xs text-muted-foreground">Sin datos</span>
+                    <span className="text-muted-foreground text-xs">Sin datos</span>
                   )}
                 </TableCell>
-                <TableCell className="text-right text-sm text-muted-foreground">
+                <TableCell className="text-muted-foreground text-right text-sm">
                   {formatCurrency(article.unitCost)}
                 </TableCell>
                 <TableCell className="text-right text-sm">
@@ -194,4 +190,3 @@ export function ValuationTable({ articles, trendMonths = 6 }: ValuationTableProp
     </div>
   );
 }
-

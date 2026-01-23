@@ -41,8 +41,3 @@ export interface ArticleListDto {
   articles: Article[];
   total: number;
 }
-
-
-
-
-

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
 import { z } from 'zod';
 import { OPERATIONS } from '@/lib/constants/operations';
+import { prisma } from '@/lib/db';
+import { handleError } from '@/lib/errors';
 import { logActivity } from '@/lib/services/activityLogger';
 
 const updatePaymentTermSchema = z.object({
@@ -11,27 +12,18 @@ const updatePaymentTermSchema = z.object({
   isActive: z.boolean().optional(),
 });
 
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: paramId } = await params;
     const id = parseInt(paramId);
 
-    const paymentTerm = await prisma.payment_terms.findUnique({
-      where: { id },
-    });
+    const paymentTerm = await prisma.payment_terms.findUnique({ where: { id } });
 
     if (!paymentTerm) {
-      return NextResponse.json(
-        { error: 'Payment term not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Payment term not found' }, { status: 404 });
     }
 
-    // Map to camelCase
-    const mappedTerm = {
+    return NextResponse.json({
       id: paymentTerm.id,
       code: paymentTerm.code,
       name: paymentTerm.name,
@@ -39,47 +31,28 @@ export async function GET(
       isActive: paymentTerm.is_active,
       createdAt: paymentTerm.created_at.toISOString(),
       updatedAt: paymentTerm.updated_at.toISOString(),
-    };
-
-    return NextResponse.json(mappedTerm);
+    });
   } catch (error) {
-    console.error('Error fetching payment term:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch payment term' },
-      { status: 500 }
-    );
+    return handleError(error);
   }
 }
 
-export async function PUT(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const { id: paramId } = await params;
     const id = parseInt(paramId);
     const body = await request.json();
-
-    // Validate input
     const validatedData = updatePaymentTermSchema.parse(body);
 
-    const existing = await prisma.payment_terms.findUnique({
-      where: { id },
-    });
-
+    const existing = await prisma.payment_terms.findUnique({ where: { id } });
     if (!existing) {
-      return NextResponse.json(
-        { error: 'Payment term not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Payment term not found' }, { status: 404 });
     }
 
-    // Check if code already exists (if updating code)
     if (validatedData.code && validatedData.code !== existing.code) {
       const codeExists = await prisma.payment_terms.findUnique({
         where: { code: validatedData.code },
       });
-
       if (codeExists) {
         return NextResponse.json(
           { error: 'Payment term with this code already exists' },
@@ -99,8 +72,16 @@ export async function PUT(
       },
     });
 
-    // Map to camelCase
-    const mappedTerm = {
+    await logActivity({
+      request,
+      operation: OPERATIONS.PAYMENT_TERM_UPDATE,
+      description: `Condición de pago ${paymentTerm.name} actualizada`,
+      entityType: 'payment_term',
+      entityId: BigInt(id),
+      details: { code: paymentTerm.code, name: paymentTerm.name },
+    });
+
+    return NextResponse.json({
       id: paymentTerm.id,
       code: paymentTerm.code,
       name: paymentTerm.name,
@@ -108,33 +89,9 @@ export async function PUT(
       isActive: paymentTerm.is_active,
       createdAt: paymentTerm.created_at.toISOString(),
       updatedAt: paymentTerm.updated_at.toISOString(),
-    };
-
-    // Log activity
-    await logActivity({
-      request,
-      operation: OPERATIONS.PAYMENT_TERM_UPDATE,
-      description: `Condición de pago ${paymentTerm.name} actualizada`,
-      entityType: 'payment_term',
-      entityId: BigInt(id),
-      details: { code: paymentTerm.code, name: paymentTerm.name }
     });
-
-    return NextResponse.json(mappedTerm);
   } catch (error) {
-    console.error('Error updating payment term:', error);
-
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Validation error', details: error.issues },
-        { status: 400 }
-      );
-    }
-
-    return NextResponse.json(
-      { error: 'Failed to update payment term' },
-      { status: 500 }
-    );
+    return handleError(error);
   }
 }
 
@@ -160,14 +117,13 @@ export async function DELETE(
     });
 
     if (!existing) {
-      return NextResponse.json(
-        { error: 'Payment term not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: 'Payment term not found' }, { status: 404 });
     }
 
-    // Check if it's being used
-    const totalUsage = existing._count.invoices + existing._count.sales_orders + existing._count.category_payment_discounts;
+    const totalUsage =
+      existing._count.invoices +
+      existing._count.sales_orders +
+      existing._count.category_payment_discounts;
     if (totalUsage > 0) {
       return NextResponse.json(
         { error: 'Cannot delete payment term that is being used' },
@@ -175,27 +131,19 @@ export async function DELETE(
       );
     }
 
-    await prisma.payment_terms.delete({
-      where: { id },
-    });
+    await prisma.payment_terms.delete({ where: { id } });
 
-    // Log activity
     await logActivity({
       request,
       operation: OPERATIONS.PAYMENT_TERM_DELETE,
       description: `Condición de pago ${existing.name} eliminada`,
       entityType: 'payment_term',
       entityId: BigInt(id),
-      details: { code: existing.code, name: existing.name }
+      details: { code: existing.code, name: existing.name },
     });
 
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting payment term:', error);
-    return NextResponse.json(
-      { error: 'Failed to delete payment term' },
-      { status: 500 }
-    );
+    return handleError(error);
   }
 }
-

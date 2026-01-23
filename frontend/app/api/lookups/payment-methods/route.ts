@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { handleError } from '@/lib/errors';
 
 export async function GET() {
   try {
@@ -10,13 +11,6 @@ export async function GET() {
 
     return NextResponse.json(paymentMethods);
   } catch (error) {
-    console.error('Error fetching payment methods:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch payment methods' },
-      { status: 500 }
-    );
+    return handleError(error);
   }
 }
-
-
-

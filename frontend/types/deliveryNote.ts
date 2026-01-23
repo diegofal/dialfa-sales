@@ -69,6 +69,3 @@ export interface UpdateDeliveryNoteRequest {
   declaredValue: number | null;
   notes: string | null;
 }
-
-
-

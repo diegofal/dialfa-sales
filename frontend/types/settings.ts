@@ -8,8 +8,3 @@ export interface SystemSettings {
 export interface UpdateSettingsRequest {
   usdExchangeRate: number;
 }
-
-
-
-
-

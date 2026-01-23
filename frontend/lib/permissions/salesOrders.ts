@@ -1,9 +1,6 @@
-import type { SalesOrder } from '@/types/salesOrder';
-import type { 
-  SalesOrderStatus, 
-  SalesOrderPermissions,
-} from '@/types/permissions';
+import type { SalesOrderStatus, SalesOrderPermissions } from '@/types/permissions';
 import { calculateSalesOrderPermissions as calculatePermissions } from '@/types/permissions';
+import type { SalesOrder } from '@/types/salesOrder';
 
 /**
  * Extract status information from a SalesOrder entity
@@ -43,7 +40,7 @@ export function calculateSalesOrderPermissions(
   hasUnsavedChanges: boolean = false
 ): SalesOrderPermissions {
   const status = extractSalesOrderStatus(salesOrder, hasUnsavedChanges);
-  
+
   return calculatePermissions(status);
 }
 
@@ -77,7 +74,9 @@ export function validateSalesOrder(
   // Rule 3: All quantities must be > 0
   items.forEach((item, index) => {
     if (item.quantity <= 0) {
-      errors.push(`El artículo ${item.articleDescription || `#${index + 1}`} debe tener cantidad mayor a 0`);
+      errors.push(
+        `El artículo ${item.articleDescription || `#${index + 1}`} debe tener cantidad mayor a 0`
+      );
     }
   });
 
@@ -85,7 +84,7 @@ export function validateSalesOrder(
   items.forEach((item) => {
     if (item.stock !== undefined && item.quantity > item.stock) {
       const message = `${item.articleDescription || 'Artículo'}: cantidad solicitada (${item.quantity}) excede stock disponible (${item.stock})`;
-      
+
       if (allowLowStock) {
         warnings.push(message);
       } else {
@@ -129,9 +128,9 @@ export function canEditSalesOrder(salesOrder: SalesOrder | null | undefined): {
 
   // Cannot edit if invoice is printed
   if (salesOrder.invoice?.isPrinted) {
-    return { 
-      canEdit: false, 
-      reason: 'No se puede modificar un pedido con factura impresa' 
+    return {
+      canEdit: false,
+      reason: 'No se puede modificar un pedido con factura impresa',
     };
   }
 
@@ -151,13 +150,11 @@ export function canGenerateInvoice(salesOrder: SalesOrder | null | undefined): {
 
   // Cannot generate if already has an active invoice (not cancelled)
   if (salesOrder.invoice && !salesOrder.invoice.isCancelled) {
-    return { 
-      canGenerate: false, 
-      reason: 'El pedido ya tiene una factura asociada' 
+    return {
+      canGenerate: false,
+      reason: 'El pedido ya tiene una factura asociada',
     };
   }
 
   return { canGenerate: true };
 }
-
-

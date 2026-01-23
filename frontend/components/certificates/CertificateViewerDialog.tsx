@@ -1,18 +1,13 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { useCertificate } from '@/lib/hooks/useCertificates';
-import { Download, ExternalLink, FileText, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Download, ExternalLink, FileText, Loader2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { useCertificate } from '@/lib/hooks/useCertificates';
 import { TiffViewer } from './TiffViewer';
 
 interface CertificateViewerDialogProps {
@@ -21,10 +16,10 @@ interface CertificateViewerDialogProps {
   onOpenChange: (open: boolean) => void;
 }
 
-export function CertificateViewerDialog({ 
-  certificateId, 
-  open, 
-  onOpenChange 
+export function CertificateViewerDialog({
+  certificateId,
+  open,
+  onOpenChange,
 }: CertificateViewerDialogProps) {
   const { data: certificate, isLoading, error } = useCertificate(certificateId);
   const [previewError, setPreviewError] = useState(false);
@@ -34,10 +29,12 @@ export function CertificateViewerDialog({
     setPreviewError(false);
   }, [certificateId]);
 
-  const isPreviewable = certificate && ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'tif', 'tiff', 'bmp'].includes(
-    certificate.file_type.toLowerCase()
-  );
-  
+  const isPreviewable =
+    certificate &&
+    ['pdf', 'jpg', 'jpeg', 'png', 'gif', 'tif', 'tiff', 'bmp'].includes(
+      certificate.file_type.toLowerCase()
+    );
+
   const isTiff = certificate && ['tif', 'tiff'].includes(certificate.file_type.toLowerCase());
 
   const handleDownload = () => {
@@ -48,7 +45,7 @@ export function CertificateViewerDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent size="xl" className="max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent size="xl" className="flex max-h-[90vh] flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <FileText className="h-5 w-5" />
@@ -58,12 +55,12 @@ export function CertificateViewerDialog({
 
         {isLoading && (
           <div className="flex items-center justify-center py-20">
-            <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            <Loader2 className="text-primary h-8 w-8 animate-spin" />
           </div>
         )}
 
         {error && (
-          <div className="flex flex-col items-center justify-center py-20 text-destructive">
+          <div className="text-destructive flex flex-col items-center justify-center py-20">
             <p>Error al cargar el certificado</p>
           </div>
         )}
@@ -71,26 +68,26 @@ export function CertificateViewerDialog({
         {certificate && (
           <div className="flex-1 overflow-auto">
             {/* Metadata */}
-            <div className="grid grid-cols-2 gap-4 mb-4 p-4 bg-muted rounded-lg">
+            <div className="bg-muted mb-4 grid grid-cols-2 gap-4 rounded-lg p-4">
               <div>
-                <p className="text-sm text-muted-foreground">Categoría</p>
+                <p className="text-muted-foreground text-sm">Categoría</p>
                 <Badge variant="secondary">{certificate.category || 'Sin categoría'}</Badge>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Tipo</p>
+                <p className="text-muted-foreground text-sm">Tipo</p>
                 <p className="font-medium">{certificate.file_type.toUpperCase()}</p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Fecha de carga</p>
+                <p className="text-muted-foreground text-sm">Fecha de carga</p>
                 <p className="font-medium">
                   {format(new Date(certificate.created_at), 'dd/MM/yyyy HH:mm', { locale: es })}
                 </p>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground">Tamaño</p>
+                <p className="text-muted-foreground text-sm">Tamaño</p>
                 <p className="font-medium">
-                  {certificate.file_size_bytes 
-                    ? `${(parseInt(certificate.file_size_bytes) / 1024).toFixed(1)} KB` 
+                  {certificate.file_size_bytes
+                    ? `${(parseInt(certificate.file_size_bytes) / 1024).toFixed(1)} KB`
                     : '-'}
                 </p>
               </div>
@@ -99,15 +96,13 @@ export function CertificateViewerDialog({
             {/* Coladas */}
             {certificate.coladas.length > 0 && (
               <div className="mb-4">
-                <p className="text-sm text-muted-foreground mb-2">Coladas asociadas</p>
+                <p className="text-muted-foreground mb-2 text-sm">Coladas asociadas</p>
                 <div className="flex flex-wrap gap-2">
                   {certificate.coladas.map((colada) => (
                     <Badge key={colada.id} variant="outline">
                       {colada.colada_number}
                       {colada.description && (
-                        <span className="ml-1 text-muted-foreground">
-                          - {colada.description}
-                        </span>
+                        <span className="text-muted-foreground ml-1">- {colada.description}</span>
                       )}
                     </Badge>
                   ))}
@@ -117,11 +112,11 @@ export function CertificateViewerDialog({
 
             {/* Preview or Download */}
             {isPreviewable && !previewError ? (
-              <div className="border rounded-lg overflow-hidden bg-muted/50">
+              <div className="bg-muted/50 overflow-hidden rounded-lg border">
                 {certificate.file_type.toLowerCase() === 'pdf' ? (
                   <iframe
                     src={certificate.signed_url}
-                    className="w-full h-[500px]"
+                    className="h-[500px] w-full"
                     title={certificate.file_name}
                     onError={() => setPreviewError(true)}
                   />
@@ -130,7 +125,7 @@ export function CertificateViewerDialog({
                     <TiffViewer
                       url={certificate.signed_url!}
                       alt={certificate.file_name}
-                      className="max-w-full max-h-[500px] object-contain"
+                      className="max-h-[500px] max-w-full object-contain"
                       onError={() => setPreviewError(true)}
                     />
                   </div>
@@ -139,35 +134,38 @@ export function CertificateViewerDialog({
                     <img
                       src={certificate.signed_url}
                       alt={certificate.file_name}
-                      className="max-w-full max-h-[500px] object-contain"
+                      className="max-h-[500px] max-w-full object-contain"
                       onError={() => setPreviewError(true)}
                     />
                   </div>
                 )}
               </div>
             ) : (
-              <div className="flex flex-col items-center justify-center py-10 border rounded-lg bg-muted/50">
-                <FileText className="h-16 w-16 text-muted-foreground mb-4" />
+              <div className="bg-muted/50 flex flex-col items-center justify-center rounded-lg border py-10">
+                <FileText className="text-muted-foreground mb-4 h-16 w-16" />
                 <p className="text-muted-foreground mb-4">
-                  {previewError 
-                    ? 'No se pudo mostrar la vista previa' 
+                  {previewError
+                    ? 'No se pudo mostrar la vista previa'
                     : 'Vista previa no disponible para este tipo de archivo'}
                 </p>
                 <Button onClick={handleDownload}>
-                  <Download className="h-4 w-4 mr-2" />
+                  <Download className="mr-2 h-4 w-4" />
                   Descargar archivo
                 </Button>
               </div>
             )}
 
             {/* Actions */}
-            <div className="flex justify-end gap-2 mt-4 pt-4 border-t">
+            <div className="mt-4 flex justify-end gap-2 border-t pt-4">
               <Button variant="outline" onClick={handleDownload}>
-                <Download className="h-4 w-4 mr-2" />
+                <Download className="mr-2 h-4 w-4" />
                 Descargar
               </Button>
-              <Button variant="outline" onClick={() => window.open(certificate.signed_url, '_blank')}>
-                <ExternalLink className="h-4 w-4 mr-2" />
+              <Button
+                variant="outline"
+                onClick={() => window.open(certificate.signed_url, '_blank')}
+              >
+                <ExternalLink className="mr-2 h-4 w-4" />
                 Abrir en nueva pestaña
               </Button>
             </div>
@@ -177,5 +175,3 @@ export function CertificateViewerDialog({
     </Dialog>
   );
 }
-
-

@@ -14,11 +14,11 @@ interface FormFieldProps {
 
 /**
  * Reusable form field wrapper with label, error display, and description
- * 
+ *
  * @example
- * <FormField 
- *   label="Condición de Pago" 
- *   required 
+ * <FormField
+ *   label="Condición de Pago"
+ *   required
  *   error={getError('paymentTermId')}
  *   description="Define descuentos por categoría"
  * >
@@ -36,34 +36,20 @@ export function FormField({
 }: FormFieldProps) {
   return (
     <div className={cn('space-y-2', className)}>
-      <Label 
-        htmlFor={htmlFor}
-        className={cn(
-          error && 'text-destructive'
-        )}
-      >
+      <Label htmlFor={htmlFor} className={cn(error && 'text-destructive')}>
         {label}
         {required && <span className="text-destructive ml-1">*</span>}
       </Label>
-      
-      <div className={cn(
-        'transition-all',
-        error && 'animate-shake'
-      )}>
-        {children}
-      </div>
-      
+
+      <div className={cn('transition-all', error && 'animate-shake')}>{children}</div>
+
       {error && (
-        <p className="text-sm font-medium text-destructive animate-in fade-in-50 slide-in-from-top-1">
+        <p className="text-destructive animate-in fade-in-50 slide-in-from-top-1 text-sm font-medium">
           {error}
         </p>
       )}
-      
-      {!error && description && (
-        <p className="text-xs text-muted-foreground">
-          {description}
-        </p>
-      )}
+
+      {!error && description && <p className="text-muted-foreground text-xs">{description}</p>}
     </div>
   );
 }

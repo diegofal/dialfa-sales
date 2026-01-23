@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
-import { requireAdmin } from '@/lib/auth/roles';
 import { Prisma } from '@prisma/client';
+import { NextRequest, NextResponse } from 'next/server';
+import { requireAdmin } from '@/lib/auth/roles';
+import { prisma } from '@/lib/db';
+import { handleError } from '@/lib/errors';
 
 export async function GET(request: NextRequest) {
   try {
@@ -60,7 +61,7 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Transform BigInt to Number for JSON serialization
-    const serializedLogs = logs.map(log => ({
+    const serializedLogs = logs.map((log) => ({
       ...log,
       id: Number(log.id),
       entity_id: log.entity_id ? Number(log.entity_id) : null,
@@ -76,11 +77,6 @@ export async function GET(request: NextRequest) {
       },
     });
   } catch (error) {
-    console.error('Error fetching activity logs:', error);
-    return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
-    );
+    return handleError(error);
   }
 }
-

@@ -1,18 +1,25 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { ArrowLeft } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { ROUTES } from '@/lib/constants/routes';
 import { useCreateInvoice } from '@/lib/hooks/useInvoices';
+import { usePaymentTerms } from '@/lib/hooks/usePaymentTerms';
 import { useSalesOrders } from '@/lib/hooks/useSalesOrders';
 import { useSystemSettings } from '@/lib/hooks/useSettings';
-import { usePaymentTerms } from '@/lib/hooks/usePaymentTerms';
 
 export default function NewInvoicePage() {
   const router = useRouter();
@@ -40,9 +47,9 @@ export default function NewInvoicePage() {
   // Pre-fill exchange rate from system settings
   useEffect(() => {
     if (settings && !formData.usdExchangeRate) {
-      setFormData(prev => ({
+      setFormData((prev) => ({
         ...prev,
-        usdExchangeRate: settings.usdExchangeRate.toString()
+        usdExchangeRate: settings.usdExchangeRate.toString(),
       }));
     }
   }, [settings, formData.usdExchangeRate]);
@@ -51,12 +58,12 @@ export default function NewInvoicePage() {
   useEffect(() => {
     if (formData.salesOrderId && salesOrdersData) {
       const selectedOrder = salesOrdersData.data.find(
-        order => order.id.toString() === formData.salesOrderId
+        (order) => order.id.toString() === formData.salesOrderId
       );
       if (selectedOrder && selectedOrder.paymentTermId) {
-        setFormData(prev => ({
+        setFormData((prev) => ({
           ...prev,
-          paymentTermId: selectedOrder.paymentTermId?.toString() || ''
+          paymentTermId: selectedOrder.paymentTermId?.toString() || '',
         }));
       }
     }
@@ -82,16 +89,16 @@ export default function NewInvoicePage() {
         onSuccess: (data) => {
           // Stay on the form after creating invoice
           // Navigate to edit view to allow further modifications
-          router.push(`/dashboard/invoices/${data.id}`);
+          router.push(`${ROUTES.INVOICES}/${data.id}`);
         },
       }
     );
   };
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="max-w-4xl space-y-6">
       <div className="flex items-center gap-4">
-        <Button variant="ghost" onClick={() => router.push('/dashboard/invoices')}>
+        <Button variant="ghost" onClick={() => router.push(ROUTES.INVOICES)}>
           <ArrowLeft className="h-4 w-4" />
         </Button>
         <div>
@@ -113,9 +120,7 @@ export default function NewInvoicePage() {
               <Label htmlFor="salesOrderId">Pedido *</Label>
               <Select
                 value={formData.salesOrderId}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, salesOrderId: value })
-                }
+                onValueChange={(value) => setFormData({ ...formData, salesOrderId: value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccione un pedido pendiente" />
@@ -136,9 +141,7 @@ export default function NewInvoicePage() {
                 id="invoiceDate"
                 type="date"
                 value={formData.invoiceDate}
-                onChange={(e) =>
-                  setFormData({ ...formData, invoiceDate: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, invoiceDate: e.target.value })}
                 required
               />
             </div>
@@ -147,9 +150,7 @@ export default function NewInvoicePage() {
               <Label htmlFor="paymentTermId">Condición de Pago</Label>
               <Select
                 value={formData.paymentTermId}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, paymentTermId: value })
-                }
+                onValueChange={(value) => setFormData({ ...formData, paymentTermId: value })}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Seleccione una condición de pago (opcional)" />
@@ -163,7 +164,7 @@ export default function NewInvoicePage() {
                   ))}
                 </SelectContent>
               </Select>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 Los descuentos se aplicarán según la condición de pago seleccionada
               </p>
             </div>
@@ -176,12 +177,10 @@ export default function NewInvoicePage() {
                 step="0.01"
                 placeholder="Ej: 1000.50"
                 value={formData.usdExchangeRate}
-                onChange={(e) =>
-                  setFormData({ ...formData, usdExchangeRate: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, usdExchangeRate: e.target.value })}
                 required
               />
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 Los precios están en USD. Este valor se usa para convertir a pesos argentinos.
                 {settings && ` Valor actual del sistema: $${settings.usdExchangeRate.toFixed(2)}`}
               </p>
@@ -200,7 +199,7 @@ export default function NewInvoicePage() {
                   setFormData({ ...formData, specialDiscountPercent: e.target.value })
                 }
               />
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 Descuento adicional aplicado después de descuentos por artículo
               </p>
             </div>
@@ -211,26 +210,22 @@ export default function NewInvoicePage() {
                 id="notes"
                 placeholder="Ingrese observaciones o notas adicionales"
                 value={formData.notes}
-                onChange={(e) =>
-                  setFormData({ ...formData, notes: e.target.value })
-                }
+                onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={4}
               />
             </div>
           </CardContent>
         </Card>
 
-        <div className="flex justify-end gap-4 mt-6">
-          <Button
-            type="button"
-            variant="outline"
-            onClick={() => router.push('/dashboard/invoices')}
-          >
+        <div className="mt-6 flex justify-end gap-4">
+          <Button type="button" variant="outline" onClick={() => router.push(ROUTES.INVOICES)}>
             Cancelar
           </Button>
           <Button
             type="submit"
-            disabled={!formData.salesOrderId || !formData.usdExchangeRate || createInvoiceMutation.isPending}
+            disabled={
+              !formData.salesOrderId || !formData.usdExchangeRate || createInvoiceMutation.isPending
+            }
           >
             {createInvoiceMutation.isPending ? 'Creando...' : 'Crear Factura'}
           </Button>
@@ -239,6 +234,3 @@ export default function NewInvoicePage() {
     </div>
   );
 }
-
-
-

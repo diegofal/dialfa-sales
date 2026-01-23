@@ -26,7 +26,7 @@ export function SortableTableHead({
 
   const handleClick = () => {
     if (!isSortable) return;
-    
+
     // If not currently sorted, sort ascending
     if (!isSorted) {
       onSort(sortKey, false);
@@ -45,7 +45,7 @@ export function SortableTableHead({
     if (!isSortable) return null;
 
     if (!isSorted) {
-      return <ChevronsUpDown className="ml-2 h-4 w-4 text-muted-foreground" />;
+      return <ChevronsUpDown className="text-muted-foreground ml-2 h-4 w-4" />;
     }
 
     return currentSortDescending ? (
@@ -58,20 +58,23 @@ export function SortableTableHead({
   return (
     <TableHead
       className={cn(
-        isSortable && 'cursor-pointer select-none hover:bg-muted/50',
+        isSortable && 'hover:bg-muted/50 cursor-pointer select-none',
         align === 'right' && 'text-right',
         align === 'center' && 'text-center',
         className
       )}
       onClick={handleClick}
     >
-      <div className={cn("flex items-center", align === 'right' && 'justify-end', align === 'center' && 'justify-center')}>
+      <div
+        className={cn(
+          'flex items-center',
+          align === 'right' && 'justify-end',
+          align === 'center' && 'justify-center'
+        )}
+      >
         {children}
         {getSortIcon()}
       </div>
     </TableHead>
   );
 }
-
-
-

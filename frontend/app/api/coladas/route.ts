@@ -1,148 +1,33 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
-import { Prisma } from '@prisma/client'
-import { logActivity } from '@/lib/services/activityLogger'
-import { OPERATIONS } from '@/lib/constants/operations'
+import { NextRequest, NextResponse } from 'next/server';
+import { handleError } from '@/lib/errors';
+import * as CertificateService from '@/lib/services/CertificateService';
 
-/**
- * GET /api/coladas
- * Search and list coladas with certificate counts
- */
 export async function GET(request: NextRequest) {
   try {
-    const { searchParams } = new URL(request.url)
-    const search = searchParams.get('search')
-    const page = parseInt(searchParams.get('page') || '1')
-    const limit = parseInt(searchParams.get('limit') || '20')
-    const skip = (page - 1) * limit
+    const { searchParams } = new URL(request.url);
+    const result = await CertificateService.listColadas({
+      page: parseInt(searchParams.get('page') || '1'),
+      limit: parseInt(searchParams.get('limit') || '20'),
+      search: searchParams.get('search') || undefined,
+    });
 
-    // Build where clause
-    const where: Prisma.coladasWhereInput = {}
-
-    if (search) {
-      where.colada_number = {
-        contains: search,
-        mode: 'insensitive'
-      }
-    }
-
-    // Get coladas with certificate count
-    const [coladas, total] = await Promise.all([
-      prisma.coladas.findMany({
-        where,
-        include: {
-          _count: {
-            select: {
-              certificate_coladas: {
-                where: {
-                  certificates: {
-                    deleted_at: null
-                  }
-                }
-              }
-            }
-          }
-        },
-        skip,
-        take: limit,
-        orderBy: { colada_number: 'asc' }
-      }),
-      prisma.coladas.count({ where })
-    ])
-
-    return NextResponse.json({
-      data: coladas.map(colada => ({
-        id: colada.id.toString(),
-        colada_number: colada.colada_number,
-        description: colada.description,
-        supplier: colada.supplier,
-        material_type: colada.material_type,
-        created_at: colada.created_at.toISOString(),
-        updated_at: colada.updated_at.toISOString(),
-        certificates_count: colada._count.certificate_coladas
-      })),
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit)
-      }
-    })
+    return NextResponse.json(result);
   } catch (error) {
-    console.error('Error fetching coladas:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch coladas' },
-      { status: 500 }
-    )
+    return handleError(error);
   }
 }
 
-/**
- * POST /api/coladas
- * Create a new colada
- */
 export async function POST(request: NextRequest) {
   try {
-    const body = await request.json()
-    const { colada_number, description, supplier, material_type } = body
+    const body = await request.json();
+    const result = await CertificateService.createColada(body, request);
 
-    if (!colada_number) {
-      return NextResponse.json(
-        { error: 'Colada number is required' },
-        { status: 400 }
-      )
+    if ('error' in result) {
+      return NextResponse.json({ error: result.error }, { status: result.status });
     }
 
-    // Check if colada already exists
-    const existing = await prisma.coladas.findUnique({
-      where: { colada_number: colada_number.toUpperCase() }
-    })
-
-    if (existing) {
-      return NextResponse.json(
-        { error: 'Colada already exists' },
-        { status: 409 }
-      )
-    }
-
-    const colada = await prisma.coladas.create({
-      data: {
-        colada_number: colada_number.toUpperCase(),
-        description,
-        supplier,
-        material_type
-      }
-    })
-
-    // Log activity
-    await logActivity({
-      request,
-      operation: OPERATIONS.COLADA_CREATE,
-      description: `Colada ${colada.colada_number} creada`,
-      entityType: 'colada',
-      entityId: colada.id,
-      details: { 
-        coladaNumber: colada.colada_number,
-        supplier: colada.supplier,
-        materialType: colada.material_type,
-      },
-    })
-
-    return NextResponse.json({
-      id: colada.id.toString(),
-      colada_number: colada.colada_number,
-      description: colada.description,
-      supplier: colada.supplier,
-      material_type: colada.material_type,
-      created_at: colada.created_at.toISOString(),
-      updated_at: colada.updated_at.toISOString()
-    }, { status: 201 })
+    return NextResponse.json(result.data, { status: result.status });
   } catch (error) {
-    console.error('Error creating colada:', error)
-    return NextResponse.json(
-      { error: 'Failed to create colada' },
-      { status: 500 }
-    )
+    return handleError(error);
   }
 }
-

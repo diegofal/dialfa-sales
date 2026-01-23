@@ -1,12 +1,12 @@
 'use client';
 
-import { useState, useRef, useEffect } from 'react';
 import { Search } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { useState, useRef, useEffect } from 'react';
+import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
 import { useArticles } from '@/lib/hooks/useArticles';
 import { useQuickCartTabs } from '@/lib/hooks/useQuickCartTabs';
-import { toast } from 'sonner';
 import type { Article } from '@/types/article';
 
 interface QuickArticleLookupProps {
@@ -20,19 +20,19 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
   const [showCodeResults, setShowCodeResults] = useState(false);
   const [selectedIndex, setSelectedIndex] = useState(0);
-  
+
   const codeInputRef = useRef<HTMLInputElement>(null);
   const quantityInputRef = useRef<HTMLInputElement>(null);
   const selectedItemRef = useRef<HTMLButtonElement>(null);
   const { addItem } = useQuickCartTabs();
-  
+
   // Search articles as user types code
-  const { data: articlesResult } = useArticles({ 
+  const { data: articlesResult } = useArticles({
     searchTerm: articleCode,
     activeOnly: true,
     pageSize: 5,
   });
-  
+
   const articles = articlesResult?.data || [];
 
   useEffect(() => {
@@ -106,17 +106,17 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
   const handleAddToCart = () => {
     // Auto-select first article if there's text but no selection
     let articleToAdd = selectedArticle;
-    
+
     if (!articleToAdd && articleCode && articles.length > 0) {
       // Auto-select the first result if user typed but didn't explicitly select
       articleToAdd = articles[0];
       setSelectedArticle(articleToAdd);
     }
-    
+
     if (!articleToAdd) {
-      toast.error('Selecciona un artículo válido', { 
+      toast.error('Selecciona un artículo válido', {
         duration: 2000,
-        position: 'top-center'
+        position: 'top-center',
       });
       codeInputRef.current?.focus();
       return;
@@ -126,7 +126,7 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
     if (qty <= 0) {
       toast.error('La cantidad debe ser mayor a 0', {
         duration: 2000,
-        position: 'top-center'
+        position: 'top-center',
       });
       quantityInputRef.current?.focus();
       return;
@@ -138,7 +138,7 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
       position: 'top-center',
       dismissible: true,
     });
-    
+
     // Reset form
     setArticleCode('');
     setQuantity('1');
@@ -170,11 +170,11 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
   };
 
   return (
-    <div className="flex items-start gap-2 w-full">
+    <div className="flex w-full items-start gap-2">
       {/* Article Code Input */}
-      <div className="flex-1 relative">
+      <div className="relative flex-1">
         <div className="relative">
-          <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <Search className="text-muted-foreground absolute top-1/2 left-2 h-3.5 w-3.5 -translate-y-1/2" />
           <Input
             ref={codeInputRef}
             value={articleCode}
@@ -187,41 +187,43 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
             onFocus={() => articleCode && setShowCodeResults(true)}
             onBlur={() => setTimeout(() => setShowCodeResults(false), 200)}
             placeholder="Buscar artículo..."
-            className="pl-7 text-sm h-9"
+            className="h-9 pl-7 text-sm"
           />
         </div>
 
         {/* Search Results Dropdown */}
         {showCodeResults && articleCode && articles.length > 0 && (
-          <Card className="absolute z-[60] w-[420px] mt-1 max-h-[320px] overflow-auto shadow-xl">
+          <Card className="absolute z-[60] mt-1 max-h-[320px] w-[420px] overflow-auto shadow-xl">
             <div className="p-1">
               {articles.map((article, index) => (
                 <button
                   key={article.id}
                   ref={index === selectedIndex ? selectedItemRef : null}
                   onClick={() => handleSelectArticle(article, index)}
-                  className={`w-full text-left p-2.5 rounded transition-colors ${
-                    index === selectedIndex ? 'bg-primary text-primary-foreground' : 'hover:bg-accent hover:text-accent-foreground'
+                  className={`w-full rounded p-2.5 text-left transition-colors ${
+                    index === selectedIndex
+                      ? 'bg-primary text-primary-foreground'
+                      : 'hover:bg-accent hover:text-accent-foreground'
                   }`}
                 >
-                  <div className="flex justify-between items-start gap-3">
-                    <div className="flex-1 min-w-0">
-                      <div className="font-semibold text-sm font-mono">
-                        {article.code}
-                      </div>
-                      <div className={`text-xs truncate mt-0.5 ${index === selectedIndex ? 'text-primary-foreground/90' : 'text-muted-foreground'}`}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-mono text-sm font-semibold">{article.code}</div>
+                      <div
+                        className={`mt-0.5 truncate text-xs ${index === selectedIndex ? 'text-primary-foreground/90' : 'text-muted-foreground'}`}
+                      >
                         {article.description}
                       </div>
                     </div>
-                    <div className="text-right flex-shrink-0">
-                      <div className="text-sm font-bold">
-                        {formatCurrency(article.unitPrice)}
-                      </div>
-                      <div className={`text-xs font-medium mt-0.5 ${
-                        index === selectedIndex 
-                          ? 'text-primary-foreground' 
-                          : getStockStatusClass(article.stock)
-                      }`}>
+                    <div className="flex-shrink-0 text-right">
+                      <div className="text-sm font-bold">{formatCurrency(article.unitPrice)}</div>
+                      <div
+                        className={`mt-0.5 text-xs font-medium ${
+                          index === selectedIndex
+                            ? 'text-primary-foreground'
+                            : getStockStatusClass(article.stock)
+                        }`}
+                      >
                         Stock: {article.stock}
                       </div>
                     </div>
@@ -229,7 +231,7 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
                 </button>
               ))}
             </div>
-            <div className="px-3 py-2 bg-muted/50 text-xs text-muted-foreground border-t">
+            <div className="bg-muted/50 text-muted-foreground border-t px-3 py-2 text-xs">
               ↑↓ Navegar | Enter/Tab Seleccionar
             </div>
           </Card>
@@ -247,11 +249,9 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
           onKeyDown={handleQuantityKeyDown}
           onFocus={(e) => e.target.select()}
           placeholder="Cant."
-          className="text-center text-sm h-9"
+          className="h-9 text-center text-sm"
         />
       </div>
     </div>
   );
 }
-
-

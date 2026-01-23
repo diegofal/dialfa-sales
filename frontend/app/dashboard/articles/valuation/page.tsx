@@ -1,19 +1,19 @@
 'use client';
 
+import { AlertCircle, Loader2 } from 'lucide-react';
 import { useState } from 'react';
-import { useStockValuation, useRefreshStockValuation } from '@/lib/hooks/useStockValuation';
+import { ValuationByCategory } from '@/components/articles/ValuationByCategory';
+import { ValuationFilters } from '@/components/articles/ValuationFilters';
 import { ValuationSummary } from '@/components/articles/ValuationSummary';
 import { ValuationTable } from '@/components/articles/ValuationTable';
-import { ValuationFilters } from '@/components/articles/ValuationFilters';
-import { ValuationByCategory } from '@/components/articles/ValuationByCategory';
-import { StockClassificationConfig, StockStatus } from '@/types/stockValuation';
-import { AlertCircle, Loader2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useStockValuation, useRefreshStockValuation } from '@/lib/hooks/useStockValuation';
 import { useAuthStore } from '@/store/authStore';
+import { StockClassificationConfig, StockStatus } from '@/types/stockValuation';
 
 export default function ValuationPage() {
   const { isAdmin } = useAuthStore();
-  
+
   const [config, setConfig] = useState<StockClassificationConfig>({
     activeThresholdDays: 90,
     slowMovingThresholdDays: 180,
@@ -67,17 +67,18 @@ export default function ValuationPage() {
   };
 
   // Filtrar artículos según el status y categoría seleccionados
-  const filteredArticles = valuation 
+  const filteredArticles = valuation
     ? (() => {
-        let articles = selectedStatus === 'all'
-          ? Object.values(valuation.byStatus).flatMap(group => group.articles)
-          : valuation.byStatus[selectedStatus]?.articles || [];
-        
+        let articles =
+          selectedStatus === 'all'
+            ? Object.values(valuation.byStatus).flatMap((group) => group.articles)
+            : valuation.byStatus[selectedStatus]?.articles || [];
+
         // Si hay categoría seleccionada, filtrar por ella
         if (selectedCategoryId !== null) {
-          articles = articles.filter(a => a.categoryId === selectedCategoryId);
+          articles = articles.filter((a) => a.categoryId === selectedCategoryId);
         }
-        
+
         return articles;
       })()
     : [];
@@ -110,8 +111,8 @@ export default function ValuationPage() {
 
       {/* Loading State */}
       {isLoading && (
-        <div className="flex flex-col items-center justify-center py-12 space-y-4">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="flex flex-col items-center justify-center space-y-4 py-12">
+          <Loader2 className="text-primary h-8 w-8 animate-spin" />
           <p className="text-muted-foreground">Calculando valorización...</p>
         </div>
       )}
@@ -135,8 +136,8 @@ export default function ValuationPage() {
 
           {/* Category Breakdown */}
           {valuation.byCategory && valuation.byCategory.length > 0 && (
-            <ValuationByCategory 
-              categories={valuation.byCategory} 
+            <ValuationByCategory
+              categories={valuation.byCategory}
               totalStockValue={valuation.totals.totalValueAtListPrice}
               onStatusClick={handleCategoryStatusClick}
               onCategoryTotalClick={handleCategoryTotalClick}
@@ -150,31 +151,40 @@ export default function ValuationPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <h2 className="text-xl font-semibold">
-                  {selectedStatus === 'all' 
-                    ? 'Todos los Artículos' 
+                  {selectedStatus === 'all'
+                    ? 'Todos los Artículos'
                     : `Artículos: ${
-                        selectedStatus === StockStatus.ACTIVE ? 'Activos' :
-                        selectedStatus === StockStatus.SLOW_MOVING ? 'Movimiento Lento' :
-                        selectedStatus === StockStatus.DEAD_STOCK ? 'Stock Muerto' :
-                        'Nunca Vendidos'
-                      }`
-                  }
+                        selectedStatus === StockStatus.ACTIVE
+                          ? 'Activos'
+                          : selectedStatus === StockStatus.SLOW_MOVING
+                            ? 'Movimiento Lento'
+                            : selectedStatus === StockStatus.DEAD_STOCK
+                              ? 'Stock Muerto'
+                              : 'Nunca Vendidos'
+                      }`}
                 </h2>
                 {selectedCategoryId !== null && (
-                  <span className="text-sm text-muted-foreground">
-                    en {valuation.byCategory?.find(c => c.categoryId === selectedCategoryId)?.categoryName}
+                  <span className="text-muted-foreground text-sm">
+                    en{' '}
+                    {
+                      valuation.byCategory?.find((c) => c.categoryId === selectedCategoryId)
+                        ?.categoryName
+                    }
                   </span>
                 )}
                 {(selectedStatus !== 'all' || selectedCategoryId !== null) && (
-                  <button 
-                    onClick={() => { setSelectedStatus('all'); setSelectedCategoryId(null); }}
-                    className="text-xs text-primary hover:underline ml-2"
+                  <button
+                    onClick={() => {
+                      setSelectedStatus('all');
+                      setSelectedCategoryId(null);
+                    }}
+                    className="text-primary ml-2 text-xs hover:underline"
                   >
                     Limpiar filtro
                   </button>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-muted-foreground text-sm">
                 {sortedArticles.length} artículo{sortedArticles.length !== 1 ? 's' : ''}
               </p>
             </div>
@@ -182,17 +192,15 @@ export default function ValuationPage() {
             {sortedArticles.length > 0 ? (
               <ValuationTable articles={sortedArticles} trendMonths={trendMonths} />
             ) : (
-              <div className="text-center py-12 text-muted-foreground border rounded-lg">
+              <div className="text-muted-foreground rounded-lg border py-12 text-center">
                 No hay artículos en esta categoría
               </div>
             )}
           </div>
 
           {/* Footer Info */}
-          <div className="text-xs text-muted-foreground text-center py-4 border-t">
-            <p>
-              Última actualización: {new Date(valuation.calculatedAt).toLocaleString('es-AR')}
-            </p>
+          <div className="text-muted-foreground border-t py-4 text-center text-xs">
+            <p>Última actualización: {new Date(valuation.calculatedAt).toLocaleString('es-AR')}</p>
             <p className="mt-1">
               Los datos se actualizan automáticamente cada 24 horas
               {isAdmin() && ' o puedes forzar el recálculo usando el botón arriba'}
@@ -203,4 +211,3 @@ export default function ValuationPage() {
     </div>
   );
 }
-

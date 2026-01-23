@@ -1,26 +1,34 @@
 'use client';
 
+import { ShoppingCart } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
 import { Steps } from '@/components/ui/steps';
+import { ROUTES } from '@/lib/constants/routes';
+import { useQuickCart } from '@/lib/hooks/useQuickCart';
+import { useCreateSalesOrder } from '@/lib/hooks/useSalesOrders';
+import type { SalesOrderFormData } from '@/types/salesOrder';
 import { ClientSelectionStep } from './ClientSelectionStep';
 import { ItemsSelectionStep } from './ItemsSelectionStep';
 import { OrderSummaryStep } from './OrderSummaryStep';
-import type { SalesOrderFormData } from '@/types/salesOrder';
-import { useCreateSalesOrder } from '@/lib/hooks/useSalesOrders';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { toast } from 'sonner';
-import { useQuickCart } from '@/lib/hooks/useQuickCart';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { ShoppingCart } from 'lucide-react';
 
 export function SalesOrderWizard() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const fromQuickCart = searchParams.get('fromQuickCart') === 'true';
   const { items: quickCartItems, clearCart } = useQuickCart();
-  
+
   const [currentStep, setCurrentStep] = useState(0);
   const [formData, setFormData] = useState<SalesOrderFormData>({
     orderDate: new Date().toISOString().split('T')[0],
@@ -41,12 +49,12 @@ export function SalesOrderWizard() {
         unitPrice: item.article.unitPrice,
         discountPercent: 0,
       }));
-      
+
       setFormData((prev) => ({
         ...prev,
         items: cartItems,
       }));
-      
+
       setLoadedFromCart(true);
       toast.success(`${quickCartItems.length} artículo(s) cargados desde la consulta rápida`);
     }
@@ -63,8 +71,9 @@ export function SalesOrderWizard() {
       case 0:
         return !!formData.clientId && !!formData.orderDate;
       case 1:
-        return formData.items.length > 0 && formData.items.every(
-          (item) => item.quantity > 0 && item.unitPrice >= 0
+        return (
+          formData.items.length > 0 &&
+          formData.items.every((item) => item.quantity > 0 && item.unitPrice >= 0)
         );
       case 2:
         return true;
@@ -106,15 +115,15 @@ export function SalesOrderWizard() {
       };
 
       await createOrderMutation.mutateAsync(request);
-      
+
       // Clear quick cart if loaded from there
       if (fromQuickCart && loadedFromCart) {
         clearCart();
         toast.success('Pedido creado y lista de consulta limpiada');
       }
-      
+
       // After creating order, navigate to edit view to continue working
-      router.push('/dashboard/sales-orders');
+      router.push(ROUTES.SALES_ORDERS);
     } catch (error) {
       console.error('Error creating order:', error);
     }
@@ -126,7 +135,7 @@ export function SalesOrderWizard() {
         <Alert>
           <ShoppingCart className="h-4 w-4" />
           <AlertDescription>
-            Se han cargado {formData.items.length} artículo(s) desde tu lista de consulta rápida. 
+            Se han cargado {formData.items.length} artículo(s) desde tu lista de consulta rápida.
             Selecciona el cliente para continuar con el pedido.
           </AlertDescription>
         </Alert>
@@ -135,7 +144,9 @@ export function SalesOrderWizard() {
       <Card>
         <CardHeader>
           <CardTitle>Nuevo Pedido</CardTitle>
-          <CardDescription>Completa los siguientes pasos para crear un nuevo pedido</CardDescription>
+          <CardDescription>
+            Completa los siguientes pasos para crear un nuevo pedido
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <Steps steps={steps} currentStep={currentStep} />
@@ -150,23 +161,14 @@ export function SalesOrderWizard() {
           {currentStep === 1 && (
             <ItemsSelectionStep formData={formData} setFormData={setFormData} />
           )}
-          {currentStep === 2 && (
-            <OrderSummaryStep formData={formData} />
-          )}
+          {currentStep === 2 && <OrderSummaryStep formData={formData} />}
         </CardContent>
         <CardFooter className="flex justify-between">
-          <Button
-            variant="outline"
-            onClick={handleBack}
-            disabled={currentStep === 0}
-          >
+          <Button variant="outline" onClick={handleBack} disabled={currentStep === 0}>
             Anterior
           </Button>
           <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              onClick={() => router.push('/dashboard/sales-orders')}
-            >
+            <Button variant="ghost" onClick={() => router.push(ROUTES.SALES_ORDERS)}>
               Cancelar
             </Button>
             {currentStep < steps.length - 1 ? (
@@ -187,6 +189,3 @@ export function SalesOrderWizard() {
     </div>
   );
 }
-
-
-

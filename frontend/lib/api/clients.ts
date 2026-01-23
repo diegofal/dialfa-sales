@@ -1,15 +1,17 @@
-import { apiClient } from './client';
 import type { ClientDto, CreateClientRequest, UpdateClientRequest } from '@/types/api';
 import type { PagedResult, PaginationParams } from '@/types/pagination';
+import { apiClient } from './client';
 
 export const clientsApi = {
-  getAll: async (params: PaginationParams & { 
-    searchTerm?: string; 
-    includeTrends?: boolean; 
-    trendMonths?: number;
-    includeClassification?: boolean;
-    classificationStatus?: string;
-  } = {}): Promise<PagedResult<ClientDto>> => {
+  getAll: async (
+    params: PaginationParams & {
+      searchTerm?: string;
+      includeTrends?: boolean;
+      trendMonths?: number;
+      includeClassification?: boolean;
+      classificationStatus?: string;
+    } = {}
+  ): Promise<PagedResult<ClientDto>> => {
     const apiParams = {
       page: params.pageNumber || 1,
       limit: params.pageSize || 50,
@@ -19,11 +21,11 @@ export const clientsApi = {
       includeClassification: params.includeClassification,
       classificationStatus: params.classificationStatus,
     };
-    
+
     const { data } = await apiClient.get<PagedResult<ClientDto>>('/clients', {
       params: apiParams,
     });
-    
+
     return data;
   },
 
@@ -49,4 +51,3 @@ export const clientsApi = {
     await apiClient.delete(`/clients/${id}`);
   },
 };
-

@@ -31,7 +31,7 @@ const getStateFromStorage = (): QuickInvoiceState => {
   } catch (error) {
     console.error('Error loading quick invoice tabs:', error);
   }
-  
+
   return {
     tabs: [],
     activeTabId: '',
@@ -78,8 +78,8 @@ export function useQuickInvoiceTabs() {
   // Add or update invoice tab
   const addInvoiceTab = (invoiceId: number, invoiceNumber: string, clientName: string) => {
     // Check if a tab for this invoice already exists
-    const existingTabIndex = state.tabs.findIndex(tab => tab.invoiceId === invoiceId);
-    
+    const existingTabIndex = state.tabs.findIndex((tab) => tab.invoiceId === invoiceId);
+
     if (existingTabIndex >= 0) {
       // Update existing tab and set as active
       const updatedTabs = [...state.tabs];
@@ -88,12 +88,12 @@ export function useQuickInvoiceTabs() {
         invoiceNumber,
         clientName,
       };
-      
+
       const newState: QuickInvoiceState = {
         tabs: updatedTabs,
         activeTabId: updatedTabs[existingTabIndex].id,
       };
-      
+
       saveStateToStorage(newState);
       setState(newState);
       return updatedTabs[existingTabIndex].id;
@@ -106,12 +106,12 @@ export function useQuickInvoiceTabs() {
         clientName,
         createdAt: Date.now(),
       };
-      
+
       const newState: QuickInvoiceState = {
         tabs: [...state.tabs, newTab],
         activeTabId: newTab.id,
       };
-      
+
       saveStateToStorage(newState);
       setState(newState);
       return newTab.id;
@@ -120,16 +120,19 @@ export function useQuickInvoiceTabs() {
 
   // Remove tab
   const removeTab = (tabId: string) => {
-    const filteredTabs = state.tabs.filter(tab => tab.id !== tabId);
-    const newActiveTabId = tabId === state.activeTabId 
-      ? (filteredTabs.length > 0 ? filteredTabs[0].id : '')
-      : state.activeTabId;
-    
+    const filteredTabs = state.tabs.filter((tab) => tab.id !== tabId);
+    const newActiveTabId =
+      tabId === state.activeTabId
+        ? filteredTabs.length > 0
+          ? filteredTabs[0].id
+          : ''
+        : state.activeTabId;
+
     const newState: QuickInvoiceState = {
       tabs: filteredTabs,
       activeTabId: newActiveTabId,
     };
-    
+
     saveStateToStorage(newState);
     setState(newState);
   };
@@ -140,21 +143,21 @@ export function useQuickInvoiceTabs() {
       ...state,
       activeTabId: tabId,
     };
-    
+
     saveStateToStorage(newState);
     setState(newState);
   };
 
   // Remove tab by invoice ID
   const removeTabByInvoiceId = (invoiceId: number) => {
-    const tabToRemove = state.tabs.find(tab => tab.invoiceId === invoiceId);
+    const tabToRemove = state.tabs.find((tab) => tab.invoiceId === invoiceId);
     if (tabToRemove) {
       removeTab(tabToRemove.id);
     }
   };
 
   // Get active tab
-  const activeTab = state.tabs.find(tab => tab.id === state.activeTabId) || state.tabs[0];
+  const activeTab = state.tabs.find((tab) => tab.id === state.activeTabId) || state.tabs[0];
 
   return {
     tabs: state.tabs,
@@ -166,17 +169,3 @@ export function useQuickInvoiceTabs() {
     setActiveTab,
   };
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -1,78 +1,44 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { deliveryNotesApi } from '@/lib/api/deliveryNotes';
-import type { DeliveryNote, DeliveryNoteListDto, CreateDeliveryNoteRequest, UpdateDeliveryNoteRequest } from '@/types/deliveryNote';
-import { PagedResult, PaginationParams } from '@/types/pagination';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { deliveryNotesApi } from '@/lib/api/deliveryNotes';
 import { getErrorMessage } from '@/lib/utils/errors';
+import type {
+  DeliveryNote,
+  DeliveryNoteListDto,
+  CreateDeliveryNoteRequest,
+  UpdateDeliveryNoteRequest,
+} from '@/types/deliveryNote';
+import { PaginationParams } from '@/types/pagination';
+import { createCRUDHooks } from './api/createCRUDHooks';
 
-export function useDeliveryNotes(
-  params: PaginationParams & {
-    salesOrderId?: number;
-    fromDate?: string;
-    toDate?: string;
-  } = {}
-) {
-  return useQuery<PagedResult<DeliveryNoteListDto>>({
-    queryKey: ['delivery-notes', params],
-    queryFn: () => deliveryNotesApi.getAll(params),
-  });
-}
+type DeliveryNoteListParams = PaginationParams & {
+  salesOrderId?: number;
+  fromDate?: string;
+  toDate?: string;
+};
 
-export function useDeliveryNote(id: number) {
-  return useQuery<DeliveryNote>({
-    queryKey: ['delivery-notes', id],
-    queryFn: () => deliveryNotesApi.getById(id),
-    enabled: !!id,
-  });
-}
+// Generate CRUD hooks using factory pattern
+const { useList, useById, useCreate, useUpdate, useDelete } = createCRUDHooks<
+  DeliveryNote,
+  CreateDeliveryNoteRequest,
+  UpdateDeliveryNoteRequest,
+  DeliveryNoteListParams
+>({
+  entityName: 'Remito',
+  api: deliveryNotesApi,
+  queryKey: 'delivery-notes',
+});
 
-export function useCreateDeliveryNote() {
-  const queryClient = useQueryClient();
+// Export CRUD hooks with semantic names
+export {
+  useList as useDeliveryNotes,
+  useById as useDeliveryNote,
+  useCreate as useCreateDeliveryNote,
+  useUpdate as useUpdateDeliveryNote,
+  useDelete as useDeleteDeliveryNote,
+};
 
-  return useMutation({
-    mutationFn: (data: CreateDeliveryNoteRequest) => deliveryNotesApi.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['delivery-notes'] });
-      queryClient.invalidateQueries({ queryKey: ['sales-orders'] });
-      toast.success('Remito creado exitosamente');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
-    },
-  });
-}
-
-export function useUpdateDeliveryNote() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: UpdateDeliveryNoteRequest }) =>
-      deliveryNotesApi.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['delivery-notes'] });
-      toast.success('Remito actualizado exitosamente');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
-    },
-  });
-}
-
-export function useDeleteDeliveryNote() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (id: number) => deliveryNotesApi.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['delivery-notes'] });
-      queryClient.invalidateQueries({ queryKey: ['sales-orders'] });
-      toast.success('Remito eliminado exitosamente');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
-    },
-  });
-}
+// Domain-specific hooks (non-CRUD operations)
 
 export function useDownloadDeliveryNotePdf() {
   return useMutation({
@@ -100,5 +66,3 @@ export function usePrintDeliveryNote() {
     },
   });
 }
-
-

@@ -1,16 +1,8 @@
 'use client';
 
-import { Eye, Trash2, Printer, FileText } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { ClickableTableRow } from '@/components/ui/clickable-table-row';
-import { SortableTableHead } from '@/components/ui/sortable-table-head';
+import { Eye, Trash2, Printer } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,11 +13,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { useState } from 'react';
-import type { DeliveryNoteListDto } from '@/types/deliveryNote';
+import { Button } from '@/components/ui/button';
+import { ClickableTableRow } from '@/components/ui/clickable-table-row';
+import { SortableTableHead } from '@/components/ui/sortable-table-head';
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table';
+import { ROUTES } from '@/lib/constants/routes';
 import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
 import { useDownloadDeliveryNotePdf } from '@/lib/hooks/useDeliveryNotes';
-import { useRouter } from 'next/navigation';
+import type { DeliveryNoteListDto } from '@/types/deliveryNote';
 
 interface DeliveryNotesTableProps {
   deliveryNotes: DeliveryNoteListDto[];
@@ -66,7 +61,7 @@ export function DeliveryNotesTable({
 
   const handleViewSalesOrder = (salesOrderId: number, e: React.MouseEvent) => {
     e.stopPropagation();
-    router.push(`/dashboard/sales-orders/${salesOrderId}/edit`);
+    router.push(`${ROUTES.SALES_ORDERS}/${salesOrderId}/edit`);
   };
 
   return (
@@ -108,7 +103,7 @@ export function DeliveryNotesTable({
           <TableBody>
             {deliveryNotes.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
+                <TableCell colSpan={7} className="text-muted-foreground text-center">
                   No se encontraron remitos
                 </TableCell>
               </TableRow>
@@ -126,16 +121,14 @@ export function DeliveryNotesTable({
                     <Button
                       variant="link"
                       size="sm"
-                      className="p-0 h-auto"
+                      className="h-auto p-0"
                       onClick={(e) => handleViewSalesOrder(deliveryNote.salesOrderId, e)}
                     >
                       {deliveryNote.salesOrderNumber}
                     </Button>
                   </TableCell>
                   <TableCell>{deliveryNote.transporterName || '-'}</TableCell>
-                  <TableCell className="text-right">
-                    {deliveryNote.packagesCount || '-'}
-                  </TableCell>
+                  <TableCell className="text-right">{deliveryNote.packagesCount || '-'}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end gap-2">
                       <Button
@@ -181,34 +174,21 @@ export function DeliveryNotesTable({
       </div>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog
-        open={!!deliveryNoteToDelete}
-        onOpenChange={() => setDeliveryNoteToDelete(null)}
-      >
+      <AlertDialog open={!!deliveryNoteToDelete} onOpenChange={() => setDeliveryNoteToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar remito?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción eliminará el remito de forma permanente. Esta operación no se puede deshacer.
+              Esta acción eliminará el remito de forma permanente. Esta operación no se puede
+              deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteConfirm}>
-              Confirmar
-            </AlertDialogAction>
+            <AlertDialogAction onClick={handleDeleteConfirm}>Confirmar</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
     </>
   );
 }
-
-
-
-
-
-
-
-
-

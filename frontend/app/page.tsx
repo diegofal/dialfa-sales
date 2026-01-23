@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/authStore';
+import { useEffect } from 'react';
 import { LoadingSpinner } from '@/components/ui/spinner';
+import { ROUTES } from '@/lib/constants/routes';
+import { useAuthStore } from '@/store/authStore';
 
 export default function HomePage() {
   const router = useRouter();
@@ -15,7 +16,7 @@ export default function HomePage() {
 
     // Redirect based on authentication status
     if (isAuthenticated) {
-      router.push('/dashboard');
+      router.push(ROUTES.DASHBOARD);
     } else {
       router.push('/login');
     }
@@ -27,12 +28,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-
-
-
-
-
-
-
-

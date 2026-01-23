@@ -10,8 +10,7 @@ import { ExtractedItem, ExtractedProforma, ProformaMetadata } from './types';
 type CellValue = string | number | boolean | Date | null | undefined;
 
 export class BestflowExtractor {
-  // Based on analysis, header is at row 8, data starts at row 11
-  private readonly HEADER_ROW = 8;
+  // Based on analysis, data starts at row 11
   private readonly DATA_START_ROW = 11;
 
   // Column indices from analysis
@@ -24,7 +23,16 @@ export class BestflowExtractor {
   private readonly COL_TOTAL = 6; // Total
 
   async extract(fileBuffer: Buffer, fileName: string): Promise<ExtractedProforma> {
+    if (!fileBuffer || fileBuffer.length === 0) {
+      throw new Error('El archivo está vacío');
+    }
+
     const workbook = XLSX.read(fileBuffer, { type: 'buffer' });
+
+    if (!workbook.SheetNames.length) {
+      throw new Error('El archivo no contiene hojas de cálculo');
+    }
+
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
 
@@ -137,8 +145,7 @@ export class BestflowExtractor {
         totalPrice,
         rawData: Object.fromEntries(row.map((cell, idx) => [idx.toString(), cell])),
       };
-    } catch (error) {
-      console.error(`Error extracting item from row ${rowNumber}:`, error);
+    } catch {
       return null;
     }
   }
@@ -176,4 +183,3 @@ export class BestflowExtractor {
     );
   }
 }
-

@@ -1,4 +1,4 @@
-import { Supplier, SupplierFormData } from '@/types/supplier';
+import { SupplierFormData } from '@/types/supplier';
 
 const BASE_URL = '/api/suppliers';
 
@@ -53,8 +53,3 @@ export const suppliersApi = {
     return response.json();
   },
 };
-
-
-
-
-

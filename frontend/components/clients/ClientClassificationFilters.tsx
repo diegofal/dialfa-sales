@@ -1,10 +1,16 @@
+import { Info } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Info } from 'lucide-react';
-import { ClientClassificationConfig, ClientStatus } from '@/types/clientClassification';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ClientClassificationConfig } from '@/types/clientClassification';
 
 interface ClientClassificationFiltersProps {
   config: ClientClassificationConfig;
@@ -21,7 +27,6 @@ export function ClientClassificationFilters({
   trendMonths,
   onTrendMonthsChange,
 }: ClientClassificationFiltersProps) {
-  
   const handleThresholdChange = (field: keyof ClientClassificationConfig, value: string) => {
     onConfigChange({
       ...config,
@@ -43,17 +48,20 @@ export function ClientClassificationFilters({
       </CardHeader>
       <CardContent>
         {/* Trend Configuration */}
-        <div className="mb-4 pb-4 border-b">
+        <div className="mb-4 border-b pb-4">
           <div className="space-y-2">
-            <Label htmlFor="trendMonthsDisplay" className="text-sm font-semibold flex items-center gap-1">
+            <Label
+              htmlFor="trendMonthsDisplay"
+              className="flex items-center gap-1 text-sm font-semibold"
+            >
               Período de Tendencia (Gráficos)
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                    <Info className="text-muted-foreground h-3 w-3 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="text-xs max-w-xs">
+                    <p className="max-w-xs text-xs">
                       Meses históricos para mostrar en los gráficos de tendencia de facturación
                     </p>
                   </TooltipContent>
@@ -79,20 +87,22 @@ export function ClientClassificationFilters({
 
         {/* Classification Configuration */}
         <div className="mb-2">
-          <p className="text-sm font-semibold text-muted-foreground mb-3">Umbrales de Clasificación</p>
+          <p className="text-muted-foreground mb-3 text-sm font-semibold">
+            Umbrales de Clasificación
+          </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
           {/* Active Threshold */}
           <div className="space-y-2">
-            <Label htmlFor="activeThreshold" className="text-xs flex items-center gap-1">
+            <Label htmlFor="activeThreshold" className="flex items-center gap-1 text-xs">
               Activo (días)
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                    <Info className="text-muted-foreground h-3 w-3 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="text-xs max-w-xs">
+                    <p className="max-w-xs text-xs">
                       Clientes con compra reciente dentro de este período
                     </p>
                   </TooltipContent>
@@ -117,17 +127,15 @@ export function ClientClassificationFilters({
 
           {/* Slow Moving Threshold */}
           <div className="space-y-2">
-            <Label htmlFor="slowThreshold" className="text-xs flex items-center gap-1">
+            <Label htmlFor="slowThreshold" className="flex items-center gap-1 text-xs">
               Lento (días)
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                    <Info className="text-muted-foreground h-3 w-3 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="text-xs max-w-xs">
-                      Clientes con compras esporádicas
-                    </p>
+                    <p className="max-w-xs text-xs">Clientes con compras esporádicas</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -150,17 +158,15 @@ export function ClientClassificationFilters({
 
           {/* Inactive Threshold */}
           <div className="space-y-2">
-            <Label htmlFor="inactiveThreshold" className="text-xs flex items-center gap-1">
+            <Label htmlFor="inactiveThreshold" className="flex items-center gap-1 text-xs">
               Inactivo (días)
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                    <Info className="text-muted-foreground h-3 w-3 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="text-xs max-w-xs">
-                      Clientes sin compras por período prolongado
-                    </p>
+                    <p className="max-w-xs text-xs">Clientes sin compras por período prolongado</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -184,15 +190,15 @@ export function ClientClassificationFilters({
 
           {/* Min Purchases Per Month */}
           <div className="space-y-2">
-            <Label htmlFor="minPurchases" className="text-xs flex items-center gap-1">
+            <Label htmlFor="minPurchases" className="flex items-center gap-1 text-xs">
               Compras Mín/Mes
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Info className="h-3 w-3 text-muted-foreground cursor-help" />
+                    <Info className="text-muted-foreground h-3 w-3 cursor-help" />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p className="text-xs max-w-xs">
+                    <p className="max-w-xs text-xs">
                       Mínimo de compras por mes para scoring de frecuencia
                     </p>
                   </TooltipContent>
@@ -220,4 +226,3 @@ export function ClientClassificationFilters({
     </Card>
   );
 }
-

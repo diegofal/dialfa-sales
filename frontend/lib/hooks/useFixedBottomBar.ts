@@ -3,18 +3,18 @@ import { useState, useEffect, useCallback } from 'react';
 /**
  * Hook that automatically detects if there's a fixed bottom bar in the page
  * and measures its height dynamically
- * 
+ *
  * This looks for elements with:
  * - position: fixed
  * - bottom: 0
  * - Full or most of the width
- * 
+ *
  * @returns {Object} Information about the bottom bar
  */
 export function useFixedBottomBar() {
   const [bottomBarHeight, setBottomBarHeight] = useState(0);
   const [isDetecting, setIsDetecting] = useState(true);
-  
+
   const detectBottomBar = useCallback(() => {
     try {
       // Find all fixed position elements
@@ -24,7 +24,7 @@ export function useFixedBottomBar() {
 
       allElements.forEach((element) => {
         const styles = window.getComputedStyle(element);
-        
+
         // Check if element is fixed at the bottom
         if (
           styles.position === 'fixed' &&
@@ -34,7 +34,7 @@ export function useFixedBottomBar() {
         ) {
           // This looks like a bottom bar
           const rect = element.getBoundingClientRect();
-          
+
           // Only consider elements that span most of the width and have reasonable height
           if (rect.width > window.innerWidth * 0.8 && rect.height > 40 && rect.height < 200) {
             if (rect.height > detectedHeight) {
@@ -48,9 +48,13 @@ export function useFixedBottomBar() {
       const finalHeight = Math.round(detectedHeight);
       setBottomBarHeight(finalHeight);
       setIsDetecting(false);
-      
+
       // Debug logging
-      if (finalHeight > 0 && typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
+      if (
+        finalHeight > 0 &&
+        typeof window !== 'undefined' &&
+        process.env.NODE_ENV === 'development'
+      ) {
         console.log('🎯 Fixed bottom bar detected:', {
           height: finalHeight,
           element: detectedElement,
@@ -99,8 +103,10 @@ export function useFixedBottomBar() {
         if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
           return true;
         }
-        if (mutation.type === 'attributes' && 
-            (mutation.attributeName === 'style' || mutation.attributeName === 'class')) {
+        if (
+          mutation.type === 'attributes' &&
+          (mutation.attributeName === 'style' || mutation.attributeName === 'class')
+        ) {
           return true;
         }
         return false;
@@ -154,4 +160,3 @@ export function useWindowSize() {
 
   return windowSize;
 }
-

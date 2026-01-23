@@ -4,10 +4,14 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { ExtractedItem, ArticleForMatching, MatchedArticle } from './types';
 import { MatchingKeyNormalizer } from './matching-normalizer';
+import { ExtractedItem, ArticleForMatching, MatchedArticle } from './types';
 
-export class ArticleMatcher {
+export interface IArticleMatcher {
+  matchItems(extractedItems: ExtractedItem[]): Promise<MatchedArticle[]>;
+}
+
+export class ArticleMatcher implements IArticleMatcher {
   private prisma: PrismaClient;
 
   constructor(prisma?: PrismaClient) {
@@ -160,15 +164,9 @@ export class ArticleMatcher {
     for (const strategy of matchingStrategies) {
       const result = strategy();
       if (result) {
-        console.log(`✓ MATCH FOUND for "${item.description}":`, {
-          ...debugInfo,
-          matchingKey: result.key,
-          matchedArticle: result.article.code,
-        });
-        
         // Calcular valorización
         const valuation = this.calculateValuation(item, result.article);
-        
+
         return {
           extractedItem: item,
           article: result.article,
@@ -189,14 +187,14 @@ export class ArticleMatcher {
       series: series || undefined,
       description: item.description,
     });
-    const noMatchReason = this.diagnoseNoMatch(type, series, thickness, normalizedSize, articleIndex);
+    const noMatchReason = this.diagnoseNoMatch(
+      type,
+      series,
+      thickness,
+      normalizedSize,
+      articleIndex
+    );
 
-    console.warn(`✗ NO MATCH for "${item.description}":`, {
-      ...debugInfo,
-      attemptedMatchingKey: attemptedKey,
-      reason: noMatchReason,
-    });
-    
     // Calcular valorización sin artículo de BD
     const valuation = this.calculateValuation(item, null);
 
@@ -341,7 +339,7 @@ export class ArticleMatcher {
     const proformaUnitPrice = item.unitPrice;
     const proformaTotalPrice = item.totalPrice || item.unitPrice * item.quantity;
     const unitWeight = item.unitWeight || 0;
-    
+
     // Si no hay artículo en BD, no hay precio ni margen
     if (!article) {
       return {
@@ -354,18 +352,17 @@ export class ArticleMatcher {
         unitWeight,
       };
     }
-    
+
     const dbUnitPrice = article.unitPrice;
     const dbTotalPrice = dbUnitPrice * item.quantity;
-    
+
     // Margen: (Precio DB / Precio Proforma - 1) * 100
     // Esto da el % de markup/margen sobre el costo de la proforma
-    const marginPercent = proformaUnitPrice > 0 
-      ? ((dbUnitPrice / proformaUnitPrice - 1) * 100) 
-      : null;
-    
+    const marginPercent =
+      proformaUnitPrice > 0 ? (dbUnitPrice / proformaUnitPrice - 1) * 100 : null;
+
     const marginAbsolute = dbUnitPrice - proformaUnitPrice;
-    
+
     return {
       proformaUnitPrice,
       proformaTotalPrice,
@@ -381,4 +378,3 @@ export class ArticleMatcher {
     await this.prisma.$disconnect();
   }
 }
-

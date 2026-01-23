@@ -1,16 +1,7 @@
 'use client';
 
+import { Pencil, Trash2, Package } from 'lucide-react';
 import { useState } from 'react';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { ClickableTableRow } from '@/components/ui/clickable-table-row';
-import { SortableTableHead } from '@/components/ui/sortable-table-head';
-import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -21,12 +12,15 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { Pencil, Trash2, Package } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { ClickableTableRow } from '@/components/ui/clickable-table-row';
+import { SortableTableHead } from '@/components/ui/sortable-table-head';
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table';
+import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
 import { useDeleteCategory } from '@/lib/hooks/useCategories';
 import { useCategoryPaymentDiscounts } from '@/lib/hooks/useCategoryPaymentDiscounts';
 import type { Category } from '@/types/category';
-import { Badge } from '@/components/ui/badge';
-import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
 
 interface CategoriesTableProps {
   categories: Category[];
@@ -48,7 +42,7 @@ function CategoryDiscountSummary({ categoryId }: { categoryId: number }) {
     return <span className="text-xs text-gray-500">Sin descuentos configurados</span>;
   }
 
-  const activeDiscounts = discounts.filter(d => d.discountPercent > 0);
+  const activeDiscounts = discounts.filter((d) => d.discountPercent > 0);
 
   if (activeDiscounts.length === 0) {
     return <span className="text-xs text-gray-500">Sin descuentos configurados</span>;
@@ -56,22 +50,26 @@ function CategoryDiscountSummary({ categoryId }: { categoryId: number }) {
 
   return (
     <div className="flex flex-col gap-1">
-      {activeDiscounts.slice(0, 2).map(discount => (
+      {activeDiscounts.slice(0, 2).map((discount) => (
         <div key={discount.paymentTermId} className="flex items-center gap-1 text-xs">
           <span className="font-medium text-gray-700">{discount.paymentTermName}:</span>
-          <span className="text-blue-600 font-semibold">{discount.discountPercent}%</span>
+          <span className="font-semibold text-blue-600">{discount.discountPercent}%</span>
         </div>
       ))}
       {activeDiscounts.length > 2 && (
-        <span className="text-xs text-gray-500">
-          +{activeDiscounts.length - 2} más
-        </span>
+        <span className="text-xs text-gray-500">+{activeDiscounts.length - 2} más</span>
       )}
     </div>
   );
 }
 
-export function CategoriesTable({ categories, onEdit, currentSortBy, currentSortDescending, onSort }: CategoriesTableProps) {
+export function CategoriesTable({
+  categories,
+  onEdit,
+  currentSortBy,
+  currentSortDescending,
+  onSort,
+}: CategoriesTableProps) {
   const [deleteId, setDeleteId] = useState<number | null>(null);
   const deleteMutation = useDeleteCategory();
 
@@ -84,7 +82,7 @@ export function CategoriesTable({ categories, onEdit, currentSortBy, currentSort
 
   return (
     <>
-      <div className="border rounded-lg">
+      <div className="rounded-lg border">
         <Table>
           <TableHeader>
             <TableRow>
@@ -105,9 +103,7 @@ export function CategoriesTable({ categories, onEdit, currentSortBy, currentSort
                 Nombre
               </SortableTableHead>
               <SortableTableHead>Descripción</SortableTableHead>
-              <SortableTableHead align="center">
-                Descuentos por Condición de Pago
-              </SortableTableHead>
+              <SortableTableHead align="center">Descuentos por Condición de Pago</SortableTableHead>
               <SortableTableHead align="center">Artículos</SortableTableHead>
               <SortableTableHead align="center">Estado</SortableTableHead>
               <SortableTableHead align="right">Acciones</SortableTableHead>
@@ -116,7 +112,7 @@ export function CategoriesTable({ categories, onEdit, currentSortBy, currentSort
           <TableBody>
             {categories.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-8 text-gray-500">
+                <TableCell colSpan={7} className="py-8 text-center text-gray-500">
                   No hay categorías registradas
                 </TableCell>
               </TableRow>
@@ -130,9 +126,7 @@ export function CategoriesTable({ categories, onEdit, currentSortBy, currentSort
                 >
                   <TableCell className="font-medium">{category.code}</TableCell>
                   <TableCell className="font-semibold">{category.name}</TableCell>
-                  <TableCell className="text-gray-600">
-                    {category.description || '-'}
-                  </TableCell>
+                  <TableCell className="text-gray-600">{category.description || '-'}</TableCell>
                   <TableCell>
                     <CategoryDiscountSummary categoryId={category.id} />
                   </TableCell>
@@ -185,8 +179,8 @@ export function CategoriesTable({ categories, onEdit, currentSortBy, currentSort
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar categoría?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción marcará la categoría como eliminada. Los artículos asociados no
-              se eliminarán.
+              Esta acción marcará la categoría como eliminada. Los artículos asociados no se
+              eliminarán.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -200,12 +194,3 @@ export function CategoriesTable({ categories, onEdit, currentSortBy, currentSort
     </>
   );
 }
-
-
-
-
-
-
-
-
-

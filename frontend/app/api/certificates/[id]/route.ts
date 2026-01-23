@@ -1,144 +1,36 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
-import { getCertificateSignedUrl, deleteCertificateFile } from '@/lib/storage/supabase'
-import { OPERATIONS } from '@/lib/constants/operations'
-import { logActivity } from '@/lib/services/activityLogger'
-import { ChangeTracker } from '@/lib/services/changeTracker'
+import { NextRequest, NextResponse } from 'next/server';
+import { handleError } from '@/lib/errors';
+import * as CertificateService from '@/lib/services/CertificateService';
 
-/**
- * GET /api/certificates/[id]
- * Get a single certificate with signed URL for download
- */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await params
-    const certificateId = BigInt(id)
+    const { id } = await params;
+    const certificate = await CertificateService.getById(BigInt(id));
 
-    const certificate = await prisma.certificates.findUnique({
-      where: { 
-        id: certificateId
-      },
-      include: {
-        certificate_coladas: {
-          include: {
-            colada: true
-          }
-        }
-      }
-    })
-    
-    if (!certificate || certificate.deleted_at) {
-      return NextResponse.json(
-        { error: 'Certificate not found' },
-        { status: 404 }
-      )
+    if (!certificate) {
+      return NextResponse.json({ error: 'Certificate not found' }, { status: 404 });
     }
 
-    // Get signed URL for download/preview
-    const signedUrl = await getCertificateSignedUrl(certificate.storage_path)
-
-    return NextResponse.json({
-      id: certificate.id.toString(),
-      file_name: certificate.file_name,
-      storage_path: certificate.storage_path,
-      original_path: certificate.original_path,
-      file_type: certificate.file_type,
-      file_size_bytes: certificate.file_size_bytes?.toString() || null,
-      category: certificate.category,
-      notes: certificate.notes,
-      created_at: certificate.created_at.toISOString(),
-      updated_at: certificate.updated_at.toISOString(),
-      signed_url: signedUrl,
-      coladas: certificate.certificate_coladas.map(cc => ({
-        id: cc.colada.id.toString(),
-        colada_number: cc.colada.colada_number,
-        description: cc.colada.description,
-        supplier: cc.colada.supplier,
-        material_type: cc.colada.material_type,
-        created_at: cc.colada.created_at.toISOString(),
-        updated_at: cc.colada.updated_at.toISOString(),
-      }))
-    })
+    return NextResponse.json(certificate);
   } catch (error) {
-    console.error('Error fetching certificate:', error)
-    return NextResponse.json(
-      { error: 'Failed to fetch certificate' },
-      { status: 500 }
-    )
+    return handleError(error);
   }
 }
 
-/**
- * DELETE /api/certificates/[id]
- * Soft delete a certificate (and remove from storage)
- */
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params
-    const certificateId = BigInt(id)
+    const { id } = await params;
+    const result = await CertificateService.remove(BigInt(id), request);
 
-    const certificate = await prisma.certificates.findUnique({
-      where: { 
-        id: certificateId,
-        deleted_at: null
-      }
-    })
-
-    if (!certificate) {
-      return NextResponse.json(
-        { error: 'Certificate not found' },
-        { status: 404 }
-      )
+    if ('error' in result) {
+      return NextResponse.json({ error: result.error }, { status: result.status });
     }
 
-    // Delete from storage
-    try {
-      await deleteCertificateFile(certificate.storage_path)
-    } catch (storageError) {
-      console.error('Error deleting file from storage:', storageError)
-      // Continue with soft delete even if storage delete fails
-    }
-
-    // Track deletion
-    const tracker = new ChangeTracker();
-    tracker.trackDelete('certificate', certificateId, certificate);
-
-    // Soft delete in database
-    await prisma.certificates.update({
-      where: { id: certificateId },
-      data: { deleted_at: new Date() }
-    })
-
-    // Log activity
-    const activityLogId = await logActivity({
-      request,
-      operation: OPERATIONS.CERTIFICATE_DELETE,
-      description: `Certificado ${certificate.file_name} eliminado`,
-      entityType: 'certificate',
-      entityId: certificate.id,
-      details: { fileName: certificate.file_name }
-    });
-
-    if (activityLogId) {
-      await tracker.saveChanges(activityLogId);
-    }
-
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true });
   } catch (error) {
-    console.error('Error deleting certificate:', error)
-    return NextResponse.json(
-      { error: 'Failed to delete certificate' },
-      { status: 500 }
-    )
+    return handleError(error);
   }
 }
-
-
-
-

@@ -29,7 +29,7 @@ apiClient.interceptors.response.use(
       // Don't redirect if we're already on the login page or if this is a login attempt
       const isLoginRequest = error.config?.url?.includes('/auth/login');
       const isOnLoginPage = typeof window !== 'undefined' && window.location.pathname === '/login';
-      
+
       if (!isLoginRequest && !isOnLoginPage) {
         // Token expired or invalid - redirect to login
         window.location.href = '/login';
@@ -41,4 +41,3 @@ apiClient.interceptors.response.use(
 
 export default apiClient;
 export { apiClient };
-

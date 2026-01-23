@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { handleError } from '@/lib/errors';
 
 export async function GET() {
   try {
@@ -9,13 +10,6 @@ export async function GET() {
 
     return NextResponse.json(operationTypes);
   } catch (error) {
-    console.error('Error fetching operation types:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch operation types' },
-      { status: 500 }
-    );
+    return handleError(error);
   }
 }
-
-
-

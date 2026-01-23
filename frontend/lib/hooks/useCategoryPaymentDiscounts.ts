@@ -23,12 +23,12 @@ export function useUpdateCategoryPaymentDiscounts() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: async ({ 
-      categoryId, 
-      discounts 
-    }: { 
-      categoryId: number; 
-      discounts: CategoryPaymentDiscountFormData[] 
+    mutationFn: async ({
+      categoryId,
+      discounts,
+    }: {
+      categoryId: number;
+      discounts: CategoryPaymentDiscountFormData[];
     }) => {
       const response = await fetch(`/api/categories/${categoryId}/payment-discounts`, {
         method: 'PUT',
@@ -44,7 +44,9 @@ export function useUpdateCategoryPaymentDiscounts() {
       return response.json();
     },
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ['category-payment-discounts', variables.categoryId] });
+      queryClient.invalidateQueries({
+        queryKey: ['category-payment-discounts', variables.categoryId],
+      });
       queryClient.invalidateQueries({ queryKey: ['categories'] });
       toast.success('Descuentos por condición de pago actualizados correctamente');
     },
@@ -53,4 +55,3 @@ export function useUpdateCategoryPaymentDiscounts() {
     },
   });
 }
-

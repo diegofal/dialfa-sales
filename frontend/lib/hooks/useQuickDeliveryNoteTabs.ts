@@ -24,7 +24,7 @@ export const useQuickDeliveryNoteTabs = create<QuickDeliveryNoteTabsStore>()(
     (set) => ({
       tabs: [],
       activeTabId: null,
-      
+
       addTab: (tab) =>
         set((state) => {
           // Check if tab already exists
@@ -32,44 +32,50 @@ export const useQuickDeliveryNoteTabs = create<QuickDeliveryNoteTabsStore>()(
           if (existingTab) {
             return { activeTabId: existingTab.id };
           }
-          
+
           return {
             tabs: [...state.tabs, tab],
             activeTabId: tab.id,
           };
         }),
-      
+
       removeTab: (id) =>
         set((state) => {
           const newTabs = state.tabs.filter((t) => t.id !== id);
-          const newActiveTabId = state.activeTabId === id 
-            ? (newTabs.length > 0 ? newTabs[0].id : null)
-            : state.activeTabId;
-          
+          const newActiveTabId =
+            state.activeTabId === id
+              ? newTabs.length > 0
+                ? newTabs[0].id
+                : null
+              : state.activeTabId;
+
           return {
             tabs: newTabs,
             activeTabId: newActiveTabId,
           };
         }),
-      
+
       removeTabByDeliveryNoteId: (deliveryNoteId) =>
         set((state) => {
           const tabToRemove = state.tabs.find((t) => t.deliveryNoteId === deliveryNoteId);
           if (!tabToRemove) return state;
-          
+
           const newTabs = state.tabs.filter((t) => t.deliveryNoteId !== deliveryNoteId);
-          const newActiveTabId = state.activeTabId === tabToRemove.id 
-            ? (newTabs.length > 0 ? newTabs[0].id : null)
-            : state.activeTabId;
-          
+          const newActiveTabId =
+            state.activeTabId === tabToRemove.id
+              ? newTabs.length > 0
+                ? newTabs[0].id
+                : null
+              : state.activeTabId;
+
           return {
             tabs: newTabs,
             activeTabId: newActiveTabId,
           };
         }),
-      
+
       setActiveTab: (id) => set({ activeTabId: id }),
-      
+
       clearTabs: () => set({ tabs: [], activeTabId: null }),
     }),
     {
@@ -77,5 +83,3 @@ export const useQuickDeliveryNoteTabs = create<QuickDeliveryNoteTabsStore>()(
     }
   )
 );
-
-

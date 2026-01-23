@@ -6,9 +6,9 @@
 'use client';
 
 import { FileText, Calendar, AlertTriangle } from 'lucide-react';
-import { MetricCard } from './MetricCard';
-import { useDashboardMetrics, formatCurrency } from '@/lib/hooks/useDashboard';
 import { Alert, AlertDescription } from '@/components/ui/alert';
+import { useDashboardMetrics, formatCurrency } from '@/lib/hooks/useDashboard';
+import { MetricCard } from './MetricCard';
 
 export function DashboardMetrics() {
   const { data: metrics, isLoading, isError, error } = useDashboardMetrics();
@@ -52,4 +52,3 @@ export function DashboardMetrics() {
     </div>
   );
 }
-

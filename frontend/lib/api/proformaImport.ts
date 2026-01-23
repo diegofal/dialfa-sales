@@ -20,7 +20,3 @@ export const proformaImportApi = {
     return response.json();
   },
 };
-
-
-
-

@@ -1,19 +1,32 @@
 'use client';
 
-import { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Pagination } from '@/components/ui/pagination';
-import { usePriceHistory } from '@/lib/hooks/usePriceHistory';
-import { useRevertPrice } from '@/lib/hooks/usePriceLists';
-import { TrendingUp, TrendingDown, Calendar, User, Undo2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { TrendingUp, TrendingDown, Calendar, User, Undo2 } from 'lucide-react';
+import { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Pagination } from '@/components/ui/pagination';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { usePriceHistory } from '@/lib/hooks/usePriceHistory';
+import { useRevertPrice } from '@/lib/hooks/usePriceLists';
 
 interface PriceHistoryDialogProps {
   open: boolean;
@@ -22,11 +35,11 @@ interface PriceHistoryDialogProps {
   categoryId?: number;
 }
 
-export function PriceHistoryDialog({ 
-  open, 
+export function PriceHistoryDialog({
+  open,
   onOpenChange,
   articleId,
-  categoryId 
+  categoryId,
 }: PriceHistoryDialogProps) {
   const [page, setPage] = useState(1);
   const [changeType, setChangeType] = useState<string>('all');
@@ -71,13 +84,13 @@ export function PriceHistoryDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="flex max-h-[90vh] max-w-6xl flex-col overflow-hidden">
         <DialogHeader>
           <DialogTitle>Historial de Cambios de Precios</DialogTitle>
         </DialogHeader>
 
         {/* Filters */}
-        <div className="grid grid-cols-3 gap-4 pb-4 border-b">
+        <div className="grid grid-cols-3 gap-4 border-b pb-4">
           <div>
             <Label>Tipo de Cambio</Label>
             <Select value={changeType} onValueChange={setChangeType}>
@@ -94,35 +107,25 @@ export function PriceHistoryDialog({
           </div>
           <div>
             <Label>Fecha Desde</Label>
-            <Input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-            />
+            <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
           </div>
           <div>
             <Label>Fecha Hasta</Label>
-            <Input
-              type="date"
-              value={endDate}
-              onChange={(e) => setEndDate(e.target.value)}
-            />
+            <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
           </div>
         </div>
 
         {/* Stats */}
         {data && (
           <div className="flex gap-4 text-sm">
-            <Badge variant="secondary">
-              Total: {data.pagination.total} cambios
-            </Badge>
+            <Badge variant="secondary">Total: {data.pagination.total} cambios</Badge>
           </div>
         )}
 
         {/* Table */}
-        <div className="flex-1 overflow-auto border rounded-lg">
+        <div className="flex-1 overflow-auto rounded-lg border">
           {isLoading ? (
-            <div className="flex items-center justify-center h-48">
+            <div className="flex h-48 items-center justify-center">
               <p className="text-muted-foreground">Cargando historial...</p>
             </div>
           ) : data && data.data.length > 0 ? (
@@ -152,15 +155,9 @@ export function PriceHistoryDialog({
                         {format(new Date(item.createdAt), 'HH:mm')}
                       </div>
                     </TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {item.articleCode}
-                    </TableCell>
-                    <TableCell className="text-sm">
-                      {item.articleDescription}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      ${item.oldPrice.toFixed(2)}
-                    </TableCell>
+                    <TableCell className="font-mono text-sm">{item.articleCode}</TableCell>
+                    <TableCell className="text-sm">{item.articleDescription}</TableCell>
+                    <TableCell className="text-right">${item.oldPrice.toFixed(2)}</TableCell>
                     <TableCell className="text-right font-medium">
                       ${item.newPrice.toFixed(2)}
                     </TableCell>
@@ -169,20 +166,20 @@ export function PriceHistoryDialog({
                         {item.priceChange > 0 ? (
                           <>
                             <TrendingUp className="h-4 w-4 text-green-600" />
-                            <span className="text-green-600 font-medium">
+                            <span className="font-medium text-green-600">
                               +${item.priceChange.toFixed(2)}
                             </span>
                           </>
                         ) : (
                           <>
                             <TrendingDown className="h-4 w-4 text-red-600" />
-                            <span className="text-red-600 font-medium">
+                            <span className="font-medium text-red-600">
                               ${item.priceChange.toFixed(2)}
                             </span>
                           </>
                         )}
                       </div>
-                      <div className="text-xs text-muted-foreground text-right">
+                      <div className="text-muted-foreground text-right text-xs">
                         {item.priceChangePercent > 0 ? '+' : ''}
                         {item.priceChangePercent.toFixed(1)}%
                       </div>
@@ -214,7 +211,7 @@ export function PriceHistoryDialog({
               </TableBody>
             </Table>
           ) : (
-            <div className="flex items-center justify-center h-48">
+            <div className="flex h-48 items-center justify-center">
               <p className="text-muted-foreground">No hay cambios registrados</p>
             </div>
           )}
@@ -233,4 +230,3 @@ export function PriceHistoryDialog({
     </Dialog>
   );
 }
-

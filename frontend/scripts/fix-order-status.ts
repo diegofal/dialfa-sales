@@ -1,9 +1,9 @@
 /**
  * Script to fix inconsistent sales order statuses
- * 
+ *
  * This script updates sales orders that have active invoices but are still marked as PENDING.
  * It should be run once to fix existing data inconsistencies.
- * 
+ *
  * Run with: npx tsx scripts/fix-order-status.ts
  */
 
@@ -48,8 +48,10 @@ async function fixOrderStatuses() {
       for (const order of pendingOrders) {
         // If order has active invoices, it should be INVOICED not PENDING
         if (order.invoices.length > 0) {
-          console.log(`Order ${order.order_number} has ${order.invoices.length} active invoice(s) but is marked as PENDING`);
-          
+          console.log(
+            `Order ${order.order_number} has ${order.invoices.length} active invoice(s) but is marked as PENDING`
+          );
+
           await prisma.sales_orders.update({
             where: { id: order.id },
             data: {
@@ -57,7 +59,7 @@ async function fixOrderStatuses() {
               updated_at: new Date(),
             },
           });
-          
+
           fixedCount++;
           console.log(`  ✓ Updated to INVOICED`);
         }
@@ -99,8 +101,10 @@ async function fixOrderStatuses() {
       for (const order of invoicedOrders) {
         // If order has NO active invoices, it should be PENDING not INVOICED
         if (order.invoices.length === 0) {
-          console.log(`Order ${order.order_number} has NO active invoices but is marked as INVOICED`);
-          
+          console.log(
+            `Order ${order.order_number} has NO active invoices but is marked as INVOICED`
+          );
+
           await prisma.sales_orders.update({
             where: { id: order.id },
             data: {
@@ -108,7 +112,7 @@ async function fixOrderStatuses() {
               updated_at: new Date(),
             },
           });
-          
+
           fixedCount++;
           console.log(`  ✓ Updated to PENDING`);
         }
@@ -137,4 +141,3 @@ fixOrderStatuses()
     console.error('\nFailed:', error);
     process.exit(1);
   });
-

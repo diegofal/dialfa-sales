@@ -1,121 +1,47 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
-import { requireAdmin } from '@/lib/auth/roles';
-import { z } from 'zod';
+import { getUserFromRequest } from '@/lib/auth/roles';
+import { handleError } from '@/lib/errors';
+import * as PriceListService from '@/lib/services/PriceListService';
 
-const saveDraftSchema = z.object({
-  draftData: z.record(z.string(), z.number()), // { "articleId": newPrice }
-});
-
-// GET: Obtener borrador del usuario actual
 export async function GET(request: NextRequest) {
   try {
-    const { authorized, error, user } = requireAdmin(request);
-    if (!authorized) {
-      return error || NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
+    const user = getUserFromRequest(request);
     if (!user?.userId) {
-      return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const draft = await prisma.price_import_drafts.findUnique({
-      where: { user_id: user.userId },
-    });
-
-    if (!draft) {
-      return NextResponse.json({ draft: null });
-    }
-
-    return NextResponse.json({
-      draft: {
-        id: Number(draft.id),
-        draftData: draft.draft_data,
-        articleCount: draft.article_count,
-        createdAt: draft.created_at.toISOString(),
-        updatedAt: draft.updated_at.toISOString(),
-      },
-    });
+    const draft = await PriceListService.getDraft(user.userId);
+    return NextResponse.json({ draft });
   } catch (error) {
-    console.error('Error fetching draft:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch draft' },
-      { status: 500 }
-    );
+    return handleError(error);
   }
 }
 
-// POST: Guardar/Actualizar borrador
 export async function POST(request: NextRequest) {
   try {
-    const { authorized, error, user } = requireAdmin(request);
-    if (!authorized) {
-      return error || NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
+    const user = getUserFromRequest(request);
     if (!user?.userId) {
-      return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
-    const validated = saveDraftSchema.parse(body);
-    
-    const articleCount = Object.keys(validated.draftData).length;
-
-    // Upsert: crea si no existe, actualiza si existe
-    const draft = await prisma.price_import_drafts.upsert({
-      where: { user_id: user.userId },
-      create: {
-        user_id: user.userId,
-        draft_data: validated.draftData,
-        article_count: articleCount,
-      },
-      update: {
-        draft_data: validated.draftData,
-        article_count: articleCount,
-        updated_at: new Date(),
-      },
-    });
-
-    return NextResponse.json({
-      success: true,
-      draftId: Number(draft.id),
-      articleCount,
-    });
+    const result = await PriceListService.saveDraft(user.userId, body.draftData);
+    return NextResponse.json({ success: true, ...result });
   } catch (error) {
-    console.error('Error saving draft:', error);
-    if (error instanceof z.ZodError) {
-      return NextResponse.json(
-        { error: 'Validation error', details: error.issues },
-        { status: 400 }
-      );
-    }
-    return NextResponse.json(
-      { error: 'Failed to save draft' },
-      { status: 500 }
-    );
+    return handleError(error);
   }
 }
 
-// DELETE: Eliminar borrador
 export async function DELETE(request: NextRequest) {
   try {
-    const { authorized, error, user } = requireAdmin(request);
-    if (!authorized) {
-      return error || NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
+    const user = getUserFromRequest(request);
     if (!user?.userId) {
-      return NextResponse.json({ error: 'User ID not found' }, { status: 400 });
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    await prisma.price_import_drafts.delete({
-      where: { user_id: user.userId },
-    });
-
+    await PriceListService.deleteDraft(user.userId);
     return NextResponse.json({ success: true });
-  } catch {
-    // Si no existe el borrador, no es un error
-    return NextResponse.json({ success: true });
+  } catch (error) {
+    return handleError(error);
   }
 }

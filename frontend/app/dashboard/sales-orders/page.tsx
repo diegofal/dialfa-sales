@@ -1,18 +1,29 @@
 'use client';
 
-import { useState } from 'react';
 import { Plus, Filter, X } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useState } from 'react';
+import { SalesOrdersTable } from '@/components/salesOrders/SalesOrdersTable';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { ROUTES } from '@/lib/constants/routes';
 import { usePagination } from '@/lib/hooks/usePagination';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { SalesOrdersTable } from '@/components/salesOrders/SalesOrdersTable';
-import { useSalesOrders, useCancelSalesOrder, useDeleteSalesOrder } from '@/lib/hooks/useSalesOrders';
-import { useRouter } from 'next/navigation';
 import { useQuickCartTabs } from '@/lib/hooks/useQuickCartTabs';
+import {
+  useSalesOrders,
+  useCancelSalesOrder,
+  useDeleteSalesOrder,
+} from '@/lib/hooks/useSalesOrders';
 
 export default function SalesOrdersPage() {
   const router = useRouter();
@@ -25,12 +36,7 @@ export default function SalesOrdersPage() {
     activeOnly: true,
   });
 
-  const {
-    pagination,
-    setPage,
-    setPageSize,
-    setSorting,
-  } = usePagination(10);
+  const { pagination, setPage, setPageSize, setSorting } = usePagination(10);
 
   const { data, isLoading } = useSalesOrders({
     ...filters,
@@ -55,7 +61,7 @@ export default function SalesOrdersPage() {
   };
 
   const handleViewOrder = (id: number) => {
-    router.push(`/dashboard/sales-orders/${id}`);
+    router.push(`${ROUTES.SALES_ORDERS}/${id}`);
   };
 
   const handleCancelOrder = (id: number) => {
@@ -66,7 +72,7 @@ export default function SalesOrdersPage() {
     deleteOrderMutation.mutate(id, {
       onSuccess: () => {
         // Remove tab from sidebar if it exists (find by orderId)
-        const tabToRemove = tabs.find(tab => tab.orderId === id);
+        const tabToRemove = tabs.find((tab) => tab.orderId === id);
         if (tabToRemove) {
           removeTab(tabToRemove.id);
         }
@@ -75,7 +81,7 @@ export default function SalesOrdersPage() {
   };
 
   const handleCreateOrder = () => {
-    router.push('/dashboard/sales-orders/new');
+    router.push(ROUTES.SALES_ORDERS_NEW);
   };
 
   return (
@@ -144,9 +150,7 @@ export default function SalesOrdersPage() {
             <div className="flex items-center gap-2">
               <Filter className="h-5 w-5" />
               <CardTitle>Filtros</CardTitle>
-              {activeFiltersCount > 0 && (
-                <Badge variant="secondary">{activeFiltersCount}</Badge>
-              )}
+              {activeFiltersCount > 0 && <Badge variant="secondary">{activeFiltersCount}</Badge>}
             </div>
             {activeFiltersCount > 0 && (
               <Button variant="ghost" size="sm" onClick={handleClearFilters}>
@@ -162,7 +166,9 @@ export default function SalesOrdersPage() {
               <label className="text-sm font-medium">Estado</label>
               <Select
                 value={filters.status || 'all'}
-                onValueChange={(value) => setFilters({ ...filters, status: value === 'all' ? '' : value })}
+                onValueChange={(value) =>
+                  setFilters({ ...filters, status: value === 'all' ? '' : value })
+                }
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Todos" />
@@ -199,9 +205,7 @@ export default function SalesOrdersPage() {
                 <input
                   type="checkbox"
                   checked={filters.activeOnly}
-                  onChange={(e) =>
-                    setFilters({ ...filters, activeOnly: e.target.checked })
-                  }
+                  onChange={(e) => setFilters({ ...filters, activeOnly: e.target.checked })}
                   className="rounded border-gray-300"
                 />
                 <span className="text-sm font-medium">Solo activos</span>
@@ -216,12 +220,13 @@ export default function SalesOrdersPage() {
         <CardHeader>
           <CardTitle>Lista de Pedidos</CardTitle>
           <CardDescription>
-            {data?.pagination.total || 0} pedido{(data?.pagination.total || 0) !== 1 ? 's' : ''} encontrado{(data?.pagination.total || 0) !== 1 ? 's' : ''}
+            {data?.pagination.total || 0} pedido{(data?.pagination.total || 0) !== 1 ? 's' : ''}{' '}
+            encontrado{(data?.pagination.total || 0) !== 1 ? 's' : ''}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
-            <div className="text-center py-8 text-muted-foreground">Cargando pedidos...</div>
+            <div className="text-muted-foreground py-8 text-center">Cargando pedidos...</div>
           ) : data && data.data.length > 0 ? (
             <>
               <SalesOrdersTable
@@ -244,14 +249,10 @@ export default function SalesOrdersPage() {
               </div>
             </>
           ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              No se encontraron pedidos
-            </div>
+            <div className="text-muted-foreground py-8 text-center">No se encontraron pedidos</div>
           )}
         </CardContent>
       </Card>
     </div>
   );
 }
-
-

@@ -27,26 +27,3 @@ export const STOCK_MOVEMENT_TYPE_NAMES: Record<number, string> = {
   [StockMovementType.ADJUSTMENT]: 'Ajuste',
   [StockMovementType.TRANSFER]: 'Transferencia',
 };
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

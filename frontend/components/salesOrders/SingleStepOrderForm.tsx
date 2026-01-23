@@ -1,31 +1,23 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { ClientLookup } from '@/components/articles/ClientLookup';
-import { useCreateSalesOrder, useGenerateInvoice, useGenerateDeliveryNote } from '@/lib/hooks/useSalesOrders';
+  ShoppingCart,
+  User,
+  X,
+  Trash2,
+  Pencil,
+  Search,
+  Plus,
+  FileText,
+  AlertTriangle,
+  Truck,
+  Eye,
+} from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
-import { useQuickCartTabs, QuickCartItem } from '@/lib/hooks/useQuickCartTabs';
+import { ClientLookup } from '@/components/articles/ClientLookup';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { ShoppingCart, User, X, Trash2, Pencil, Search, Plus, FileText, AlertTriangle, Truck, Eye } from 'lucide-react';
-import { useArticles } from '@/lib/hooks/useArticles';
-import type { Article } from '@/types/article';
-import { useSalesOrder, useUpdateSalesOrder, useDeleteSalesOrder } from '@/lib/hooks/useSalesOrders';
-import { useSalesOrderPermissions } from '@/lib/hooks/useSalesOrderPermissions';
-import { validateSalesOrder } from '@/lib/permissions/salesOrders';
-import { Badge } from '@/components/ui/badge';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -36,11 +28,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { formatCuit } from '@/lib/utils';
-import { usePaymentTerms } from '@/lib/hooks/usePaymentTerms';
-import { useClient } from '@/lib/hooks/useClients';
-import { useFormValidation, validators } from '@/hooks/useFormValidation';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { FormField } from '@/components/ui/form-field';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -48,15 +41,34 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-
-interface OrderItemFormData {
-  articleId: number;
-  articleCode: string;
-  articleDescription: string;
-  quantity: number;
-  unitPrice: number;
-  stock: number;
-}
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { useFormValidation, validators } from '@/hooks/useFormValidation';
+import { ROUTES } from '@/lib/constants/routes';
+import { useArticles } from '@/lib/hooks/useArticles';
+import { useClient } from '@/lib/hooks/useClients';
+import { usePaymentTerms } from '@/lib/hooks/usePaymentTerms';
+import { useQuickCartTabs, QuickCartItem } from '@/lib/hooks/useQuickCartTabs';
+import { useSalesOrderPermissions } from '@/lib/hooks/useSalesOrderPermissions';
+import {
+  useCreateSalesOrder,
+  useGenerateInvoice,
+  useGenerateDeliveryNote,
+} from '@/lib/hooks/useSalesOrders';
+import {
+  useSalesOrder,
+  useUpdateSalesOrder,
+  useDeleteSalesOrder,
+} from '@/lib/hooks/useSalesOrders';
+import { validateSalesOrder } from '@/lib/permissions/salesOrders';
+import { formatCuit } from '@/lib/utils';
+import type { Article } from '@/types/article';
 
 interface SingleStepOrderFormProps {
   orderId?: number;
@@ -72,7 +84,11 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   const isEditMode = !!orderId;
 
   // Load existing order if in edit mode
-  const { data: existingOrder, isLoading: isLoadingOrder, error: orderError } = useSalesOrder(orderId || 0);
+  const {
+    data: existingOrder,
+    isLoading: isLoadingOrder,
+    error: orderError,
+  } = useSalesOrder(orderId || 0);
 
   // Check if order was deleted or not found
   useEffect(() => {
@@ -80,7 +96,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       const err = orderError as { response?: { status?: number; data?: { error?: string } } };
       if (err?.response?.status === 404) {
         toast.error('El pedido no existe o ha sido eliminado');
-        router.push('/dashboard/sales-orders');
+        router.push(ROUTES.SALES_ORDERS);
       }
     }
   }, [orderError, orderId, router]);
@@ -105,7 +121,6 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     setClient,
     clearClient,
     ensureTabExists,
-    getTabItems,
     replaceItem,
     addOrUpdateOrderTab,
   } = useQuickCartTabs();
@@ -152,13 +167,13 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   // Dialog states for edit mode
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showUnsavedChangesDialog, setShowUnsavedChangesDialog] = useState(false);
-  const [unsavedChangesAction, setUnsavedChangesAction] = useState<'save' | 'discard' | null>(null);
+  const [, setUnsavedChangesAction] = useState<'save' | 'discard' | null>(null);
 
   // Load payment terms for dropdown
   const { data: paymentTerms } = usePaymentTerms({ activeOnly: true });
 
   // Form validation
-  const { validate, hasError, getError, clearError, clearAllErrors } = useFormValidation([
+  const { validate, getError, clearError } = useFormValidation([
     {
       field: 'paymentTermId',
       validate: validators.required('Debe seleccionar una condición de pago'),
@@ -189,10 +204,10 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
 
   // Get current tab - use activeTab when not from QuickCart or when currentTabId changes
   // BUT: In edit mode, use local state instead of Quick Cart tabs
-  const currentTab = currentTabId ? tabs.find(t => t.id === currentTabId) : activeTab;
-  const items = isEditMode ? localItems : (currentTab ? currentTab.items : []);
+  const currentTab = currentTabId ? tabs.find((t) => t.id === currentTabId) : activeTab;
+  const items = isEditMode ? localItems : currentTab ? currentTab.items : [];
   const clientId = isEditMode ? localClientId : currentTab?.clientId;
-  const clientName = isEditMode ? localClientName : (currentTab?.clientName || '');
+  const clientName = isEditMode ? localClientName : currentTab?.clientName || '';
 
   // Load client data to fetch payment term (use clientId which works in both modes)
   const { data: clientData } = useClient(clientId || 0);
@@ -202,16 +217,16 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     if (isEditMode && existingOrder && loadedOrderId === existingOrder.id) {
       // Check if anything changed
       const itemsCountChanged = items.length !== (existingOrder.items?.length || 0);
-      
+
       // Check if quantities changed
-      const quantitiesChanged = items.some(item => {
-        const originalItem = existingOrder.items?.find(i => i.articleId === item.article.id);
+      const quantitiesChanged = items.some((item) => {
+        const originalItem = existingOrder.items?.find((i) => i.articleId === item.article.id);
         return originalItem && originalItem.quantity !== item.quantity;
       });
-      
+
       // Check if any items are different
       const itemsChanged = itemsCountChanged || quantitiesChanged;
-      
+
       const clientChanged = clientId !== existingOrder.clientId;
       const notesChanged = (notes || '') !== (existingOrder.notes || '');
 
@@ -223,9 +238,13 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   // Detect unprinted documents that will be regenerated on save
   useEffect(() => {
     if (isEditMode && existingOrder) {
-      const hasUnprintedInvoice = existingOrder.invoice && !existingOrder.invoice.isPrinted && !existingOrder.invoice.isCancelled;
-      const hasUnprintedDeliveryNote = existingOrder.deliveryNote && !existingOrder.deliveryNote.isPrinted;
-      
+      const hasUnprintedInvoice =
+        existingOrder.invoice &&
+        !existingOrder.invoice.isPrinted &&
+        !existingOrder.invoice.isCancelled;
+      const hasUnprintedDeliveryNote =
+        existingOrder.deliveryNote && !existingOrder.deliveryNote.isPrinted;
+
       if (hasUnprintedInvoice || hasUnprintedDeliveryNote) {
         setHasUnprintedDocs({
           invoice: !!hasUnprintedInvoice,
@@ -246,9 +265,9 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       // For edit mode, create a tab for sidebar navigation but use local state for the form
       const orderItems: QuickCartItem[] = [];
       if (existingOrder.items && existingOrder.items.length > 0) {
-        existingOrder.items.forEach(item => {
+        existingOrder.items.forEach((item) => {
           // Set prices
-          setPrices(prev => ({ ...prev, [item.articleId]: item.unitPrice }));
+          setPrices((prev) => ({ ...prev, [item.articleId]: item.unitPrice }));
 
           // Add to items array with real stock from backend
           orderItems.push({
@@ -301,7 +320,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
         }
         return;
       }
-      
+
       // In creation mode, ALWAYS use the client's payment term
       // This ensures it updates when switching tabs or clients
       if (clientData.paymentTermId) {
@@ -313,7 +332,12 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
 
   // Update currentTabId when activeTab changes (from sidebar clicks)
   useEffect(() => {
-    if (fromQuickCart && activeTab && activeTab.id && (!currentTabId || activeTab.id !== currentTabId)) {
+    if (
+      fromQuickCart &&
+      activeTab &&
+      activeTab.id &&
+      (!currentTabId || activeTab.id !== currentTabId)
+    ) {
       // When switching tabs in creation mode, reset paymentTermId
       // This ensures it reloads from the new client
       if (!isEditMode) {
@@ -328,7 +352,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     if (fromQuickCart && !loadedFromCart && tabs.length > 0) {
       // Set the active tab
       if (tabId) {
-        const tab = tabs.find(t => t.id === tabId);
+        const tab = tabs.find((t) => t.id === tabId);
         if (tab) {
           setActiveTab(tabId);
           setCurrentTabId(tabId);
@@ -390,12 +414,12 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   };
 
   // Stock validation helper
-  const hasStockWarnings = items.some(item => item.quantity > item.article.stock);
+  const hasStockWarnings = items.some((item) => item.quantity > item.article.stock);
 
   // Show loading state when loading existing order
   if (isEditMode && isLoadingOrder) {
     return (
-      <div className="flex items-center justify-center h-96">
+      <div className="flex h-96 items-center justify-center">
         <p className="text-muted-foreground">Cargando pedido...</p>
       </div>
     );
@@ -404,11 +428,9 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   // Show error state if order not found
   if (isEditMode && !isLoadingOrder && !existingOrder) {
     return (
-      <div className="flex flex-col items-center justify-center h-96 gap-4">
+      <div className="flex h-96 flex-col items-center justify-center gap-4">
         <p className="text-muted-foreground">Pedido no encontrado</p>
-        <Button onClick={() => router.push('/dashboard/sales-orders')}>
-          Volver al listado
-        </Button>
+        <Button onClick={() => router.push(ROUTES.SALES_ORDERS)}>Volver al listado</Button>
       </div>
     );
   }
@@ -420,14 +442,14 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       setLocalClientName(name);
       toast.success(`Cliente ${name} seleccionado`, {
         duration: 2000,
-        position: 'top-center'
+        position: 'top-center',
       });
     } else if (currentTabId) {
       // In draft mode, update QuickCart tab
       setClient(id, name);
       toast.success(`Cliente ${name} seleccionado`, {
         duration: 2000,
-        position: 'top-center'
+        position: 'top-center',
       });
     }
   };
@@ -466,7 +488,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
         } else {
           toast.success('Condición de pago actualizada', {
             duration: 2000,
-            position: 'top-center'
+            position: 'top-center',
           });
         }
       } catch (error) {
@@ -518,7 +540,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     if (!articleToAdd) {
       toast.error('Selecciona un artículo válido', {
         duration: 2000,
-        position: 'top-center'
+        position: 'top-center',
       });
       codeInputRef.current?.focus();
       return;
@@ -528,7 +550,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     if (qty <= 0) {
       toast.error('La cantidad debe ser mayor a 0', {
         duration: 2000,
-        position: 'top-center'
+        position: 'top-center',
       });
       quantityInputRef.current?.focus();
       return;
@@ -536,7 +558,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
 
     if (isEditMode) {
       // In edit mode, update local state
-      const existingIndex = localItems.findIndex(item => item.article.id === articleToAdd!.id);
+      const existingIndex = localItems.findIndex((item) => item.article.id === articleToAdd!.id);
       let updatedItems: QuickCartItem[];
 
       if (existingIndex >= 0) {
@@ -546,10 +568,13 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
           quantity: updatedItems[existingIndex].quantity + qty,
         };
       } else {
-        updatedItems = [...localItems, { 
-          article: articleToAdd!, 
-          quantity: qty
-        }];
+        updatedItems = [
+          ...localItems,
+          {
+            article: articleToAdd!,
+            quantity: qty,
+          },
+        ];
       }
 
       setLocalItems(updatedItems);
@@ -560,7 +585,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
 
     toast.success(`${articleToAdd.code} agregado`, {
       duration: 2000,
-      position: 'top-center'
+      position: 'top-center',
     });
 
     // Reset form
@@ -598,7 +623,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
 
     if (isEditMode) {
       // In edit mode, update local state
-      const updatedItems = localItems.map(item =>
+      const updatedItems = localItems.map((item) =>
         item.article.id === editingItemId
           ? { article, quantity: item.quantity, discountPercent: item.discountPercent }
           : item
@@ -611,7 +636,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
 
     toast.success(`Artículo actualizado a ${article.code}`, {
       duration: 2000,
-      position: 'top-center'
+      position: 'top-center',
     });
 
     setEditingItemId(null);
@@ -640,7 +665,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   const handleRemoveItem = (articleId: number) => {
     if (isEditMode) {
       // In edit mode, update local state
-      setLocalItems(localItems.filter(item => item.article.id !== articleId));
+      setLocalItems(localItems.filter((item) => item.article.id !== articleId));
     } else if (currentTabId) {
       // In draft mode, use QuickCart hook
       removeItem(articleId);
@@ -648,7 +673,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
 
     toast.success('Artículo eliminado', {
       duration: 2000,
-      position: 'top-center'
+      position: 'top-center',
     });
   };
 
@@ -657,19 +682,15 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
 
     if (isEditMode) {
       // In edit mode, update local state
-      setLocalItems(localItems.map(item =>
-        item.article.id === articleId ? { ...item, quantity: newQuantity } : item
-      ));
+      setLocalItems(
+        localItems.map((item) =>
+          item.article.id === articleId ? { ...item, quantity: newQuantity } : item
+        )
+      );
     } else if (currentTabId) {
       // In draft mode, use QuickCart hook
       updateQuantity(articleId, newQuantity);
     }
-  };
-
-  const handleUpdateUnitPrice = (articleId: number, newPrice: number) => {
-    // Unit price changes are stored separately as they don't exist in QuickCart
-    if (newPrice < 0) return;
-    setPrices(prev => ({ ...prev, [articleId]: newPrice }));
   };
 
   const calculateLineTotal = (item: QuickCartItem) => {
@@ -689,7 +710,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     if (!validate({ paymentTermId })) {
       toast.error('Debe seleccionar una condición de pago', {
         duration: 3000,
-        position: 'top-center'
+        position: 'top-center',
       });
       return;
     }
@@ -697,7 +718,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     // Validation using the validation helper
     const validation = validateSalesOrder(
       clientId,
-      items.map(item => ({
+      items.map((item) => ({
         quantity: item.quantity,
         stock: item.article.stock,
         articleDescription: item.article.description,
@@ -706,13 +727,17 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     );
 
     if (!validation.isValid) {
-      validation.errors.forEach(error => toast.error(error, { duration: 3000, position: 'top-center' }));
+      validation.errors.forEach((error) =>
+        toast.error(error, { duration: 3000, position: 'top-center' })
+      );
       return;
     }
 
     // Show warnings if any
     if (validation.warnings.length > 0) {
-      validation.warnings.forEach(warning => toast.warning(warning, { duration: 4000, position: 'top-center' }));
+      validation.warnings.forEach((warning) =>
+        toast.warning(warning, { duration: 4000, position: 'top-center' })
+      );
     }
 
     // Validate items
@@ -721,7 +746,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       if (unitPrice < 0) {
         toast.error(`El precio de ${item.article.code} no puede ser negativo`, {
           duration: 3000,
-          position: 'top-center'
+          position: 'top-center',
         });
         return;
       }
@@ -765,7 +790,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
 
         // If the order was created, navigate to the edit view to allow further modifications
         if (createdOrder && createdOrder.id) {
-          router.push(`/dashboard/sales-orders/${createdOrder.id}/edit`);
+          router.push(`${ROUTES.SALES_ORDERS}/${createdOrder.id}/edit`);
         }
         // The edit view will create a new tab with orderId for the saved order
       }
@@ -779,12 +804,12 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       deleteOrderMutation.mutate(orderId, {
         onSuccess: () => {
           // Remove tab from sidebar if it exists (find by orderId)
-          const tabToRemove = tabs.find(tab => tab.orderId === orderId);
+          const tabToRemove = tabs.find((tab) => tab.orderId === orderId);
           if (tabToRemove) {
             removeTab(tabToRemove.id);
           }
           // Toast is shown by the mutation's onSuccess handler
-          router.push('/dashboard/sales-orders');
+          router.push(ROUTES.SALES_ORDERS);
         },
       });
     }
@@ -795,7 +820,9 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
 
     // Check for unsaved changes
     if (hasUnsavedChanges) {
-      const confirmed = window.confirm('Hay cambios sin guardar. ¿Desea guardar los cambios antes de generar la factura?');
+      const confirmed = window.confirm(
+        'Hay cambios sin guardar. ¿Desea guardar los cambios antes de generar la factura?'
+      );
       if (confirmed) {
         await handleSubmit();
       }
@@ -804,7 +831,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     try {
       const invoice = await generateInvoiceMutation.mutateAsync({ id: orderId });
       if (invoice) {
-        router.push(`/dashboard/invoices/${invoice.id}`);
+        router.push(`${ROUTES.INVOICES}/${invoice.id}`);
       }
     } catch (error) {
       console.error('Error generating invoice:', error);
@@ -816,16 +843,21 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
 
     // Check for unsaved changes
     if (hasUnsavedChanges) {
-      const confirmed = window.confirm('Hay cambios sin guardar. ¿Desea guardar los cambios antes de generar el remito?');
+      const confirmed = window.confirm(
+        'Hay cambios sin guardar. ¿Desea guardar los cambios antes de generar el remito?'
+      );
       if (confirmed) {
         await handleSubmit();
       }
     }
 
     try {
-      const deliveryNote = await generateDeliveryNoteMutation.mutateAsync({ id: orderId, deliveryData: {} });
+      const deliveryNote = await generateDeliveryNoteMutation.mutateAsync({
+        id: orderId,
+        deliveryData: {},
+      });
       if (deliveryNote) {
-        router.push(`/dashboard/delivery-notes/${deliveryNote.id}`);
+        router.push(`${ROUTES.DELIVERY_NOTES}/${deliveryNote.id}`);
       }
     } catch (error) {
       console.error('Error generating delivery note:', error);
@@ -836,7 +868,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     if (hasUnsavedChanges) {
       setShowUnsavedChangesDialog(true);
     } else {
-      router.push('/dashboard/sales-orders');
+      router.push(ROUTES.SALES_ORDERS);
     }
   };
 
@@ -845,11 +877,11 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       setUnsavedChangesAction(action);
       await handleSubmit();
       setShowUnsavedChangesDialog(false);
-      router.push('/dashboard/sales-orders');
+      router.push(ROUTES.SALES_ORDERS);
     } else if (action === 'discard') {
       setUnsavedChangesAction(action);
       setShowUnsavedChangesDialog(false);
-      router.push('/dashboard/sales-orders');
+      router.push(ROUTES.SALES_ORDERS);
     } else {
       // action === 'cancel' - just close the dialog without setting state
       setShowUnsavedChangesDialog(false);
@@ -860,10 +892,15 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     <div className="space-y-4 pb-24">
       {/* Stock Warnings - Compact */}
       {hasStockWarnings && (
-        <Alert variant="destructive" className="bg-red-50 dark:bg-red-950/30 border-red-300 dark:border-red-800 py-2">
+        <Alert
+          variant="destructive"
+          className="border-red-300 bg-red-50 py-2 dark:border-red-800 dark:bg-red-950/30"
+        >
           <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-red-600 dark:text-red-500 flex-shrink-0" />
-            <p className="text-sm font-semibold text-red-900 dark:text-red-200">Advertencia de Stock</p>
+            <AlertTriangle className="h-4 w-4 flex-shrink-0 text-red-600 dark:text-red-500" />
+            <p className="text-sm font-semibold text-red-900 dark:text-red-200">
+              Advertencia de Stock
+            </p>
           </div>
         </Alert>
       )}
@@ -877,13 +914,15 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
           <CardContent>
             {clientId && clientName ? (
               <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-primary/10 border border-primary/20 rounded-lg">
+                <div className="bg-primary/10 border-primary/20 flex items-center justify-between rounded-lg border p-3">
                   <div className="flex items-center gap-3">
-                    <User className="h-5 w-5 text-primary" />
+                    <User className="text-primary h-5 w-5" />
                     <div>
                       <p className="text-sm font-medium">{clientName}</p>
                       {existingOrder && (
-                        <p className="text-xs text-muted-foreground font-mono">CUIT: {formatCuit(existingOrder.clientCuit)}</p>
+                        <p className="text-muted-foreground font-mono text-xs">
+                          CUIT: {formatCuit(existingOrder.clientCuit)}
+                        </p>
                       )}
                     </div>
                   </div>
@@ -937,16 +976,18 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
           <CardContent className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Número de Pedido</p>
+                <p className="text-muted-foreground text-sm">Número de Pedido</p>
                 <p className="font-medium">{existingOrder?.orderNumber || 'Borrador'}</p>
               </div>
               <div className="space-y-1">
-                <p className="text-sm text-muted-foreground">Estado</p>
+                <p className="text-muted-foreground text-sm">Estado</p>
                 <div>
                   {existingOrder ? (
                     existingOrder.invoice && !existingOrder.invoice.isCancelled ? (
-                      <Badge className={existingOrder.invoice.isPrinted ? "bg-green-600" : "bg-blue-600"}>
-                        {existingOrder.invoice.isPrinted ? "Facturado e Impreso" : "Facturado"}
+                      <Badge
+                        className={existingOrder.invoice.isPrinted ? 'bg-green-600' : 'bg-blue-600'}
+                      >
+                        {existingOrder.invoice.isPrinted ? 'Facturado e Impreso' : 'Facturado'}
                       </Badge>
                     ) : (
                       <Badge variant="secondary">Pendiente</Badge>
@@ -962,7 +1003,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
               <Label htmlFor="orderNotes">Observaciones</Label>
               <textarea
                 id="orderNotes"
-                className="w-full min-h-[80px] p-2 text-sm bg-background border rounded-md resize-none focus:outline-none focus:ring-1 focus:ring-primary"
+                className="bg-background focus:ring-primary min-h-[80px] w-full resize-none rounded-md border p-2 text-sm focus:ring-1 focus:outline-none"
                 placeholder="Notas adicionales para el pedido..."
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
@@ -981,9 +1022,9 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
             <CardDescription>{items.length} artículo(s)</CardDescription>
           </div>
           {!isReadOnly && (
-            <div className="flex items-center gap-2 max-w-md flex-1 ml-4">
+            <div className="ml-4 flex max-w-md flex-1 items-center gap-2">
               <div className="relative flex-1">
-                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Search className="text-muted-foreground absolute top-1/2 left-2.5 h-4 w-4 -translate-y-1/2" />
                 <Input
                   ref={codeInputRef}
                   value={articleCode}
@@ -996,34 +1037,40 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                   onFocus={() => articleCode && setShowCodeResults(true)}
                   onBlur={() => setTimeout(() => setShowCodeResults(false), 200)}
                   placeholder="Buscar código o descripción..."
-                  className="pl-9 uppercase h-9"
+                  className="h-9 pl-9 uppercase"
                 />
-                
+
                 {/* Search Results Dropdown */}
                 {showCodeResults && articleCode && articles.length > 0 && (
-                  <Card className="absolute z-[60] w-full mt-1 max-h-[300px] overflow-auto shadow-xl">
+                  <Card className="absolute z-[60] mt-1 max-h-[300px] w-full overflow-auto shadow-xl">
                     <div className="p-1">
                       {articles.map((article, index) => (
                         <button
                           key={article.id}
                           ref={index === selectedIndex ? selectedItemRef : null}
                           onClick={() => handleSelectArticle(article, index)}
-                          className={`w-full text-left p-2 rounded transition-colors ${
-                            index === selectedIndex 
-                              ? 'bg-primary text-primary-foreground' 
+                          className={`w-full rounded p-2 text-left transition-colors ${
+                            index === selectedIndex
+                              ? 'bg-primary text-primary-foreground'
                               : 'hover:bg-accent hover:text-accent-foreground'
                           }`}
                         >
-                          <div className="flex justify-between items-start gap-3">
-                            <div className="flex-1 min-w-0">
-                              <div className="font-semibold text-sm font-mono">{article.code}</div>
-                              <div className={`text-xs truncate ${index === selectedIndex ? 'text-primary-foreground/90' : 'text-muted-foreground'}`}>
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0 flex-1">
+                              <div className="font-mono text-sm font-semibold">{article.code}</div>
+                              <div
+                                className={`truncate text-xs ${index === selectedIndex ? 'text-primary-foreground/90' : 'text-muted-foreground'}`}
+                              >
                                 {article.description}
                               </div>
                             </div>
                             <div className="text-right">
-                              <div className="text-sm font-bold">{formatCurrency(article.unitPrice)}</div>
-                              <div className={`text-xs ${index === selectedIndex ? 'text-primary-foreground' : getStockStatusClass(article.stock)}`}>
+                              <div className="text-sm font-bold">
+                                {formatCurrency(article.unitPrice)}
+                              </div>
+                              <div
+                                className={`text-xs ${index === selectedIndex ? 'text-primary-foreground' : getStockStatusClass(article.stock)}`}
+                              >
                                 Stock: {article.stock}
                               </div>
                             </div>
@@ -1044,7 +1091,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                   onKeyDown={handleQuantityKeyDown}
                   onFocus={(e) => e.target.select()}
                   placeholder="Cant."
-                  className="text-center h-9"
+                  className="h-9 text-center"
                 />
               </div>
               <Button
@@ -1060,21 +1107,23 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
         </CardHeader>
         <CardContent>
           {items.length === 0 ? (
-            <div className="border border-dashed rounded-lg p-12 text-center text-muted-foreground">
-              <ShoppingCart className="h-12 w-12 mx-auto mb-4 opacity-20" />
+            <div className="text-muted-foreground rounded-lg border border-dashed p-12 text-center">
+              <ShoppingCart className="mx-auto mb-4 h-12 w-12 opacity-20" />
               <p>No hay artículos en este pedido</p>
-              {!isReadOnly && <p className="text-sm mt-1">Usa el buscador para agregar artículos</p>}
+              {!isReadOnly && (
+                <p className="mt-1 text-sm">Usa el buscador para agregar artículos</p>
+              )}
             </div>
           ) : (
-            <div className="border rounded-md">
+            <div className="rounded-md border">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[150px]">Código</TableHead>
                     <TableHead>Descripción</TableHead>
-                    <TableHead className="text-right w-[100px]">Cantidad</TableHead>
-                    <TableHead className="text-right w-[140px]">Precio Unit.</TableHead>
-                    <TableHead className="text-right w-[140px]">Total</TableHead>
+                    <TableHead className="w-[100px] text-right">Cantidad</TableHead>
+                    <TableHead className="w-[140px] text-right">Precio Unit.</TableHead>
+                    <TableHead className="w-[140px] text-right">Total</TableHead>
                     {!isReadOnly && <TableHead className="w-[50px]"></TableHead>}
                   </TableRow>
                 </TableHeader>
@@ -1082,9 +1131,9 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                   {items.map((item) => {
                     const hasStockIssue = item.quantity > item.article.stock;
                     return (
-                      <TableRow 
+                      <TableRow
                         key={item.article.id}
-                        className={hasStockIssue ? "bg-red-50 dark:bg-red-950/20" : ""}
+                        className={hasStockIssue ? 'bg-red-50 dark:bg-red-950/20' : ''}
                       >
                         <TableCell>
                           <div className="space-y-1">
@@ -1098,22 +1147,26 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                                     setShowEditResults(true);
                                   }}
                                   onKeyDown={handleEditKeyDown}
-                                  className="h-8 text-xs font-mono uppercase"
+                                  className="h-8 font-mono text-xs uppercase"
                                   autoFocus
                                 />
                                 {showEditResults && editCode && editArticles.length > 0 && (
-                                  <Card className="absolute z-[70] w-[300px] mt-1 shadow-xl">
+                                  <Card className="absolute z-[70] mt-1 w-[300px] shadow-xl">
                                     <div className="p-1">
                                       {editArticles.map((article, index) => (
                                         <button
                                           key={article.id}
                                           onClick={() => handleSelectEditArticle(article)}
-                                          className={`w-full text-left p-2 rounded text-xs ${
-                                            index === selectedEditIndex ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'
+                                          className={`w-full rounded p-2 text-left text-xs ${
+                                            index === selectedEditIndex
+                                              ? 'bg-primary text-primary-foreground'
+                                              : 'hover:bg-accent'
                                           }`}
                                         >
                                           <div className="font-mono font-bold">{article.code}</div>
-                                          <div className="truncate opacity-80">{article.description}</div>
+                                          <div className="truncate opacity-80">
+                                            {article.description}
+                                          </div>
                                         </button>
                                       ))}
                                     </div>
@@ -1127,22 +1180,29 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                                   <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-5 w-5 opacity-0 group-hover:opacity-100 transition-opacity"
-                                    onClick={() => handleEditItem(item.article.id, item.article.code)}
+                                    className="h-5 w-5 opacity-0 transition-opacity group-hover:opacity-100"
+                                    onClick={() =>
+                                      handleEditItem(item.article.id, item.article.code)
+                                    }
                                   >
                                     <Pencil className="h-3 w-3" />
                                   </Button>
                                 )}
                               </div>
                             )}
-                            <div className="text-[10px] text-muted-foreground flex items-center gap-1">
-                              <span>Stock: <span className={getStockStatusClass(item.article.stock)}>{item.article.stock}</span></span>
+                            <div className="text-muted-foreground flex items-center gap-1 text-[10px]">
+                              <span>
+                                Stock:{' '}
+                                <span className={getStockStatusClass(item.article.stock)}>
+                                  {item.article.stock}
+                                </span>
+                              </span>
                               {hasStockIssue && <AlertTriangle className="h-3 w-3 text-red-600" />}
                             </div>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <p className="text-sm line-clamp-1" title={item.article.description}>
+                          <p className="line-clamp-1 text-sm" title={item.article.description}>
                             {item.article.description}
                           </p>
                         </TableCell>
@@ -1151,8 +1211,10 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                             type="number"
                             min="1"
                             value={item.quantity}
-                            onChange={(e) => handleUpdateQuantity(item.article.id, parseInt(e.target.value) || 1)}
-                            className="h-8 w-20 ml-auto text-right text-sm"
+                            onChange={(e) =>
+                              handleUpdateQuantity(item.article.id, parseInt(e.target.value) || 1)
+                            }
+                            className="ml-auto h-8 w-20 text-right text-sm"
                             disabled={isReadOnly}
                           />
                         </TableCell>
@@ -1169,7 +1231,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8"
                               onClick={() => handleRemoveItem(item.article.id)}
                             >
                               <Trash2 className="h-4 w-4" />
@@ -1202,13 +1264,13 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                 <span className="text-muted-foreground">IVA (Estimado)</span>
                 <span>{formatCurrency(calculateTotal() * 0.21)}</span>
               </div>
-              <div className="border-t pt-2 mt-2 flex justify-between items-center">
+              <div className="mt-2 flex items-center justify-between border-t pt-2">
                 <span className="font-bold">Total Final</span>
-                <span className="text-2xl font-bold text-primary">
+                <span className="text-primary text-2xl font-bold">
                   {formatCurrency(calculateTotal() * 1.21)}
                 </span>
               </div>
-              <p className="text-[10px] text-muted-foreground text-right italic">
+              <p className="text-muted-foreground text-right text-[10px] italic">
                 * El IVA se calcula formalmente al generar la factura
               </p>
             </CardContent>
@@ -1226,22 +1288,19 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
           <AlertDescription className="text-amber-800 dark:text-amber-200">
             Este pedido tiene {hasUnprintedDocs.invoice && 'una factura'}
             {hasUnprintedDocs.invoice && hasUnprintedDocs.deliveryNote && ' y '}
-            {hasUnprintedDocs.deliveryNote && 'un remito'} no impreso(s).
-            Al guardar, se actualizarán automáticamente con la nueva información.
-            Los números de documento se mantendrán sin cambios.
+            {hasUnprintedDocs.deliveryNote && 'un remito'} no impreso(s). Al guardar, se
+            actualizarán automáticamente con la nueva información. Los números de documento se
+            mantendrán sin cambios.
           </AlertDescription>
         </Alert>
       )}
 
       {/* Fixed Action Buttons */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t z-50">
-        <div className="container max-w-7xl mx-auto px-6 py-4">
-          <div className="flex justify-between items-center">
+      <div className="bg-background/95 supports-[backdrop-filter]:bg-background/80 fixed right-0 bottom-0 left-0 z-50 border-t backdrop-blur">
+        <div className="container mx-auto max-w-7xl px-6 py-4">
+          <div className="flex items-center justify-between">
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={handleBackButton}
-              >
+              <Button variant="outline" onClick={handleBackButton}>
                 {isEditMode ? 'Volver' : 'Cancelar'}
               </Button>
               {permissions.canDelete && (
@@ -1269,26 +1328,29 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
               {existingOrder?.deliveryNote && (
                 <Button
                   variant="outline"
-                  onClick={() => router.push(`/dashboard/delivery-notes/${existingOrder.deliveryNote?.id}`)}
+                  onClick={() =>
+                    router.push(`${ROUTES.DELIVERY_NOTES}/${existingOrder.deliveryNote?.id}`)
+                  }
                 >
                   <Eye className="mr-2 h-4 w-4" />
                   Ver Remito
                 </Button>
               )}
-              {permissions.canCreateInvoice && (!existingOrder?.invoice || existingOrder.invoice.isCancelled) && (
-                <Button
-                  variant="outline"
-                  onClick={handleGenerateInvoice}
-                  disabled={generateInvoiceMutation.isPending}
-                >
-                  <FileText className="mr-2 h-4 w-4" />
-                  {generateInvoiceMutation.isPending ? 'Generando...' : 'Generar Factura'}
-                </Button>
-              )}
+              {permissions.canCreateInvoice &&
+                (!existingOrder?.invoice || existingOrder.invoice.isCancelled) && (
+                  <Button
+                    variant="outline"
+                    onClick={handleGenerateInvoice}
+                    disabled={generateInvoiceMutation.isPending}
+                  >
+                    <FileText className="mr-2 h-4 w-4" />
+                    {generateInvoiceMutation.isPending ? 'Generando...' : 'Generar Factura'}
+                  </Button>
+                )}
               {existingOrder?.invoice && !existingOrder.invoice.isCancelled && (
                 <Button
                   variant="outline"
-                  onClick={() => router.push(`/dashboard/invoices/${existingOrder.invoice?.id}`)}
+                  onClick={() => router.push(`${ROUTES.INVOICES}/${existingOrder.invoice?.id}`)}
                 >
                   <Eye className="mr-2 h-4 w-4" />
                   Ver Factura
@@ -1297,11 +1359,20 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
               {isEditMode && permissions.canEdit && (
                 <Button
                   onClick={handleSubmit}
-                  disabled={!clientId || items.length === 0 || updateOrderMutation.isPending || !hasUnsavedChanges}
+                  disabled={
+                    !clientId ||
+                    items.length === 0 ||
+                    updateOrderMutation.isPending ||
+                    !hasUnsavedChanges
+                  }
                   size="lg"
-                  variant={hasUnsavedChanges ? "default" : "outline"}
+                  variant={hasUnsavedChanges ? 'default' : 'outline'}
                 >
-                  {updateOrderMutation.isPending ? 'Guardando...' : hasUnsavedChanges ? 'Guardar Cambios' : 'Sin cambios'}
+                  {updateOrderMutation.isPending
+                    ? 'Guardando...'
+                    : hasUnsavedChanges
+                      ? 'Guardar Cambios'
+                      : 'Sin cambios'}
                 </Button>
               )}
               {!isEditMode && (
@@ -1327,8 +1398,9 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
               Esta acción eliminará el pedido permanentemente. Esta acción no se puede deshacer.
             </AlertDialogDescription>
             {existingOrder?.invoice?.isPrinted && (
-              <div className="mt-2 p-2 bg-yellow-50 border border-yellow-200 rounded text-sm">
-                <strong>Nota:</strong> Este pedido tiene una factura impresa. Al eliminar el pedido, la factura será cancelada y el stock será devuelto automáticamente.
+              <div className="mt-2 rounded border border-yellow-200 bg-yellow-50 p-2 text-sm">
+                <strong>Nota:</strong> Este pedido tiene una factura impresa. Al eliminar el pedido,
+                la factura será cancelada y el stock será devuelto automáticamente.
               </div>
             )}
           </AlertDialogHeader>
@@ -1358,10 +1430,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
             <AlertDialogCancel onClick={() => handleUnsavedChangesResponse('cancel')}>
               Cancelar
             </AlertDialogCancel>
-            <Button
-              variant="outline"
-              onClick={() => handleUnsavedChangesResponse('discard')}
-            >
+            <Button variant="outline" onClick={() => handleUnsavedChangesResponse('discard')}>
               No Guardar
             </Button>
             <AlertDialogAction onClick={() => handleUnsavedChangesResponse('save')}>
@@ -1373,5 +1442,3 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     </div>
   );
 }
-
-

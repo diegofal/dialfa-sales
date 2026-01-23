@@ -1,12 +1,12 @@
-import type { NextConfig } from "next";
+import type { NextConfig } from 'next';
 
 const nextConfig: NextConfig = {
   // Enable standalone output for Docker deployment
   output: 'standalone',
-  
+
   // Enable React strict mode for better development experience
   reactStrictMode: true,
-  
+
   // Configure image optimization
   images: {
     remotePatterns: [
@@ -26,8 +26,8 @@ const nextConfig: NextConfig = {
     if (isServer) {
       config.externals = [...(config.externals || []), 'pdfkit'];
     }
-    
-    // Ignore fs module warnings from pdfkit on client side  
+
+    // Ignore fs module warnings from pdfkit on client side
     if (!isServer) {
       config.resolve.fallback = {
         ...config.resolve.fallback,

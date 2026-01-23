@@ -16,10 +16,3 @@ export interface CategoryFormData {
   description?: string;
   defaultDiscountPercent: number;
 }
-
-
-
-
-
-
-

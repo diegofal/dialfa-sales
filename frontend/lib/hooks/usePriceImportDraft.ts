@@ -10,13 +10,13 @@ export function usePriceImportDraft() {
     setIsLoading(true);
     try {
       const response = await fetch('/api/price-lists/draft');
-      
+
       if (!response.ok) {
         throw new Error('Failed to load draft');
       }
 
       const data = await response.json();
-      
+
       if (data.draft && data.draft.draftData) {
         const map = new Map<number, number>();
         Object.entries(data.draft.draftData).forEach(([key, value]) => {
@@ -24,7 +24,7 @@ export function usePriceImportDraft() {
         });
         return map;
       }
-      
+
       return null;
     } catch (error) {
       console.error('Error loading draft:', error);
@@ -37,13 +37,13 @@ export function usePriceImportDraft() {
   // Guardar borrador en la BD
   const saveDraft = useCallback(async (proposedPrices: Map<number, number>) => {
     if (proposedPrices.size === 0) return false;
-    
+
     setIsSaving(true);
     try {
       const draftData = Object.fromEntries(
         Array.from(proposedPrices.entries()).map(([k, v]) => [k.toString(), v])
       );
-      
+
       const response = await fetch('/api/price-lists/draft', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

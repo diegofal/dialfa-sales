@@ -1,18 +1,7 @@
 'use client';
 
-import { Article } from '@/types/article';
-import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { ClickableTableRow } from '@/components/ui/clickable-table-row';
-import { SortableTableHead } from '@/components/ui/sortable-table-head';
-import { Badge } from '@/components/ui/badge';
 import { Pencil, Trash2, Package, TrendingUp, TrendingDown, Minus } from 'lucide-react';
+import { useState } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,12 +13,17 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from '@/components/ui/alert-dialog';
-import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
-import { useState } from 'react';
-import StockAdjustDialog from './StockAdjustDialog';
-import { useAuthStore } from '@/store/authStore';
-import { SparklineWithTooltip } from '@/components/ui/sparkline';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
+import { ClickableTableRow } from '@/components/ui/clickable-table-row';
+import { SortableTableHead } from '@/components/ui/sortable-table-head';
+import { SparklineWithTooltip } from '@/components/ui/sparkline';
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table';
+import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
+import { useAuthStore } from '@/store/authStore';
+import { Article } from '@/types/article';
+import StockAdjustDialog from './StockAdjustDialog';
 
 interface ArticlesTableProps {
   articles: Article[];
@@ -44,12 +38,12 @@ interface ArticlesTableProps {
   onToggleSelect?: (article: Article) => void;
 }
 
-export function ArticlesTable({ 
-  articles, 
-  onEdit, 
-  onDelete, 
-  currentSortBy, 
-  currentSortDescending, 
+export function ArticlesTable({
+  articles,
+  onEdit,
+  onDelete,
+  currentSortBy,
+  currentSortDescending,
   onSort,
   selectionMode = false,
   selectedIds = new Set(),
@@ -80,19 +74,19 @@ export function ArticlesTable({
   // Calculate trend direction
   const calculateTrend = (salesTrend: number[] | undefined) => {
     if (!salesTrend || salesTrend.length < 2) return 'none';
-    
+
     const midPoint = Math.floor(salesTrend.length / 2);
     const firstHalf = salesTrend.slice(0, midPoint);
     const secondHalf = salesTrend.slice(midPoint);
-    
+
     const avgFirst = firstHalf.reduce((a, b) => a + b, 0) / firstHalf.length;
     const avgSecond = secondHalf.reduce((a, b) => a + b, 0) / secondHalf.length;
-    
+
     if (avgFirst === 0 && avgSecond === 0) return 'none';
     if (avgFirst === 0) return 'increasing';
-    
+
     const changePercent = ((avgSecond - avgFirst) / avgFirst) * 100;
-    
+
     if (changePercent > 20) return 'increasing';
     if (changePercent < -20) return 'decreasing';
     return 'stable';
@@ -101,13 +95,13 @@ export function ArticlesTable({
   const getTrendIcon = (trend: string) => {
     switch (trend) {
       case 'increasing':
-        return <TrendingUp className="h-3 w-3 text-success" />;
+        return <TrendingUp className="text-success h-3 w-3" />;
       case 'decreasing':
-        return <TrendingDown className="h-3 w-3 text-destructive" />;
+        return <TrendingDown className="text-destructive h-3 w-3" />;
       case 'stable':
-        return <Minus className="h-3 w-3 text-info" />;
+        return <Minus className="text-info h-3 w-3" />;
       default:
-        return <Minus className="h-3 w-3 text-muted-foreground" />;
+        return <Minus className="text-muted-foreground h-3 w-3" />;
     }
   };
 
@@ -121,25 +115,51 @@ export function ArticlesTable({
                 <span className="sr-only">Seleccionar</span>
               </SortableTableHead>
             )}
-            <SortableTableHead sortKey="Code" currentSortBy={currentSortBy} currentSortDescending={currentSortDescending} onSort={onSort}>
+            <SortableTableHead
+              sortKey="Code"
+              currentSortBy={currentSortBy}
+              currentSortDescending={currentSortDescending}
+              onSort={onSort}
+            >
               Código
             </SortableTableHead>
-            <SortableTableHead sortKey="Description" currentSortBy={currentSortBy} currentSortDescending={currentSortDescending} onSort={onSort}>
+            <SortableTableHead
+              sortKey="Description"
+              currentSortBy={currentSortBy}
+              currentSortDescending={currentSortDescending}
+              onSort={onSort}
+            >
               Descripción
             </SortableTableHead>
             <SortableTableHead>Categoría</SortableTableHead>
-            <SortableTableHead sortKey="UnitPrice" currentSortBy={currentSortBy} currentSortDescending={currentSortDescending} onSort={onSort} align="right">
+            <SortableTableHead
+              sortKey="UnitPrice"
+              currentSortBy={currentSortBy}
+              currentSortDescending={currentSortDescending}
+              onSort={onSort}
+              align="right"
+            >
               Precio
             </SortableTableHead>
-            <SortableTableHead sortKey="Stock" currentSortBy={currentSortBy} currentSortDescending={currentSortDescending} onSort={onSort} align="right">
+            <SortableTableHead
+              sortKey="Stock"
+              currentSortBy={currentSortBy}
+              currentSortDescending={currentSortDescending}
+              onSort={onSort}
+              align="right"
+            >
               Stock
             </SortableTableHead>
-            <SortableTableHead sortKey="MinimumStock" currentSortBy={currentSortBy} currentSortDescending={currentSortDescending} onSort={onSort} align="right">
+            <SortableTableHead
+              sortKey="MinimumStock"
+              currentSortBy={currentSortBy}
+              currentSortDescending={currentSortDescending}
+              onSort={onSort}
+              align="right"
+            >
               Stock Mín.
             </SortableTableHead>
-            <SortableTableHead align="right">
-              Peso (kg)
-            </SortableTableHead>
+            <SortableTableHead align="right">Peso (kg)</SortableTableHead>
             <SortableTableHead>Tendencia</SortableTableHead>
             <SortableTableHead>ABC</SortableTableHead>
             <SortableTableHead>Última Venta</SortableTableHead>
@@ -150,7 +170,7 @@ export function ArticlesTable({
         <TableBody>
           {articles.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={11} className="text-center text-muted-foreground">
+              <TableCell colSpan={11} className="text-muted-foreground text-center">
                 No hay artículos para mostrar
               </TableCell>
             </TableRow>
@@ -183,7 +203,7 @@ export function ArticlesTable({
                   <div className="max-w-md">
                     <p className="truncate">{article.description}</p>
                     {article.location && (
-                      <p className="text-xs text-muted-foreground">📍 {article.location}</p>
+                      <p className="text-muted-foreground text-xs">📍 {article.location}</p>
                     )}
                   </div>
                 </TableCell>
@@ -196,16 +216,14 @@ export function ArticlesTable({
                     {article.stock}
                   </span>
                 </TableCell>
-                <TableCell className="text-right text-muted-foreground">
+                <TableCell className="text-muted-foreground text-right">
                   {article.minimumStock}
                 </TableCell>
                 <TableCell className="text-right">
                   {article.weightKg ? (
-                    <span className="text-sm font-medium">
-                      {article.weightKg.toFixed(2)}
-                    </span>
+                    <span className="text-sm font-medium">{article.weightKg.toFixed(2)}</span>
                   ) : (
-                    <span className="text-xs text-muted-foreground">-</span>
+                    <span className="text-muted-foreground text-xs">-</span>
                   )}
                 </TableCell>
                 <TableCell>
@@ -213,8 +231,12 @@ export function ArticlesTable({
                     <div className="space-y-1">
                       <div className="flex items-center gap-1">
                         {getTrendIcon(calculateTrend(article.salesTrend))}
-                        <span className="text-xs text-muted-foreground">
-                          {(article.salesTrend.reduce((a, b) => a + b, 0) / article.salesTrend.length).toFixed(1)}/mes
+                        <span className="text-muted-foreground text-xs">
+                          {(
+                            article.salesTrend.reduce((a, b) => a + b, 0) /
+                            article.salesTrend.length
+                          ).toFixed(1)}
+                          /mes
                         </span>
                       </div>
                       <SparklineWithTooltip
@@ -226,21 +248,21 @@ export function ArticlesTable({
                           calculateTrend(article.salesTrend) === 'increasing'
                             ? 'rgb(34, 197, 94)' // green
                             : calculateTrend(article.salesTrend) === 'decreasing'
-                            ? 'rgb(239, 68, 68)' // red
-                            : 'rgb(59, 130, 246)' // blue
+                              ? 'rgb(239, 68, 68)' // red
+                              : 'rgb(59, 130, 246)' // blue
                         }
                         fillColor={
                           calculateTrend(article.salesTrend) === 'increasing'
                             ? 'rgba(34, 197, 94, 0.1)'
                             : calculateTrend(article.salesTrend) === 'decreasing'
-                            ? 'rgba(239, 68, 68, 0.1)'
-                            : 'rgba(59, 130, 246, 0.1)'
+                              ? 'rgba(239, 68, 68, 0.1)'
+                              : 'rgba(59, 130, 246, 0.1)'
                         }
                         formatValue={(v) => `${v} unidades`}
                       />
                     </div>
                   ) : (
-                    <span className="text-xs text-muted-foreground">Sin datos</span>
+                    <span className="text-muted-foreground text-xs">Sin datos</span>
                   )}
                 </TableCell>
                 <TableCell>
@@ -250,14 +272,14 @@ export function ArticlesTable({
                         article.abcClass === 'A'
                           ? 'success'
                           : article.abcClass === 'B'
-                          ? 'info'
-                          : 'secondary'
+                            ? 'info'
+                            : 'secondary'
                       }
                     >
                       {article.abcClass}
                     </Badge>
                   ) : (
-                    <span className="text-xs text-muted-foreground">N/A</span>
+                    <span className="text-muted-foreground text-xs">N/A</span>
                   )}
                 </TableCell>
                 <TableCell>
@@ -266,11 +288,11 @@ export function ArticlesTable({
                       {new Date(article.lastSaleDate).toLocaleDateString('es-AR', {
                         day: '2-digit',
                         month: '2-digit',
-                        year: 'numeric'
+                        year: 'numeric',
                       })}
                     </span>
                   ) : (
-                    <span className="text-xs text-muted-foreground">Nunca vendido</span>
+                    <span className="text-muted-foreground text-xs">Nunca vendido</span>
                   )}
                 </TableCell>
                 <TableCell>
@@ -329,8 +351,8 @@ export function ArticlesTable({
                               <AlertDialogHeader>
                                 <AlertDialogTitle>¿Está seguro?</AlertDialogTitle>
                                 <AlertDialogDescription>
-                                  Esta acción eliminará el artículo &quot;{article.description}&quot;. Los datos
-                                  permanecerán en el sistema pero no se mostrarán.
+                                  Esta acción eliminará el artículo &quot;{article.description}
+                                  &quot;. Los datos permanecerán en el sistema pero no se mostrarán.
                                 </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
@@ -365,8 +387,3 @@ export function ArticlesTable({
     </div>
   );
 }
-
-
-
-
-

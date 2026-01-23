@@ -1,8 +1,8 @@
 'use client';
 
+import { Loader2, AlertCircle } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import UTIF from 'utif2';
-import { Loader2, AlertCircle } from 'lucide-react';
 
 interface TiffViewerProps {
   url: string;
@@ -19,7 +19,7 @@ export function TiffViewer({ url, alt, className, onError }: TiffViewerProps) {
   useEffect(() => {
     const loadTiff = async () => {
       if (!canvasRef.current) return;
-      
+
       setIsLoading(true);
       setError(false);
 
@@ -27,31 +27,31 @@ export function TiffViewer({ url, alt, className, onError }: TiffViewerProps) {
         // Fetch the TIFF file
         const response = await fetch(url);
         if (!response.ok) throw new Error('Failed to load TIFF');
-        
+
         const arrayBuffer = await response.arrayBuffer();
-        
+
         // Parse TIFF with UTIF
         const ifds = UTIF.decode(arrayBuffer);
         if (!ifds || ifds.length === 0) throw new Error('No images in TIFF');
-        
+
         // Decode the first page
         UTIF.decodeImage(arrayBuffer, ifds[0]);
         const rgba = UTIF.toRGBA8(ifds[0]);
-        
+
         // Draw to canvas
         const ctx = canvasRef.current.getContext('2d');
         if (!ctx) throw new Error('Canvas context not available');
-        
+
         const width = ifds[0].width;
         const height = ifds[0].height;
-        
+
         canvasRef.current.width = width;
         canvasRef.current.height = height;
-        
+
         const imageData = ctx.createImageData(width, height);
         imageData.data.set(rgba);
         ctx.putImageData(imageData, 0, 0);
-        
+
         setIsLoading(false);
       } catch (err) {
         console.error('Error loading TIFF:', err);
@@ -66,8 +66,8 @@ export function TiffViewer({ url, alt, className, onError }: TiffViewerProps) {
 
   if (error) {
     return (
-      <div className="flex flex-col items-center justify-center p-8 text-destructive">
-        <AlertCircle className="h-12 w-12 mb-2" />
+      <div className="text-destructive flex flex-col items-center justify-center p-8">
+        <AlertCircle className="mb-2 h-12 w-12" />
         <p>Error al cargar imagen TIFF</p>
       </div>
     );
@@ -76,21 +76,20 @@ export function TiffViewer({ url, alt, className, onError }: TiffViewerProps) {
   return (
     <div className="relative">
       {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-muted/50">
-          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        <div className="bg-muted/50 absolute inset-0 flex items-center justify-center">
+          <Loader2 className="text-primary h-8 w-8 animate-spin" />
         </div>
       )}
       <canvas
         ref={canvasRef}
         className={className}
-        style={{ 
-          maxWidth: '100%', 
+        style={{
+          maxWidth: '100%',
           height: 'auto',
-          display: isLoading ? 'none' : 'block'
+          display: isLoading ? 'none' : 'block',
         }}
         aria-label={alt}
       />
     </div>
   );
 }
-

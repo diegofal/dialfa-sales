@@ -1,57 +1,21 @@
-import { NextRequest, NextResponse } from 'next/server'
-import { prisma } from '@/lib/db'
-import { getCertificateSignedUrl } from '@/lib/storage/supabase'
+import { NextRequest, NextResponse } from 'next/server';
+import { handleError } from '@/lib/errors';
+import * as CertificateService from '@/lib/services/CertificateService';
 
-/**
- * GET /api/certificates/[id]/download
- * Get a signed URL for downloading a certificate file
- */
-export async function GET(
-  request: NextRequest,
-  { params }: { params: Promise<{ id: string }> }
-) {
+export async function GET(_request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = await params
-    const certificateId = BigInt(id)
+    const { id } = await params;
+    const result = await CertificateService.getDownloadUrl(BigInt(id));
 
-    const certificate = await prisma.certificates.findUnique({
-      where: { 
-        id: certificateId,
-        deleted_at: null
-      },
-      select: {
-        storage_path: true,
-        file_name: true
-      }
-    })
-
-    if (!certificate) {
-      return NextResponse.json(
-        { error: 'Certificate not found' },
-        { status: 404 }
-      )
+    if (!result) {
+      return NextResponse.json({ error: 'Certificate not found' }, { status: 404 });
     }
 
-    // Get signed URL for download (valid for 1 hour)
-    const signedUrl = await getCertificateSignedUrl(certificate.storage_path)
-
     return NextResponse.json({
-      signedUrl,
-      fileName: certificate.file_name
-    })
+      signedUrl: result.signedUrl,
+      fileName: result.fileName,
+    });
   } catch (error) {
-    console.error('Error getting download URL:', error)
-    return NextResponse.json(
-      { error: 'Failed to get download URL' },
-      { status: 500 }
-    )
+    return handleError(error);
   }
 }
-
-
-
-
-
-
-
-

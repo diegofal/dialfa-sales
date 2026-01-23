@@ -1,21 +1,21 @@
 'use client';
 
+import { Plus, Search } from 'lucide-react';
 import { useState } from 'react';
-import { useClients } from '@/lib/hooks/useClients';
-import { useClientClassification } from '@/lib/hooks/useClientClassification';
-import { usePagination } from '@/lib/hooks/usePagination';
+import { ClientClassificationFilters } from '@/components/clients/ClientClassificationFilters';
+import ClientClassificationSummary from '@/components/clients/ClientClassificationSummary';
+import ClientDialog from '@/components/clients/ClientDialog';
+import ClientsTable from '@/components/clients/ClientsTable';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { Plus, Search } from 'lucide-react';
 import { Pagination } from '@/components/ui/pagination';
-import ClientsTable from '@/components/clients/ClientsTable';
-import ClientDialog from '@/components/clients/ClientDialog';
-import ClientClassificationSummary from '@/components/clients/ClientClassificationSummary';
-import { ClientClassificationFilters } from '@/components/clients/ClientClassificationFilters';
+import { LoadingSpinner } from '@/components/ui/spinner';
+import { useClientClassification } from '@/lib/hooks/useClientClassification';
+import { useClients } from '@/lib/hooks/useClients';
+import { usePagination } from '@/lib/hooks/usePagination';
 import type { ClientDto } from '@/types/api';
 import { ClientStatus, ClientClassificationConfig } from '@/types/clientClassification';
-import { LoadingSpinner } from '@/components/ui/spinner';
 
 export default function ClientsPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -31,12 +31,7 @@ export default function ClientsPage() {
     trendMonths: 12,
   });
 
-  const {
-    pagination,
-    setPage,
-    setPageSize,
-    setSorting,
-  } = usePagination(10);
+  const { pagination, setPage, setPageSize, setSorting } = usePagination(10);
 
   const { data, isLoading, error } = useClients({
     pageNumber: pagination.pageNumber,
@@ -57,24 +52,26 @@ export default function ClientsPage() {
   });
 
   // Calculate summary from classification data
-  const classificationSummary = classificationData ? {
-    active: { 
-      count: classificationData.byStatus.active.count, 
-      revenue: classificationData.byStatus.active.totalRevenue 
-    },
-    slow_moving: { 
-      count: classificationData.byStatus.slow_moving.count, 
-      revenue: classificationData.byStatus.slow_moving.totalRevenue 
-    },
-    inactive: { 
-      count: classificationData.byStatus.inactive.count, 
-      revenue: classificationData.byStatus.inactive.totalRevenue 
-    },
-    never_purchased: { 
-      count: classificationData.byStatus.never_purchased.count, 
-      revenue: classificationData.byStatus.never_purchased.totalRevenue 
-    },
-  } : null;
+  const classificationSummary = classificationData
+    ? {
+        active: {
+          count: classificationData.byStatus.active.count,
+          revenue: classificationData.byStatus.active.totalRevenue,
+        },
+        slow_moving: {
+          count: classificationData.byStatus.slow_moving.count,
+          revenue: classificationData.byStatus.slow_moving.totalRevenue,
+        },
+        inactive: {
+          count: classificationData.byStatus.inactive.count,
+          revenue: classificationData.byStatus.inactive.totalRevenue,
+        },
+        never_purchased: {
+          count: classificationData.byStatus.never_purchased.count,
+          revenue: classificationData.byStatus.never_purchased.totalRevenue,
+        },
+      }
+    : null;
 
   const handleCreate = () => {
     setSelectedClient(null);
@@ -112,9 +109,7 @@ export default function ClientsPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Clientes</h1>
-          <p className="text-muted-foreground mt-2">
-            Gestión de clientes del sistema
-          </p>
+          <p className="text-muted-foreground mt-2">Gestión de clientes del sistema</p>
         </div>
         <Button onClick={handleCreate}>
           <Plus className="mr-2 h-4 w-4" />
@@ -145,12 +140,12 @@ export default function ClientsPage() {
             <div>
               <CardTitle>{getFilterLabel()}</CardTitle>
               <CardDescription>
-                {data?.pagination.total || 0} cliente{data?.pagination.total !== 1 ? 's' : ''} 
+                {data?.pagination.total || 0} cliente{data?.pagination.total !== 1 ? 's' : ''}
                 {selectedClassification !== 'all' && ' en esta categoría'}
               </CardDescription>
             </div>
             <div className="relative w-64">
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Search className="text-muted-foreground absolute top-2.5 left-2 h-4 w-4" />
               <Input
                 placeholder="Buscar clientes..."
                 value={searchTerm}
@@ -164,14 +159,10 @@ export default function ClientsPage() {
           </div>
         </CardHeader>
         <CardContent>
-          {isLoading && (
-            <LoadingSpinner size="md" className="py-8" />
-          )}
+          {isLoading && <LoadingSpinner size="md" className="py-8" />}
 
           {error && (
-            <div className="text-center py-8 text-destructive">
-              Error al cargar los clientes
-            </div>
+            <div className="text-destructive py-8 text-center">Error al cargar los clientes</div>
           )}
 
           {data && data.data.length > 0 && (
@@ -196,21 +187,16 @@ export default function ClientsPage() {
           )}
 
           {data && data.data.length === 0 && !isLoading && (
-            <div className="text-center py-8 text-muted-foreground">
-              {selectedClassification === 'all' 
+            <div className="text-muted-foreground py-8 text-center">
+              {selectedClassification === 'all'
                 ? 'No se encontraron clientes'
-                : `No hay clientes en la categoría "${getFilterLabel()}"`
-              }
+                : `No hay clientes en la categoría "${getFilterLabel()}"`}
             </div>
           )}
         </CardContent>
       </Card>
 
-      <ClientDialog
-        open={isDialogOpen}
-        onClose={handleCloseDialog}
-        client={selectedClient}
-      />
+      <ClientDialog open={isDialogOpen} onClose={handleCloseDialog} client={selectedClient} />
     </div>
   );
 }

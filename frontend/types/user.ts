@@ -36,9 +36,3 @@ export interface UsersResponse {
     totalPages: number;
   };
 }
-
-
-
-
-
-

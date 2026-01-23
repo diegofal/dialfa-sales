@@ -1,21 +1,8 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Printer, Trash2, Eye } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Combobox } from '@/components/ui/combobox';
+import { useParams, useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -26,23 +13,43 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { useDeliveryNote, useDownloadDeliveryNotePdf, usePrintDeliveryNote, useUpdateDeliveryNote, useDeleteDeliveryNote } from '@/lib/hooks/useDeliveryNotes';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Combobox } from '@/components/ui/combobox';
+import { Input } from '@/components/ui/input';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Textarea } from '@/components/ui/textarea';
+import { ROUTES } from '@/lib/constants/routes';
+import {
+  useDeliveryNote,
+  usePrintDeliveryNote,
+  useUpdateDeliveryNote,
+  useDeleteDeliveryNote,
+} from '@/lib/hooks/useDeliveryNotes';
 import { useQuickDeliveryNoteTabs } from '@/lib/hooks/useQuickDeliveryNoteTabs';
-import { useEffect, useState } from 'react';
 
 export default function DeliveryNoteDetailPage() {
   const params = useParams();
   const router = useRouter();
   const deliveryNoteId = Number(params.id);
-  
+
   const { data: deliveryNote, isLoading } = useDeliveryNote(deliveryNoteId);
-  const downloadPdfMutation = useDownloadDeliveryNotePdf();
   const printDeliveryNoteMutation = usePrintDeliveryNote();
   const updateDeliveryNoteMutation = useUpdateDeliveryNote();
   const deleteDeliveryNoteMutation = useDeleteDeliveryNote();
   const { addTab, removeTab } = useQuickDeliveryNoteTabs();
 
-  const [transporters, setTransporters] = useState<Array<{ id: number; name: string; address: string | null }>>([]);
+  const [transporters, setTransporters] = useState<
+    Array<{ id: number; name: string; address: string | null }>
+  >([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [editData, setEditData] = useState({
     transporterId: null as number | null,
@@ -76,14 +83,14 @@ export default function DeliveryNoteDetailPage() {
   // Load transporters on mount
   useEffect(() => {
     fetch('/api/lookups/transporters')
-      .then(res => res.json())
-      .then(data => setTransporters(data))
-      .catch(err => console.error('Error loading transporters:', err));
+      .then((res) => res.json())
+      .then((data) => setTransporters(data))
+      .catch((err) => console.error('Error loading transporters:', err));
   }, []);
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-96">
+      <div className="flex h-96 items-center justify-center">
         <p className="text-muted-foreground">Cargando remito...</p>
       </div>
     );
@@ -91,9 +98,9 @@ export default function DeliveryNoteDetailPage() {
 
   if (!deliveryNote) {
     return (
-      <div className="flex flex-col items-center justify-center h-96 gap-4">
+      <div className="flex h-96 flex-col items-center justify-center gap-4">
         <p className="text-muted-foreground">Remito no encontrado</p>
-        <Button onClick={() => router.push('/dashboard/sales-orders')}>
+        <Button onClick={() => router.push(ROUTES.SALES_ORDERS)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Volver al listado
         </Button>
@@ -107,13 +114,13 @@ export default function DeliveryNoteDetailPage() {
 
   const getStatusBadge = () => {
     if (deliveryNote?.isPrinted) {
-      return <Badge variant="default" className="bg-green-600">Impreso</Badge>;
+      return (
+        <Badge variant="default" className="bg-green-600">
+          Impreso
+        </Badge>
+      );
     }
     return <Badge variant="secondary">Pendiente</Badge>;
-  };
-
-  const handleDownloadPdf = () => {
-    downloadPdfMutation.mutate(deliveryNoteId);
   };
 
   const handlePrint = () => {
@@ -126,7 +133,7 @@ export default function DeliveryNoteDetailPage() {
         // Remove tab from sidebar if it exists
         removeTab(`dn-${deliveryNoteId}`);
         setShowDeleteDialog(false);
-        router.push('/dashboard/delivery-notes');
+        router.push(ROUTES.DELIVERY_NOTES);
       },
     });
   };
@@ -137,16 +144,37 @@ export default function DeliveryNoteDetailPage() {
     const updateData = {
       deliveryDate: deliveryNote.deliveryDate,
       transporterId: field === 'transporterId' ? (value as number | null) : editData.transporterId,
-      weightKg: field === 'weightKg' ? (value ? parseFloat(value as string) : null) : (editData.weightKg ? parseFloat(editData.weightKg) : null),
-      packagesCount: field === 'packagesCount' ? (value ? parseInt(value as string) : null) : (editData.packagesCount ? parseInt(editData.packagesCount) : null),
-      declaredValue: field === 'declaredValue' ? (value ? parseFloat(value as string) : null) : (editData.declaredValue ? parseFloat(editData.declaredValue) : null),
-      notes: field === 'notes' ? ((value as string).trim() || null) : (editData.notes.trim() || null),
+      weightKg:
+        field === 'weightKg'
+          ? value
+            ? parseFloat(value as string)
+            : null
+          : editData.weightKg
+            ? parseFloat(editData.weightKg)
+            : null,
+      packagesCount:
+        field === 'packagesCount'
+          ? value
+            ? parseInt(value as string)
+            : null
+          : editData.packagesCount
+            ? parseInt(editData.packagesCount)
+            : null,
+      declaredValue:
+        field === 'declaredValue'
+          ? value
+            ? parseFloat(value as string)
+            : null
+          : editData.declaredValue
+            ? parseFloat(editData.declaredValue)
+            : null,
+      notes: field === 'notes' ? (value as string).trim() || null : editData.notes.trim() || null,
     };
 
     updateDeliveryNoteMutation.mutate({ id: deliveryNoteId, data: updateData });
   };
 
-  const selectedTransporter = transporters.find(t => t.id === editData.transporterId);
+  const selectedTransporter = transporters.find((t) => t.id === editData.transporterId);
 
   return (
     <div className="space-y-6 pb-24">
@@ -174,7 +202,7 @@ export default function DeliveryNoteDetailPage() {
           </CardHeader>
           <CardContent className="space-y-2">
             <div>
-              <p className="text-sm text-muted-foreground">Razón Social</p>
+              <p className="text-muted-foreground text-sm">Razón Social</p>
               <p className="font-medium">{deliveryNote.clientBusinessName}</p>
             </div>
           </CardContent>
@@ -187,21 +215,23 @@ export default function DeliveryNoteDetailPage() {
           </CardHeader>
           <CardContent className="space-y-3">
             <div>
-              <p className="text-sm text-muted-foreground">Pedido N°</p>
+              <p className="text-muted-foreground text-sm">Pedido N°</p>
               <p className="font-medium">
                 <Button
                   variant="link"
-                  className="p-0 h-auto"
-                  onClick={() => router.push(`/dashboard/sales-orders/${deliveryNote.salesOrderId}/edit`)}
+                  className="h-auto p-0"
+                  onClick={() =>
+                    router.push(`${ROUTES.SALES_ORDERS}/${deliveryNote.salesOrderId}/edit`)
+                  }
                 >
                   {deliveryNote.salesOrderNumber}
                 </Button>
               </p>
             </div>
-            
+
             {/* Transportista */}
             <div>
-              <p className="text-sm text-muted-foreground mb-1">Transportista</p>
+              <p className="text-muted-foreground mb-1 text-sm">Transportista</p>
               <Combobox
                 options={[
                   { value: 'none', label: 'Sin transportista' },
@@ -224,7 +254,7 @@ export default function DeliveryNoteDetailPage() {
             {/* Domicilio del Transportista */}
             {(selectedTransporter?.address || deliveryNote.transporterAddress) && (
               <div>
-                <p className="text-sm text-muted-foreground">Domicilio Transportista</p>
+                <p className="text-muted-foreground text-sm">Domicilio Transportista</p>
                 <p className="font-medium">
                   {selectedTransporter?.address || deliveryNote.transporterAddress || '-'}
                 </p>
@@ -233,7 +263,7 @@ export default function DeliveryNoteDetailPage() {
 
             {/* Peso */}
             <div>
-              <p className="text-sm text-muted-foreground mb-1">Peso (kg)</p>
+              <p className="text-muted-foreground mb-1 text-sm">Peso (kg)</p>
               <Input
                 type="number"
                 step="0.01"
@@ -246,7 +276,7 @@ export default function DeliveryNoteDetailPage() {
 
             {/* Bultos */}
             <div>
-              <p className="text-sm text-muted-foreground mb-1">Cantidad de Bultos</p>
+              <p className="text-muted-foreground mb-1 text-sm">Cantidad de Bultos</p>
               <Input
                 type="number"
                 placeholder="0"
@@ -258,7 +288,7 @@ export default function DeliveryNoteDetailPage() {
 
             {/* Valor Declarado */}
             <div>
-              <p className="text-sm text-muted-foreground mb-1">Valor Declarado ($)</p>
+              <p className="text-muted-foreground mb-1 text-sm">Valor Declarado ($)</p>
               <Input
                 type="number"
                 step="0.01"
@@ -271,7 +301,7 @@ export default function DeliveryNoteDetailPage() {
 
             {/* Observaciones */}
             <div>
-              <p className="text-sm text-muted-foreground mb-1">Observaciones</p>
+              <p className="text-muted-foreground mb-1 text-sm">Observaciones</p>
               <Textarea
                 placeholder="Observaciones adicionales..."
                 value={editData.notes}
@@ -311,7 +341,7 @@ export default function DeliveryNoteDetailPage() {
               </TableBody>
             </Table>
           ) : (
-            <p className="text-sm text-muted-foreground text-center py-4">
+            <p className="text-muted-foreground py-4 text-center text-sm">
               No hay items registrados en este remito
             </p>
           )}
@@ -325,29 +355,26 @@ export default function DeliveryNoteDetailPage() {
         </CardHeader>
         <CardContent className="space-y-2">
           <div>
-            <p className="text-sm text-muted-foreground">Fecha de Creación</p>
+            <p className="text-muted-foreground text-sm">Fecha de Creación</p>
             <p className="font-medium">{formatDate(deliveryNote.createdAt)}</p>
           </div>
           <div>
-            <p className="text-sm text-muted-foreground">Última Actualización</p>
+            <p className="text-muted-foreground text-sm">Última Actualización</p>
             <p className="font-medium">{formatDate(deliveryNote.updatedAt)}</p>
           </div>
         </CardContent>
       </Card>
 
       {/* Fixed Action Buttons */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t z-50">
-        <div className="container max-w-7xl mx-auto px-6 py-4">
-          <div className="flex justify-between items-center">
+      <div className="bg-background/95 supports-[backdrop-filter]:bg-background/80 fixed right-0 bottom-0 left-0 z-50 border-t backdrop-blur">
+        <div className="container mx-auto max-w-7xl px-6 py-4">
+          <div className="flex items-center justify-between">
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => router.push('/dashboard/delivery-notes')}
-              >
+              <Button variant="outline" onClick={() => router.push(ROUTES.DELIVERY_NOTES)}>
                 Volver
               </Button>
-              <Button 
-                variant="destructive" 
+              <Button
+                variant="destructive"
                 onClick={() => setShowDeleteDialog(true)}
                 disabled={deleteDeliveryNoteMutation.isPending}
               >
@@ -358,7 +385,9 @@ export default function DeliveryNoteDetailPage() {
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                onClick={() => router.push(`/dashboard/sales-orders/${deliveryNote.salesOrderId}/edit`)}
+                onClick={() =>
+                  router.push(`${ROUTES.SALES_ORDERS}/${deliveryNote.salesOrderId}/edit`)
+                }
               >
                 Ver Pedido
               </Button>
@@ -384,8 +413,8 @@ export default function DeliveryNoteDetailPage() {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar remito?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción eliminará permanentemente el remito {deliveryNote.deliveryNumber}. 
-              Esta acción no se puede deshacer.
+              Esta acción eliminará permanentemente el remito {deliveryNote.deliveryNumber}. Esta
+              acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

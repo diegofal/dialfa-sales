@@ -1,8 +1,8 @@
-import { clsx, type ClassValue } from "clsx"
-import { twMerge } from "tailwind-merge"
+import { clsx, type ClassValue } from 'clsx';
+import { twMerge } from 'tailwind-merge';
 
 export function cn(...inputs: ClassValue[]) {
-  return twMerge(clsx(inputs))
+  return twMerge(clsx(inputs));
 }
 
 /**
@@ -15,16 +15,16 @@ export function cn(...inputs: ClassValue[]) {
  */
 export function formatCuit(cuit: string | null | undefined): string {
   if (!cuit) return '';
-  
+
   // Remove all non-digit characters
   const digitsOnly = cuit.replace(/\D/g, '');
-  
+
   // CUIT must be exactly 11 digits
   if (digitsOnly.length !== 11) {
     // Return original if not valid CUIT format
     return cuit;
   }
-  
+
   // Format as XX-XXXXXXXX-X
   return `${digitsOnly.slice(0, 2)}-${digitsOnly.slice(2, 10)}-${digitsOnly.slice(10)}`;
 }

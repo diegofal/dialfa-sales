@@ -21,6 +21,14 @@ export interface ActivityLogsResponse {
   };
 }
 
+export interface ActivityLogChange {
+  id: number;
+  entityType: string;
+  entityLabel: string;
+  beforeState: Record<string, unknown> | null;
+  afterState: Record<string, unknown> | null;
+}
+
 export interface ActivityLogsFilters {
   page?: number;
   limit?: number;
@@ -30,9 +38,3 @@ export interface ActivityLogsFilters {
   dateTo?: string;
   search?: string;
 }
-
-
-
-
-
-

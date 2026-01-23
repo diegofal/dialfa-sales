@@ -1,17 +1,11 @@
 'use client';
 
-import { StockMovement } from '@/types/stockMovement';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { SortableTableHead } from '@/components/ui/sortable-table-head';
-import { Badge } from '@/components/ui/badge';
 import { formatDistance } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Badge } from '@/components/ui/badge';
+import { SortableTableHead } from '@/components/ui/sortable-table-head';
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table';
+import { StockMovement } from '@/types/stockMovement';
 
 interface StockMovementsTableProps {
   movements: StockMovement[];
@@ -29,11 +23,7 @@ export function StockMovementsTable({ movements }: StockMovementsTableProps) {
       case 3: // Devolución
         return <Badge variant="info">Devolución</Badge>;
       case 4: // Ajuste
-        return (
-          <Badge variant={isPositive ? "warning" : "destructive"}>
-            Ajuste
-          </Badge>
-        );
+        return <Badge variant={isPositive ? 'warning' : 'destructive'}>Ajuste</Badge>;
       case 5: // Transferencia
         return <Badge variant="outline">Transferencia</Badge>;
       default:
@@ -44,8 +34,11 @@ export function StockMovementsTable({ movements }: StockMovementsTableProps) {
   const formatQuantity = (quantity: number) => {
     const isPositive = quantity > 0;
     return (
-      <span className={isPositive ? 'text-success font-semibold' : 'text-destructive font-semibold'}>
-        {isPositive ? '+' : ''}{quantity}
+      <span
+        className={isPositive ? 'text-success font-semibold' : 'text-destructive font-semibold'}
+      >
+        {isPositive ? '+' : ''}
+        {quantity}
       </span>
     );
   };
@@ -90,7 +83,7 @@ export function StockMovementsTable({ movements }: StockMovementsTableProps) {
         <TableBody>
           {movements.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={6} className="text-center text-muted-foreground">
+              <TableCell colSpan={6} className="text-muted-foreground text-center">
                 No hay movimientos de stock para mostrar
               </TableCell>
             </TableRow>
@@ -102,15 +95,15 @@ export function StockMovementsTable({ movements }: StockMovementsTableProps) {
                     <span className="text-sm font-medium">
                       {formatRelativeDate(movement.movementDate)}
                     </span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-muted-foreground text-xs">
                       {formatAbsoluteDate(movement.movementDate)}
                     </span>
                   </div>
                 </TableCell>
                 <TableCell>
                   <div className="max-w-md">
-                    <p className="font-medium text-sm">{movement.articleCode}</p>
-                    <p className="text-xs text-muted-foreground truncate">
+                    <p className="text-sm font-medium">{movement.articleCode}</p>
+                    <p className="text-muted-foreground truncate text-xs">
                       {movement.articleDescription}
                     </p>
                   </div>
@@ -118,18 +111,12 @@ export function StockMovementsTable({ movements }: StockMovementsTableProps) {
                 <TableCell>
                   {getMovementTypeBadge(movement.movementType, movement.quantity)}
                 </TableCell>
-                <TableCell className="text-right">
-                  {formatQuantity(movement.quantity)}
+                <TableCell className="text-right">{formatQuantity(movement.quantity)}</TableCell>
+                <TableCell>
+                  <span className="text-sm">{movement.referenceDocument || '-'}</span>
                 </TableCell>
                 <TableCell>
-                  <span className="text-sm">
-                    {movement.referenceDocument || '-'}
-                  </span>
-                </TableCell>
-                <TableCell>
-                  <span className="text-sm text-muted-foreground">
-                    {movement.notes || '-'}
-                  </span>
+                  <span className="text-muted-foreground text-sm">{movement.notes || '-'}</span>
                 </TableCell>
               </TableRow>
             ))
@@ -139,14 +126,3 @@ export function StockMovementsTable({ movements }: StockMovementsTableProps) {
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-

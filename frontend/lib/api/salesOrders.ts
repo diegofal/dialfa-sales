@@ -1,35 +1,37 @@
-import { apiClient } from './client';
-import { PagedResult, PaginationParams } from '@/types/pagination';
-import type { 
-  SalesOrder, 
-  SalesOrderListDto, 
-  CreateSalesOrderRequest, 
-  UpdateSalesOrderRequest,
-  SalesOrderUpdateResponse
-} from '@/types/salesOrder';
-import type { Invoice } from '@/types/invoice';
 import type { DeliveryNote } from '@/types/deliveryNote';
+import type { Invoice } from '@/types/invoice';
+import { PagedResult, PaginationParams } from '@/types/pagination';
 import type { SalesOrderStatus, SalesOrderPermissions } from '@/types/permissions';
+import type {
+  SalesOrder,
+  SalesOrderListDto,
+  CreateSalesOrderRequest,
+  UpdateSalesOrderRequest,
+  SalesOrderUpdateResponse,
+} from '@/types/salesOrder';
+import { apiClient } from './client';
 
 export const salesOrdersApi = {
-  getAll: async (params: PaginationParams & {
-    clientId?: number;
-    status?: string;
-    fromDate?: string;
-    toDate?: string;
-    activeOnly?: boolean;
-  } = {}): Promise<PagedResult<SalesOrderListDto>> => {
+  getAll: async (
+    params: PaginationParams & {
+      clientId?: number;
+      status?: string;
+      fromDate?: string;
+      toDate?: string;
+      activeOnly?: boolean;
+    } = {}
+  ): Promise<PagedResult<SalesOrderListDto>> => {
     const apiParams = {
       page: params.pageNumber || 1,
       limit: params.pageSize || 50,
       clientId: params.clientId,
       status: params.status,
     };
-    
+
     const { data } = await apiClient.get<PagedResult<SalesOrderListDto>>('/sales-orders', {
       params: apiParams,
     });
-    
+
     return data;
   },
 
@@ -43,8 +45,14 @@ export const salesOrdersApi = {
     return data;
   },
 
-  update: async (id: number, orderData: UpdateSalesOrderRequest): Promise<SalesOrderUpdateResponse> => {
-    const { data } = await apiClient.put<SalesOrderUpdateResponse>(`/sales-orders/${id}`, orderData);
+  update: async (
+    id: number,
+    orderData: UpdateSalesOrderRequest
+  ): Promise<SalesOrderUpdateResponse> => {
+    const { data } = await apiClient.put<SalesOrderUpdateResponse>(
+      `/sales-orders/${id}`,
+      orderData
+    );
     return data;
   },
 
@@ -52,7 +60,9 @@ export const salesOrdersApi = {
     await apiClient.post(`/sales-orders/${id}/cancel`);
   },
 
-  delete: async (id: number): Promise<{
+  delete: async (
+    id: number
+  ): Promise<{
     message: string;
     affectedInvoices?: Array<{ id: string; invoiceNumber: string; wasCancelled: boolean }>;
     affectedDeliveryNotes?: string[];
@@ -62,9 +72,11 @@ export const salesOrdersApi = {
     return data;
   },
 
-  getPermissions: async (id: number): Promise<{ 
-    status: SalesOrderStatus; 
-    permissions: SalesOrderPermissions 
+  getPermissions: async (
+    id: number
+  ): Promise<{
+    status: SalesOrderStatus;
+    permissions: SalesOrderPermissions;
   }> => {
     const { data } = await apiClient.get(`/sales-orders/${id}/permissions`);
     return data;
@@ -77,17 +89,21 @@ export const salesOrdersApi = {
     return data;
   },
 
-  generateDeliveryNote: async (id: number, deliveryData?: {
-    deliveryDate?: string;
-    transporterId?: number;
-    weightKg?: number;
-    packagesCount?: number;
-    declaredValue?: number;
-    notes?: string;
-  }): Promise<DeliveryNote> => {
-    const { data } = await apiClient.post<DeliveryNote>(`/sales-orders/${id}/generate-delivery-note`, deliveryData);
+  generateDeliveryNote: async (
+    id: number,
+    deliveryData?: {
+      deliveryDate?: string;
+      transporterId?: number;
+      weightKg?: number;
+      packagesCount?: number;
+      declaredValue?: number;
+      notes?: string;
+    }
+  ): Promise<DeliveryNote> => {
+    const { data } = await apiClient.post<DeliveryNote>(
+      `/sales-orders/${id}/generate-delivery-note`,
+      deliveryData
+    );
     return data;
   },
 };
-
-

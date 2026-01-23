@@ -17,7 +17,7 @@ export async function middleware(request: NextRequest) {
   }
 
   // Allow public API routes
-  if (publicApiRoutes.some(route => pathname.startsWith(route))) {
+  if (publicApiRoutes.some((route) => pathname.startsWith(route))) {
     return NextResponse.next();
   }
 
@@ -46,7 +46,7 @@ export async function middleware(request: NextRequest) {
         { status: 401 }
       );
     }
-    
+
     // Clear invalid cookie and redirect
     const response = NextResponse.redirect(new URL('/login', request.url));
     response.cookies.delete('auth-token');
@@ -79,5 +79,3 @@ export const config = {
     '/((?!_next/static|_next/image|favicon.ico|.*\\..*|public).*)',
   ],
 };
-
-

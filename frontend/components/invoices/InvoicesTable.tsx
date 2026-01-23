@@ -1,17 +1,7 @@
 'use client';
 
-import { useState } from 'react';
 import { Eye, XCircle, Printer, Trash2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { ClickableTableRow } from '@/components/ui/clickable-table-row';
-import { SortableTableHead } from '@/components/ui/sortable-table-head';
+import { useState } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -23,8 +13,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import { Badge } from '@/components/ui/badge';
-import type { InvoiceListDto } from '@/types/invoice';
+import { Button } from '@/components/ui/button';
+import { ClickableTableRow } from '@/components/ui/clickable-table-row';
+import { SortableTableHead } from '@/components/ui/sortable-table-head';
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table';
 import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
+import type { InvoiceListDto } from '@/types/invoice';
 
 interface InvoicesTableProps {
   invoices: InvoiceListDto[];
@@ -57,7 +51,11 @@ export function InvoicesTable({
       return <Badge variant="destructive">Cancelada</Badge>;
     }
     if (invoice.isPrinted) {
-      return <Badge variant="default" className="bg-green-600">Impresa</Badge>;
+      return (
+        <Badge variant="default" className="bg-green-600">
+          Impresa
+        </Badge>
+      );
     }
     return <Badge variant="secondary">Pendiente</Badge>;
   };
@@ -135,7 +133,7 @@ export function InvoicesTable({
           <TableBody>
             {invoices.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-muted-foreground">
+                <TableCell colSpan={7} className="text-muted-foreground text-center">
                   No se encontraron facturas
                 </TableCell>
               </TableRow>
@@ -215,10 +213,7 @@ export function InvoicesTable({
       </div>
 
       {/* Cancel Confirmation Dialog */}
-      <AlertDialog
-        open={!!invoiceToCancel}
-        onOpenChange={() => setInvoiceToCancel(null)}
-      >
+      <AlertDialog open={!!invoiceToCancel} onOpenChange={() => setInvoiceToCancel(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Cancelar factura?</AlertDialogTitle>
@@ -227,9 +222,7 @@ export function InvoicesTable({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>
-              No, volver
-            </AlertDialogCancel>
+            <AlertDialogCancel>No, volver</AlertDialogCancel>
             <AlertDialogAction onClick={handleCancelConfirm}>
               Sí, cancelar factura
             </AlertDialogAction>
@@ -238,22 +231,18 @@ export function InvoicesTable({
       </AlertDialog>
 
       {/* Delete Confirmation Dialog */}
-      <AlertDialog
-        open={!!invoiceToDelete}
-        onOpenChange={() => setInvoiceToDelete(null)}
-      >
+      <AlertDialog open={!!invoiceToDelete} onOpenChange={() => setInvoiceToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar factura?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción eliminará la factura permanentemente. Como la factura no ha sido impresa, no hay cambios en el stock que revertir.
+              Esta acción eliminará la factura permanentemente. Como la factura no ha sido impresa,
+              no hay cambios en el stock que revertir.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>
-              No, volver
-            </AlertDialogCancel>
-            <AlertDialogAction 
+            <AlertDialogCancel>No, volver</AlertDialogCancel>
+            <AlertDialogAction
               onClick={handleDeleteConfirm}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
@@ -265,6 +254,3 @@ export function InvoicesTable({
     </>
   );
 }
-
-
-

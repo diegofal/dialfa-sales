@@ -1,28 +1,28 @@
 'use client';
 
-import { useState } from 'react';
-import { useActivityLogs } from '@/lib/hooks/useActivityLogs';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
-import { Input } from '@/components/ui/input';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
-import { Pagination } from '@/components/ui/pagination';
-import { OPERATION_LABELS, OPERATIONS } from '@/lib/constants/operations';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { ChevronDown, ChevronRight } from 'lucide-react';
+import { useState } from 'react';
+import { Input } from '@/components/ui/input';
+import { Pagination } from '@/components/ui/pagination';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { OPERATION_LABELS } from '@/lib/constants/operations';
+import { useActivityLogs } from '@/lib/hooks/useActivityLogs';
 import { ActivityChangesDetail } from './ActivityChangesDetail';
 
 export default function ActivityLogsTable() {
@@ -31,7 +31,7 @@ export default function ActivityLogsTable() {
   const [operation, setOperation] = useState<string>('all');
   const [search, setSearch] = useState('');
   const [expandedRows, setExpandedRows] = useState<Set<number>>(new Set());
-  
+
   const { data, isLoading } = useActivityLogs({
     page,
     limit,
@@ -40,7 +40,7 @@ export default function ActivityLogsTable() {
   });
 
   const toggleRow = (logId: number) => {
-    setExpandedRows(prev => {
+    setExpandedRows((prev) => {
       const newSet = new Set(prev);
       if (newSet.has(logId)) {
         newSet.delete(logId);
@@ -113,12 +113,12 @@ export default function ActivityLogsTable() {
             ) : (
               data?.data.map((log) => {
                 const isExpanded = expandedRows.has(log.id);
-                
+
                 return (
                   <>
-                    <TableRow 
+                    <TableRow
                       key={log.id}
-                      className="cursor-pointer hover:bg-muted/50"
+                      className="hover:bg-muted/50 cursor-pointer"
                       onClick={() => toggleRow(log.id)}
                     >
                       <TableCell className="whitespace-nowrap">
@@ -128,7 +128,7 @@ export default function ActivityLogsTable() {
                           ) : (
                             <ChevronRight className="h-4 w-4" />
                           )}
-                          {format(new Date(log.created_at), "dd/MM/yyyy HH:mm", { locale: es })}
+                          {format(new Date(log.created_at), 'dd/MM/yyyy HH:mm', { locale: es })}
                         </div>
                       </TableCell>
                       <TableCell className="font-medium">{log.username}</TableCell>
@@ -139,15 +139,12 @@ export default function ActivityLogsTable() {
                       </TableCell>
                       <TableCell>{log.description}</TableCell>
                     </TableRow>
-                    
+
                     {/* FILA EXPANDIDA CON DETALLES */}
                     {isExpanded && (
                       <TableRow>
                         <TableCell colSpan={4} className="p-0">
-                          <ActivityChangesDetail 
-                            activityLogId={log.id} 
-                            isExpanded={isExpanded}
-                          />
+                          <ActivityChangesDetail activityLogId={log.id} isExpanded={isExpanded} />
                         </TableCell>
                       </TableRow>
                     )}
@@ -171,4 +168,3 @@ export default function ActivityLogsTable() {
     </div>
   );
 }
-

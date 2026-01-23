@@ -1,10 +1,24 @@
 'use client';
 
-import { use, useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import axios from 'axios';
 import { ArrowLeft, Package, Download, RefreshCw } from 'lucide-react';
+import { DollarSign } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { use, useEffect, useState, useMemo } from 'react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { SparklineWithTooltip } from '@/components/ui/sparkline';
+import { Switch } from '@/components/ui/switch';
 import {
   Table,
   TableBody,
@@ -13,31 +27,22 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
-import { Input } from '@/components/ui/input';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { ROUTES } from '@/lib/constants/routes';
 import { useSupplierOrder, useUpdateSupplierOrderStatus } from '@/lib/hooks/useSupplierOrders';
+import {
+  formatSaleTime,
+  calculateWeightedAvgSales,
+  calculateEstimatedSaleTime,
+  calculateWeightedAvgSaleTime,
+} from '@/lib/utils/salesCalculations';
 import { useAuthStore } from '@/store/authStore';
-import { SupplierOrderStatus, SupplierOrderItemDto, CommercialValuationConfig } from '@/types/supplierOrder';
-import { formatSaleTime, calculateWeightedAvgSales, calculateEstimatedSaleTime, calculateWeightedAvgSaleTime } from '@/lib/utils/salesCalculations';
-import { SparklineWithTooltip } from '@/components/ui/sparkline';
 import { Article } from '@/types/article';
-import axios from 'axios';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { DollarSign } from 'lucide-react';
+import {
+  SupplierOrderStatus,
+  SupplierOrderItemDto,
+  CommercialValuationConfig,
+} from '@/types/supplierOrder';
 
 // Extender SupplierOrderItemDto con propiedades comerciales calculadas
 interface ItemWithCommercialMetrics extends SupplierOrderItemDto {
@@ -70,11 +75,7 @@ const STATUS_OPTIONS: { value: SupplierOrderStatus; label: string; disabled?: bo
   { value: 'cancelled', label: 'Cancelado' },
 ];
 
-export default function SupplierOrderDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
+export default function SupplierOrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
   const { isAdmin } = useAuthStore();
@@ -112,7 +113,7 @@ export default function SupplierOrderDetailPage({
             includeLastSaleDate: 'true',
             includeCategory: 'true',
             trendMonths: trendMonths,
-          }
+          },
         });
 
         const articlesMap = new Map<number, Article>();
@@ -137,7 +138,7 @@ export default function SupplierOrderDetailPage({
 
     return order.items.map((item: SupplierOrderItemDto) => {
       const article = articlesData.get(item.articleId);
-      
+
       if (!article?.salesTrend) {
         return item; // Sin datos, usar valores originales
       }
@@ -148,22 +149,23 @@ export default function SupplierOrderDetailPage({
 
       // Calcular valores comerciales
       const fobUnitPrice = item.proformaUnitPrice || 0;
-      
+
       // Usar descuento sobreescrito si existe, sino usar el de categoría
       const overriddenDiscount = discountOverrides.get(item.articleId);
-      const categoryDiscount = overriddenDiscount !== undefined
-        ? overriddenDiscount
-        : (commercialConfig.useCategoryDiscounts ? (article.categoryDefaultDiscount || 0) : 0);
-      
+      const categoryDiscount =
+        overriddenDiscount !== undefined
+          ? overriddenDiscount
+          : commercialConfig.useCategoryDiscounts
+            ? article.categoryDefaultDiscount || 0
+            : 0;
+
       const cifUnitPrice = fobUnitPrice * (1 + commercialConfig.cifPercentage / 100);
       const discountedUnitPrice = (item.dbUnitPrice || 0) * (1 - categoryDiscount / 100);
       const discountedTotalPrice = discountedUnitPrice * item.quantity;
-      
+
       const realMarginAbsolute = discountedUnitPrice - cifUnitPrice;
       // Margen sobre costo CIF (markup): (Venta - Costo) / Costo × 100
-      const realMarginPercent = cifUnitPrice > 0 
-        ? (realMarginAbsolute / cifUnitPrice) * 100 
-        : 0;
+      const realMarginPercent = cifUnitPrice > 0 ? (realMarginAbsolute / cifUnitPrice) * 100 : 0;
 
       return {
         ...item,
@@ -222,7 +224,7 @@ export default function SupplierOrderDetailPage({
     order.items.forEach((item: SupplierOrderItemDto) => {
       updated.set(item.articleId, discount);
     });
-    
+
     setDiscountOverrides(updated);
     setGlobalDiscount('');
   };
@@ -235,7 +237,12 @@ export default function SupplierOrderDetailPage({
   };
 
   const handleSyncWeights = async () => {
-    if (!order || !confirm('¿Sincronizar los datos de esta proforma a los artículos? Esto actualizará el peso (kg), el último precio de compra y el % CIF de cada artículo.')) {
+    if (
+      !order ||
+      !confirm(
+        '¿Sincronizar los datos de esta proforma a los artículos? Esto actualizará el peso (kg), el último precio de compra y el % CIF de cada artículo.'
+      )
+    ) {
       return;
     }
 
@@ -244,7 +251,7 @@ export default function SupplierOrderDetailPage({
       const response = await axios.post(`/api/supplier-orders/${order.id}/sync-data`, {
         cifPercentage: commercialConfig.cifPercentage,
       });
-      
+
       if (response.data.success) {
         alert(`✅ ${response.data.message}`);
       } else {
@@ -253,7 +260,9 @@ export default function SupplierOrderDetailPage({
     } catch (error: unknown) {
       const axiosError = error as { response?: { data?: { error?: string } } };
       console.error('Error syncing data:', error);
-      alert('Error al sincronizar datos: ' + (axiosError.response?.data?.error || 'Error de conexión'));
+      alert(
+        'Error al sincronizar datos: ' + (axiosError.response?.data?.error || 'Error de conexión')
+      );
     } finally {
       setSyncingWeights(false);
     }
@@ -263,16 +272,28 @@ export default function SupplierOrderDetailPage({
     if (!order) return;
 
     // Calcular totales
-    const totalProforma = order.items.reduce((sum: number, item: SupplierOrderItemDto) => sum + (item.proformaTotalPrice || 0), 0);
-    const totalDB = order.items.reduce((sum: number, item: SupplierOrderItemDto) => sum + (item.dbTotalPrice || 0), 0);
+    const totalProforma = order.items.reduce(
+      (sum: number, item: SupplierOrderItemDto) => sum + (item.proformaTotalPrice || 0),
+      0
+    );
+    const totalDB = order.items.reduce(
+      (sum: number, item: SupplierOrderItemDto) => sum + (item.dbTotalPrice || 0),
+      0
+    );
     const marginDB = totalDB - totalProforma;
-    const marginDBPercent = totalProforma > 0 ? ((totalDB / totalProforma - 1) * 100) : 0;
+    const marginDBPercent = totalProforma > 0 ? (totalDB / totalProforma - 1) * 100 : 0;
 
-    const totalCIF = itemsWithRecalculatedMetrics.reduce((sum: number, item: ItemWithCommercialMetrics) => {
-      const cifTotal = (item.cifUnitPrice || 0) * item.quantity;
-      return sum + cifTotal;
-    }, 0);
-    const totalDiscounted = itemsWithRecalculatedMetrics.reduce((sum: number, item: ItemWithCommercialMetrics) => sum + (item.discountedTotalPrice || 0), 0);
+    const totalCIF = itemsWithRecalculatedMetrics.reduce(
+      (sum: number, item: ItemWithCommercialMetrics) => {
+        const cifTotal = (item.cifUnitPrice || 0) * item.quantity;
+        return sum + cifTotal;
+      },
+      0
+    );
+    const totalDiscounted = itemsWithRecalculatedMetrics.reduce(
+      (sum: number, item: ItemWithCommercialMetrics) => sum + (item.discountedTotalPrice || 0),
+      0
+    );
     const realMargin = totalDiscounted - totalCIF;
     const realMarginPercent = totalCIF > 0 ? (realMargin / totalCIF) * 100 : 0;
 
@@ -447,11 +468,15 @@ export default function SupplierOrderDetailPage({
         <div class="info-label">Fecha de Pedido</div>
         <div class="info-value">${new Date(order.orderDate).toLocaleDateString('es-AR')}</div>
       </div>
-      ${order.expectedDeliveryDate ? `
+      ${
+        order.expectedDeliveryDate
+          ? `
       <div class="info-item">
         <div class="info-label">Fecha Entrega Esperada</div>
         <div class="info-value">${new Date(order.expectedDeliveryDate).toLocaleDateString('es-AR')}</div>
-      </div>` : ''}
+      </div>`
+          : ''
+      }
       <div class="info-item">
         <div class="info-label">Total Artículos</div>
         <div class="info-value">${order.totalItems}</div>
@@ -478,7 +503,9 @@ export default function SupplierOrderDetailPage({
       </div>
     </div>
 
-    ${showCommercial ? `
+    ${
+      showCommercial
+        ? `
     <div class="commercial-section">
       <h2 class="section-title">🎯 Análisis Comercial (CIF ${commercialConfig.cifPercentage}% + Descuentos)</h2>
       <div class="totals-grid">
@@ -498,7 +525,9 @@ export default function SupplierOrderDetailPage({
         </div>
       </div>
     </div>
-    ` : ''}
+    `
+        : ''
+    }
 
     <h2 class="section-title">📋 Detalle de Artículos</h2>
     <table>
@@ -514,7 +543,9 @@ export default function SupplierOrderDetailPage({
           <th class="text-right">Total Proforma</th>
           <th class="text-right">Precio Unit. DB</th>
           <th class="text-right">Total DB</th>
-          ${showCommercial ? `
+          ${
+            showCommercial
+              ? `
           <th>Categoría</th>
           <th class="text-right">Desc. %</th>
           <th class="text-right">CIF Unit.</th>
@@ -523,17 +554,20 @@ export default function SupplierOrderDetailPage({
           <th class="text-right">Total c/Desc</th>
           <th class="text-right">Margen Real USD</th>
           <th class="text-right">Margen Real %</th>
-          ` : ''}
+          `
+              : ''
+          }
         </tr>
       </thead>
       <tbody>
-        ${itemsWithRecalculatedMetrics.map((item: ItemWithCommercialMetrics) => {
-          const article = articlesData.get(item.articleId);
-          const totalCIFItem = (item.cifUnitPrice || 0) * item.quantity;
-          const marginRealUSD = (item.discountedTotalPrice || 0) - totalCIFItem;
-          const marginRealPercent = totalCIFItem > 0 ? (marginRealUSD / totalCIFItem) * 100 : 0;
-          
-          return `
+        ${itemsWithRecalculatedMetrics
+          .map((item: ItemWithCommercialMetrics) => {
+            const article = articlesData.get(item.articleId);
+            const totalCIFItem = (item.cifUnitPrice || 0) * item.quantity;
+            const marginRealUSD = (item.discountedTotalPrice || 0) - totalCIFItem;
+            const marginRealPercent = totalCIFItem > 0 ? (marginRealUSD / totalCIFItem) * 100 : 0;
+
+            return `
           <tr>
             <td><strong>${item.articleCode}</strong></td>
             <td>${item.articleDescription}</td>
@@ -543,9 +577,11 @@ export default function SupplierOrderDetailPage({
             <td class="text-right">${item.unitWeight ? item.unitWeight.toFixed(2) + ' kg' : '-'}</td>
             <td class="text-right">${item.proformaUnitPrice ? formatPrice(item.proformaUnitPrice) : '-'}</td>
             <td class="text-right"><strong>${item.proformaTotalPrice ? formatPrice(item.proformaTotalPrice) : '-'}</strong></td>
-            <td class="text-right">${item.dbUnitPrice ? formatPrice(item.dbUnitPrice) : (article ? formatPrice(article.unitPrice) : '-')}</td>
+            <td class="text-right">${item.dbUnitPrice ? formatPrice(item.dbUnitPrice) : article ? formatPrice(article.unitPrice) : '-'}</td>
             <td class="text-right"><strong>${item.dbTotalPrice ? formatPrice(item.dbTotalPrice) : '-'}</strong></td>
-            ${showCommercial ? `
+            ${
+              showCommercial
+                ? `
             <td><small>${item.categoryName || '-'}</small></td>
             <td class="text-right ${discountOverrides.has(item.articleId) ? 'highlight' : ''}">
               <span class="badge orange">${item.categoryDiscount?.toFixed(0) || '0'}%</span>
@@ -564,18 +600,25 @@ export default function SupplierOrderDetailPage({
                 ${marginRealPercent.toFixed(1)}%
               </span>
             </td>
-            ` : ''}
+            `
+                : ''
+            }
           </tr>
           `;
-        }).join('')}
+          })
+          .join('')}
       </tbody>
     </table>
 
-    ${discountOverrides.size > 0 ? `
+    ${
+      discountOverrides.size > 0
+        ? `
     <div style="margin-top: 20px; padding: 15px; background: #fef3c7; border-left: 4px solid #f59e0b; border-radius: 4px;">
       <strong>⚠️ Descuentos personalizados:</strong> ${discountOverrides.size} artículo(s) con descuento modificado manualmente (resaltados en amarillo).
     </div>
-    ` : ''}
+    `
+        : ''
+    }
 
     <div class="footer">
       <p><strong>Sistema de Gestión DIALFA</strong></p>
@@ -599,30 +642,18 @@ export default function SupplierOrderDetailPage({
   };
 
   if (isLoading) {
-    return (
-      <div className="p-8 text-center text-muted-foreground">
-        Cargando pedido...
-      </div>
-    );
+    return <div className="text-muted-foreground p-8 text-center">Cargando pedido...</div>;
   }
 
   if (!order) {
-    return (
-      <div className="p-8 text-center text-muted-foreground">
-        Pedido no encontrado
-      </div>
-    );
+    return <div className="text-muted-foreground p-8 text-center">Pedido no encontrado</div>;
   }
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-4">
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => router.push('/dashboard/supplier-orders')}
-        >
+        <Button variant="ghost" size="icon" onClick={() => router.push(ROUTES.SUPPLIER_ORDERS)}>
           <ArrowLeft className="h-5 w-5" />
         </Button>
         <div className="flex-1">
@@ -641,11 +672,7 @@ export default function SupplierOrderDetailPage({
           <RefreshCw className="h-4 w-4" />
           {syncingWeights ? 'Sincronizando...' : 'Sincronizar Datos'}
         </Button>
-        <Button
-          variant="outline"
-          onClick={handleExportToHTML}
-          className="gap-2"
-        >
+        <Button variant="outline" onClick={handleExportToHTML} className="gap-2">
           <Download className="h-4 w-4" />
           Descargar HTML
         </Button>
@@ -654,14 +681,14 @@ export default function SupplierOrderDetailPage({
       {/* Order Info */}
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Información del Pedido</h2>
+          <h2 className="mb-4 text-lg font-semibold">Información del Pedido</h2>
           <div className="space-y-3">
             <div>
-              <div className="text-sm text-muted-foreground">Proveedor</div>
+              <div className="text-muted-foreground text-sm">Proveedor</div>
               <div className="font-medium">{order.supplierName || 'Sin asignar'}</div>
             </div>
             <div>
-              <div className="text-sm text-muted-foreground">Estado</div>
+              <div className="text-muted-foreground text-sm">Estado</div>
               <div>
                 {canEdit ? (
                   <Select
@@ -687,13 +714,13 @@ export default function SupplierOrderDetailPage({
             </div>
             {order.expectedDeliveryDate && (
               <div>
-                <div className="text-sm text-muted-foreground">Fecha Entrega Esperada</div>
+                <div className="text-muted-foreground text-sm">Fecha Entrega Esperada</div>
                 <div>{new Date(order.expectedDeliveryDate).toLocaleDateString('es-AR')}</div>
               </div>
             )}
             {order.actualDeliveryDate && (
               <div>
-                <div className="text-sm text-muted-foreground">Fecha Entrega Real</div>
+                <div className="text-muted-foreground text-sm">Fecha Entrega Real</div>
                 <div>{new Date(order.actualDeliveryDate).toLocaleDateString('es-AR')}</div>
               </div>
             )}
@@ -701,23 +728,23 @@ export default function SupplierOrderDetailPage({
         </Card>
 
         <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Resumen</h2>
+          <h2 className="mb-4 text-lg font-semibold">Resumen</h2>
           <div className="space-y-3">
             <div>
-              <div className="text-sm text-muted-foreground">Total Artículos</div>
+              <div className="text-muted-foreground text-sm">Total Artículos</div>
               <div className="text-2xl font-bold">{order.totalItems}</div>
             </div>
             <div>
-              <div className="text-sm text-muted-foreground">Total Unidades</div>
+              <div className="text-muted-foreground text-sm">Total Unidades</div>
               <div className="text-2xl font-bold">{order.totalQuantity}</div>
             </div>
             <div>
-              <div className="text-sm text-muted-foreground">Tiempo Est. Venta</div>
+              <div className="text-muted-foreground text-sm">Tiempo Est. Venta</div>
               <div className="text-lg font-semibold">
                 {formatSaleTime(recalculatedTotalEstimatedTime)}
               </div>
               {!loadingArticles && articlesData.size > 0 && (
-                <div className="text-xs text-muted-foreground mt-1">
+                <div className="text-muted-foreground mt-1 text-xs">
                   Calculado con WMA ({trendMonths} meses)
                 </div>
               )}
@@ -730,25 +757,44 @@ export default function SupplierOrderDetailPage({
       {order.items?.some((item: SupplierOrderItemDto) => item.proformaTotalPrice) && (
         <>
           <div className="grid grid-cols-3 gap-4">
-            <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-4">
               <div className="text-2xl font-bold text-blue-700">
-                ${order.items.reduce((sum: number, item: SupplierOrderItemDto) => sum + (item.proformaTotalPrice || 0), 0).toFixed(2)}
+                $
+                {order.items
+                  .reduce(
+                    (sum: number, item: SupplierOrderItemDto) =>
+                      sum + (item.proformaTotalPrice || 0),
+                    0
+                  )
+                  .toFixed(2)}
               </div>
               <div className="text-sm text-blue-600">Total Proforma (FOB)</div>
             </div>
-            <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+            <div className="rounded-lg border border-purple-200 bg-purple-50 p-4">
               <div className="text-2xl font-bold text-purple-700">
-                ${order.items.reduce((sum: number, item: SupplierOrderItemDto) => sum + (item.dbTotalPrice || 0), 0).toFixed(2)}
+                $
+                {order.items
+                  .reduce(
+                    (sum: number, item: SupplierOrderItemDto) => sum + (item.dbTotalPrice || 0),
+                    0
+                  )
+                  .toFixed(2)}
               </div>
               <div className="text-sm text-purple-600">Total DB (sin desc.)</div>
             </div>
-            <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+            <div className="rounded-lg border border-green-200 bg-green-50 p-4">
               {(() => {
-                const totalProforma = order.items.reduce((sum: number, item: SupplierOrderItemDto) => sum + (item.proformaTotalPrice || 0), 0);
-                const totalDB = order.items.reduce((sum: number, item: SupplierOrderItemDto) => sum + (item.dbTotalPrice || 0), 0);
+                const totalProforma = order.items.reduce(
+                  (sum: number, item: SupplierOrderItemDto) => sum + (item.proformaTotalPrice || 0),
+                  0
+                );
+                const totalDB = order.items.reduce(
+                  (sum: number, item: SupplierOrderItemDto) => sum + (item.dbTotalPrice || 0),
+                  0
+                );
                 const margin = totalDB - totalProforma;
-                const marginPercent = totalProforma > 0 ? ((totalDB / totalProforma - 1) * 100) : 0;
-                
+                const marginPercent = totalProforma > 0 ? (totalDB / totalProforma - 1) * 100 : 0;
+
                 return (
                   <>
                     <div className="text-2xl font-bold text-green-700">
@@ -762,11 +808,14 @@ export default function SupplierOrderDetailPage({
           </div>
 
           {/* Commercial Valuation Config & Cards */}
-          <div className="space-y-3 p-4 border rounded-lg bg-card">
+          <div className="bg-card space-y-3 rounded-lg border p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <DollarSign className="h-4 w-4 text-muted-foreground" />
-                <Label htmlFor="show-commercial-detail" className="text-sm font-medium cursor-pointer">
+                <DollarSign className="text-muted-foreground h-4 w-4" />
+                <Label
+                  htmlFor="show-commercial-detail"
+                  className="cursor-pointer text-sm font-medium"
+                >
                   Mostrar análisis comercial (CIF + Descuentos)
                 </Label>
               </div>
@@ -776,10 +825,10 @@ export default function SupplierOrderDetailPage({
                 onCheckedChange={setShowCommercial}
               />
             </div>
-            
+
             {showCommercial && (
               <>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2 border-t">
+                <div className="grid grid-cols-1 gap-3 border-t pt-2 md:grid-cols-2">
                   <div className="space-y-2">
                     <Label htmlFor="cif-percentage-detail" className="text-xs">
                       CIF sobre FOB (%)
@@ -806,12 +855,15 @@ export default function SupplierOrderDetailPage({
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="space-y-2">
-                    <Label htmlFor="use-category-discounts-detail" className="text-xs flex items-center gap-1">
+                    <Label
+                      htmlFor="use-category-discounts-detail"
+                      className="flex items-center gap-1 text-xs"
+                    >
                       Aplicar descuentos de categoría
                     </Label>
-                    <div className="flex items-center h-8 px-3 border rounded-md">
+                    <div className="flex h-8 items-center rounded-md border px-3">
                       <Switch
                         id="use-category-discounts-detail"
                         checked={commercialConfig.useCategoryDiscounts}
@@ -822,7 +874,7 @@ export default function SupplierOrderDetailPage({
                           })
                         }
                       />
-                      <span className="ml-2 text-sm text-muted-foreground">
+                      <span className="text-muted-foreground ml-2 text-sm">
                         {commercialConfig.useCategoryDiscounts ? 'Activado' : 'Desactivado'}
                       </span>
                     </div>
@@ -830,8 +882,11 @@ export default function SupplierOrderDetailPage({
                 </div>
 
                 {/* Global Discount Override */}
-                <div className="space-y-2 pt-2 border-t">
-                  <Label htmlFor="global-discount" className="text-xs font-semibold text-orange-700">
+                <div className="space-y-2 border-t pt-2">
+                  <Label
+                    htmlFor="global-discount"
+                    className="text-xs font-semibold text-orange-700"
+                  >
                     Aplicar descuento global a todos los artículos
                   </Label>
                   <div className="flex items-center gap-2">
@@ -851,7 +906,7 @@ export default function SupplierOrderDetailPage({
                       }}
                       className="h-8 w-24 text-right"
                     />
-                    <span className="text-sm text-muted-foreground">%</span>
+                    <span className="text-muted-foreground text-sm">%</span>
                     <Button
                       variant="secondary"
                       size="sm"
@@ -862,16 +917,18 @@ export default function SupplierOrderDetailPage({
                       Aplicar a todos
                     </Button>
                   </div>
-                  <p className="text-xs text-muted-foreground">
-                    Esto sobreescribirá los descuentos de categoría para todos los artículos del pedido
+                  <p className="text-muted-foreground text-xs">
+                    Esto sobreescribirá los descuentos de categoría para todos los artículos del
+                    pedido
                   </p>
                 </div>
 
                 {/* Reset Overrides Button */}
                 {discountOverrides.size > 0 && (
-                  <div className="flex items-center justify-between pt-2 border-t">
-                    <span className="text-xs text-muted-foreground">
-                      {discountOverrides.size} descuento{discountOverrides.size !== 1 ? 's' : ''} personalizado{discountOverrides.size !== 1 ? 's' : ''}
+                  <div className="flex items-center justify-between border-t pt-2">
+                    <span className="text-muted-foreground text-xs">
+                      {discountOverrides.size} descuento{discountOverrides.size !== 1 ? 's' : ''}{' '}
+                      personalizado{discountOverrides.size !== 1 ? 's' : ''}
                     </span>
                     <Button
                       variant="outline"
@@ -885,36 +942,57 @@ export default function SupplierOrderDetailPage({
                 )}
 
                 {/* Commercial Cards */}
-                <div className="grid grid-cols-3 gap-4 pt-3 border-t">
-                  <div className="p-4 bg-orange-50 rounded-lg border border-orange-200">
+                <div className="grid grid-cols-3 gap-4 border-t pt-3">
+                  <div className="rounded-lg border border-orange-200 bg-orange-50 p-4">
                     <div className="text-2xl font-bold text-orange-700">
-                      ${itemsWithRecalculatedMetrics.reduce((sum: number, item: ItemWithCommercialMetrics) => {
-                        const cifTotal = (item.cifUnitPrice || 0) * item.quantity;
-                        return sum + cifTotal;
-                      }, 0).toFixed(2)}
+                      $
+                      {itemsWithRecalculatedMetrics
+                        .reduce((sum: number, item: ItemWithCommercialMetrics) => {
+                          const cifTotal = (item.cifUnitPrice || 0) * item.quantity;
+                          return sum + cifTotal;
+                        }, 0)
+                        .toFixed(2)}
                     </div>
-                    <div className="text-sm text-orange-600">Total CIF ({commercialConfig.cifPercentage}%)</div>
+                    <div className="text-sm text-orange-600">
+                      Total CIF ({commercialConfig.cifPercentage}%)
+                    </div>
                   </div>
-                  <div className="p-4 bg-cyan-50 rounded-lg border border-cyan-200">
+                  <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-4">
                     <div className="text-2xl font-bold text-cyan-700">
-                      ${itemsWithRecalculatedMetrics.reduce((sum: number, item: ItemWithCommercialMetrics) => sum + (item.discountedTotalPrice || 0), 0).toFixed(2)}
+                      $
+                      {itemsWithRecalculatedMetrics
+                        .reduce(
+                          (sum: number, item: ItemWithCommercialMetrics) =>
+                            sum + (item.discountedTotalPrice || 0),
+                          0
+                        )
+                        .toFixed(2)}
                     </div>
                     <div className="text-sm text-cyan-600">Total c/Descuentos</div>
                   </div>
-                  <div className="p-4 bg-emerald-50 rounded-lg border border-emerald-200">
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
                     {(() => {
-                      const totalCIF = itemsWithRecalculatedMetrics.reduce((sum: number, item: ItemWithCommercialMetrics) => {
-                        const cifTotal = (item.cifUnitPrice || 0) * item.quantity;
-                        return sum + cifTotal;
-                      }, 0);
-                      const totalDiscounted = itemsWithRecalculatedMetrics.reduce((sum: number, item: ItemWithCommercialMetrics) => sum + (item.discountedTotalPrice || 0), 0);
+                      const totalCIF = itemsWithRecalculatedMetrics.reduce(
+                        (sum: number, item: ItemWithCommercialMetrics) => {
+                          const cifTotal = (item.cifUnitPrice || 0) * item.quantity;
+                          return sum + cifTotal;
+                        },
+                        0
+                      );
+                      const totalDiscounted = itemsWithRecalculatedMetrics.reduce(
+                        (sum: number, item: ItemWithCommercialMetrics) =>
+                          sum + (item.discountedTotalPrice || 0),
+                        0
+                      );
                       const realMargin = totalDiscounted - totalCIF;
                       // Margen sobre costo (markup): (Venta - Costo) / Costo × 100
                       const realMarginPercent = totalCIF > 0 ? (realMargin / totalCIF) * 100 : 0;
-                      
+
                       return (
                         <>
-                          <div className={`text-2xl font-bold ${realMarginPercent >= 100 ? 'text-emerald-700' : realMarginPercent >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+                          <div
+                            className={`text-2xl font-bold ${realMarginPercent >= 100 ? 'text-emerald-700' : realMarginPercent >= 50 ? 'text-yellow-600' : 'text-red-600'}`}
+                          >
                             ${realMargin.toFixed(2)} ({realMarginPercent.toFixed(1)}%)
                           </div>
                           <div className="text-sm text-emerald-600">Margen Real</div>
@@ -931,13 +1009,13 @@ export default function SupplierOrderDetailPage({
 
       {/* Items */}
       <Card>
-        <div className="p-6 border-b flex items-center justify-between">
-          <h2 className="text-lg font-semibold flex items-center gap-2">
+        <div className="flex items-center justify-between border-b p-6">
+          <h2 className="flex items-center gap-2 text-lg font-semibold">
             <Package className="h-5 w-5" />
             Artículos del Pedido
           </h2>
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Tendencia:</span>
+            <span className="text-muted-foreground text-sm">Tendencia:</span>
             <Select
               value={trendMonths.toString()}
               onValueChange={(value) => setTrendMonths(parseInt(value))}
@@ -971,9 +1049,7 @@ export default function SupplierOrderDetailPage({
                   <TableHead className="text-right">Total Proforma</TableHead>
                   <TableHead className="text-right">
                     <Tooltip>
-                      <TooltipTrigger className="cursor-help">
-                        Precio Unit.
-                      </TooltipTrigger>
+                      <TooltipTrigger className="cursor-help">Precio Unit.</TooltipTrigger>
                       <TooltipContent>
                         <p className="max-w-xs">Precio unitario del artículo en BD</p>
                       </TooltipContent>
@@ -982,9 +1058,7 @@ export default function SupplierOrderDetailPage({
                   <TableHead className="text-right">Total DB</TableHead>
                   <TableHead className="text-right">
                     <Tooltip>
-                      <TooltipTrigger className="cursor-help">
-                        Prom Ponderado
-                      </TooltipTrigger>
+                      <TooltipTrigger className="cursor-help">Prom Ponderado</TooltipTrigger>
                       <TooltipContent>
                         <p className="max-w-xs">
                           Promedio ponderado de ventas (WMA) sobre los últimos {trendMonths} meses.
@@ -995,9 +1069,7 @@ export default function SupplierOrderDetailPage({
                   </TableHead>
                   <TableHead className="text-right">
                     <Tooltip>
-                      <TooltipTrigger className="cursor-help">
-                        T. Est. Venta
-                      </TooltipTrigger>
+                      <TooltipTrigger className="cursor-help">T. Est. Venta</TooltipTrigger>
                       <TooltipContent>
                         <p className="max-w-xs">
                           Tiempo estimado para vender la cantidad pedida = Cantidad / Prom Ponderado
@@ -1007,11 +1079,11 @@ export default function SupplierOrderDetailPage({
                   </TableHead>
                   <TableHead>
                     <Tooltip>
-                      <TooltipTrigger className="cursor-help">
-                        Última Venta
-                      </TooltipTrigger>
+                      <TooltipTrigger className="cursor-help">Última Venta</TooltipTrigger>
                       <TooltipContent>
-                        <p className="max-w-xs">Fecha de la última factura emitida que incluye este artículo</p>
+                        <p className="max-w-xs">
+                          Fecha de la última factura emitida que incluye este artículo
+                        </p>
                       </TooltipContent>
                     </Tooltip>
                   </TableHead>
@@ -1020,49 +1092,48 @@ export default function SupplierOrderDetailPage({
                       <TableHead>Categoría</TableHead>
                       <TableHead className="text-right">
                         <Tooltip>
-                          <TooltipTrigger className="cursor-help">
-                            Desc. % ✏️
-                          </TooltipTrigger>
+                          <TooltipTrigger className="cursor-help">Desc. % ✏️</TooltipTrigger>
                           <TooltipContent>
-                            <p className="max-w-xs">Descuento de categoría (editable). Haz clic para personalizar por artículo.</p>
+                            <p className="max-w-xs">
+                              Descuento de categoría (editable). Haz clic para personalizar por
+                              artículo.
+                            </p>
                           </TooltipContent>
                         </Tooltip>
                       </TableHead>
                       <TableHead className="text-right">
                         <Tooltip>
-                          <TooltipTrigger className="cursor-help">
-                            CIF Unit.
-                          </TooltipTrigger>
+                          <TooltipTrigger className="cursor-help">CIF Unit.</TooltipTrigger>
                           <TooltipContent>
-                            <p className="max-w-xs">FOB + {commercialConfig.cifPercentage}% = Costo real de importación</p>
+                            <p className="max-w-xs">
+                              FOB + {commercialConfig.cifPercentage}% = Costo real de importación
+                            </p>
                           </TooltipContent>
                         </Tooltip>
                       </TableHead>
                       <TableHead className="text-right">
                         <Tooltip>
-                          <TooltipTrigger className="cursor-help">
-                            Total CIF
-                          </TooltipTrigger>
+                          <TooltipTrigger className="cursor-help">Total CIF</TooltipTrigger>
                           <TooltipContent>
-                            <p className="max-w-xs">CIF Unit. × Cantidad = Costo total de importación</p>
+                            <p className="max-w-xs">
+                              CIF Unit. × Cantidad = Costo total de importación
+                            </p>
                           </TooltipContent>
                         </Tooltip>
                       </TableHead>
                       <TableHead className="text-right">
                         <Tooltip>
-                          <TooltipTrigger className="cursor-help">
-                            Precio c/Desc
-                          </TooltipTrigger>
+                          <TooltipTrigger className="cursor-help">Precio c/Desc</TooltipTrigger>
                           <TooltipContent>
-                            <p className="max-w-xs">Precio DB con descuento de categoría aplicado</p>
+                            <p className="max-w-xs">
+                              Precio DB con descuento de categoría aplicado
+                            </p>
                           </TooltipContent>
                         </Tooltip>
                       </TableHead>
                       <TableHead className="text-right">
                         <Tooltip>
-                          <TooltipTrigger className="cursor-help">
-                            Total c/Desc
-                          </TooltipTrigger>
+                          <TooltipTrigger className="cursor-help">Total c/Desc</TooltipTrigger>
                           <TooltipContent>
                             <p className="max-w-xs">Total con descuento aplicado</p>
                           </TooltipContent>
@@ -1070,9 +1141,7 @@ export default function SupplierOrderDetailPage({
                       </TableHead>
                       <TableHead className="text-right">
                         <Tooltip>
-                          <TooltipTrigger className="cursor-help">
-                            Margen Real USD
-                          </TooltipTrigger>
+                          <TooltipTrigger className="cursor-help">Margen Real USD</TooltipTrigger>
                           <TooltipContent>
                             <p className="max-w-xs">Total c/Desc - Total CIF</p>
                           </TooltipContent>
@@ -1080,11 +1149,13 @@ export default function SupplierOrderDetailPage({
                       </TableHead>
                       <TableHead className="text-right">
                         <Tooltip>
-                          <TooltipTrigger className="cursor-help">
-                            Margen Real %
-                          </TooltipTrigger>
+                          <TooltipTrigger className="cursor-help">Margen Real %</TooltipTrigger>
                           <TooltipContent>
-                            <p className="max-w-xs">(Margen Real USD / Total CIF) × 100<br/>Markup sobre costo de importación</p>
+                            <p className="max-w-xs">
+                              (Margen Real USD / Total CIF) × 100
+                              <br />
+                              Markup sobre costo de importación
+                            </p>
                           </TooltipContent>
                         </Tooltip>
                       </TableHead>
@@ -1095,32 +1166,27 @@ export default function SupplierOrderDetailPage({
               <TableBody>
                 {loadingArticles ? (
                   <TableRow>
-                    <TableCell colSpan={showCommercial ? 25 : 17} className="text-center text-muted-foreground py-8">
+                    <TableCell
+                      colSpan={showCommercial ? 25 : 17}
+                      className="text-muted-foreground py-8 text-center"
+                    >
                       Cargando datos de artículos...
                     </TableCell>
                   </TableRow>
                 ) : (
                   itemsWithRecalculatedMetrics.map((item: ItemWithCommercialMetrics) => {
                     const article = articlesData.get(item.articleId);
-                    
+
                     return (
                       <TableRow key={item.id}>
-                        <TableCell className="font-mono font-medium">
-                          {item.articleCode}
-                        </TableCell>
+                        <TableCell className="font-mono font-medium">{item.articleCode}</TableCell>
                         <TableCell>
                           <div className="max-w-md truncate">{item.articleDescription}</div>
                         </TableCell>
-                        <TableCell className="text-right font-semibold">
-                          {item.quantity}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {item.currentStock}
-                        </TableCell>
-                        <TableCell className="text-right">
-                          {item.minimumStock}
-                        </TableCell>
-                        
+                        <TableCell className="text-right font-semibold">{item.quantity}</TableCell>
+                        <TableCell className="text-right">{item.currentStock}</TableCell>
+                        <TableCell className="text-right">{item.minimumStock}</TableCell>
+
                         {/* Tendencia */}
                         <TableCell>
                           {article?.salesTrend && article.salesTrend.length > 0 ? (
@@ -1133,51 +1199,52 @@ export default function SupplierOrderDetailPage({
                                 article.abcClass === 'A'
                                   ? 'rgb(34, 197, 94)' // green-500
                                   : article.abcClass === 'B'
-                                  ? 'rgb(59, 130, 246)' // blue-500
-                                  : 'rgb(107, 114, 128)' // gray-500
+                                    ? 'rgb(59, 130, 246)' // blue-500
+                                    : 'rgb(107, 114, 128)' // gray-500
                               }
-                              labels={article.salesTrend
-                                .slice(-trendMonths)
-                                .map((_, idx) => {
-                                  const date = new Date();
-                                  date.setMonth(date.getMonth() - (trendMonths - idx - 1));
-                                  return date.toLocaleDateString('es-AR', {
-                                    month: 'short',
-                                    year: '2-digit',
-                                  });
-                                })
-                              }
+                              labels={article.salesTrend.slice(-trendMonths).map((_, idx) => {
+                                const date = new Date();
+                                date.setMonth(date.getMonth() - (trendMonths - idx - 1));
+                                return date.toLocaleDateString('es-AR', {
+                                  month: 'short',
+                                  year: '2-digit',
+                                });
+                              })}
                             />
                           ) : (
-                            <span className="text-xs text-muted-foreground">Sin datos</span>
+                            <span className="text-muted-foreground text-xs">Sin datos</span>
                           )}
                         </TableCell>
-                        
+
                         {/* Peso Unit. */}
                         <TableCell className="text-right text-sm">
                           {item.unitWeight ? `${item.unitWeight.toFixed(2)} kg` : '-'}
                         </TableCell>
-                        
+
                         {/* P.U. Proforma */}
                         <TableCell className="text-right font-medium">
                           {item.proformaUnitPrice ? formatPrice(item.proformaUnitPrice) : '-'}
                         </TableCell>
-                        
+
                         {/* Total Proforma */}
                         <TableCell className="text-right font-medium">
                           {item.proformaTotalPrice ? formatPrice(item.proformaTotalPrice) : '-'}
                         </TableCell>
-                        
+
                         {/* Precio Unit. DB */}
                         <TableCell className="text-right font-medium">
-                          {item.dbUnitPrice ? formatPrice(item.dbUnitPrice) : (article ? formatPrice(article.unitPrice) : '-')}
+                          {item.dbUnitPrice
+                            ? formatPrice(item.dbUnitPrice)
+                            : article
+                              ? formatPrice(article.unitPrice)
+                              : '-'}
                         </TableCell>
-                        
+
                         {/* Total DB */}
                         <TableCell className="text-right font-medium">
                           {item.dbTotalPrice ? formatPrice(item.dbTotalPrice) : '-'}
                         </TableCell>
-                        
+
                         {/* Prom Ponderado */}
                         <TableCell className="text-right">
                           {item.avgMonthlySales && item.avgMonthlySales > 0 ? (
@@ -1190,11 +1257,11 @@ export default function SupplierOrderDetailPage({
                             <span className="text-muted-foreground text-xs">-</span>
                           )}
                         </TableCell>
-                        
+
                         {/* T. Est. Venta */}
                         <TableCell className="text-right">
                           {item.estimatedSaleTime ? (
-                            <Badge 
+                            <Badge
                               variant={
                                 isFinite(item.estimatedSaleTime) && item.estimatedSaleTime > 0
                                   ? 'secondary'
@@ -1210,7 +1277,7 @@ export default function SupplierOrderDetailPage({
                             </Badge>
                           )}
                         </TableCell>
-                        
+
                         {/* Última Venta */}
                         <TableCell className="text-sm">
                           {article?.lastSaleDate ? (
@@ -1218,11 +1285,11 @@ export default function SupplierOrderDetailPage({
                               {new Date(article.lastSaleDate).toLocaleDateString('es-AR', {
                                 day: '2-digit',
                                 month: '2-digit',
-                                year: 'numeric'
+                                year: 'numeric',
                               })}
                             </span>
                           ) : (
-                            <span className="text-xs text-muted-foreground">Nunca</span>
+                            <span className="text-muted-foreground text-xs">Nunca</span>
                           )}
                         </TableCell>
 
@@ -1230,10 +1297,10 @@ export default function SupplierOrderDetailPage({
                         {showCommercial && (
                           <>
                             {/* Categoría */}
-                            <TableCell className="text-xs text-muted-foreground">
+                            <TableCell className="text-muted-foreground text-xs">
                               {item.categoryName || '-'}
                             </TableCell>
-                            
+
                             {/* Descuento % - Editable */}
                             <TableCell className="text-right">
                               {item.categoryDiscount !== undefined ? (
@@ -1250,12 +1317,16 @@ export default function SupplierOrderDetailPage({
                                         handleDiscountChange(item.articleId, value);
                                       }
                                     }}
-                                    className={`w-16 h-7 text-right text-xs font-medium border-orange-200 focus:border-orange-400 ${
-                                      discountOverrides.has(item.articleId) 
-                                        ? 'text-orange-700 bg-orange-50 font-bold' 
+                                    className={`h-7 w-16 border-orange-200 text-right text-xs font-medium focus:border-orange-400 ${
+                                      discountOverrides.has(item.articleId)
+                                        ? 'bg-orange-50 font-bold text-orange-700'
                                         : 'text-orange-600'
                                     }`}
-                                    title={discountOverrides.has(item.articleId) ? 'Descuento personalizado' : 'Descuento de categoría'}
+                                    title={
+                                      discountOverrides.has(item.articleId)
+                                        ? 'Descuento personalizado'
+                                        : 'Descuento de categoría'
+                                    }
                                   />
                                   <span className="text-xs text-orange-600">%</span>
                                 </div>
@@ -1263,7 +1334,7 @@ export default function SupplierOrderDetailPage({
                                 <span className="text-muted-foreground">-</span>
                               )}
                             </TableCell>
-                            
+
                             {/* CIF Unitario */}
                             <TableCell className="text-right text-sm font-medium">
                               {item.cifUnitPrice !== undefined ? (
@@ -1272,7 +1343,7 @@ export default function SupplierOrderDetailPage({
                                 <span className="text-muted-foreground">-</span>
                               )}
                             </TableCell>
-                            
+
                             {/* Total CIF */}
                             <TableCell className="text-right text-sm font-semibold">
                               {item.cifUnitPrice !== undefined ? (
@@ -1283,7 +1354,7 @@ export default function SupplierOrderDetailPage({
                                 <span className="text-muted-foreground">-</span>
                               )}
                             </TableCell>
-                            
+
                             {/* Precio con Descuento */}
                             <TableCell className="text-right text-sm font-semibold">
                               {item.discountedUnitPrice !== undefined ? (
@@ -1294,7 +1365,7 @@ export default function SupplierOrderDetailPage({
                                 <span className="text-muted-foreground">-</span>
                               )}
                             </TableCell>
-                            
+
                             {/* Total con Descuento */}
                             <TableCell className="text-right text-sm font-semibold">
                               {item.discountedTotalPrice !== undefined ? (
@@ -1305,25 +1376,25 @@ export default function SupplierOrderDetailPage({
                                 <span className="text-muted-foreground">-</span>
                               )}
                             </TableCell>
-                            
+
                             {/* Margen Real USD */}
                             <TableCell className="text-right text-sm font-bold">
-                              {item.discountedTotalPrice !== undefined && item.cifUnitPrice !== undefined ? (
+                              {item.discountedTotalPrice !== undefined &&
+                              item.cifUnitPrice !== undefined ? (
                                 (() => {
                                   const totalCIF = item.cifUnitPrice * item.quantity;
                                   const marginUSD = item.discountedTotalPrice - totalCIF;
-                                  const marginPercent = totalCIF > 0 
-                                    ? (marginUSD / totalCIF) * 100 
-                                    : 0;
-                                  
+                                  const marginPercent =
+                                    totalCIF > 0 ? (marginUSD / totalCIF) * 100 : 0;
+
                                   return (
                                     <span
                                       className={
                                         marginPercent >= 100
                                           ? 'text-green-600'
                                           : marginPercent >= 50
-                                          ? 'text-yellow-600'
-                                          : 'text-red-600'
+                                            ? 'text-yellow-600'
+                                            : 'text-red-600'
                                       }
                                     >
                                       {formatPrice(marginUSD)}
@@ -1334,7 +1405,7 @@ export default function SupplierOrderDetailPage({
                                 <span className="text-muted-foreground">-</span>
                               )}
                             </TableCell>
-                            
+
                             {/* Margen Real % */}
                             <TableCell className="text-right text-sm font-bold">
                               {item.realMarginPercent !== undefined ? (
@@ -1343,8 +1414,8 @@ export default function SupplierOrderDetailPage({
                                     item.realMarginPercent >= 100
                                       ? 'text-green-600'
                                       : item.realMarginPercent >= 50
-                                      ? 'text-yellow-600'
-                                      : 'text-red-600'
+                                        ? 'text-yellow-600'
+                                        : 'text-red-600'
                                   }
                                 >
                                   {item.realMarginPercent.toFixed(1)}%
@@ -1358,8 +1429,8 @@ export default function SupplierOrderDetailPage({
                       </TableRow>
                     );
                   })
-              )}
-                </TableBody>
+                )}
+              </TableBody>
             </Table>
           </TooltipProvider>
         </div>
@@ -1367,11 +1438,10 @@ export default function SupplierOrderDetailPage({
 
       {order.notes && (
         <Card className="p-6">
-          <h2 className="text-lg font-semibold mb-2">Notas</h2>
+          <h2 className="mb-2 text-lg font-semibold">Notas</h2>
           <p className="text-muted-foreground">{order.notes}</p>
         </Card>
       )}
     </div>
   );
 }
-

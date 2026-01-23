@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { fetchPriceLists, updatePrices } from '@/lib/api/priceList';
 import { PriceListFilters, BulkPriceUpdate } from '@/types/priceList';
-import { toast } from 'sonner';
 
 export function usePriceLists(filters?: PriceListFilters) {
   return useQuery({
@@ -15,18 +15,21 @@ export function useUpdatePrices() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (payload: { updates: BulkPriceUpdate[]; changeType?: 'manual' | 'csv_import' | 'bulk_update'; notes?: string }) => 
-      updatePrices(payload),
+    mutationFn: (payload: {
+      updates: BulkPriceUpdate[];
+      changeType?: 'manual' | 'csv_import' | 'bulk_update';
+      notes?: string;
+    }) => updatePrices(payload),
     onSuccess: (data) => {
       // Invalidar cache de price-lists
       queryClient.invalidateQueries({ queryKey: ['price-lists'] });
-      
+
       // También invalidar artículos ya que cambiaron los precios
       queryClient.invalidateQueries({ queryKey: ['articles'] });
-      
+
       // Invalidar historial de precios
       queryClient.invalidateQueries({ queryKey: ['price-history'] });
-      
+
       toast.success(`${data.updatedCount} precios actualizados correctamente`);
     },
     onError: (error: Error) => {
@@ -53,12 +56,12 @@ export function useRevertPrice() {
 
       return response.json();
     },
-    onSuccess: (data) => {
+    onSuccess: (_data) => {
       // Invalidar caches
       queryClient.invalidateQueries({ queryKey: ['price-lists'] });
       queryClient.invalidateQueries({ queryKey: ['articles'] });
       queryClient.invalidateQueries({ queryKey: ['price-history'] });
-      
+
       toast.success('Precio revertido exitosamente');
     },
     onError: (error: Error) => {
@@ -88,7 +91,7 @@ export function useUndoLastChange() {
       queryClient.invalidateQueries({ queryKey: ['price-lists'] });
       queryClient.invalidateQueries({ queryKey: ['articles'] });
       queryClient.invalidateQueries({ queryKey: ['price-history'] });
-      
+
       toast.success(data.message || 'Cambios deshechos exitosamente');
     },
     onError: (error: Error) => {
@@ -119,7 +122,7 @@ export function useRevertBatch() {
       queryClient.invalidateQueries({ queryKey: ['price-lists'] });
       queryClient.invalidateQueries({ queryKey: ['articles'] });
       queryClient.invalidateQueries({ queryKey: ['price-history'] });
-      
+
       toast.success(data.message || 'Batch revertido exitosamente');
     },
     onError: (error: Error) => {
@@ -127,4 +130,3 @@ export function useRevertBatch() {
     },
   });
 }
-

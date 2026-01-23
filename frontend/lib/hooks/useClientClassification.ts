@@ -1,6 +1,9 @@
 import { useQuery } from '@tanstack/react-query';
+import type {
+  ClientClassificationSummary,
+  ClientClassificationConfig,
+} from '@/types/clientClassification';
 import { apiClient } from '../api/client';
-import type { ClientClassificationSummary, ClientClassificationConfig } from '@/types/clientClassification';
 
 export const useClientClassification = (config: Partial<ClientClassificationConfig> = {}) => {
   return useQuery({
@@ -20,4 +23,3 @@ export const useClientClassification = (config: Partial<ClientClassificationConf
     staleTime: 5 * 60 * 1000, // 5 minutes
   });
 };
-

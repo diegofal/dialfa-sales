@@ -1,19 +1,19 @@
 'use client';
 
-import { User } from '@/types/user';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Pencil, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { Pencil, Trash2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { User } from '@/types/user';
 
 interface UsersTableProps {
   users: User[];
@@ -60,8 +60,8 @@ export default function UsersTable({ users, onEdit, onDelete }: UsersTableProps)
                   </Badge>
                 </TableCell>
                 <TableCell>
-                  {user.lastLoginAt 
-                    ? format(new Date(user.lastLoginAt), "dd/MM/yyyy HH:mm", { locale: es })
+                  {user.lastLoginAt
+                    ? format(new Date(user.lastLoginAt), 'dd/MM/yyyy HH:mm', { locale: es })
                     : 'Nunca'}
                 </TableCell>
                 <TableCell className="text-right">
@@ -69,8 +69,13 @@ export default function UsersTable({ users, onEdit, onDelete }: UsersTableProps)
                     <Button variant="ghost" size="icon" onClick={() => onEdit(user)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <Button variant="ghost" size="icon" onClick={() => onDelete(user)} disabled={!user.isActive}>
-                      <Trash2 className="h-4 w-4 text-destructive" />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => onDelete(user)}
+                      disabled={!user.isActive}
+                    >
+                      <Trash2 className="text-destructive h-4 w-4" />
                     </Button>
                   </div>
                 </TableCell>
@@ -82,4 +87,3 @@ export default function UsersTable({ users, onEdit, onDelete }: UsersTableProps)
     </div>
   );
 }
-

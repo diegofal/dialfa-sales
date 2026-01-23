@@ -1,6 +1,12 @@
 import { Article } from './article';
 
-export type SupplierOrderStatus = 'draft' | 'confirmed' | 'sent' | 'in_transit' | 'received' | 'cancelled';
+export type SupplierOrderStatus =
+  | 'draft'
+  | 'confirmed'
+  | 'sent'
+  | 'in_transit'
+  | 'received'
+  | 'cancelled';
 
 export interface SupplierOrderItem {
   article: Article;
@@ -77,7 +83,6 @@ export interface SupplierOrderListDto {
 }
 
 export interface CommercialValuationConfig {
-  cifPercentage: number;           // Default: 50%
-  useCategoryDiscounts: boolean;   // Default: true
+  cifPercentage: number; // Default: 50%
+  useCategoryDiscounts: boolean; // Default: true
 }
-

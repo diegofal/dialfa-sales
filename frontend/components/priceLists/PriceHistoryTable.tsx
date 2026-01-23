@@ -1,18 +1,31 @@
 'use client';
 
-import { useState } from 'react';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Pagination } from '@/components/ui/pagination';
-import { usePriceHistory } from '@/lib/hooks/usePriceHistory';
-import { useRevertPrice, useUndoLastChange, useRevertBatch } from '@/lib/hooks/usePriceLists';
-import { TrendingUp, TrendingDown, Calendar, User, Undo2, RotateCcw } from 'lucide-react';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { TrendingUp, TrendingDown, Calendar, User, Undo2, RotateCcw } from 'lucide-react';
+import { useState } from 'react';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Pagination } from '@/components/ui/pagination';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { usePriceHistory } from '@/lib/hooks/usePriceHistory';
+import { useRevertPrice, useUndoLastChange, useRevertBatch } from '@/lib/hooks/usePriceLists';
 
 interface PriceHistoryTableProps {
   articleId?: number;
@@ -46,7 +59,11 @@ export function PriceHistoryTable({ articleId, categoryId }: PriceHistoryTablePr
   };
 
   const handleUndo = () => {
-    if (window.confirm('¿Deshacer el ÚLTIMO cambio realizado? Esto revertirá todos los artículos del lote más reciente.')) {
+    if (
+      window.confirm(
+        '¿Deshacer el ÚLTIMO cambio realizado? Esto revertirá todos los artículos del lote más reciente.'
+      )
+    ) {
       undoMutation.mutate();
     }
   };
@@ -59,7 +76,7 @@ export function PriceHistoryTable({ articleId, categoryId }: PriceHistoryTablePr
 
   // Obtener batches únicos en la página actual
   const uniqueBatches = data?.data
-    .filter(item => item.changeBatchId)
+    .filter((item) => item.changeBatchId)
     .reduce((acc, item) => {
       if (!acc.has(item.changeBatchId!)) {
         acc.set(item.changeBatchId!, {
@@ -86,7 +103,9 @@ export function PriceHistoryTable({ articleId, categoryId }: PriceHistoryTablePr
     return labels[type] || type;
   };
 
-  const getChangeTypeVariant = (type: string): 'default' | 'secondary' | 'outline' | 'destructive' => {
+  const getChangeTypeVariant = (
+    type: string
+  ): 'default' | 'secondary' | 'outline' | 'destructive' => {
     const variants: Record<string, 'default' | 'secondary' | 'outline' | 'destructive'> = {
       manual: 'default',
       csv_import: 'secondary',
@@ -99,7 +118,7 @@ export function PriceHistoryTable({ articleId, categoryId }: PriceHistoryTablePr
   return (
     <div className="space-y-4">
       {/* Action Buttons */}
-      <div className="flex justify-between items-center">
+      <div className="flex items-center justify-between">
         <div className="flex gap-2">
           <Button
             onClick={handleUndo}
@@ -107,14 +126,14 @@ export function PriceHistoryTable({ articleId, categoryId }: PriceHistoryTablePr
             variant="default"
             size="sm"
           >
-            <Undo2 className="h-4 w-4 mr-2" />
+            <Undo2 className="mr-2 h-4 w-4" />
             Deshacer Último Cambio
           </Button>
         </div>
-        
+
         {batchesInView.length > 0 && (
-          <div className="flex gap-2 items-center">
-            <span className="text-sm text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground text-sm">
               {batchesInView.length} lote(s) en pantalla
             </span>
           </div>
@@ -140,53 +159,43 @@ export function PriceHistoryTable({ articleId, categoryId }: PriceHistoryTablePr
         </div>
         <div>
           <Label>Fecha Desde</Label>
-          <Input
-            type="date"
-            value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
-          />
+          <Input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
         </div>
         <div>
           <Label>Fecha Hasta</Label>
-          <Input
-            type="date"
-            value={endDate}
-            onChange={(e) => setEndDate(e.target.value)}
-          />
+          <Input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
         </div>
       </div>
 
       {/* Stats */}
       {data && (
         <div className="flex gap-4 text-sm">
-          <Badge variant="secondary">
-            Total: {data.pagination.total} cambios
-          </Badge>
+          <Badge variant="secondary">Total: {data.pagination.total} cambios</Badge>
         </div>
       )}
 
       {/* Table */}
-      <div className="border rounded-lg overflow-hidden">
+      <div className="overflow-hidden rounded-lg border">
         {isLoading ? (
-          <div className="flex items-center justify-center h-48">
+          <div className="flex h-48 items-center justify-center">
             <p className="text-muted-foreground">Cargando historial...</p>
           </div>
         ) : data && data.data.length > 0 ? (
           <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-[100px]">Fecha</TableHead>
-                  <TableHead className="w-[120px]">Batch ID</TableHead>
-                  <TableHead className="w-[120px]">Código</TableHead>
-                  <TableHead>Descripción</TableHead>
-                  <TableHead className="text-right">Precio Anterior</TableHead>
-                  <TableHead className="text-right">Precio Nuevo</TableHead>
-                  <TableHead className="text-right">Cambio</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Usuario</TableHead>
-                  <TableHead className="w-[150px]">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
+            <TableHeader>
+              <TableRow>
+                <TableHead className="w-[100px]">Fecha</TableHead>
+                <TableHead className="w-[120px]">Batch ID</TableHead>
+                <TableHead className="w-[120px]">Código</TableHead>
+                <TableHead>Descripción</TableHead>
+                <TableHead className="text-right">Precio Anterior</TableHead>
+                <TableHead className="text-right">Precio Nuevo</TableHead>
+                <TableHead className="text-right">Cambio</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Usuario</TableHead>
+                <TableHead className="w-[150px]">Acciones</TableHead>
+              </TableRow>
+            </TableHeader>
             <TableBody>
               {data.data.map((item) => (
                 <TableRow key={item.id}>
@@ -202,11 +211,11 @@ export function PriceHistoryTable({ articleId, categoryId }: PriceHistoryTablePr
                   <TableCell className="text-xs">
                     {item.changeBatchId ? (
                       <div className="font-mono">
-                        <div className="truncate w-[110px]" title={item.changeBatchId}>
+                        <div className="w-[110px] truncate" title={item.changeBatchId}>
                           {item.changeBatchId.substring(0, 8)}...
                         </div>
                         {uniqueBatches?.has(item.changeBatchId) && (
-                          <Badge variant="outline" className="text-[9px] px-1 py-0 mt-1">
+                          <Badge variant="outline" className="mt-1 px-1 py-0 text-[9px]">
                             {uniqueBatches.get(item.changeBatchId)!.count} items
                           </Badge>
                         )}
@@ -215,15 +224,9 @@ export function PriceHistoryTable({ articleId, categoryId }: PriceHistoryTablePr
                       <span className="text-muted-foreground">-</span>
                     )}
                   </TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {item.articleCode}
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {item.articleDescription}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    ${item.oldPrice.toFixed(2)}
-                  </TableCell>
+                  <TableCell className="font-mono text-sm">{item.articleCode}</TableCell>
+                  <TableCell className="text-sm">{item.articleDescription}</TableCell>
+                  <TableCell className="text-right">${item.oldPrice.toFixed(2)}</TableCell>
                   <TableCell className="text-right font-medium">
                     ${item.newPrice.toFixed(2)}
                   </TableCell>
@@ -232,20 +235,20 @@ export function PriceHistoryTable({ articleId, categoryId }: PriceHistoryTablePr
                       {item.priceChange > 0 ? (
                         <>
                           <TrendingUp className="h-4 w-4 text-green-600" />
-                          <span className="text-green-600 font-medium">
+                          <span className="font-medium text-green-600">
                             +${item.priceChange.toFixed(2)}
                           </span>
                         </>
                       ) : (
                         <>
                           <TrendingDown className="h-4 w-4 text-red-600" />
-                          <span className="text-red-600 font-medium">
+                          <span className="font-medium text-red-600">
                             ${item.priceChange.toFixed(2)}
                           </span>
                         </>
                       )}
                     </div>
-                    <div className="text-xs text-muted-foreground text-right">
+                    <div className="text-muted-foreground text-right text-xs">
                       {item.priceChangePercent > 0 ? '+' : ''}
                       {item.priceChangePercent.toFixed(1)}%
                     </div>
@@ -276,7 +279,12 @@ export function PriceHistoryTable({ articleId, categoryId }: PriceHistoryTablePr
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => handleRevertBatch(item.changeBatchId!, uniqueBatches.get(item.changeBatchId!)!.count)}
+                          onClick={() =>
+                            handleRevertBatch(
+                              item.changeBatchId!,
+                              uniqueBatches.get(item.changeBatchId!)!.count
+                            )
+                          }
                           disabled={revertBatchMutation.isPending}
                           title="Revertir todo el lote"
                         >
@@ -290,7 +298,7 @@ export function PriceHistoryTable({ articleId, categoryId }: PriceHistoryTablePr
             </TableBody>
           </Table>
         ) : (
-          <div className="flex items-center justify-center h-48">
+          <div className="flex h-48 items-center justify-center">
             <p className="text-muted-foreground">No hay cambios registrados</p>
           </div>
         )}

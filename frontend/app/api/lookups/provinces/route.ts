@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { handleError } from '@/lib/errors';
 
 export async function GET() {
   try {
@@ -9,13 +10,6 @@ export async function GET() {
 
     return NextResponse.json(provinces);
   } catch (error) {
-    console.error('Error fetching provinces:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch provinces' },
-      { status: 500 }
-    );
+    return handleError(error);
   }
 }
-
-
-

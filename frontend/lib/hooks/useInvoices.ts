@@ -1,93 +1,58 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { invoicesApi } from '@/lib/api/invoices';
-import type { Invoice, InvoiceListDto, CreateInvoiceRequest, UpdateInvoiceRequest } from '@/types/invoice';
-import type { StockMovement } from '@/types/stockMovement';
-import { PagedResult, PaginationParams } from '@/types/pagination';
 import { toast } from 'sonner';
+import { invoicesApi } from '@/lib/api/invoices';
 import { getErrorMessage } from '@/lib/utils/errors';
+import type {
+  Invoice,
+  InvoiceListDto,
+  CreateInvoiceRequest,
+  UpdateInvoiceRequest,
+} from '@/types/invoice';
+import { PaginationParams } from '@/types/pagination';
+import type { StockMovement } from '@/types/stockMovement';
+import { createCRUDHooks } from './api/createCRUDHooks';
 
-export function useInvoices(
-  params: PaginationParams & {
-    clientId?: number;
-    fromDate?: string;
-    toDate?: string;
-    isPrinted?: boolean;
-    isCancelled?: boolean;
-    activeOnly?: boolean;
-  } = {}
-) {
-  return useQuery<PagedResult<InvoiceListDto>>({
-    queryKey: ['invoices', params],
-    queryFn: () => invoicesApi.getAll(params),
-  });
-}
+type InvoiceListParams = PaginationParams & {
+  clientId?: number;
+  fromDate?: string;
+  toDate?: string;
+  isPrinted?: boolean;
+  isCancelled?: boolean;
+  activeOnly?: boolean;
+};
 
-export function useInvoice(id: number) {
-  return useQuery<Invoice>({
-    queryKey: ['invoices', id],
-    queryFn: () => invoicesApi.getById(id),
-    enabled: !!id,
-  });
-}
+// Generate CRUD hooks using factory pattern
+const { useList, useById, useCreate, useUpdate, useDelete } = createCRUDHooks<
+  Invoice,
+  CreateInvoiceRequest,
+  UpdateInvoiceRequest,
+  InvoiceListParams
+>({
+  entityName: 'Factura',
+  api: invoicesApi,
+  queryKey: 'invoices',
+});
 
-export function useCreateInvoice() {
-  const queryClient = useQueryClient();
+// Export CRUD hooks with semantic names
+export {
+  useList as useInvoices,
+  useById as useInvoice,
+  useCreate as useCreateInvoice,
+  useUpdate as useUpdateInvoice,
+  useDelete as useDeleteInvoice,
+};
 
-  return useMutation({
-    mutationFn: (data: CreateInvoiceRequest) => invoicesApi.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      queryClient.invalidateQueries({ queryKey: ['sales-orders'] });
-      toast.success('Factura creada exitosamente');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
-    },
-  });
-}
-
-export function useUpdateInvoice() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ id, data }: { id: number; data: UpdateInvoiceRequest }) =>
-      invoicesApi.update(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      toast.success('Factura actualizada exitosamente');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
-    },
-  });
-}
+// Domain-specific hooks (non-CRUD operations)
 
 export function useCancelInvoice() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id }: { id: number }) =>
-      invoicesApi.cancel(id),
+    mutationFn: ({ id }: { id: number }) => invoicesApi.cancel(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['sales-orders'] });
       toast.success('Factura cancelada exitosamente');
-    },
-    onError: (error: unknown) => {
-      toast.error(getErrorMessage(error));
-    },
-  });
-}
-
-export function useDeleteInvoice() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (id: number) => invoicesApi.delete(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      queryClient.invalidateQueries({ queryKey: ['sales-orders'] });
-      toast.success('Factura eliminada exitosamente');
     },
     onError: (error: unknown) => {
       toast.error(getErrorMessage(error));
@@ -169,7 +134,13 @@ export function useUpdateInvoiceItems() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, items }: { id: number; items: Array<{ id: number; discountPercent: number }> }) =>
+    mutationFn: ({
+      id,
+      items,
+    }: {
+      id: number;
+      items: Array<{ id: number; discountPercent: number }>;
+    }) =>
       fetch(`/api/invoices/${id}/items`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -181,7 +152,7 @@ export function useUpdateInvoiceItems() {
         }
         return res.json();
       }),
-    onSuccess: (data, variables) => {
+    onSuccess: (_data, variables) => {
       // Invalidar las queries para forzar refetch
       queryClient.invalidateQueries({ queryKey: ['invoices', variables.id] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
@@ -192,5 +163,3 @@ export function useUpdateInvoiceItems() {
     },
   });
 }
-
-

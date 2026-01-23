@@ -7028,3 +7028,1520 @@ Ahora el parámetro **sí influye directamente en la clasificación visible**! �
 
 ---
 
+_**User (2025-12-29 03:06Z)**_
+
+arreglar los errores de npm run build
+
+---
+
+_**Agent (model claude-4.5-sonnet-thinking, mode Agent)**_
+
+<think><details><summary>Thought Process</summary>
+El usuario quiere que arregle los errores de `npm run build`. Necesito:
+1. Primero ver qué errores hay en el terminal
+2. Leer el archivo de terminal para ver los errores
+3. Corregirlos
+
+Déjame empezar leyendo el terminal para ver qué errores hay.</details></think>
+
+---
+
+Voy a revisar los errores del build:
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: c:\Users\User\.cursor\projects\d-dialfa-new-spisa-code-workspace\terminals\1.txt</summary>
+
+</details>
+</tool-use>
+
+---
+
+No veo errores de build en el terminal. Déjame ejecutar el build para ver qué errores hay:
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd "d:\dialfa new\spisa-new\frontend" && npm run build</summary>
+
+```bash
+cd "d:\dialfa new\spisa-new\frontend" && npm run build
+```
+
+```
+
+&gt; frontend@0.1.0 build
+&gt; next build --turbopack
+
+   ▲ Next.js 15.5.9 (Turbopack)
+   - Environments: .env
+
+   Creating an optimized production build ...
+ ⚠ Webpack is configured while Turbopack is not, which may cause problems.
+ ⚠ See instructions if you need to configure Turbopack:
+  https://nextjs.org/docs/app/api-reference/next-config-js/turbopack
+
+ ✓ Finished writing to disk in 246ms
+ ✓ Compiled successfully in 3.9s
+   Linting and checking validity of types ...
+Failed to compile.
+
+./app/api/clients/route.ts:96:13
+Type error: Property 'salesTrend' does not exist on type '{ id: number; code: string; businessName: string; cuit: string | null; taxConditionId: bigint; taxConditionName: string; address: string | null; city: string | null; postalCode: string | null; ... 11 more ...; updatedAt: Date; }'.
+
+[0m [90m 94 |[39m       [90m// Add trends if available[39m
+ [90m 95 |[39m       [36mif[39m (trendsData) {
+[31m[1m&gt;[22m[39m[90m 96 |[39m         dto[33m.[39msalesTrend [33m=[39m trendsData[33m.[39mdata[33m.[39m[36mget[39m(clientId) [33m||[39m [][33m;[39m
+ [90m    |[39m             [31m[1m^[22m[39m
+ [90m 97 |[39m         dto[33m.[39msalesTrendLabels [33m=[39m trendsData[33m.[39mlabels[33m;[39m
+ [90m 98 |[39m       }
+ [90m 99 |[39m[0m
+Next.js build worker exited with code: 1 and signal: null
+
+```
+</details>
+</tool-use>
+
+---
+
+Veo el error. El problema es que estoy asignando propiedades a un objeto tipado que no tiene esas propiedades definidas. Necesito revisar el código de la API de clientes:
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: d:\dialfa new\spisa-new\frontend\app\api\clients\route.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+El problema es que estoy intentando asignar propiedades directamente a un objeto inmutable. Necesito crear un nuevo objeto con las propiedades adicionales:
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: d:\dialfa new\spisa-new\frontend\app\api\clients\route.ts</summary>
+
+**Chunk 1**
+Lines added: 7, lines removed: 2
+
+```diff
+@@ -89,7 +89,12 @@
+      // Map to DTO format (snake_case to camelCase)
+      const mappedClients = clients.map((client) =&gt; {
+-       const dto = mapClientToDTO(client);
++       const baseDto = mapClientToDTO(client);
+        const clientId = client.id.toString();
+-       
++       
++       // Build enriched DTO with optional fields
++       const dto: ClientDto = {
++         ...baseDto,
++       };
++ 
+        // Add trends if available
+        if (trendsData) {
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="generic" data-tool-name="read_lints">
+<details>
+          <summary>Tool use: **read_lints** • Read lints for 1 file</summary>
+      
+Lint paths:
+
+- `d:\dialfa new\spisa-new\frontend\app\api\clients\route.ts`
+
+Lint results
+
+
+**No lint errors found**
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd "d:\dialfa new\spisa-new\frontend" && npm run build</summary>
+
+```bash
+cd "d:\dialfa new\spisa-new\frontend" && npm run build
+```
+
+```
+
+&gt; frontend@0.1.0 build
+&gt; next build --turbopack
+
+   ▲ Next.js 15.5.9 (Turbopack)
+   - Environments: .env
+
+   Creating an optimized production build ...
+ ⚠ Webpack is configured while Turbopack is not, which may cause problems.
+ ⚠ See instructions if you need to configure Turbopack:
+  https://nextjs.org/docs/app/api-reference/next-config-js/turbopack
+
+ ✓ Finished writing to disk in 164ms
+ ✓ Compiled successfully in 3.4s
+   Linting and checking validity of types ...
+Failed to compile.
+
+./app/api/clients/route.ts:95:18
+Type error: Cannot find name 'ClientDto'.
+
+[0m [90m 93 |[39m       
+ [90m 94 |[39m       [90m// Build enriched DTO with optional fields[39m
+[31m[1m&gt;[22m[39m[90m 95 |[39m       [36mconst[39m dto[33m:[39m [33mClientDto[39m [33m=[39m {
+ [90m    |[39m                  [31m[1m^[22m[39m
+ [90m 96 |[39m         [33m...[39mbaseDto[33m,[39m
+ [90m 97 |[39m       }[33m;[39m
+ [90m 98 |[39m[0m
+Next.js build worker exited with code: 1 and signal: null
+
+```
+</details>
+</tool-use>
+
+---
+
+Falta importar el tipo `ClientDto`. Déjame ver los imports:
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: d:\dialfa new\spisa-new\frontend\app\api\clients\route.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: d:\dialfa new\spisa-new\frontend\app\api\clients\route.ts</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -9,4 +9,5 @@
+  import { calculateClientSalesTrends } from '@/lib/services/clientSalesTrends';
+  import { calculateClientClassification } from '@/lib/services/clientClassification';
++ import type { ClientDto } from '@/types/api';
+  
+  export async function GET(request: NextRequest) {
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd "d:\dialfa new\spisa-new\frontend" && npm run build</summary>
+
+```bash
+cd "d:\dialfa new\spisa-new\frontend" && npm run build
+```
+
+```
+
+&gt; frontend@0.1.0 build
+&gt; next build --turbopack
+
+   ▲ Next.js 15.5.9 (Turbopack)
+   - Environments: .env
+
+   Creating an optimized production build ...
+ ⚠ Webpack is configured while Turbopack is not, which may cause problems.
+ ⚠ See instructions if you need to configure Turbopack:
+  https://nextjs.org/docs/app/api-reference/next-config-js/turbopack
+
+ ✓ Finished writing to disk in 165ms
+ ✓ Compiled successfully in 3.4s
+   Linting and checking validity of types ...
+Failed to compile.
+
+./app/api/clients/route.ts:96:13
+Type error: Property 'isActive' is missing in type '{ id: number; code: string; businessName: string; cuit: string | null; taxConditionId: bigint; taxConditionName: string; address: string | null; city: string | null; postalCode: string | null; ... 11 more ...; updatedAt: Date; }' but required in type 'ClientDto'.
+
+[0m [90m 94 |[39m       
+ [90m 95 |[39m       [90m// Build enriched DTO with optional fields[39m
+[31m[1m&gt;[22m[39m[90m 96 |[39m       [36mconst[39m dto[33m:[39m [33mClientDto[39m [33m=[39m {
+ [90m    |[39m             [31m[1m^[22m[39m
+ [90m 97 |[39m         [33m...[39mbaseDto[33m,[39m
+ [90m 98 |[39m       }[33m;[39m
+ [90m 99 |[39m[0m
+Next.js build worker exited with code: 1 and signal: null
+--: line 1: dump_bash_state: command not found
+
+```
+</details>
+</tool-use>
+
+---
+
+El problema es que `mapClientToDTO` no está retornando todas las propiedades requeridas por `ClientDto`. Déjame usar `Partial` o revisar el tipo:
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: d:\dialfa new\spisa-new\frontend\app\api\clients\route.ts</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -94,7 +94,7 @@
+        
+        // Build enriched DTO with optional fields
+-       const dto: ClientDto = {
++       const dto = {
+          ...baseDto,
+-       };
++       } as ClientDto;
+  
+        // Add trends if available
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd "d:\dialfa new\spisa-new\frontend" && npm run build</summary>
+
+```bash
+cd "d:\dialfa new\spisa-new\frontend" && npm run build
+```
+
+```
+
+&gt; frontend@0.1.0 build
+&gt; next build --turbopack
+
+   ▲ Next.js 15.5.9 (Turbopack)
+   - Environments: .env
+
+   Creating an optimized production build ...
+ ⚠ Webpack is configured while Turbopack is not, which may cause problems.
+ ⚠ See instructions if you need to configure Turbopack:
+  https://nextjs.org/docs/app/api-reference/next-config-js/turbopack
+
+ ✓ Finished writing to disk in 146ms
+ ✓ Compiled successfully in 3.5s
+   Linting and checking validity of types ...
+
+./app/api/dashboard/charts/route.ts
+6:10  Warning: 'NextRequest' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/dashboard/metrics/route.ts
+6:10  Warning: 'NextRequest' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/dashboard/articles/page.tsx
+5:50  Warning: 'ShoppingCart' is defined but never used.  @typescript-eslint/no-unused-vars
+71:6  Warning: React Hook useEffect has a missing dependency: 'currentTab'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+192:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/dashboard/certificates/page.tsx
+69:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/dashboard/delivery-notes/[id]/page.tsx
+115:9  Warning: 'handleDownloadPdf' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./app/dashboard/invoices/[id]/page.tsx
+21:10  Warning: 'toast' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/dashboard/sales-orders/[id]/edit/page.tsx
+3:20  Warning: 'useState' is defined but never used.  @typescript-eslint/no-unused-vars
+4:36  Warning: 'Truck' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/activity/ActivityLogsTable.tsx
+22:28  Warning: 'OPERATIONS' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/articles/ClientLookup.tsx
+29:9  Warning: The 'clients' logical expression could make the dependencies of useEffect Hook (at line 34) change on every render. To fix this, wrap the initialization of 'clients' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+
+./components/articles/QuickArticleLookup.tsx
+36:9  Warning: The 'articles' logical expression could make the dependencies of useEffect Hook (at line 54) change on every render. To fix this, wrap the initialization of 'articles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+36:9  Warning: The 'articles' logical expression could make the dependencies of useEffect Hook (at line 70) change on every render. To fix this, wrap the initialization of 'articles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+
+./components/articles/QuickCartPopup.tsx
+88:9  Warning: The 'editArticles' logical expression could make the dependencies of useEffect Hook (at line 297) change on every render. To fix this, wrap the initialization of 'editArticles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+129:9  Warning: The 'getCurrentDimensions' function makes the dependencies of useCallback Hook (at line 181) change on every render. To fix this, wrap the definition of 'getCurrentDimensions' in its own useCallback() Hook.  react-hooks/exhaustive-deps
+
+./components/articles/SupplierOrderPanel.tsx
+301:17  Warning: 'formatValue' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/articles/ValuationSummary.tsx
+4:24  Warning: 'TrendingUp' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/articles/ValuationTable.tsx
+12:10  Warning: 'Sparkline' is defined but never used.  @typescript-eslint/no-unused-vars
+47:44  Warning: 'trendMonths' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/certificates/CertificateViewerDialog.tsx
+139:21  Warning: Using &#96;&lt;img&gt;&#96; could result in slower LCP and higher bandwidth. Consider using &#96;&lt;Image /&gt;&#96; from &#96;next/image&#96; or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/clients/ClientClassificationFilters.tsx
+6:38  Warning: 'ClientStatus' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/deliveryNotes/DeliveryNotesTable.tsx
+3:32  Warning: 'FileText' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/layout/FacturasMenuItem.tsx
+30:28  Warning: 'activeTabId' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+31:22  Warning: 'setIsExpanded' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/layout/Navbar.tsx
+17:10  Warning: 'useQuickCartTabs' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/layout/PedidosMenuItem.tsx
+7:24  Warning: 'ChevronDown' is defined but never used.  @typescript-eslint/no-unused-vars
+7:37  Warning: 'ChevronRight' is defined but never used.  @typescript-eslint/no-unused-vars
+31:22  Warning: 'setIsExpanded' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/layout/RemitosMenuItem.tsx
+30:28  Warning: 'activeTabId' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+31:22  Warning: 'setIsExpanded' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/layout/Sidebar.tsx
+10:3  Warning: 'Package' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/salesOrders/SingleStepOrderForm.tsx
+41:11  Warning: 'OrderItemFormData' is defined but never used.  @typescript-eslint/no-unused-vars
+97:5  Warning: 'getTabItems' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+143:10  Warning: 'unsavedChangesAction' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+157:9  Warning: The 'articles' logical expression could make the dependencies of useEffect Hook (at line 294) change on every render. To fix this, wrap the initialization of 'articles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+157:9  Warning: The 'articles' logical expression could make the dependencies of useEffect Hook (at line 320) change on every render. To fix this, wrap the initialization of 'articles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+165:9  Warning: The 'editArticles' logical expression could make the dependencies of useEffect Hook (at line 298) change on every render. To fix this, wrap the initialization of 'editArticles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+170:9  Warning: The 'items' conditional could make the dependencies of useEffect Hook (at line 195) change on every render. To fix this, wrap the initialization of 'items' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+581:9  Warning: 'handleUpdateUnitPrice' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/supplierOrders/ImportPreviewDialog.tsx
+22:24  Warning: 'MatchedArticle' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/ui/sparkline.tsx
+123:9  Warning: 'height' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./lib/api/suppliers.ts
+1:10  Warning: 'Supplier' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./lib/auth/jwt.ts
+7:7  Warning: 'JWT_EXPIRATION_MINUTES' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./lib/hooks/useFeedback.ts
+47:6  Warning: React Hook useEffect has a missing dependency: 'fetchFeedbacks'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./lib/hooks/useSalesOrderPermissions.ts
+31:6  Warning: React Hook useMemo has a missing dependency: 'salesOrder'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+Failed to compile.
+
+./app/api/clients/route.ts:96:19
+Type error: Conversion of type '{ id: number; code: string; businessName: string; cuit: string | null; taxConditionId: bigint; taxConditionName: string; address: string | null; city: string | null; postalCode: string | null; ... 11 more ...; updatedAt: Date; }' to type 'ClientDto' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Property 'isActive' is missing in type '{ id: number; code: string; businessName: string; cuit: string | null; taxConditionId: bigint; taxConditionName: string; address: string | null; city: string | null; postalCode: string | null; ... 11 more ...; updatedAt: Date; }' but required in type 'ClientDto'.
+
+[0m [90m 94 |[39m       
+ [90m 95 |[39m       [90m// Build enriched DTO with optional fields[39m
+[31m[1m&gt;[22m[39m[90m 96 |[39m       [36mconst[39m dto [33m=[39m {
+ [90m    |[39m                   [31m[1m^[22m[39m
+ [90m 97 |[39m         [33m...[39mbaseDto[33m,[39m
+ [90m 98 |[39m       } [36mas[39m [33mClientDto[39m[33m;[39m
+ [90m 99 |[39m[0m
+Next.js build worker exited with code: 1 and signal: null
+--: line 1: dump_bash_state: command not found
+
+```
+</details>
+</tool-use>
+
+---
+
+El problema es que `mapClientToDTO` no está retornando `isActive`. Déjame revisar el mapper y el tipo `ClientDto`:
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "export interface ClientDto" in "d:\dialfa new\spisa-new\frontend\types" • 1 match</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `frontend/types\api.ts` | `export interface ClientDto \{` | L18 |
+
+
+</details>
+</tool-use>
+
+---
+
+Ahora veo el problema - `isActive` es requerido en `ClientDto`. Déjame revisar el mapper:
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "export function mapClientToDTO" in "d:\dialfa new\spisa-new\frontend\lib\utils" • 1 match</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `frontend/lib/utils\mapper.ts` | `export function mapClientToDTO(client: unknown) \{` | L65 |
+
+
+</details>
+</tool-use>
+
+---
+
+Ahí está el problema - el mapper no está incluyendo `isActive`. Déjame agregarlo:
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: d:\dialfa new\spisa-new\frontend\lib\utils\mapper.ts</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: undefined
+
+```diff
+@@ -90,4 +90,5 @@
+      creditLimit: c.credit_limit ? parseFloat(String(c.credit_limit)) : null,
+      sellerId: c.seller_id as bigint | null,
++     isActive: c.is_active !== undefined ? Boolean(c.is_active) : true,
+      createdAt: c.created_at as Date,
+      updatedAt: c.updated_at as Date,
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd "d:\dialfa new\spisa-new\frontend" && npm run build</summary>
+
+```bash
+cd "d:\dialfa new\spisa-new\frontend" && npm run build
+```
+
+```
+
+&gt; frontend@0.1.0 build
+&gt; next build --turbopack
+
+   ▲ Next.js 15.5.9 (Turbopack)
+   - Environments: .env
+
+   Creating an optimized production build ...
+ ⚠ Webpack is configured while Turbopack is not, which may cause problems.
+ ⚠ See instructions if you need to configure Turbopack:
+  https://nextjs.org/docs/app/api-reference/next-config-js/turbopack
+
+ ✓ Finished writing to disk in 159ms
+ ✓ Compiled successfully in 3.4s
+   Linting and checking validity of types ...
+
+./app/api/dashboard/charts/route.ts
+6:10  Warning: 'NextRequest' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/dashboard/metrics/route.ts
+6:10  Warning: 'NextRequest' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/dashboard/articles/page.tsx
+5:50  Warning: 'ShoppingCart' is defined but never used.  @typescript-eslint/no-unused-vars
+71:6  Warning: React Hook useEffect has a missing dependency: 'currentTab'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+192:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/dashboard/certificates/page.tsx
+69:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/dashboard/delivery-notes/[id]/page.tsx
+115:9  Warning: 'handleDownloadPdf' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./app/dashboard/invoices/[id]/page.tsx
+21:10  Warning: 'toast' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/dashboard/sales-orders/[id]/edit/page.tsx
+3:20  Warning: 'useState' is defined but never used.  @typescript-eslint/no-unused-vars
+4:36  Warning: 'Truck' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/activity/ActivityLogsTable.tsx
+22:28  Warning: 'OPERATIONS' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/articles/ClientLookup.tsx
+29:9  Warning: The 'clients' logical expression could make the dependencies of useEffect Hook (at line 34) change on every render. To fix this, wrap the initialization of 'clients' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+
+./components/articles/QuickArticleLookup.tsx
+36:9  Warning: The 'articles' logical expression could make the dependencies of useEffect Hook (at line 54) change on every render. To fix this, wrap the initialization of 'articles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+36:9  Warning: The 'articles' logical expression could make the dependencies of useEffect Hook (at line 70) change on every render. To fix this, wrap the initialization of 'articles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+
+./components/articles/QuickCartPopup.tsx
+88:9  Warning: The 'editArticles' logical expression could make the dependencies of useEffect Hook (at line 297) change on every render. To fix this, wrap the initialization of 'editArticles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+129:9  Warning: The 'getCurrentDimensions' function makes the dependencies of useCallback Hook (at line 181) change on every render. To fix this, wrap the definition of 'getCurrentDimensions' in its own useCallback() Hook.  react-hooks/exhaustive-deps
+
+./components/articles/SupplierOrderPanel.tsx
+301:17  Warning: 'formatValue' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/articles/ValuationSummary.tsx
+4:24  Warning: 'TrendingUp' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/articles/ValuationTable.tsx
+12:10  Warning: 'Sparkline' is defined but never used.  @typescript-eslint/no-unused-vars
+47:44  Warning: 'trendMonths' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/certificates/CertificateViewerDialog.tsx
+139:21  Warning: Using &#96;&lt;img&gt;&#96; could result in slower LCP and higher bandwidth. Consider using &#96;&lt;Image /&gt;&#96; from &#96;next/image&#96; or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/clients/ClientClassificationFilters.tsx
+6:38  Warning: 'ClientStatus' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/deliveryNotes/DeliveryNotesTable.tsx
+3:32  Warning: 'FileText' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/layout/FacturasMenuItem.tsx
+30:28  Warning: 'activeTabId' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+31:22  Warning: 'setIsExpanded' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/layout/Navbar.tsx
+17:10  Warning: 'useQuickCartTabs' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/layout/PedidosMenuItem.tsx
+7:24  Warning: 'ChevronDown' is defined but never used.  @typescript-eslint/no-unused-vars
+7:37  Warning: 'ChevronRight' is defined but never used.  @typescript-eslint/no-unused-vars
+31:22  Warning: 'setIsExpanded' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/layout/RemitosMenuItem.tsx
+30:28  Warning: 'activeTabId' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+31:22  Warning: 'setIsExpanded' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/layout/Sidebar.tsx
+10:3  Warning: 'Package' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/salesOrders/SingleStepOrderForm.tsx
+41:11  Warning: 'OrderItemFormData' is defined but never used.  @typescript-eslint/no-unused-vars
+97:5  Warning: 'getTabItems' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+143:10  Warning: 'unsavedChangesAction' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+157:9  Warning: The 'articles' logical expression could make the dependencies of useEffect Hook (at line 294) change on every render. To fix this, wrap the initialization of 'articles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+157:9  Warning: The 'articles' logical expression could make the dependencies of useEffect Hook (at line 320) change on every render. To fix this, wrap the initialization of 'articles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+165:9  Warning: The 'editArticles' logical expression could make the dependencies of useEffect Hook (at line 298) change on every render. To fix this, wrap the initialization of 'editArticles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+170:9  Warning: The 'items' conditional could make the dependencies of useEffect Hook (at line 195) change on every render. To fix this, wrap the initialization of 'items' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+581:9  Warning: 'handleUpdateUnitPrice' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/supplierOrders/ImportPreviewDialog.tsx
+22:24  Warning: 'MatchedArticle' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/ui/sparkline.tsx
+123:9  Warning: 'height' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./lib/api/suppliers.ts
+1:10  Warning: 'Supplier' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./lib/auth/jwt.ts
+7:7  Warning: 'JWT_EXPIRATION_MINUTES' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./lib/hooks/useFeedback.ts
+47:6  Warning: React Hook useEffect has a missing dependency: 'fetchFeedbacks'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./lib/hooks/useSalesOrderPermissions.ts
+31:6  Warning: React Hook useMemo has a missing dependency: 'salesOrder'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+Failed to compile.
+
+./app/api/clients/route.ts:96:19
+Type error: Conversion of type '{ id: number; code: string; businessName: string; cuit: string | null; taxConditionId: bigint; taxConditionName: string; address: string | null; city: string | null; postalCode: string | null; ... 12 more ...; updatedAt: Date; }' to type 'ClientDto' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'createdAt' are incompatible.
+    Type 'Date' is not comparable to type 'string'.
+
+[0m [90m 94 |[39m       
+ [90m 95 |[39m       [90m// Build enriched DTO with optional fields[39m
+[31m[1m&gt;[22m[39m[90m 96 |[39m       [36mconst[39m dto [33m=[39m {
+ [90m    |[39m                   [31m[1m^[22m[39m
+ [90m 97 |[39m         [33m...[39mbaseDto[33m,[39m
+ [90m 98 |[39m       } [36mas[39m [33mClientDto[39m[33m;[39m
+ [90m 99 |[39m[0m
+Next.js build worker exited with code: 1 and signal: null
+--: line 1: dump_bash_state: command not found
+
+```
+</details>
+</tool-use>
+
+---
+
+El problema ahora es que `createdAt` y `updatedAt` son `Date` pero `ClientDto` espera `string`. Necesito convertirlos:
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: d:\dialfa new\spisa-new\frontend\lib\utils\mapper.ts</summary>
+
+**Chunk 1**
+Lines added: 2, lines removed: 2
+
+```diff
+@@ -91,6 +91,6 @@
+      sellerId: c.seller_id as bigint | null,
+      isActive: c.is_active !== undefined ? Boolean(c.is_active) : true,
+-     createdAt: c.created_at as Date,
+-     updatedAt: c.updated_at as Date,
++     createdAt: (c.created_at as Date).toISOString(),
++     updatedAt: (c.updated_at as Date).toISOString(),
+    };
+  }
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd "d:\dialfa new\spisa-new\frontend" && npm run build</summary>
+
+```bash
+cd "d:\dialfa new\spisa-new\frontend" && npm run build
+```
+
+```
+
+&gt; frontend@0.1.0 build
+&gt; next build --turbopack
+
+   ▲ Next.js 15.5.9 (Turbopack)
+   - Environments: .env
+
+   Creating an optimized production build ...
+ ⚠ Webpack is configured while Turbopack is not, which may cause problems.
+ ⚠ See instructions if you need to configure Turbopack:
+  https://nextjs.org/docs/app/api-reference/next-config-js/turbopack
+
+ ✓ Finished writing to disk in 150ms
+ ✓ Compiled successfully in 3.5s
+   Linting and checking validity of types ...
+
+./app/api/dashboard/charts/route.ts
+6:10  Warning: 'NextRequest' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/dashboard/metrics/route.ts
+6:10  Warning: 'NextRequest' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/dashboard/articles/page.tsx
+5:50  Warning: 'ShoppingCart' is defined but never used.  @typescript-eslint/no-unused-vars
+71:6  Warning: React Hook useEffect has a missing dependency: 'currentTab'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+192:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/dashboard/certificates/page.tsx
+69:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/dashboard/delivery-notes/[id]/page.tsx
+115:9  Warning: 'handleDownloadPdf' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./app/dashboard/invoices/[id]/page.tsx
+21:10  Warning: 'toast' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/dashboard/sales-orders/[id]/edit/page.tsx
+3:20  Warning: 'useState' is defined but never used.  @typescript-eslint/no-unused-vars
+4:36  Warning: 'Truck' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/activity/ActivityLogsTable.tsx
+22:28  Warning: 'OPERATIONS' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/articles/ClientLookup.tsx
+29:9  Warning: The 'clients' logical expression could make the dependencies of useEffect Hook (at line 34) change on every render. To fix this, wrap the initialization of 'clients' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+
+./components/articles/QuickArticleLookup.tsx
+36:9  Warning: The 'articles' logical expression could make the dependencies of useEffect Hook (at line 54) change on every render. To fix this, wrap the initialization of 'articles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+36:9  Warning: The 'articles' logical expression could make the dependencies of useEffect Hook (at line 70) change on every render. To fix this, wrap the initialization of 'articles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+
+./components/articles/QuickCartPopup.tsx
+88:9  Warning: The 'editArticles' logical expression could make the dependencies of useEffect Hook (at line 297) change on every render. To fix this, wrap the initialization of 'editArticles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+129:9  Warning: The 'getCurrentDimensions' function makes the dependencies of useCallback Hook (at line 181) change on every render. To fix this, wrap the definition of 'getCurrentDimensions' in its own useCallback() Hook.  react-hooks/exhaustive-deps
+
+./components/articles/SupplierOrderPanel.tsx
+301:17  Warning: 'formatValue' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/articles/ValuationSummary.tsx
+4:24  Warning: 'TrendingUp' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/articles/ValuationTable.tsx
+12:10  Warning: 'Sparkline' is defined but never used.  @typescript-eslint/no-unused-vars
+47:44  Warning: 'trendMonths' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/certificates/CertificateViewerDialog.tsx
+139:21  Warning: Using &#96;&lt;img&gt;&#96; could result in slower LCP and higher bandwidth. Consider using &#96;&lt;Image /&gt;&#96; from &#96;next/image&#96; or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/clients/ClientClassificationFilters.tsx
+6:38  Warning: 'ClientStatus' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/deliveryNotes/DeliveryNotesTable.tsx
+3:32  Warning: 'FileText' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/layout/FacturasMenuItem.tsx
+30:28  Warning: 'activeTabId' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+31:22  Warning: 'setIsExpanded' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/layout/Navbar.tsx
+17:10  Warning: 'useQuickCartTabs' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/layout/PedidosMenuItem.tsx
+7:24  Warning: 'ChevronDown' is defined but never used.  @typescript-eslint/no-unused-vars
+7:37  Warning: 'ChevronRight' is defined but never used.  @typescript-eslint/no-unused-vars
+31:22  Warning: 'setIsExpanded' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/layout/RemitosMenuItem.tsx
+30:28  Warning: 'activeTabId' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+31:22  Warning: 'setIsExpanded' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/layout/Sidebar.tsx
+10:3  Warning: 'Package' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/salesOrders/SingleStepOrderForm.tsx
+41:11  Warning: 'OrderItemFormData' is defined but never used.  @typescript-eslint/no-unused-vars
+97:5  Warning: 'getTabItems' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+143:10  Warning: 'unsavedChangesAction' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+157:9  Warning: The 'articles' logical expression could make the dependencies of useEffect Hook (at line 294) change on every render. To fix this, wrap the initialization of 'articles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+157:9  Warning: The 'articles' logical expression could make the dependencies of useEffect Hook (at line 320) change on every render. To fix this, wrap the initialization of 'articles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+165:9  Warning: The 'editArticles' logical expression could make the dependencies of useEffect Hook (at line 298) change on every render. To fix this, wrap the initialization of 'editArticles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+170:9  Warning: The 'items' conditional could make the dependencies of useEffect Hook (at line 195) change on every render. To fix this, wrap the initialization of 'items' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+581:9  Warning: 'handleUpdateUnitPrice' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/supplierOrders/ImportPreviewDialog.tsx
+22:24  Warning: 'MatchedArticle' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/ui/sparkline.tsx
+123:9  Warning: 'height' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./lib/api/suppliers.ts
+1:10  Warning: 'Supplier' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./lib/auth/jwt.ts
+7:7  Warning: 'JWT_EXPIRATION_MINUTES' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./lib/hooks/useFeedback.ts
+47:6  Warning: React Hook useEffect has a missing dependency: 'fetchFeedbacks'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./lib/hooks/useSalesOrderPermissions.ts
+31:6  Warning: React Hook useMemo has a missing dependency: 'salesOrder'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+Failed to compile.
+
+./app/dashboard/clients/page.tsx:46:5
+Type error: Object literal may only specify known properties, and 'includeTrends' does not exist in type 'PaginationParams'.
+
+[0m [90m 44 |[39m     sortDescending[33m:[39m pagination[33m.[39msortDescending[33m,[39m
+ [90m 45 |[39m     searchTerm[33m,[39m
+[31m[1m&gt;[22m[39m[90m 46 |[39m     includeTrends[33m:[39m [36mtrue[39m[33m,[39m
+ [90m    |[39m     [31m[1m^[22m[39m
+ [90m 47 |[39m     trendMonths[33m,[39m
+ [90m 48 |[39m     includeClassification[33m:[39m [36mtrue[39m[33m,[39m
+ [90m 49 |[39m     classificationStatus[33m:[39m selectedClassification [33m!==[39m [32m'all'[39m [33m?[39m selectedClassification [33m:[39m undefined[33m,[39m[0m
+Next.js build worker exited with code: 1 and signal: null
+--: line 1: dump_bash_state: command not found
+
+```
+</details>
+</tool-use>
+
+---
+
+Ahora el error está en `useClients` - necesito revisar ese hook:
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: d:\dialfa new\spisa-new\frontend\lib\hooks\useClients.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+El problema es que `useClients` recibe `PaginationParams` pero estamos pasando parámetros adicionales. Necesito extender el tipo o pasarlo como `any`. Déjame revisar cómo está definido en otros lugares similares:
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "export const useClients" in "d:\dialfa new\spisa-new\frontend" • 1 match</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `frontend\lib\hooks\useClients.ts` | `export const useClients = (params: PaginationParams = \{}) => \{` | L7 |
+
+
+</details>
+</tool-use>
+
+---
+
+Necesito cambiar el tipo de `params` para aceptar los parámetros adicionales. Déjame crear un nuevo tipo o usar `any`:
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: d:\dialfa new\spisa-new\frontend\lib\hooks\useClients.ts</summary>
+
+**Chunk 1**
+Lines added: 10, lines removed: 2
+
+```diff
+@@ -5,8 +5,16 @@
+  import { toast } from 'sonner';
+  
+- export const useClients = (params: PaginationParams = {}) =&gt; {
++ interface ClientsQueryParams extends PaginationParams {
++   includeTrends?: boolean;
++   trendMonths?: number;
++   includeClassification?: boolean;
++   classificationStatus?: string;
++   classificationConfig?: Record&lt;string, number&gt;;
++ }
++ 
++ export const useClients = (params: ClientsQueryParams = {}) =&gt; {
+    return useQuery({
+      queryKey: ['clients', params],
+-     queryFn: () =&gt; clientsApi.getAll(params),
++     queryFn: () =&gt; clientsApi.getAll(params as any),
+    });
+  };
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd "d:\dialfa new\spisa-new\frontend" && npm run build 2>&1 | tail -50</summary>
+
+```bash
+cd "d:\dialfa new\spisa-new\frontend" && npm run build 2>&1 | tail -50
+```
+
+```
+30:28  Warning: 'activeTabId' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+31:22  Warning: 'setIsExpanded' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/layout/Navbar.tsx
+17:10  Warning: 'useQuickCartTabs' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/layout/PedidosMenuItem.tsx
+7:24  Warning: 'ChevronDown' is defined but never used.  @typescript-eslint/no-unused-vars
+7:37  Warning: 'ChevronRight' is defined but never used.  @typescript-eslint/no-unused-vars
+31:22  Warning: 'setIsExpanded' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/layout/RemitosMenuItem.tsx
+30:28  Warning: 'activeTabId' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+31:22  Warning: 'setIsExpanded' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/layout/Sidebar.tsx
+10:3  Warning: 'Package' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/salesOrders/SingleStepOrderForm.tsx
+41:11  Warning: 'OrderItemFormData' is defined but never used.  @typescript-eslint/no-unused-vars
+97:5  Warning: 'getTabItems' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+143:10  Warning: 'unsavedChangesAction' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+157:9  Warning: The 'articles' logical expression could make the dependencies of useEffect Hook (at line 294) change on every render. To fix this, wrap the initialization of 'articles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+157:9  Warning: The 'articles' logical expression could make the dependencies of useEffect Hook (at line 320) change on every render. To fix this, wrap the initialization of 'articles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+165:9  Warning: The 'editArticles' logical expression could make the dependencies of useEffect Hook (at line 298) change on every render. To fix this, wrap the initialization of 'editArticles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+170:9  Warning: The 'items' conditional could make the dependencies of useEffect Hook (at line 195) change on every render. To fix this, wrap the initialization of 'items' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+581:9  Warning: 'handleUpdateUnitPrice' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/supplierOrders/ImportPreviewDialog.tsx
+22:24  Warning: 'MatchedArticle' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/ui/sparkline.tsx
+123:9  Warning: 'height' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./lib/api/suppliers.ts
+1:10  Warning: 'Supplier' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./lib/auth/jwt.ts
+7:7  Warning: 'JWT_EXPIRATION_MINUTES' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./lib/hooks/useClients.ts
+18:48  Error: Unexpected any. Specify a different type.  @typescript-eslint/no-explicit-any
+
+./lib/hooks/useFeedback.ts
+47:6  Warning: React Hook useEffect has a missing dependency: 'fetchFeedbacks'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./lib/hooks/useSalesOrderPermissions.ts
+31:6  Warning: React Hook useMemo has a missing dependency: 'salesOrder'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+--: line 1: dump_bash_state: command not found
+
+```
+</details>
+</tool-use>
+
+---
+
+Hay un warning sobre `any`. Déjame verificar el tipo en `clientsApi.getAll`:
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "getAll.*PaginationParams" in "d:\dialfa new\spisa-new\frontend\lib\api" • 5 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `frontend/lib/api\clients.ts` | `getAll: async (params: PaginationParams & \{` | L6 |
+| `frontend/lib/api\articles.ts` | `getAll: async (params: PaginationParams & \{` | L6 |
+| `frontend/lib/api\deliveryNotes.ts` | `getAll: async (params: PaginationParams & \{` | L11 |
+| `frontend/lib/api\salesOrders.ts` | `getAll: async (params: PaginationParams & \{` | L15 |
+| `frontend/lib/api\categories.ts` | `getAll: async (params: PaginationParams & \{ activeOnly?: boolean \} = \{}): Promise<PagedResult<Category>> => \{` | L6 |
+
+
+</details>
+</tool-use>
+
+---
+
+Perfecto, ya está definido correctamente en `clients.ts`. Solo necesito quitar el `as any`:
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: d:\dialfa new\spisa-new\frontend\lib\hooks\useClients.ts</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -16,5 +16,5 @@
+    return useQuery({
+      queryKey: ['clients', params],
+-     queryFn: () =&gt; clientsApi.getAll(params as any),
++     queryFn: () =&gt; clientsApi.getAll(params),
+    });
+  };
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd "d:\dialfa new\spisa-new\frontend" && npm run build 2>&1 | grep -A5 "Failed to compile\|Compiled successfully"</summary>
+
+```bash
+cd "d:\dialfa new\spisa-new\frontend" && npm run build 2>&1 | grep -A5 "Failed to compile\|Compiled successfully"
+```
+
+```
+ ✓ Compiled successfully in 3.4s
+   Linting and checking validity of types ...
+
+./app/api/dashboard/charts/route.ts
+6:10  Warning: 'NextRequest' is defined but never used.  @typescript-eslint/no-unused-vars
+
+--
+Failed to compile.
+
+./lib/hooks/useClientClassification.ts:14:32
+Type error: Property 'minPurchasesForActive' does not exist on type 'Partial&lt;ClientClassificationConfig&gt;'.
+
+[0m [90m 12 |[39m           slowThreshold[33m:[39m config[33m.[39mslowMovingThresholdDays[33m,[39m
+--: line 1: dump_bash_state: command not found
+
+```
+</details>
+</tool-use>
+
+---
+
+Ahora el error está en `useClientClassification`. Necesito actualizar ese hook:
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: d:\dialfa new\spisa-new\frontend\lib\hooks\useClientClassification.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: d:\dialfa new\spisa-new\frontend\lib\hooks\useClientClassification.ts</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -12,5 +12,5 @@
+            slowThreshold: config.slowMovingThresholdDays,
+            inactiveThreshold: config.inactiveThresholdDays,
+-           minPurchases: config.minPurchasesForActive,
++           minPurchasesPerMonth: config.minPurchasesPerMonth,
+            trendMonths: config.trendMonths,
+          },
+```
+
+</details>
+
+</tool-use>
+
+---
+
+Ahora también necesito actualizar el API endpoint:
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: d:\dialfa new\spisa-new\frontend\app\api\clients\classification\route.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: d:\dialfa new\spisa-new\frontend\app\api\clients\classification\route.ts</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -19,5 +19,5 @@
+        slowMovingThresholdDays: parseInt(searchParams.get('slowThreshold') || '180'),
+        inactiveThresholdDays: parseInt(searchParams.get('inactiveThreshold') || '365'),
+-       minPurchasesForActive: parseInt(searchParams.get('minPurchases') || '3'),
++       minPurchasesPerMonth: parseInt(searchParams.get('minPurchasesPerMonth') || '1'),
+        trendMonths: parseInt(searchParams.get('trendMonths') || '12'),
+      };
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd "d:\dialfa new\spisa-new\frontend" && npm run build 2>&1 | grep -A5 "Failed to compile\|Compiled successfully"</summary>
+
+```bash
+cd "d:\dialfa new\spisa-new\frontend" && npm run build 2>&1 | grep -A5 "Failed to compile\|Compiled successfully"
+```
+
+```
+ ✓ Compiled successfully in 3.1s
+   Linting and checking validity of types ...
+
+./app/api/dashboard/charts/route.ts
+6:10  Warning: 'NextRequest' is defined but never used.  @typescript-eslint/no-unused-vars
+
+--
+Failed to compile.
+
+./lib/services/clientClassification.ts:178:5
+Type error: Type 'Date' is not assignable to type 'number'.
+
+[0m [90m 176 |[39m     [90m// 10. Actualizar caché[39m
+--: line 1: dump_bash_state: command not found
+
+```
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: d:\dialfa new\spisa-new\frontend\lib\services\clientClassification.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: d:\dialfa new\spisa-new\frontend\lib\services\clientClassification.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+El `now` ya es un número (`Date.now()`), así que está correcto. El problema podría ser que TypeScript infiere mal. Déjame ver la definición del caché:
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: d:\dialfa new\spisa-new\frontend\lib\services\clientClassification.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+El caché está bien definido. El problema debe estar en el line 178. Déjame ver exactamente qué línea es:
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd "d:\dialfa new\spisa-new\frontend" && npx tsc --noEmit 2>&1 | grep "clientClassification.ts:178"</summary>
+
+```bash
+cd "d:\dialfa new\spisa-new\frontend" && npx tsc --noEmit 2>&1 | grep "clientClassification.ts:178"
+```
+
+```
+--: line 1: dump_bash_state: command not found
+
+```
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd "d:\dialfa new\spisa-new\frontend" && npm run build 2>&1 | grep -B2 -A2 "clientClassification.ts:178"</summary>
+
+```bash
+cd "d:\dialfa new\spisa-new\frontend" && npm run build 2>&1 | grep -B2 -A2 "clientClassification.ts:178"
+```
+
+```
+Failed to compile.
+
+./lib/services/clientClassification.ts:178:5
+Type error: Type 'Date' is not assignable to type 'number'.
+
+--: line 1: dump_bash_state: command not found
+
+```
+</details>
+</tool-use>
+
+---
+
+Déjame leer más cuidadosamente las líneas alrededor de la 178:
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: d:\dialfa new\spisa-new\frontend\lib\services\clientClassification.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+La línea 178 es correcta (`now` es un número). El error debe venir de otro lado. Déjame hacer el build completo y ver el error real:
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd "d:\dialfa new\spisa-new\frontend" && npm run build</summary>
+
+```bash
+cd "d:\dialfa new\spisa-new\frontend" && npm run build
+```
+
+```
+
+&gt; frontend@0.1.0 build
+&gt; next build --turbopack
+
+   ▲ Next.js 15.5.9 (Turbopack)
+   - Environments: .env
+
+   Creating an optimized production build ...
+ ⚠ Webpack is configured while Turbopack is not, which may cause problems.
+ ⚠ See instructions if you need to configure Turbopack:
+  https://nextjs.org/docs/app/api-reference/next-config-js/turbopack
+
+ ✓ Finished writing to disk in 157ms
+ ✓ Compiled successfully in 3.1s
+   Linting and checking validity of types ...
+
+./app/api/dashboard/charts/route.ts
+6:10  Warning: 'NextRequest' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/api/dashboard/metrics/route.ts
+6:10  Warning: 'NextRequest' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/dashboard/articles/page.tsx
+5:50  Warning: 'ShoppingCart' is defined but never used.  @typescript-eslint/no-unused-vars
+71:6  Warning: React Hook useEffect has a missing dependency: 'currentTab'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+192:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/dashboard/certificates/page.tsx
+69:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/dashboard/delivery-notes/[id]/page.tsx
+115:9  Warning: 'handleDownloadPdf' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./app/dashboard/invoices/[id]/page.tsx
+21:10  Warning: 'toast' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./app/dashboard/sales-orders/[id]/edit/page.tsx
+3:20  Warning: 'useState' is defined but never used.  @typescript-eslint/no-unused-vars
+4:36  Warning: 'Truck' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/activity/ActivityLogsTable.tsx
+22:28  Warning: 'OPERATIONS' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/articles/ClientLookup.tsx
+29:9  Warning: The 'clients' logical expression could make the dependencies of useEffect Hook (at line 34) change on every render. To fix this, wrap the initialization of 'clients' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+
+./components/articles/QuickArticleLookup.tsx
+36:9  Warning: The 'articles' logical expression could make the dependencies of useEffect Hook (at line 54) change on every render. To fix this, wrap the initialization of 'articles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+36:9  Warning: The 'articles' logical expression could make the dependencies of useEffect Hook (at line 70) change on every render. To fix this, wrap the initialization of 'articles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+
+./components/articles/QuickCartPopup.tsx
+88:9  Warning: The 'editArticles' logical expression could make the dependencies of useEffect Hook (at line 297) change on every render. To fix this, wrap the initialization of 'editArticles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+129:9  Warning: The 'getCurrentDimensions' function makes the dependencies of useCallback Hook (at line 181) change on every render. To fix this, wrap the definition of 'getCurrentDimensions' in its own useCallback() Hook.  react-hooks/exhaustive-deps
+
+./components/articles/SupplierOrderPanel.tsx
+301:17  Warning: 'formatValue' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/articles/ValuationSummary.tsx
+4:24  Warning: 'TrendingUp' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/articles/ValuationTable.tsx
+12:10  Warning: 'Sparkline' is defined but never used.  @typescript-eslint/no-unused-vars
+47:44  Warning: 'trendMonths' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/certificates/CertificateViewerDialog.tsx
+139:21  Warning: Using &#96;&lt;img&gt;&#96; could result in slower LCP and higher bandwidth. Consider using &#96;&lt;Image /&gt;&#96; from &#96;next/image&#96; or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./components/clients/ClientClassificationFilters.tsx
+6:38  Warning: 'ClientStatus' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/deliveryNotes/DeliveryNotesTable.tsx
+3:32  Warning: 'FileText' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/layout/FacturasMenuItem.tsx
+30:28  Warning: 'activeTabId' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+31:22  Warning: 'setIsExpanded' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/layout/Navbar.tsx
+17:10  Warning: 'useQuickCartTabs' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/layout/PedidosMenuItem.tsx
+7:24  Warning: 'ChevronDown' is defined but never used.  @typescript-eslint/no-unused-vars
+7:37  Warning: 'ChevronRight' is defined but never used.  @typescript-eslint/no-unused-vars
+31:22  Warning: 'setIsExpanded' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/layout/RemitosMenuItem.tsx
+30:28  Warning: 'activeTabId' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+31:22  Warning: 'setIsExpanded' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/layout/Sidebar.tsx
+10:3  Warning: 'Package' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/salesOrders/SingleStepOrderForm.tsx
+41:11  Warning: 'OrderItemFormData' is defined but never used.  @typescript-eslint/no-unused-vars
+97:5  Warning: 'getTabItems' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+143:10  Warning: 'unsavedChangesAction' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+157:9  Warning: The 'articles' logical expression could make the dependencies of useEffect Hook (at line 294) change on every render. To fix this, wrap the initialization of 'articles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+157:9  Warning: The 'articles' logical expression could make the dependencies of useEffect Hook (at line 320) change on every render. To fix this, wrap the initialization of 'articles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+165:9  Warning: The 'editArticles' logical expression could make the dependencies of useEffect Hook (at line 298) change on every render. To fix this, wrap the initialization of 'editArticles' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+170:9  Warning: The 'items' conditional could make the dependencies of useEffect Hook (at line 195) change on every render. To fix this, wrap the initialization of 'items' in its own useMemo() Hook.  react-hooks/exhaustive-deps
+581:9  Warning: 'handleUpdateUnitPrice' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./components/supplierOrders/ImportPreviewDialog.tsx
+22:24  Warning: 'MatchedArticle' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./components/ui/sparkline.tsx
+123:9  Warning: 'height' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./lib/api/suppliers.ts
+1:10  Warning: 'Supplier' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./lib/auth/jwt.ts
+7:7  Warning: 'JWT_EXPIRATION_MINUTES' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./lib/hooks/useFeedback.ts
+47:6  Warning: React Hook useEffect has a missing dependency: 'fetchFeedbacks'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./lib/hooks/useSalesOrderPermissions.ts
+31:6  Warning: React Hook useMemo has a missing dependency: 'salesOrder'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+Failed to compile.
+
+./lib/services/clientClassification.ts:178:5
+Type error: Type 'Date' is not assignable to type 'number'.
+
+[0m [90m 176 |[39m     [90m// 10. Actualizar caché[39m
+ [90m 177 |[39m     clientClassificationCache[33m.[39mdata [33m=[39m summary[33m;[39m
+[31m[1m&gt;[22m[39m[90m 178 |[39m     clientClassificationCache[33m.[39mtimestamp [33m=[39m now[33m;[39m
+ [90m     |[39m     [31m[1m^[22m[39m
+ [90m 179 |[39m     clientClassificationCache[33m.[39mconfig [33m=[39m finalConfig[33m;[39m
+ [90m 180 |[39m
+ [90m 181 |[39m     [36mconst[39m duration [33m=[39m [33mDate[39m[33m.[39mnow() [33m-[39m startTime[33m;[39m[0m
+Next.js build worker exited with code: 1 and signal: null
+--: line 1: dump_bash_state: command not found
+
+```
+</details>
+</tool-use>
+
+---
+
+Extraño... el `now` es un número pero TypeScript cree que es un `Date`. Déjame revisar si hay alguna variable `now` conflictiva. Voy a verificar que no haya otro `now` declarado después como `Date`:
+
+---
+
+<tool-use data-tool-type="search" data-tool-name="grep">
+<details>
+<summary>Tool use: **grep** • Grep for "const now" in "d:\dialfa new\spisa-new\frontend\lib\services\clientClassification.ts" • 2 matches</summary>
+
+Output mode: content
+
+
+| File | Content | Line |
+|------|------|------|
+| `frontend/lib/services/clientClassification.ts` | `const now = Date.now();` | L34 |
+| `frontend/lib/services/clientClassification.ts` | `const now = new Date();` | L120 |
+
+
+</details>
+</tool-use>
+
+---
+
+¡Ahí está el problema! Hay dos variables `now` - una es `Date.now()` (número) en la línea 34, y otra es `new Date()` (Date object) en la línea 120. La segunda está sobreescribiendo la primera. Necesito renombrar la segunda:
+
+---
+
+<tool-use data-tool-type="read" data-tool-name="read_file">
+<details><summary>Tool use: **read_file** • Read file: d:\dialfa new\spisa-new\frontend\lib\services\clientClassification.ts</summary>
+
+</details>
+</tool-use>
+
+---
+
+<tool-use data-tool-type="write" data-tool-name="search_replace">
+
+<details><summary>Tool use: **search_replace** • Edit file: d:\dialfa new\spisa-new\frontend\lib\services\clientClassification.ts</summary>
+
+**Chunk 1**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -118,5 +118,5 @@
+      // 7. Clasificar cada cliente
+      const clientsMetrics: ClientClassificationMetrics[] = [];
+-     const now = new Date();
++     const currentDate = new Date();
+  
+      for (const client of clients) {
+```
+
+**Chunk 2**
+Lines added: 1, lines removed: 1
+
+```diff
+@@ -131,5 +131,5 @@
+          historical,
+          trend,
+-         now,
++         currentDate,
+          finalConfig
+        );
+```
+
+</details>
+
+</tool-use>
+
+---
+
+<tool-use data-tool-type="shell" data-tool-name="run_terminal_cmd">
+<details><summary>Tool use: **run_terminal_cmd** • Run command: cd "d:\dialfa new\spisa-new\frontend" && npm run build 2>&1 | tail -20</summary>
+
+```bash
+cd "d:\dialfa new\spisa-new\frontend" && npm run build 2>&1 | tail -20
+```
+
+```
+├ ○ /dashboard/settings                            2.24 kB         234 kB
+├ ○ /dashboard/supplier-orders                     7.34 kB         247 kB
+├ ƒ /dashboard/supplier-orders/[id]                19.5 kB         251 kB
+├ ○ /dashboard/suppliers                           1.93 kB         233 kB
+├ ○ /dashboard/users                               20.1 kB         252 kB
+└ ○ /login                                         14.9 kB         228 kB
++ First Load JS shared by all                       156 kB
+  ├ chunks/0fb3607de41747b5.js                     10.7 kB
+  ├ chunks/674649e7dad9f6b4.js                     13.1 kB
+  ├ chunks/7fd964e6e7d66713.js                     59.2 kB
+  ├ chunks/8082ab48faca5ea1.js                     17.2 kB
+  ├ chunks/1d037a278c7d1d43.css                    18.2 kB
+  └ other shared chunks (total)                    38.1 kB
+
+
+ƒ Middleware                                       49.3 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+--: line 1: dump_bash_state: command not found
+
+```
+</details>
+</tool-use>
+
+---
+
+¡Perfecto! El build se completó exitosamente. Los errores están resueltos. 
+
+## Resumen de correcciones realizadas:
+
+1. **Importé `ClientDto`** en `/app/api/clients/route.ts`
+2. **Agregué `isActive` al mapper** en `mapper.ts`
+3. **Convertí `createdAt` y `updatedAt` a strings** (ISO format) en el mapper
+4. **Creé interfaz `ClientsQueryParams`** en `useClients.ts` para extender `PaginationParams`
+5. **Actualicé `useClientClassification`** para usar `minPurchasesPerMonth` en lugar de `minPurchasesForActive`
+6. **Actualicé el API endpoint** `/api/clients/classification/route.ts` para usar `minPurchasesPerMonth`
+7. **Corregí conflicto de variables `now`** en `clientClassification.ts` (renombré a `currentDate`)
+
+✅ **Build exitoso** - Todos los errores de TypeScript resueltos. Solo quedan warnings de ESLint que son menores y no bloquean el build.
+
+---
+

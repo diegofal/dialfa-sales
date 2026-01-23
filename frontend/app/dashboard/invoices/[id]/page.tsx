@@ -1,33 +1,10 @@
 'use client';
 
-import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Printer, XCircle, Eye, Save, X as XIcon, Edit2 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { useInvoice, useCancelInvoice, usePrintInvoice, useUpdateInvoiceExchangeRate, useInvoiceStockMovements } from '@/lib/hooks/useInvoices';
-import { usePaymentTerms } from '@/lib/hooks/usePaymentTerms';
 import { useQueryClient } from '@tanstack/react-query';
-import { useQuickInvoiceTabs } from '@/lib/hooks/useQuickInvoiceTabs';
-import { toast } from 'sonner';
+import { ArrowLeft, Printer, XCircle, Eye, Save, X as XIcon, Edit2 } from 'lucide-react';
+import { useParams, useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select';
+import { toast } from 'sonner';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -38,6 +15,36 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { ROUTES } from '@/lib/constants/routes';
+import {
+  useInvoice,
+  useCancelInvoice,
+  usePrintInvoice,
+  useUpdateInvoiceExchangeRate,
+  useInvoiceStockMovements,
+} from '@/lib/hooks/useInvoices';
+import { usePaymentTerms } from '@/lib/hooks/usePaymentTerms';
+import { useQuickInvoiceTabs } from '@/lib/hooks/useQuickInvoiceTabs';
 
 export default function InvoiceDetailPage() {
   const params = useParams();
@@ -45,7 +52,8 @@ export default function InvoiceDetailPage() {
   const invoiceId = Number(params.id);
 
   const { data: invoice, isLoading } = useInvoice(invoiceId);
-  const { data: stockMovements, isLoading: isLoadingMovements } = useInvoiceStockMovements(invoiceId);
+  const { data: stockMovements, isLoading: isLoadingMovements } =
+    useInvoiceStockMovements(invoiceId);
   const { data: paymentTerms } = usePaymentTerms({ activeOnly: true });
   const queryClient = useQueryClient();
   const cancelInvoiceMutation = useCancelInvoice();
@@ -75,7 +83,7 @@ export default function InvoiceDetailPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center h-96">
+      <div className="flex h-96 items-center justify-center">
         <p className="text-muted-foreground">Cargando factura...</p>
       </div>
     );
@@ -83,9 +91,9 @@ export default function InvoiceDetailPage() {
 
   if (!invoice) {
     return (
-      <div className="flex flex-col items-center justify-center h-96 gap-4">
+      <div className="flex h-96 flex-col items-center justify-center gap-4">
         <p className="text-muted-foreground">Factura no encontrada</p>
-        <Button onClick={() => router.push('/dashboard/invoices')}>
+        <Button onClick={() => router.push(ROUTES.INVOICES)}>
           <ArrowLeft className="mr-2 h-4 w-4" />
           Volver al listado
         </Button>
@@ -110,7 +118,11 @@ export default function InvoiceDetailPage() {
       return <Badge variant="destructive">Cancelada</Badge>;
     }
     if (invoice.isPrinted) {
-      return <Badge variant="default" className="bg-green-600">Impresa</Badge>;
+      return (
+        <Badge variant="default" className="bg-green-600">
+          Impresa
+        </Badge>
+      );
     }
     return <Badge variant="secondary">Pendiente</Badge>;
   };
@@ -173,13 +185,13 @@ export default function InvoiceDetailPage() {
       // Invalidate queries to refetch data
       queryClient.invalidateQueries({ queryKey: ['invoice', invoiceId] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
-      
+
       // Show success message with details
       toast.success('Condición de pago actualizada', {
         description: `Se recalcularon ${result.itemsRecalculated} item(s) con los nuevos descuentos`,
         duration: 4000,
       });
-      
+
       setIsEditingPaymentTerm(false);
     } catch (error) {
       console.error('Error updating payment term:', error);
@@ -199,7 +211,7 @@ export default function InvoiceDetailPage() {
       const date = new Date(dateString);
       const now = new Date();
       const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
-      
+
       if (diffInSeconds < 60) return 'hace un momento';
       if (diffInSeconds < 3600) return `hace ${Math.floor(diffInSeconds / 60)} minutos`;
       if (diffInSeconds < 86400) return `hace ${Math.floor(diffInSeconds / 3600)} horas`;
@@ -213,13 +225,25 @@ export default function InvoiceDetailPage() {
   const getMovementTypeBadge = (movementType: number) => {
     switch (movementType) {
       case 1: // Compra (CREDIT)
-        return <Badge variant="default" className="bg-green-600">Compra</Badge>;
+        return (
+          <Badge variant="default" className="bg-green-600">
+            Compra
+          </Badge>
+        );
       case 2: // Venta (DEBIT)
         return <Badge variant="destructive">Venta</Badge>;
       case 3: // Devolución
-        return <Badge variant="secondary" className="bg-blue-600 text-white">Devolución</Badge>;
+        return (
+          <Badge variant="secondary" className="bg-blue-600 text-white">
+            Devolución
+          </Badge>
+        );
       case 4: // Ajuste
-        return <Badge variant="secondary" className="bg-yellow-600">Ajuste</Badge>;
+        return (
+          <Badge variant="secondary" className="bg-yellow-600">
+            Ajuste
+          </Badge>
+        );
       case 5: // Transferencia
         return <Badge variant="outline">Transferencia</Badge>;
       default:
@@ -230,8 +254,9 @@ export default function InvoiceDetailPage() {
   const formatQuantity = (quantity: number) => {
     const isPositive = quantity > 0;
     return (
-      <span className={isPositive ? 'text-green-600 font-semibold' : 'text-red-600 font-semibold'}>
-        {isPositive ? '+' : ''}{quantity}
+      <span className={isPositive ? 'font-semibold text-green-600' : 'font-semibold text-red-600'}>
+        {isPositive ? '+' : ''}
+        {quantity}
       </span>
     );
   };
@@ -243,14 +268,12 @@ export default function InvoiceDetailPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => router.push('/dashboard/invoices')}>
+          <Button variant="ghost" onClick={() => router.push(ROUTES.INVOICES)}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
           <div>
             <h1 className="text-3xl font-bold">Factura {invoice.invoiceNumber}</h1>
-            <p className="text-muted-foreground">
-              Fecha: {formatDate(invoice.invoiceDate)}
-            </p>
+            <p className="text-muted-foreground">Fecha: {formatDate(invoice.invoiceDate)}</p>
           </div>
           {getStatusBadge()}
         </div>
@@ -264,15 +287,15 @@ export default function InvoiceDetailPage() {
           </CardHeader>
           <CardContent className="space-y-2">
             <div>
-              <p className="text-sm text-muted-foreground">Razón Social</p>
+              <p className="text-muted-foreground text-sm">Razón Social</p>
               <p className="font-medium">{invoice.clientBusinessName}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">CUIT</p>
+              <p className="text-muted-foreground text-sm">CUIT</p>
               <p className="font-medium">{invoice.clientCuit}</p>
             </div>
             <div>
-              <p className="text-sm text-muted-foreground">Condición IVA</p>
+              <p className="text-muted-foreground text-sm">Condición IVA</p>
               <p className="font-medium">{invoice.clientTaxCondition}</p>
             </div>
           </CardContent>
@@ -285,16 +308,16 @@ export default function InvoiceDetailPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <p className="text-sm text-muted-foreground">Pedido N°</p>
+              <p className="text-muted-foreground text-sm">Pedido N°</p>
               <p className="font-medium">{invoice.salesOrderNumber}</p>
             </div>
 
             <div>
-              <Label htmlFor="exchangeRate" className="text-sm text-muted-foreground">
+              <Label htmlFor="exchangeRate" className="text-muted-foreground text-sm">
                 Tipo de Cambio USD
               </Label>
               {isEditingExchangeRate ? (
-                <div className="flex gap-2 mt-2">
+                <div className="mt-2 flex gap-2">
                   <Input
                     id="exchangeRate"
                     type="number"
@@ -311,16 +334,12 @@ export default function InvoiceDetailPage() {
                   >
                     <Save className="h-4 w-4" />
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleCancelEditExchangeRate}
-                  >
+                  <Button size="sm" variant="outline" onClick={handleCancelEditExchangeRate}>
                     <XIcon className="h-4 w-4" />
                   </Button>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 mt-1">
+                <div className="mt-1 flex items-center gap-2">
                   <p className="font-medium">
                     {invoice.usdExchangeRate ? `$ ${invoice.usdExchangeRate.toFixed(2)}` : 'N/A'}
                   </p>
@@ -338,19 +357,19 @@ export default function InvoiceDetailPage() {
                 </div>
               )}
               {canEditExchangeRate && !isEditingExchangeRate && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Puede modificar el tipo de cambio mientras la factura no esté impresa.
-                  Esto recalculará todos los importes.
+                <p className="text-muted-foreground mt-1 text-xs">
+                  Puede modificar el tipo de cambio mientras la factura no esté impresa. Esto
+                  recalculará todos los importes.
                 </p>
               )}
             </div>
 
             <div>
-              <Label htmlFor="paymentTerm" className="text-sm text-muted-foreground">
+              <Label htmlFor="paymentTerm" className="text-muted-foreground text-sm">
                 Condición de Pago
               </Label>
               {isEditingPaymentTerm ? (
-                <div className="flex gap-2 mt-2">
+                <div className="mt-2 flex gap-2">
                   <Select
                     value={editedPaymentTermId?.toString()}
                     onValueChange={(value) => setEditedPaymentTermId(Number(value))}
@@ -366,25 +385,16 @@ export default function InvoiceDetailPage() {
                       ))}
                     </SelectContent>
                   </Select>
-                  <Button
-                    size="sm"
-                    onClick={handleSavePaymentTerm}
-                  >
+                  <Button size="sm" onClick={handleSavePaymentTerm}>
                     <Save className="h-4 w-4" />
                   </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={handleCancelEditPaymentTerm}
-                  >
+                  <Button size="sm" variant="outline" onClick={handleCancelEditPaymentTerm}>
                     <XIcon className="h-4 w-4" />
                   </Button>
                 </div>
               ) : (
-                <div className="flex items-center gap-2 mt-1">
-                  <p className="font-medium">
-                    {invoice.paymentTermName || 'N/A'}
-                  </p>
+                <div className="mt-1 flex items-center gap-2">
+                  <p className="font-medium">{invoice.paymentTermName || 'N/A'}</p>
                   {canEditExchangeRate && (
                     <Button
                       size="icon"
@@ -399,15 +409,15 @@ export default function InvoiceDetailPage() {
                 </div>
               )}
               {canEditExchangeRate && !isEditingPaymentTerm && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Puede modificar la condición de pago mientras la factura no esté impresa.
-                  Esto recalculará los descuentos de cada item y actualizará la condición del cliente.
+                <p className="text-muted-foreground mt-1 text-xs">
+                  Puede modificar la condición de pago mientras la factura no esté impresa. Esto
+                  recalculará los descuentos de cada item y actualizará la condición del cliente.
                 </p>
               )}
             </div>
             {invoice.notes && (
               <div>
-                <p className="text-sm text-muted-foreground">Observaciones</p>
+                <p className="text-muted-foreground text-sm">Observaciones</p>
                 <p className="font-medium">{invoice.notes}</p>
               </div>
             )}
@@ -441,7 +451,7 @@ export default function InvoiceDetailPage() {
                   <TableCell className="text-right">{item.quantity}</TableCell>
                   <TableCell className="text-right">
                     {formatCurrency(item.unitPriceArs)}
-                    <span className="text-xs text-muted-foreground block">
+                    <span className="text-muted-foreground block text-xs">
                       (USD {item.unitPriceUsd.toFixed(2)})
                     </span>
                   </TableCell>
@@ -471,7 +481,7 @@ export default function InvoiceDetailPage() {
               <span className="text-muted-foreground">IVA</span>
               <span className="font-medium">{formatCurrency(invoice.taxAmount)}</span>
             </div>
-            <div className="flex justify-between text-lg font-bold border-t pt-2">
+            <div className="flex justify-between border-t pt-2 text-lg font-bold">
               <span>Total</span>
               <span>{formatCurrency(invoice.totalAmount)}</span>
             </div>
@@ -489,7 +499,7 @@ export default function InvoiceDetailPage() {
               <span className="font-medium">Motivo: </span>
               {invoice.cancellationReason}
             </p>
-            <p className="text-sm text-muted-foreground mt-2">
+            <p className="text-muted-foreground mt-2 text-sm">
               Cancelada el: {invoice.cancelledAt ? formatDate(invoice.cancelledAt) : 'N/A'}
             </p>
           </CardContent>
@@ -509,8 +519,8 @@ export default function InvoiceDetailPage() {
           </CardHeader>
           <CardContent>
             {isLoadingMovements ? (
-              <div className="text-center py-4">
-                <p className="text-sm text-muted-foreground">Cargando movimientos...</p>
+              <div className="py-4 text-center">
+                <p className="text-muted-foreground text-sm">Cargando movimientos...</p>
               </div>
             ) : stockMovements && stockMovements.length > 0 ? (
               <Table>
@@ -531,37 +541,33 @@ export default function InvoiceDetailPage() {
                           <span className="text-sm">
                             {formatRelativeDate(movement.movementDate)}
                           </span>
-                          <span className="text-xs text-muted-foreground">
+                          <span className="text-muted-foreground text-xs">
                             {formatDate(movement.movementDate)}
                           </span>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div>
-                          <p className="font-medium text-sm">{movement.articleCode}</p>
-                          <p className="text-xs text-muted-foreground">
+                          <p className="text-sm font-medium">{movement.articleCode}</p>
+                          <p className="text-muted-foreground text-xs">
                             {movement.articleDescription}
                           </p>
                         </div>
                       </TableCell>
-                      <TableCell>
-                        {getMovementTypeBadge(movement.movementType)}
-                      </TableCell>
+                      <TableCell>{getMovementTypeBadge(movement.movementType)}</TableCell>
                       <TableCell className="text-right">
                         {formatQuantity(movement.quantity)}
                       </TableCell>
                       <TableCell>
-                        <span className="text-sm">
-                          {movement.referenceDocument || '-'}
-                        </span>
+                        <span className="text-sm">{movement.referenceDocument || '-'}</span>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
             ) : (
-              <div className="text-center py-4">
-                <p className="text-sm text-muted-foreground">
+              <div className="py-4 text-center">
+                <p className="text-muted-foreground text-sm">
                   No hay movimientos de stock registrados para esta factura
                 </p>
               </div>
@@ -570,23 +576,16 @@ export default function InvoiceDetailPage() {
         </Card>
       )}
 
-
       {/* Fixed Action Buttons */}
-      <div className="fixed bottom-0 left-0 right-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 border-t z-50">
-        <div className="container max-w-7xl mx-auto px-6 py-4">
-          <div className="flex justify-between items-center">
+      <div className="bg-background/95 supports-[backdrop-filter]:bg-background/80 fixed right-0 bottom-0 left-0 z-50 border-t backdrop-blur">
+        <div className="container mx-auto max-w-7xl px-6 py-4">
+          <div className="flex items-center justify-between">
             <div className="flex gap-2">
-              <Button
-                variant="outline"
-                onClick={() => router.push('/dashboard/invoices')}
-              >
+              <Button variant="outline" onClick={() => router.push(ROUTES.INVOICES)}>
                 Volver
               </Button>
               {!invoice.isCancelled && (
-                <Button
-                  variant="outline"
-                  onClick={() => setShowCancelDialog(true)}
-                >
+                <Button variant="outline" onClick={() => setShowCancelDialog(true)}>
                   <XCircle className="mr-2 h-4 w-4" />
                   Cancelar Factura
                 </Button>
@@ -595,7 +594,7 @@ export default function InvoiceDetailPage() {
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                onClick={() => router.push(`/dashboard/sales-orders/${invoice.salesOrderId}`)}
+                onClick={() => router.push(`${ROUTES.SALES_ORDERS}/${invoice.salesOrderId}`)}
               >
                 <Eye className="mr-2 h-4 w-4" />
                 Ver Pedido
@@ -631,20 +630,13 @@ export default function InvoiceDetailPage() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>
-              No, volver
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleCancel}
-              disabled={cancelInvoiceMutation.isPending}
-            >
+            <AlertDialogCancel>No, volver</AlertDialogCancel>
+            <AlertDialogAction onClick={handleCancel} disabled={cancelInvoiceMutation.isPending}>
               {cancelInvoiceMutation.isPending ? 'Cancelando...' : 'Sí, cancelar factura'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div >
+    </div>
   );
 }
-
-

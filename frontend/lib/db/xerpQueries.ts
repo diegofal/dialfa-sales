@@ -178,4 +178,3 @@ export interface CashFlowData {
   ElectronicPayments: number;
   TransactionCount: number;
 }
-
