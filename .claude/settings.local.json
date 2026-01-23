@@ -30,7 +30,9 @@
       "Bash(grep:*)",
       "Bash(npm test:*)",
       "Bash(npm run lint)",
-      "Bash(npm run lint:*)"
+      "Bash(npm run lint:*)",
+      "Bash(npx lint-staged)",
+      "Bash(git commit:*)"
     ]
   }
 }
