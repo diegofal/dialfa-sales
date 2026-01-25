@@ -107,16 +107,30 @@ spisa-new/
 │   │   │   ├── PDFService.ts
 │   │   │   ├── proformaImport/
 │   │   │   └── __tests__/           # ✅ [NUEVO] 22 test files
-│   │   ├── hooks/                   # ✅ Custom React hooks (31 total)
-│   │   │   ├── api/                 # ✅ [NUEVO] Generic hooks
+│   │   ├── hooks/                   # ✅ Custom React hooks (organized structure)
+│   │   │   ├── api/                 # ✅ Factory functions for CRUD hooks
 │   │   │   │   ├── useEntityMutation.ts
 │   │   │   │   ├── useEntityQuery.ts
 │   │   │   │   ├── createCRUDHooks.ts
 │   │   │   │   ├── index.ts
-│   │   │   │   └── __tests__/       # ✅ [NUEVO] 2 test files
-│   │   │   ├── useArticles.ts       # ✅ Migrated to factory
-│   │   │   ├── useClients.ts        # ✅ Migrated to factory
-│   │   │   └── + 29 legacy hooks
+│   │   │   │   └── __tests__/       # ✅ 2 test files
+│   │   │   ├── generic/             # ✅ [NUEVO] Reusable utility hooks (4 files)
+│   │   │   │   ├── useFixedBottomBar.ts
+│   │   │   │   ├── useFormValidation.ts
+│   │   │   │   ├── usePagination.ts
+│   │   │   │   └── usePrintDocument.ts
+│   │   │   └── domain/              # ✅ [NUEVO] Business-specific hooks (29 files)
+│   │   │       ├── useActivityLogs.ts
+│   │   │       ├── useArticles.ts
+│   │   │       ├── useAuth.ts
+│   │   │       ├── useCategories.ts
+│   │   │       ├── useClients.ts
+│   │   │       ├── useDeliveryNotes.ts
+│   │   │       ├── useFeedback.ts
+│   │   │       ├── useInvoices.ts
+│   │   │       ├── useSalesOrders.ts
+│   │   │       ├── useSupplierOrders.ts
+│   │   │       └── + 19 more domain hooks
 │   │   ├── errors/                  # ✅ [NUEVO] Error handling
 │   │   │   ├── AppError.ts
 │   │   │   ├── handler.ts
