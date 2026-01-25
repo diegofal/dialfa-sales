@@ -10,7 +10,6 @@ import {
   Trash2,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -31,7 +30,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useFeedback } from '@/lib/hooks/domain/useFeedback';
+import { useFeedback, useUpdateFeedback, useDeleteFeedback } from '@/lib/hooks/domain/useFeedback';
 import { useAuthStore } from '@/store/authStore';
 import { Feedback, FeedbackType, FeedbackStatus, FeedbackPriority } from '@/types/feedback';
 
@@ -79,10 +78,8 @@ export default function AdminFeedbackPage() {
   const user = useAuthStore((state) => state.user);
   const isAdmin = user?.role?.toLowerCase() === 'admin';
 
-  const { feedbacks, isLoading, updateFeedback, deleteFeedback, fetchFeedbacks } = useFeedback();
   const [selectedFeedback, setSelectedFeedback] = useState<Feedback | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
-  const [updating, setUpdating] = useState(false);
   const [filterStatus, setFilterStatus] = useState<FeedbackStatus | 'all'>('all');
   const [filterType, setFilterType] = useState<FeedbackType | 'all'>('all');
 
@@ -92,11 +89,20 @@ export default function AdminFeedbackPage() {
     adminNotes: '',
   });
 
+  // Query feedback list with filters
+  const { data, isLoading, refetch } = useFeedback({
+    status: filterStatus === 'all' ? undefined : filterStatus,
+    type: filterType === 'all' ? undefined : filterType,
+  });
+
+  const updateMutation = useUpdateFeedback();
+  const deleteMutation = useDeleteFeedback();
+
+  const feedbacks = data?.data || [];
+
   useEffect(() => {
-    const status = filterStatus === 'all' ? undefined : filterStatus;
-    const type = filterType === 'all' ? undefined : filterType;
-    fetchFeedbacks(1, status, type);
-  }, [filterStatus, filterType, fetchFeedbacks]);
+    refetch();
+  }, [filterStatus, filterType, refetch]);
 
   if (!isAdmin) {
     return (
@@ -127,38 +133,30 @@ export default function AdminFeedbackPage() {
   const handleUpdate = async () => {
     if (!selectedFeedback) return;
 
-    setUpdating(true);
-    try {
-      const priorityValue =
-        updateData.priority === 'none' ? null : (updateData.priority as FeedbackPriority);
+    const priorityValue =
+      updateData.priority === 'none' ? null : (updateData.priority as FeedbackPriority);
 
-      await updateFeedback(selectedFeedback.id, {
-        status: updateData.status,
-        priority: priorityValue,
-        adminNotes: updateData.adminNotes || null,
-      });
-      toast.success('Feedback actualizado exitosamente');
-      setDialogOpen(false);
-      fetchFeedbacks();
-    } catch (error) {
-      toast.error('Error al actualizar feedback');
-      console.error(error);
-    } finally {
-      setUpdating(false);
-    }
+    updateMutation.mutate(
+      {
+        id: selectedFeedback.id,
+        data: {
+          status: updateData.status,
+          priority: priorityValue,
+          adminNotes: updateData.adminNotes || null,
+        },
+      },
+      {
+        onSuccess: () => {
+          setDialogOpen(false);
+        },
+      }
+    );
   };
 
   const handleDelete = async (id: number) => {
     if (!confirm('¿Estás seguro de que deseas eliminar este feedback?')) return;
 
-    try {
-      await deleteFeedback(id);
-      toast.success('Feedback eliminado');
-      fetchFeedbacks();
-    } catch (error) {
-      toast.error('Error al eliminar feedback');
-      console.error(error);
-    }
+    deleteMutation.mutate(id);
   };
 
   const filteredFeedbacks = feedbacks;
@@ -422,11 +420,15 @@ export default function AdminFeedbackPage() {
           )}
 
           <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)} disabled={updating}>
+            <Button
+              variant="outline"
+              onClick={() => setDialogOpen(false)}
+              disabled={updateMutation.isPending}
+            >
               Cancelar
             </Button>
-            <Button onClick={handleUpdate} disabled={updating}>
-              {updating ? (
+            <Button onClick={handleUpdate} disabled={updateMutation.isPending}>
+              {updateMutation.isPending ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Guardando...

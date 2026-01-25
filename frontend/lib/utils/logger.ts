@@ -156,9 +156,9 @@ class Logger {
    * Send log to remote logging service (Sentry, DataDog, etc.)
    * Override this method to integrate with your logging service
    */
-  private sendToRemoteLogger(entry: LogEntry): void {
+  private sendToRemoteLogger(_entry: LogEntry): void {
     // TODO: Integrate with remote logging service
-    // Example: Sentry.captureException(entry);
+    // Example: Sentry.captureException(_entry);
     // For now, this is a no-op placeholder
   }
 

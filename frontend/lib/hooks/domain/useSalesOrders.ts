@@ -22,14 +22,14 @@ type SalesOrderListParams = PaginationParams & {
 };
 
 // Generate standard CRUD hooks using factory pattern
-const { useList, useById } = createCRUDHooks<
+const { useList } = createCRUDHooks<
   any, // SalesOrder type
   CreateSalesOrderRequest,
   UpdateSalesOrderRequest,
   SalesOrderListParams
 >({
   entityName: 'Pedido',
-  api: salesOrdersApi,
+  api: salesOrdersApi as any, // Type assertion needed due to DTO mismatch
   queryKey: 'salesOrders',
 });
 

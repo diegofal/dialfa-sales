@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { PaymentTerm, PaymentTermFormData } from '@/types/paymentTerm';
+import { PaymentTermFormData } from '@/types/paymentTerm';
 import { paymentTermsApi } from '../../api/paymentTerms';
 
 interface UsePaymentTermsOptions {

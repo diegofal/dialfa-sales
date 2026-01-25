@@ -50,7 +50,8 @@
       "Bash(node fix-api-imports.js:*)",
       "Bash(node fix-crud-hooks-imports.js:*)",
       "Bash(test:*)",
-      "Bash(git add:*)"
+      "Bash(git add:*)",
+      "Bash(tee:*)"
     ]
   }
 }

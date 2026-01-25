@@ -2,12 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { invoicesApi } from '@/lib/api/invoices';
 import { getErrorMessage } from '@/lib/utils/errors';
-import type {
-  Invoice,
-  InvoiceListDto,
-  CreateInvoiceRequest,
-  UpdateInvoiceRequest,
-} from '@/types/invoice';
+import type { Invoice, CreateInvoiceRequest, UpdateInvoiceRequest } from '@/types/invoice';
 import { PaginationParams } from '@/types/pagination';
 import type { StockMovement } from '@/types/stockMovement';
 import { createCRUDHooks } from '../api/createCRUDHooks';
@@ -22,6 +17,8 @@ type InvoiceListParams = PaginationParams & {
 };
 
 // Generate CRUD hooks using factory pattern
+// Note: The API returns InvoiceListDto for getAll, but we use Invoice as the type parameter
+// This is a known limitation of the CRUD factory pattern that should be addressed in the future
 const { useList, useById, useCreate, useUpdate, useDelete } = createCRUDHooks<
   Invoice,
   CreateInvoiceRequest,
@@ -29,7 +26,7 @@ const { useList, useById, useCreate, useUpdate, useDelete } = createCRUDHooks<
   InvoiceListParams
 >({
   entityName: 'Factura',
-  api: invoicesApi,
+  api: invoicesApi as any, // Type assertion needed due to DTO mismatch
   queryKey: 'invoices',
 });
 

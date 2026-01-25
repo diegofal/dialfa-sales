@@ -96,10 +96,8 @@ export default function SupplierOrderDetailPage({ params }: { params: Promise<{ 
   const [globalDiscount, setGlobalDiscount] = useState<string>('');
   const [syncingWeights, setSyncingWeights] = useState(false);
 
-  const { data, isLoading } = useSupplierOrder(parseInt(id));
+  const { data: order, isLoading } = useSupplierOrder(parseInt(id));
   const updateStatus = useUpdateSupplierOrderStatus();
-
-  const order = data?.data;
 
   // Load article data with trends when order is loaded
   useEffect(() => {
@@ -272,7 +270,7 @@ export default function SupplierOrderDetailPage({ params }: { params: Promise<{ 
   };
 
   const handleExportToHTML = () => {
-    if (!order) return;
+    if (!order || !order.items) return;
 
     // Calcular totales
     const totalProforma = order.items.reduce(

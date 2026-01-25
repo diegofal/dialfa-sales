@@ -4,7 +4,6 @@ import { deliveryNotesApi } from '@/lib/api/deliveryNotes';
 import { getErrorMessage } from '@/lib/utils/errors';
 import type {
   DeliveryNote,
-  DeliveryNoteListDto,
   CreateDeliveryNoteRequest,
   UpdateDeliveryNoteRequest,
 } from '@/types/deliveryNote';
@@ -18,6 +17,8 @@ type DeliveryNoteListParams = PaginationParams & {
 };
 
 // Generate CRUD hooks using factory pattern
+// Note: The API returns DeliveryNoteListDto for getAll, but we use DeliveryNote as the type parameter
+// This is a known limitation of the CRUD factory pattern that should be addressed in the future
 const { useList, useById, useCreate, useUpdate, useDelete } = createCRUDHooks<
   DeliveryNote,
   CreateDeliveryNoteRequest,
@@ -25,7 +26,7 @@ const { useList, useById, useCreate, useUpdate, useDelete } = createCRUDHooks<
   DeliveryNoteListParams
 >({
   entityName: 'Remito',
-  api: deliveryNotesApi,
+  api: deliveryNotesApi as any, // Type assertion needed due to DTO mismatch
   queryKey: 'delivery-notes',
 });
 

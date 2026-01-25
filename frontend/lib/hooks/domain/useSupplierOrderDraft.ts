@@ -219,8 +219,8 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
             });
           } else {
             const result = await createMutation.mutateAsync(orderData);
-            if (result.data?.id) {
-              setCurrentDraftId(result.data.id);
+            if (result?.id) {
+              setCurrentDraftId(result.id);
             }
           }
         } catch (error) {

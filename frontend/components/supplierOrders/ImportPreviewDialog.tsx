@@ -92,12 +92,10 @@ export function ImportPreviewDialog({
 
       const result = await createOrderMutation.mutateAsync(orderData);
 
-      if (result.success) {
-        toast.success(
-          `Pedido ${result.data.orderNumber} creado con ${matchedItems.length} artículos`
-        );
+      if (result) {
+        toast.success(`Pedido ${result.orderNumber} creado con ${matchedItems.length} artículos`);
         onOpenChange(false);
-        router.push(`${ROUTES.SUPPLIER_ORDERS}/${result.data.id}`);
+        router.push(`${ROUTES.SUPPLIER_ORDERS}/${result.id}`);
       }
     } catch (error) {
       toast.error('Error al crear el pedido');
