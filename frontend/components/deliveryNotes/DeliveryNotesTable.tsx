@@ -19,7 +19,7 @@ import { SortableTableHead } from '@/components/ui/sortable-table-head';
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table';
 import { ROUTES } from '@/lib/constants/routes';
 import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
-import { useDownloadDeliveryNotePdf } from '@/lib/hooks/useDeliveryNotes';
+import { useDownloadDeliveryNotePdf } from '@/lib/hooks/domain/useDeliveryNotes';
 import type { DeliveryNoteListDto } from '@/types/deliveryNote';
 
 interface DeliveryNotesTableProps {

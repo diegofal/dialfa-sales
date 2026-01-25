@@ -5,7 +5,7 @@ import type {
   SupplierOrderFormData,
   SupplierOrderStatus,
 } from '@/types/supplierOrder';
-import { supplierOrdersApi } from '../api/supplierOrders';
+import { supplierOrdersApi } from '../../api/supplierOrders';
 
 interface SupplierOrdersResponse {
   success: boolean;

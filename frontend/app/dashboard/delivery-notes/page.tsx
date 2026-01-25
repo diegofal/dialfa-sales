@@ -10,9 +10,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
 import { ROUTES } from '@/lib/constants/routes';
-import { useDeliveryNotes, useDeleteDeliveryNote } from '@/lib/hooks/useDeliveryNotes';
-import { usePagination } from '@/lib/hooks/usePagination';
-import { useQuickDeliveryNoteTabs } from '@/lib/hooks/useQuickDeliveryNoteTabs';
+import { useDeliveryNotes, useDeleteDeliveryNote } from '@/lib/hooks/domain/useDeliveryNotes';
+import { useQuickDeliveryNoteTabs } from '@/lib/hooks/domain/useQuickDeliveryNoteTabs';
+import { usePagination } from '@/lib/hooks/generic/usePagination';
 
 export default function DeliveryNotesPage() {
   const router = useRouter();

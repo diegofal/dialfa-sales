@@ -7,7 +7,7 @@
 
 import { FileText, Calendar, AlertTriangle } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
-import { useDashboardMetrics, formatCurrency } from '@/lib/hooks/useDashboard';
+import { useDashboardMetrics, formatCurrency } from '@/lib/hooks/domain/useDashboard';
 import { MetricCard } from './MetricCard';
 
 export function DashboardMetrics() {

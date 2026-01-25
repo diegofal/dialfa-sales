@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useSystemSettings, useUpdateSystemSettings } from '@/lib/hooks/useSettings';
+import { useSystemSettings, useUpdateSystemSettings } from '@/lib/hooks/domain/useSettings';
 
 export default function SettingsPage() {
   const { data: settings, isLoading } = useSystemSettings();

@@ -22,7 +22,7 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { useCreateClient, useUpdateClient } from '@/lib/hooks/useClients';
+import { useCreateClient, useUpdateClient } from '@/lib/hooks/domain/useClients';
 import type { ClientDto } from '@/types/api';
 
 const clientSchema = z.object({

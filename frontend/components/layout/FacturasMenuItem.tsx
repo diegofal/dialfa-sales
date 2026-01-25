@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ROUTES } from '@/lib/constants/routes';
-import { useQuickInvoiceTabs } from '@/lib/hooks/useQuickInvoiceTabs';
+import { useQuickInvoiceTabs } from '@/lib/hooks/domain/useQuickInvoiceTabs';
 import { cn } from '@/lib/utils';
 
 export default function FacturasMenuItem() {

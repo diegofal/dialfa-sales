@@ -1,7 +1,7 @@
 import type { Category, CategoryFormData } from '@/types/category';
 import type { PaginationParams } from '@/types/pagination';
-import { categoriesApi } from '../api/categories';
-import { createCRUDHooks } from './api/createCRUDHooks';
+import { categoriesApi } from '../../api/categories';
+import { createCRUDHooks } from '../api/createCRUDHooks';
 
 // Query key factory
 export const categoryKeys = {

@@ -16,7 +16,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useFeedback, useCreateFeedback } from '@/lib/hooks/useFeedback';
+import { useFeedback, useCreateFeedback } from '@/lib/hooks/domain/useFeedback';
 import { FeedbackType } from '@/types/feedback';
 
 const feedbackTypes: {

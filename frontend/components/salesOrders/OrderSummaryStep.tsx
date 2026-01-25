@@ -10,7 +10,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useClients } from '@/lib/hooks/useClients';
+import { useClients } from '@/lib/hooks/domain/useClients';
 import { formatCuit } from '@/lib/utils';
 import type { SalesOrderFormData, SalesOrderItemFormData } from '@/types/salesOrder';
 

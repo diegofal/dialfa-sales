@@ -33,8 +33,8 @@ import {
   usePrintDeliveryNote,
   useUpdateDeliveryNote,
   useDeleteDeliveryNote,
-} from '@/lib/hooks/useDeliveryNotes';
-import { useQuickDeliveryNoteTabs } from '@/lib/hooks/useQuickDeliveryNoteTabs';
+} from '@/lib/hooks/domain/useDeliveryNotes';
+import { useQuickDeliveryNoteTabs } from '@/lib/hooks/domain/useQuickDeliveryNoteTabs';
 
 export default function DeliveryNoteDetailPage() {
   const params = useParams();

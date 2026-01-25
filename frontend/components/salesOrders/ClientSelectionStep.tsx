@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useClients } from '@/lib/hooks/useClients';
+import { useClients } from '@/lib/hooks/domain/useClients';
 import type { SalesOrderFormData } from '@/types/salesOrder';
 
 interface ClientSelectionStepProps {

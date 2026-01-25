@@ -3,7 +3,7 @@ import type {
   ClientClassificationSummary,
   ClientClassificationConfig,
 } from '@/types/clientClassification';
-import { apiClient } from '../api/client';
+import { apiClient } from '../../api/client';
 
 export const useClientClassification = (config: Partial<ClientClassificationConfig> = {}) => {
   return useQuery({

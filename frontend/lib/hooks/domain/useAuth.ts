@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { ROUTES } from '@/lib/constants/routes';
 import { useAuthStore } from '@/store/authStore';
 import type { LoginRequest } from '@/types/api';
-import { authApi } from '../api/auth';
+import { authApi } from '../../api/auth';
 
 export const useLogin = () => {
   const router = useRouter();

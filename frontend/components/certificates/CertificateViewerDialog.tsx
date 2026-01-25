@@ -7,7 +7,7 @@ import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { useCertificate } from '@/lib/hooks/useCertificates';
+import { useCertificate } from '@/lib/hooks/domain/useCertificates';
 import { TiffViewer } from './TiffViewer';
 
 interface CertificateViewerDialogProps {

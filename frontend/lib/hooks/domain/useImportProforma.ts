@@ -1,6 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { proformaImportApi } from '../api/proformaImport';
+import { proformaImportApi } from '../../api/proformaImport';
 
 export function useImportProforma() {
   return useMutation({

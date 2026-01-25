@@ -16,8 +16,8 @@ import {
 } from '@/components/ui/card';
 import { Steps } from '@/components/ui/steps';
 import { ROUTES } from '@/lib/constants/routes';
-import { useQuickCart } from '@/lib/hooks/useQuickCart';
-import { useCreateSalesOrder } from '@/lib/hooks/useSalesOrders';
+import { useQuickCart } from '@/lib/hooks/domain/useQuickCart';
+import { useCreateSalesOrder } from '@/lib/hooks/domain/useSalesOrders';
 import type { SalesOrderFormData } from '@/types/salesOrder';
 import { ClientSelectionStep } from './ClientSelectionStep';
 import { ItemsSelectionStep } from './ItemsSelectionStep';

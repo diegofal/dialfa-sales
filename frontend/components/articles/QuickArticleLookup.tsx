@@ -5,8 +5,8 @@ import { useState, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { useArticles } from '@/lib/hooks/useArticles';
-import { useQuickCartTabs } from '@/lib/hooks/useQuickCartTabs';
+import { useArticles } from '@/lib/hooks/domain/useArticles';
+import { useQuickCartTabs } from '@/lib/hooks/domain/useQuickCartTabs';
 import type { Article } from '@/types/article';
 
 interface QuickArticleLookupProps {

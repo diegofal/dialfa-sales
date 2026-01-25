@@ -23,12 +23,12 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ROUTES } from '@/lib/constants/routes';
-import { useArticles, useDeleteArticle } from '@/lib/hooks/useArticles';
-import { useCategories } from '@/lib/hooks/useCategories';
-import { usePagination } from '@/lib/hooks/usePagination';
-import { useStockMovements } from '@/lib/hooks/useStockMovements';
-import { useSupplierOrderDraft } from '@/lib/hooks/useSupplierOrderDraft';
-import { useUpdateSupplierOrderStatus } from '@/lib/hooks/useSupplierOrders';
+import { useArticles, useDeleteArticle } from '@/lib/hooks/domain/useArticles';
+import { useCategories } from '@/lib/hooks/domain/useCategories';
+import { useStockMovements } from '@/lib/hooks/domain/useStockMovements';
+import { useSupplierOrderDraft } from '@/lib/hooks/domain/useSupplierOrderDraft';
+import { useUpdateSupplierOrderStatus } from '@/lib/hooks/domain/useSupplierOrders';
+import { usePagination } from '@/lib/hooks/generic/usePagination';
 import { useAuthStore } from '@/store/authStore';
 import { Article } from '@/types/article';
 

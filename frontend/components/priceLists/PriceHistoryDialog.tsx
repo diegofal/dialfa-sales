@@ -25,8 +25,8 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { usePriceHistory } from '@/lib/hooks/usePriceHistory';
-import { useRevertPrice } from '@/lib/hooks/usePriceLists';
+import { usePriceHistory } from '@/lib/hooks/domain/usePriceHistory';
+import { useRevertPrice } from '@/lib/hooks/domain/usePriceLists';
 
 interface PriceHistoryDialogProps {
   open: boolean;

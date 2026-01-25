@@ -18,7 +18,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { ROUTES } from '@/lib/constants/routes';
-import { useLogin } from '@/lib/hooks/useAuth';
+import { useLogin } from '@/lib/hooks/domain/useAuth';
 import { useAuthStore } from '@/store/authStore';
 
 const loginSchema = z.object({

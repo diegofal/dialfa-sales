@@ -11,9 +11,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
 import { LoadingSpinner } from '@/components/ui/spinner';
-import { useClientClassification } from '@/lib/hooks/useClientClassification';
-import { useClients } from '@/lib/hooks/useClients';
-import { usePagination } from '@/lib/hooks/usePagination';
+import { useClientClassification } from '@/lib/hooks/domain/useClientClassification';
+import { useClients } from '@/lib/hooks/domain/useClients';
+import { usePagination } from '@/lib/hooks/generic/usePagination';
 import type { ClientDto } from '@/types/api';
 import { ClientStatus, ClientClassificationConfig } from '@/types/clientClassification';
 

@@ -39,7 +39,18 @@
       "Bash(ls:*)",
       "Bash(git mv:*)",
       "Bash(xargs:*)",
-      "Bash(git push:*)"
+      "Bash(git push:*)",
+      "Bash(npx replace-in-file:*)",
+      "Bash(for hook in useActivityLogs useArticles useAuth useCategories useCategoryPaymentDiscounts useCertificates useClientClassification useClients useDashboard useDeliveryNotes useFeedback useImportProforma useInvoices usePaymentTerms usePriceHistory usePriceImportDraft usePriceLists useQuickCart useQuickCartTabs useQuickDeliveryNoteTabs useQuickInvoiceTabs useSalesOrderPermissions useSalesOrders useSettings useStockMovements useStockValuation useSupplierOrderDraft useSupplierOrders useUsers)",
+      "Bash(do find . -name \"*.tsx\" -o -name \"*.ts\")",
+      "Bash(done)",
+      "Bash(powershell -Command:*)",
+      "Bash(node update-imports.js:*)",
+      "Bash(node fix-relative-imports.js:*)",
+      "Bash(node fix-api-imports.js:*)",
+      "Bash(node fix-crud-hooks-imports.js:*)",
+      "Bash(test:*)",
+      "Bash(git add:*)"
     ]
   }
 }

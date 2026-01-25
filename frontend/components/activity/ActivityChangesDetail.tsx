@@ -1,7 +1,7 @@
 'use client';
 
 import { Badge } from '@/components/ui/badge';
-import { useActivityLogChanges } from '@/lib/hooks/useActivityLogs';
+import { useActivityLogChanges } from '@/lib/hooks/domain/useActivityLogs';
 
 interface Props {
   activityLogId: number;

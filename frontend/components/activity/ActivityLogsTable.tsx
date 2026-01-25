@@ -22,7 +22,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { OPERATION_LABELS } from '@/lib/constants/operations';
-import { useActivityLogs } from '@/lib/hooks/useActivityLogs';
+import { useActivityLogs } from '@/lib/hooks/domain/useActivityLogs';
 import { ActivityChangesDetail } from './ActivityChangesDetail';
 
 export default function ActivityLogsTable() {

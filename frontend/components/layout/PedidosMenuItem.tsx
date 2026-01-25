@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ROUTES } from '@/lib/constants/routes';
-import { useQuickCartTabs } from '@/lib/hooks/useQuickCartTabs';
+import { useQuickCartTabs } from '@/lib/hooks/domain/useQuickCartTabs';
 import { cn } from '@/lib/utils';
 
 export default function PedidosMenuItem() {

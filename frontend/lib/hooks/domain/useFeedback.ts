@@ -1,7 +1,7 @@
 import type { Feedback, CreateFeedbackDTO, UpdateFeedbackDTO } from '@/types/feedback';
 import type { PaginationParams } from '@/types/pagination';
-import { feedbackApi } from '../api/feedback';
-import { createCRUDHooks } from './api/createCRUDHooks';
+import { feedbackApi } from '../../api/feedback';
+import { createCRUDHooks } from '../api/createCRUDHooks';
 
 export interface FeedbackListParams extends PaginationParams {
   status?: string;

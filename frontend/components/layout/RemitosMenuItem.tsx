@@ -7,7 +7,7 @@ import { useState } from 'react';
 import { toast } from 'sonner';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ROUTES } from '@/lib/constants/routes';
-import { useQuickDeliveryNoteTabs } from '@/lib/hooks/useQuickDeliveryNoteTabs';
+import { useQuickDeliveryNoteTabs } from '@/lib/hooks/domain/useQuickDeliveryNoteTabs';
 import { cn } from '@/lib/utils';
 
 export default function RemitosMenuItem() {

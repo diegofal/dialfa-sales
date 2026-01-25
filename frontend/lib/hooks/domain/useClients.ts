@@ -1,7 +1,7 @@
 import type { ClientDto, CreateClientRequest, UpdateClientRequest } from '@/types/api';
 import type { PaginationParams } from '@/types/pagination';
-import { clientsApi } from '../api/clients';
-import { createCRUDHooks } from './api';
+import { clientsApi } from '../../api/clients';
+import { createCRUDHooks } from '../api';
 
 export interface ClientsListParams extends PaginationParams {
   includeTrends?: boolean;

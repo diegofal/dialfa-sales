@@ -7,7 +7,7 @@ import { ValuationFilters } from '@/components/articles/ValuationFilters';
 import { ValuationSummary } from '@/components/articles/ValuationSummary';
 import { ValuationTable } from '@/components/articles/ValuationTable';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { useStockValuation, useRefreshStockValuation } from '@/lib/hooks/useStockValuation';
+import { useStockValuation, useRefreshStockValuation } from '@/lib/hooks/domain/useStockValuation';
 import { useAuthStore } from '@/store/authStore';
 import { StockClassificationConfig, StockStatus } from '@/types/stockValuation';
 

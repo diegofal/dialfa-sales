@@ -21,7 +21,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ROUTES } from '@/lib/constants/routes';
-import { useCreateSupplierOrder } from '@/lib/hooks/useSupplierOrders';
+import { useCreateSupplierOrder } from '@/lib/hooks/domain/useSupplierOrders';
 import { ImportResult } from '@/lib/utils/priceLists/proformaImport/types';
 import {
   calculateWeightedAvgSales,

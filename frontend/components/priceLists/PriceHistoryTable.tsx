@@ -24,8 +24,12 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { usePriceHistory } from '@/lib/hooks/usePriceHistory';
-import { useRevertPrice, useUndoLastChange, useRevertBatch } from '@/lib/hooks/usePriceLists';
+import { usePriceHistory } from '@/lib/hooks/domain/usePriceHistory';
+import {
+  useRevertPrice,
+  useUndoLastChange,
+  useRevertBatch,
+} from '@/lib/hooks/domain/usePriceLists';
 
 interface PriceHistoryTableProps {
   articleId?: number;

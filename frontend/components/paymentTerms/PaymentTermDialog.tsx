@@ -9,7 +9,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useCreatePaymentTerm, useUpdatePaymentTerm } from '@/lib/hooks/usePaymentTerms';
+import { useCreatePaymentTerm, useUpdatePaymentTerm } from '@/lib/hooks/domain/usePaymentTerms';
 import type { PaymentTerm, PaymentTermFormData } from '@/types/paymentTerm';
 
 const paymentTermSchema = z.object({

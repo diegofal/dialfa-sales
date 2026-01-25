@@ -4,7 +4,7 @@ import { Search, User } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
-import { useClients } from '@/lib/hooks/useClients';
+import { useClients } from '@/lib/hooks/domain/useClients';
 import { formatCuit } from '@/lib/utils';
 import type { ClientDto } from '@/types/api';
 

@@ -4,7 +4,7 @@ import { Upload, FileSpreadsheet, X } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
-import { useImportProforma } from '@/lib/hooks/useImportProforma';
+import { useImportProforma } from '@/lib/hooks/domain/useImportProforma';
 import { ImportResult } from '@/lib/utils/priceLists/proformaImport/types';
 
 interface ProformaDropZoneProps {

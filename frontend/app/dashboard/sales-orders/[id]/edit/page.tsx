@@ -9,8 +9,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ROUTES } from '@/lib/constants/routes';
-import { useSalesOrderPermissions } from '@/lib/hooks/useSalesOrderPermissions';
-import { useSalesOrder } from '@/lib/hooks/useSalesOrders';
+import { useSalesOrderPermissions } from '@/lib/hooks/domain/useSalesOrderPermissions';
+import { useSalesOrder } from '@/lib/hooks/domain/useSalesOrders';
 
 export default function EditSalesOrderPage() {
   const params = useParams();

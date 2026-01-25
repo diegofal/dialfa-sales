@@ -8,8 +8,8 @@ import type {
   UpdateSalesOrderRequest,
   SalesOrderUpdateResponse,
 } from '@/types/salesOrder';
-import { salesOrdersApi } from '../api/salesOrders';
-import { createCRUDHooks } from './api/createCRUDHooks';
+import { salesOrdersApi } from '../../api/salesOrders';
+import { createCRUDHooks } from '../api/createCRUDHooks';
 import { useQuickDeliveryNoteTabs } from './useQuickDeliveryNoteTabs';
 import { useQuickInvoiceTabs } from './useQuickInvoiceTabs';
 

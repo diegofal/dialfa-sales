@@ -42,9 +42,9 @@ import {
   usePrintInvoice,
   useUpdateInvoiceExchangeRate,
   useInvoiceStockMovements,
-} from '@/lib/hooks/useInvoices';
-import { usePaymentTerms } from '@/lib/hooks/usePaymentTerms';
-import { useQuickInvoiceTabs } from '@/lib/hooks/useQuickInvoiceTabs';
+} from '@/lib/hooks/domain/useInvoices';
+import { usePaymentTerms } from '@/lib/hooks/domain/usePaymentTerms';
+import { useQuickInvoiceTabs } from '@/lib/hooks/domain/useQuickInvoiceTabs';
 
 export default function InvoiceDetailPage() {
   const params = useParams();

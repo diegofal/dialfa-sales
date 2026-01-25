@@ -23,7 +23,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useUploadCertificate } from '@/lib/hooks/useCertificates';
+import { useUploadCertificate } from '@/lib/hooks/domain/useCertificates';
 import { CERTIFICATE_CATEGORIES } from '@/types/certificate';
 
 interface UploadCertificateDialogProps {

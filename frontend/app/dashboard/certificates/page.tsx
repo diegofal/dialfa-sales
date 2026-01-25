@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useCertificates, useDeleteCertificate } from '@/lib/hooks/useCertificates';
+import { useCertificates, useDeleteCertificate } from '@/lib/hooks/domain/useCertificates';
 import { CERTIFICATE_CATEGORIES, CertificateResponse } from '@/types/certificate';
 
 export default function CertificatesPage() {

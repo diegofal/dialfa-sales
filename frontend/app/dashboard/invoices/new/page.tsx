@@ -16,10 +16,10 @@ import {
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
 import { ROUTES } from '@/lib/constants/routes';
-import { useCreateInvoice } from '@/lib/hooks/useInvoices';
-import { usePaymentTerms } from '@/lib/hooks/usePaymentTerms';
-import { useSalesOrders } from '@/lib/hooks/useSalesOrders';
-import { useSystemSettings } from '@/lib/hooks/useSettings';
+import { useCreateInvoice } from '@/lib/hooks/domain/useInvoices';
+import { usePaymentTerms } from '@/lib/hooks/domain/usePaymentTerms';
+import { useSalesOrders } from '@/lib/hooks/domain/useSalesOrders';
+import { useSystemSettings } from '@/lib/hooks/domain/useSettings';
 
 export default function NewInvoicePage() {
   const router = useRouter();

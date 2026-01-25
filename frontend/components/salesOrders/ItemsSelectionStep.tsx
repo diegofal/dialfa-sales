@@ -20,7 +20,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useArticles } from '@/lib/hooks/useArticles';
+import { useArticles } from '@/lib/hooks/domain/useArticles';
 import type { SalesOrderFormData, SalesOrderItemFormData } from '@/types/salesOrder';
 
 interface ItemsSelectionStepProps {

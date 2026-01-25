@@ -9,8 +9,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
 import { LoadingSpinner } from '@/components/ui/spinner';
-import { useCategories } from '@/lib/hooks/useCategories';
-import { usePagination } from '@/lib/hooks/usePagination';
+import { useCategories } from '@/lib/hooks/domain/useCategories';
+import { usePagination } from '@/lib/hooks/generic/usePagination';
 
 export default function CategoriesPage() {
   const [isDialogOpen, setIsDialogOpen] = useState(false);

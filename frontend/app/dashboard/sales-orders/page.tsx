@@ -17,13 +17,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ROUTES } from '@/lib/constants/routes';
-import { usePagination } from '@/lib/hooks/usePagination';
-import { useQuickCartTabs } from '@/lib/hooks/useQuickCartTabs';
+import { useQuickCartTabs } from '@/lib/hooks/domain/useQuickCartTabs';
 import {
   useSalesOrders,
   useCancelSalesOrder,
   useDeleteSalesOrder,
-} from '@/lib/hooks/useSalesOrders';
+} from '@/lib/hooks/domain/useSalesOrders';
+import { usePagination } from '@/lib/hooks/generic/usePagination';
 
 export default function SalesOrdersPage() {
   const router = useRouter();

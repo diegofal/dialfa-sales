@@ -49,23 +49,23 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { useFormValidation, validators } from '@/hooks/useFormValidation';
 import { ROUTES } from '@/lib/constants/routes';
-import { useArticles } from '@/lib/hooks/useArticles';
-import { useClient } from '@/lib/hooks/useClients';
-import { usePaymentTerms } from '@/lib/hooks/usePaymentTerms';
-import { useQuickCartTabs, QuickCartItem } from '@/lib/hooks/useQuickCartTabs';
-import { useSalesOrderPermissions } from '@/lib/hooks/useSalesOrderPermissions';
+import { useArticles } from '@/lib/hooks/domain/useArticles';
+import { useClient } from '@/lib/hooks/domain/useClients';
+import { usePaymentTerms } from '@/lib/hooks/domain/usePaymentTerms';
+import { useQuickCartTabs, QuickCartItem } from '@/lib/hooks/domain/useQuickCartTabs';
+import { useSalesOrderPermissions } from '@/lib/hooks/domain/useSalesOrderPermissions';
 import {
   useCreateSalesOrder,
   useGenerateInvoice,
   useGenerateDeliveryNote,
-} from '@/lib/hooks/useSalesOrders';
+} from '@/lib/hooks/domain/useSalesOrders';
 import {
   useSalesOrder,
   useUpdateSalesOrder,
   useDeleteSalesOrder,
-} from '@/lib/hooks/useSalesOrders';
+} from '@/lib/hooks/domain/useSalesOrders';
+import { useFormValidation, validators } from '@/lib/hooks/generic/useFormValidation';
 import { validateSalesOrder } from '@/lib/permissions/salesOrders';
 import { formatCuit } from '@/lib/utils';
 import type { Article } from '@/types/article';

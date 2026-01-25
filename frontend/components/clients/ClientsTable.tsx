@@ -26,7 +26,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
-import { useDeleteClient } from '@/lib/hooks/useClients';
+import { useDeleteClient } from '@/lib/hooks/domain/useClients';
 import { formatCuit } from '@/lib/utils';
 import type { ClientDto } from '@/types/api';
 

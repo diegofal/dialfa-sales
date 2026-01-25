@@ -31,7 +31,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useFeedback } from '@/lib/hooks/useFeedback';
+import { useFeedback } from '@/lib/hooks/domain/useFeedback';
 import { useAuthStore } from '@/store/authStore';
 import { Feedback, FeedbackType, FeedbackStatus, FeedbackPriority } from '@/types/feedback';
 

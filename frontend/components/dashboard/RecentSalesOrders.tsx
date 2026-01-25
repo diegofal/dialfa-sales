@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ROUTES } from '@/lib/constants/routes';
-import { useSalesOrders } from '@/lib/hooks/useSalesOrders';
+import { useSalesOrders } from '@/lib/hooks/domain/useSalesOrders';
 
 interface RecentSalesOrdersProps {
   limit?: number;

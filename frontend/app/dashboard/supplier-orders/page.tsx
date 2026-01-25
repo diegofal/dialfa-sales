@@ -34,7 +34,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { ROUTES } from '@/lib/constants/routes';
-import { useSupplierOrders, useDeleteSupplierOrder } from '@/lib/hooks/useSupplierOrders';
+import { useSupplierOrders, useDeleteSupplierOrder } from '@/lib/hooks/domain/useSupplierOrders';
 import { ImportResult } from '@/lib/utils/priceLists/proformaImport/types';
 import { useAuthStore } from '@/store/authStore';
 import { SupplierOrderStatus } from '@/types/supplierOrder';

@@ -14,8 +14,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 import { calculateCartPositions, CART_CONSTANTS } from '@/lib/constants/cart';
-import { useLogout } from '@/lib/hooks/useAuth';
-import { useFixedBottomBar, useWindowSize } from '@/lib/hooks/useFixedBottomBar';
+import { useLogout } from '@/lib/hooks/domain/useAuth';
+import { useFixedBottomBar, useWindowSize } from '@/lib/hooks/generic/useFixedBottomBar';
 import { useAuthStore } from '@/store/authStore';
 
 export default function Navbar() {

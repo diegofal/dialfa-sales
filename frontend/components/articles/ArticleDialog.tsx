@@ -19,8 +19,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Textarea } from '@/components/ui/textarea';
-import { useCreateArticle, useUpdateArticle } from '@/lib/hooks/useArticles';
-import { useCategories } from '@/lib/hooks/useCategories';
+import { useCreateArticle, useUpdateArticle } from '@/lib/hooks/domain/useArticles';
+import { useCategories } from '@/lib/hooks/domain/useCategories';
 import { useAuthStore } from '@/store/authStore';
 import { Article, ArticleFormData } from '@/types/article';
 

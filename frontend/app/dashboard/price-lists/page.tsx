@@ -37,9 +37,9 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { useCategories } from '@/lib/hooks/useCategories';
-import { usePriceImportDraft } from '@/lib/hooks/usePriceImportDraft';
-import { usePriceLists, useUpdatePrices } from '@/lib/hooks/usePriceLists';
+import { useCategories } from '@/lib/hooks/domain/useCategories';
+import { usePriceImportDraft } from '@/lib/hooks/domain/usePriceImportDraft';
+import { usePriceLists, useUpdatePrices } from '@/lib/hooks/domain/usePriceLists';
 import { sortArticlesByCategory } from '@/lib/utils/articleSorting';
 import { useAuthStore } from '@/store/authStore';
 import { BulkPriceUpdate } from '@/types/priceList';

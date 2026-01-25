@@ -10,10 +10,10 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
-import { usePrintDocument } from '@/hooks/usePrintDocument';
 import { ROUTES } from '@/lib/constants/routes';
-import { useInvoices, useCancelInvoice, useDeleteInvoice } from '@/lib/hooks/useInvoices';
-import { usePagination } from '@/lib/hooks/usePagination';
+import { useInvoices, useCancelInvoice, useDeleteInvoice } from '@/lib/hooks/domain/useInvoices';
+import { usePagination } from '@/lib/hooks/generic/usePagination';
+import { usePrintDocument } from '@/lib/hooks/generic/usePrintDocument';
 
 export default function InvoicesPage() {
   const router = useRouter();

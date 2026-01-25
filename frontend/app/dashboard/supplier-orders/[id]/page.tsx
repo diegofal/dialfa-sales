@@ -29,7 +29,10 @@ import {
 } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ROUTES } from '@/lib/constants/routes';
-import { useSupplierOrder, useUpdateSupplierOrderStatus } from '@/lib/hooks/useSupplierOrders';
+import {
+  useSupplierOrder,
+  useUpdateSupplierOrderStatus,
+} from '@/lib/hooks/domain/useSupplierOrders';
 import {
   formatSaleTime,
   calculateWeightedAvgSales,

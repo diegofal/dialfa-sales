@@ -9,7 +9,7 @@ import type {
   UpdateDeliveryNoteRequest,
 } from '@/types/deliveryNote';
 import { PaginationParams } from '@/types/pagination';
-import { createCRUDHooks } from './api/createCRUDHooks';
+import { createCRUDHooks } from '../api/createCRUDHooks';
 
 type DeliveryNoteListParams = PaginationParams & {
   salesOrderId?: number;

@@ -18,8 +18,8 @@ import { ClickableTableRow } from '@/components/ui/clickable-table-row';
 import { SortableTableHead } from '@/components/ui/sortable-table-head';
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table';
 import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
-import { useDeleteCategory } from '@/lib/hooks/useCategories';
-import { useCategoryPaymentDiscounts } from '@/lib/hooks/useCategoryPaymentDiscounts';
+import { useDeleteCategory } from '@/lib/hooks/domain/useCategories';
+import { useCategoryPaymentDiscounts } from '@/lib/hooks/domain/useCategoryPaymentDiscounts';
 import type { Category } from '@/types/category';
 
 interface CategoriesTableProps {

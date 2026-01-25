@@ -1,7 +1,7 @@
 import { Article, ArticleFormData } from '@/types/article';
 import { PaginationParams } from '@/types/pagination';
-import { articlesApi } from '../api/articles';
-import { createCRUDHooks } from './api';
+import { articlesApi } from '../../api/articles';
+import { createCRUDHooks } from '../api';
 
 export interface ArticlesListParams extends PaginationParams {
   activeOnly?: boolean;

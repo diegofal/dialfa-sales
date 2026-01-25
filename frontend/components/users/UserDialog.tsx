@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import { useCreateUser, useUpdateUser } from '@/lib/hooks/useUsers';
+import { useCreateUser, useUpdateUser } from '@/lib/hooks/domain/useUsers';
 import { User, CreateUserDTO } from '@/types/user';
 
 interface UserDialogProps {

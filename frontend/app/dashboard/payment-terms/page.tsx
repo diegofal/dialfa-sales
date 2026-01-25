@@ -6,7 +6,7 @@ import { PaymentTermDialog } from '@/components/paymentTerms/PaymentTermDialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LoadingSpinner } from '@/components/ui/spinner';
-import { usePaymentTerms, useDeletePaymentTerm } from '@/lib/hooks/usePaymentTerms';
+import { usePaymentTerms, useDeletePaymentTerm } from '@/lib/hooks/domain/usePaymentTerms';
 import type { PaymentTerm } from '@/types/paymentTerm';
 
 export default function PaymentTermsPage() {

@@ -10,7 +10,7 @@ import type {
 } from '@/types/invoice';
 import { PaginationParams } from '@/types/pagination';
 import type { StockMovement } from '@/types/stockMovement';
-import { createCRUDHooks } from './api/createCRUDHooks';
+import { createCRUDHooks } from '../api/createCRUDHooks';
 
 type InvoiceListParams = PaginationParams & {
   clientId?: number;

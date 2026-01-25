@@ -16,7 +16,7 @@ import {
 import { Button } from '@/components/ui/button';
 import UserDialog from '@/components/users/UserDialog';
 import UsersTable from '@/components/users/UsersTable';
-import { useUsers, useDeactivateUser } from '@/lib/hooks/useUsers';
+import { useUsers, useDeactivateUser } from '@/lib/hooks/domain/useUsers';
 import { User } from '@/types/user';
 
 export default function UsersPage() {

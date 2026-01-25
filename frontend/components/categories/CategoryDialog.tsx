@@ -9,12 +9,16 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useCategory, useCreateCategory, useUpdateCategory } from '@/lib/hooks/useCategories';
+import {
+  useCategory,
+  useCreateCategory,
+  useUpdateCategory,
+} from '@/lib/hooks/domain/useCategories';
 import {
   useCategoryPaymentDiscounts,
   useUpdateCategoryPaymentDiscounts,
-} from '@/lib/hooks/useCategoryPaymentDiscounts';
-import { usePaymentTerms } from '@/lib/hooks/usePaymentTerms';
+} from '@/lib/hooks/domain/useCategoryPaymentDiscounts';
+import { usePaymentTerms } from '@/lib/hooks/domain/usePaymentTerms';
 import type { CategoryFormData } from '@/types/category';
 import type { CategoryPaymentDiscountFormData } from '@/types/paymentTerm';
 
