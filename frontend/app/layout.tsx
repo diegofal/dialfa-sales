@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import { AuthInitializer } from '@/components/auth/AuthInitializer';
+import { SentryProvider } from '@/components/providers/SentryProvider';
 import { Toaster } from '@/components/ui/sonner';
 import QueryProvider from '@/lib/providers/QueryProvider';
 import { ThemeProvider } from '@/lib/providers/ThemeProvider';
@@ -23,9 +24,11 @@ export default function RootLayout({
       <body className={inter.className}>
         <ThemeProvider>
           <QueryProvider>
-            <AuthInitializer />
-            {children}
-            <Toaster position="top-center" expand={true} richColors closeButton duration={2000} />
+            <SentryProvider>
+              <AuthInitializer />
+              {children}
+              <Toaster position="top-center" expand={true} richColors closeButton duration={2000} />
+            </SentryProvider>
           </QueryProvider>
         </ThemeProvider>
       </body>

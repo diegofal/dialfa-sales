@@ -51,7 +51,11 @@
       "Bash(node fix-crud-hooks-imports.js:*)",
       "Bash(test:*)",
       "Bash(git add:*)",
-      "Bash(tee:*)"
+      "Bash(tee:*)",
+      "Bash(npm run dev:*)",
+      "Bash(del sentry.client.config.ts sentry.server.config.ts sentry.edge.config.ts)",
+      "Bash(del SENTRY_SETUP.md)",
+      "Bash(npm uninstall:*)"
     ]
   }
 }

@@ -33,9 +33,6 @@ export function PriceListTable({
   const [editingId, setEditingId] = useState<number | null>(null);
   const [tempPrice, setTempPrice] = useState<string>('');
 
-  // Debug: Ver qué payment discounts están llegando
-  console.log('PriceListTable - paymentDiscounts:', paymentDiscounts);
-
   const handleSaveEdit = (articleId: number) => {
     const newPrice = parseFloat(tempPrice);
     if (!isNaN(newPrice) && newPrice >= 0) {

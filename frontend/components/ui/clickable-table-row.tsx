@@ -40,11 +40,8 @@ export function ClickableTableRow({
   ...props
 }: ClickableTableRowProps) {
   const handleClick = (e: React.MouseEvent<HTMLTableRowElement>) => {
-    console.log('ClickableTableRow handleClick called', { disabled, target: e.target });
-
     // No ejecutar si está deshabilitada
     if (disabled) {
-      console.log('Row is disabled, skipping');
       return;
     }
 
@@ -55,11 +52,9 @@ export function ClickableTableRow({
     const isInteractive = target.closest('button, a, input, select, textarea');
 
     if (isInteractive) {
-      console.log('Click was on interactive element, skipping:', isInteractive.tagName);
       return;
     }
 
-    console.log('Row clicked, executing onRowClick');
     onRowClick();
   };
 

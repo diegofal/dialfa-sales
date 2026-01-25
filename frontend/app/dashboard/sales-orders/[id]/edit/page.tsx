@@ -19,14 +19,6 @@ export default function EditSalesOrderPage() {
   const { data: existingOrder } = useSalesOrder(orderId || 0);
   const permissions = useSalesOrderPermissions(existingOrder);
 
-  console.log('🔍 EditSalesOrderPage render:', {
-    orderId,
-    hasExistingOrder: !!existingOrder,
-    existingOrderItems: existingOrder?.items?.length,
-    hasDeliveryNote: !!existingOrder?.deliveryNote,
-    status: existingOrder?.status,
-  });
-
   const getStatusBadge = () => {
     if (!existingOrder) return null;
 
@@ -144,7 +136,7 @@ export default function EditSalesOrderPage() {
               <Button
                 variant="outline"
                 onClick={() => {
-                  console.log('🚚 Ver Remito clicked');
+                  console.warn('🚚 Ver Remito clicked');
                   router.push(`${ROUTES.DELIVERY_NOTES}/${existingOrder.deliveryNote?.id}`);
                 }}
               >

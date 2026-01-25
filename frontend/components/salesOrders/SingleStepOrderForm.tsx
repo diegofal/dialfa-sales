@@ -260,8 +260,6 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   useEffect(() => {
     // Only load if we're in edit mode, have the order data, and haven't loaded this specific order yet
     if (isEditMode && existingOrder && loadedOrderId !== existingOrder.id) {
-      console.log('Loading existing order:', existingOrder.id, existingOrder.orderNumber);
-
       // For edit mode, create a tab for sidebar navigation but use local state for the form
       const orderItems: QuickCartItem[] = [];
       if (existingOrder.items && existingOrder.items.length > 0) {

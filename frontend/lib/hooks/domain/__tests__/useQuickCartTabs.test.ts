@@ -22,7 +22,7 @@ import { QuickCartItem } from '../useQuickCartTabs';
 const STORAGE_KEY = 'spisa_quick_cart_tabs';
 
 let mockStorage: Record<string, string> = {};
-let eventListeners: Record<string, ((event: Event) => void)[]> = {};
+let eventListeners: Record<string, Array<(event: Event) => void>> = {};
 
 // Mock localStorage
 const localStorageMock = {

@@ -96,13 +96,5 @@ export function calculateCartPositions(bottomBarHeight: number, windowWidth?: nu
     isTablet,
   };
 
-  // Debug logging in development
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-    console.log('📐 calculateCartPositions:', {
-      input: { bottomBarHeight: safeBottomBarHeight, windowWidth: safeWindowWidth },
-      output: result,
-    });
-  }
-
   return result;
 }

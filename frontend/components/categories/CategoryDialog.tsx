@@ -46,22 +46,10 @@ export function CategoryDialog({ isOpen, onClose, categoryId }: CategoryDialogPr
 
   // Payment terms and discounts
   const { data: paymentTerms } = usePaymentTerms({ activeOnly: true });
-  const { data: categoryDiscounts, isLoading: isLoadingDiscounts } = useCategoryPaymentDiscounts(
-    categoryId || 0
-  );
+  const { data: categoryDiscounts } = useCategoryPaymentDiscounts(categoryId || 0);
   const updateDiscountsMutation = useUpdateCategoryPaymentDiscounts();
 
   const [discounts, setDiscounts] = useState<Record<number, number>>({});
-
-  // Debug logs
-  console.log('CategoryDialog render:', {
-    isOpen,
-    categoryId,
-    isEditing,
-    categoryDiscounts,
-    isLoadingDiscounts,
-    discountsState: discounts,
-  });
 
   const {
     register,
@@ -99,16 +87,13 @@ export function CategoryDialog({ isOpen, onClose, categoryId }: CategoryDialogPr
   // Load payment term discounts when dialog opens or category changes
   useEffect(() => {
     if (isOpen && categoryDiscounts && categoryDiscounts.length > 0) {
-      console.log('Loading category discounts:', categoryDiscounts);
       const discountMap: Record<number, number> = {};
       categoryDiscounts.forEach((d) => {
         discountMap[d.paymentTermId] = d.discountPercent;
       });
-      console.log('Discount map:', discountMap);
       setDiscounts(discountMap);
     } else if (isOpen && !isEditing) {
       // Reset discounts for new category
-      console.log('Resetting discounts for new category');
       setDiscounts({});
     }
   }, [isOpen, categoryDiscounts, isEditing]);
