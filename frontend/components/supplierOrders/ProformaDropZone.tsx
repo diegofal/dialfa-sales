@@ -5,7 +5,7 @@ import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useImportProforma } from '@/lib/hooks/useImportProforma';
-import { ImportResult } from '@/lib/services/proformaImport/types';
+import { ImportResult } from '@/lib/utils/priceLists/proformaImport/types';
 
 interface ProformaDropZoneProps {
   onImportSuccess: (result: ImportResult) => void;

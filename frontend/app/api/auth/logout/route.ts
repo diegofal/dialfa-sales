@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { clearAuthCookie } from '@/lib/auth/jwt';
 import { OPERATIONS } from '@/lib/constants/operations';
-import { logActivity } from '@/lib/services/activityLogger';
+import { logActivity } from '@/lib/utils/activityLogger';
 
 export async function POST(request: NextRequest) {
   // Log activity BEFORE clearing cookie so we have the user context

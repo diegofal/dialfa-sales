@@ -43,19 +43,19 @@ jest.mock('@/lib/db', () => ({
   Prisma: {},
 }));
 
-jest.mock('@/lib/services/activityLogger', () => ({
+jest.mock('@/lib/utils/activityLogger', () => ({
   logActivity: jest.fn().mockResolvedValue(1n),
 }));
 
-jest.mock('@/lib/services/proformaImport/article-matcher', () => ({
+jest.mock('@/lib/utils/priceLists/proformaImport/article-matcher', () => ({
   ArticleMatcher: jest.fn(),
 }));
 
-jest.mock('@/lib/services/proformaImport/bestflow-extractor', () => ({
+jest.mock('@/lib/utils/priceLists/proformaImport/bestflow-extractor', () => ({
   BestflowExtractor: jest.fn(),
 }));
 
-jest.mock('@/lib/services/salesTrends', () => ({
+jest.mock('@/lib/utils/articles/salesTrends', () => ({
   calculateSalesTrends: jest.fn().mockResolvedValue({ data: new Map(), labels: [] }),
 }));
 

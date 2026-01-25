@@ -41,11 +41,11 @@ jest.mock('@/lib/db', () => ({
   },
 }));
 
-jest.mock('@/lib/services/activityLogger', () => ({
+jest.mock('@/lib/utils/activityLogger', () => ({
   logActivity: jest.fn().mockResolvedValue(1n),
 }));
 
-jest.mock('@/lib/services/changeTracker', () => ({
+jest.mock('@/lib/utils/changeTracker', () => ({
   ChangeTracker: jest.fn().mockImplementation(() => ({
     trackBefore: jest.fn().mockResolvedValue(undefined),
     trackAfter: jest.fn().mockResolvedValue(undefined),
@@ -59,7 +59,7 @@ jest.mock('@/lib/print-templates/template-loader', () => ({
   loadTemplate: jest.fn().mockResolvedValue({ pageSize: 'A4' }),
 }));
 
-jest.mock('@/lib/services/PDFService', () => ({
+jest.mock('@/lib/utils/pdfGenerator', () => ({
   pdfService: {
     generateInvoicePDF: jest.fn().mockResolvedValue(Buffer.from('pdf')),
   },

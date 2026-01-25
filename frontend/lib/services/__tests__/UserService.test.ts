@@ -38,11 +38,11 @@ jest.mock('bcryptjs', () => ({
   hash: (...args: unknown[]) => mockHash(...args),
 }));
 
-jest.mock('@/lib/services/activityLogger', () => ({
+jest.mock('@/lib/utils/activityLogger', () => ({
   logActivity: jest.fn().mockResolvedValue(1n),
 }));
 
-jest.mock('@/lib/services/changeTracker', () => ({
+jest.mock('@/lib/utils/changeTracker', () => ({
   ChangeTracker: jest.fn().mockImplementation(() => ({
     trackBefore: jest.fn().mockResolvedValue(undefined),
     trackAfter: jest.fn().mockResolvedValue(undefined),

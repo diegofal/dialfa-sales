@@ -3,7 +3,7 @@ import { z } from 'zod';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { prisma } from '@/lib/db';
 import { handleError } from '@/lib/errors';
-import { logActivity } from '@/lib/services/activityLogger';
+import { logActivity } from '@/lib/utils/activityLogger';
 
 const updatePaymentTermSchema = z.object({
   code: z.string().min(1).max(20).optional(),

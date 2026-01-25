@@ -5,8 +5,6 @@ import { NextRequest } from 'next/server';
 import * as XLSX from 'xlsx';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { prisma } from '@/lib/db';
-import { logActivity } from '@/lib/services/activityLogger';
-import { ChangeTracker } from '@/lib/services/changeTracker';
 import {
   uploadCertificateFile,
   getFileExtension,
@@ -14,6 +12,8 @@ import {
   getCertificateSignedUrl,
   deleteCertificateFile,
 } from '@/lib/storage/supabase';
+import { logActivity } from '@/lib/utils/activityLogger';
+import { ChangeTracker } from '@/lib/utils/changeTracker';
 import { logger } from '@/lib/utils/logger';
 import { CertificateResponse } from '@/types/certificate';
 

@@ -1,6 +1,6 @@
 import { InvoiceData } from '@/types/pdf-data';
 import { PrintTemplate } from '@/types/print-template';
-import { PDFService } from '../PDFService';
+import { PDFService } from '../pdfGenerator';
 
 // Mock pdfkit to avoid actual PDF generation
 jest.mock('pdfkit', () => {

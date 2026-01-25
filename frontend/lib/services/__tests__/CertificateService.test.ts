@@ -44,11 +44,11 @@ jest.mock('@/lib/db', () => ({
   Prisma: {},
 }));
 
-jest.mock('@/lib/services/activityLogger', () => ({
+jest.mock('@/lib/utils/activityLogger', () => ({
   logActivity: jest.fn().mockResolvedValue(1n),
 }));
 
-jest.mock('@/lib/services/changeTracker', () => ({
+jest.mock('@/lib/utils/changeTracker', () => ({
   ChangeTracker: jest.fn().mockImplementation(() => ({
     trackDelete: jest.fn(),
     saveChanges: jest.fn().mockResolvedValue(undefined),

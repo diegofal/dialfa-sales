@@ -2,15 +2,18 @@ import { NextRequest } from 'next/server';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { STOCK_MOVEMENT_TYPES } from '@/lib/constants/stockMovementTypes';
 import { prisma } from '@/lib/db';
+import { logActivity } from '@/lib/utils/activityLogger';
 import {
   calculateABCClassification,
   refreshABCClassification,
   getABCCacheInfo,
-} from '@/lib/services/abcClassification';
-import { logActivity } from '@/lib/services/activityLogger';
-import { ChangeTracker } from '@/lib/services/changeTracker';
-import { calculateSalesTrends, calculateLastSaleDates } from '@/lib/services/salesTrends';
-import { calculateStockValuation, getStockValuationCacheInfo } from '@/lib/services/stockValuation';
+} from '@/lib/utils/articles/abcClassification';
+import { calculateSalesTrends, calculateLastSaleDates } from '@/lib/utils/articles/salesTrends';
+import {
+  calculateStockValuation,
+  getStockValuationCacheInfo,
+} from '@/lib/utils/articles/stockValuation';
+import { ChangeTracker } from '@/lib/utils/changeTracker';
 import { logger } from '@/lib/utils/logger';
 import { mapArticleToDTO } from '@/lib/utils/mapper';
 import { CreateArticleInput, UpdateArticleInput } from '@/lib/validations/schemas';

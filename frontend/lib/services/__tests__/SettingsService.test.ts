@@ -21,11 +21,11 @@ jest.mock('@/lib/db', () => ({
   },
 }));
 
-jest.mock('@/lib/services/activityLogger', () => ({
+jest.mock('@/lib/utils/activityLogger', () => ({
   logActivity: jest.fn().mockResolvedValue(1n),
 }));
 
-jest.mock('@/lib/services/changeTracker', () => ({
+jest.mock('@/lib/utils/changeTracker', () => ({
   ChangeTracker: jest.fn().mockImplementation(() => ({
     trackBefore: jest.fn().mockResolvedValue(undefined),
     trackAfter: jest.fn().mockResolvedValue(undefined),
@@ -134,7 +134,7 @@ describe('update', () => {
 
     await update({ usdExchangeRate: 1100 }, createMockRequest());
 
-    const { ChangeTracker } = require('@/lib/services/changeTracker');
+    const { ChangeTracker } = require('@/lib/utils/changeTracker');
     const tracker = ChangeTracker.mock.results[0].value;
     expect(tracker.trackBefore).toHaveBeenCalledWith('settings', 1);
   });
@@ -145,7 +145,7 @@ describe('update', () => {
 
     await update({ usdExchangeRate: 1100 }, createMockRequest());
 
-    const { ChangeTracker } = require('@/lib/services/changeTracker');
+    const { ChangeTracker } = require('@/lib/utils/changeTracker');
     const tracker = ChangeTracker.mock.results[0].value;
     expect(tracker.trackAfter).toHaveBeenCalledWith('settings', 1);
   });
@@ -157,7 +157,7 @@ describe('update', () => {
 
     await update({ usdExchangeRate: 1500 }, createMockRequest());
 
-    const { ChangeTracker } = require('@/lib/services/changeTracker');
+    const { ChangeTracker } = require('@/lib/utils/changeTracker');
     const tracker = ChangeTracker.mock.results[0].value;
     expect(tracker.trackCreate).toHaveBeenCalledWith('settings', 1, expect.any(Object));
   });

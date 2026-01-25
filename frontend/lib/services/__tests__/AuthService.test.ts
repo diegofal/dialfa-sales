@@ -33,7 +33,7 @@ jest.mock('@/lib/auth/jwt', () => ({
   clearAuthCookie: () => mockClearAuthCookie(),
 }));
 
-jest.mock('@/lib/services/activityLogger', () => ({
+jest.mock('@/lib/utils/activityLogger', () => ({
   logActivity: jest.fn().mockResolvedValue(1n),
 }));
 

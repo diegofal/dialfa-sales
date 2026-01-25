@@ -1,10 +1,10 @@
 import { NextRequest } from 'next/server';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { prisma, Prisma } from '@/lib/db';
-import { logActivity } from '@/lib/services/activityLogger';
-import { ArticleMatcher } from '@/lib/services/proformaImport/article-matcher';
-import { BestflowExtractor } from '@/lib/services/proformaImport/bestflow-extractor';
-import { calculateSalesTrends } from '@/lib/services/salesTrends';
+import { logActivity } from '@/lib/utils/activityLogger';
+import { calculateSalesTrends } from '@/lib/utils/articles/salesTrends';
+import { ArticleMatcher } from '@/lib/utils/priceLists/proformaImport/article-matcher';
+import { BestflowExtractor } from '@/lib/utils/priceLists/proformaImport/bestflow-extractor';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

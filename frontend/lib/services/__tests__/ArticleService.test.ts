@@ -46,11 +46,11 @@ jest.mock('@/lib/db', () => ({
   },
 }));
 
-jest.mock('@/lib/services/activityLogger', () => ({
+jest.mock('@/lib/utils/activityLogger', () => ({
   logActivity: jest.fn().mockResolvedValue(1n),
 }));
 
-jest.mock('@/lib/services/changeTracker', () => ({
+jest.mock('@/lib/utils/changeTracker', () => ({
   ChangeTracker: jest.fn().mockImplementation(() => ({
     trackBefore: jest.fn().mockResolvedValue(undefined),
     trackAfter: jest.fn().mockResolvedValue(undefined),
@@ -60,18 +60,18 @@ jest.mock('@/lib/services/changeTracker', () => ({
   })),
 }));
 
-jest.mock('@/lib/services/abcClassification', () => ({
+jest.mock('@/lib/utils/articles/abcClassification', () => ({
   calculateABCClassification: jest.fn().mockResolvedValue(new Map()),
   refreshABCClassification: jest.fn().mockResolvedValue(undefined),
   getABCCacheInfo: jest.fn().mockReturnValue({ isCached: false }),
 }));
 
-jest.mock('@/lib/services/salesTrends', () => ({
+jest.mock('@/lib/utils/articles/salesTrends', () => ({
   calculateSalesTrends: jest.fn().mockResolvedValue({ data: new Map(), labels: [] }),
   calculateLastSaleDates: jest.fn().mockResolvedValue(new Map()),
 }));
 
-jest.mock('@/lib/services/stockValuation', () => ({
+jest.mock('@/lib/utils/articles/stockValuation', () => ({
   calculateStockValuation: jest.fn().mockResolvedValue({ byStatus: {} }),
   getStockValuationCacheInfo: jest.fn().mockReturnValue({ isCached: false }),
 }));

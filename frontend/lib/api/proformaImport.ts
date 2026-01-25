@@ -1,4 +1,4 @@
-import { ImportResult } from '@/lib/services/proformaImport/types';
+import { ImportResult } from '@/lib/utils/priceLists/proformaImport/types';
 
 const BASE_URL = '/api/supplier-orders/import';
 

@@ -35,7 +35,10 @@
       "Bash(npm run lint)",
       "Bash(npm run lint:*)",
       "Bash(npx lint-staged)",
-      "Bash(git commit:*)"
+      "Bash(git commit:*)",
+      "Bash(ls:*)",
+      "Bash(git mv:*)",
+      "Bash(xargs:*)"
     ]
   }
 }

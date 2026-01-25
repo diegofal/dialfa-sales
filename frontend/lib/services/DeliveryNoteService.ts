@@ -2,10 +2,10 @@ import { NextRequest } from 'next/server';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { prisma } from '@/lib/db';
 import { loadTemplate } from '@/lib/print-templates/template-loader';
-import { logActivity } from '@/lib/services/activityLogger';
-import { ChangeTracker } from '@/lib/services/changeTracker';
-import { pdfService } from '@/lib/services/PDFService';
+import { logActivity } from '@/lib/utils/activityLogger';
+import { ChangeTracker } from '@/lib/utils/changeTracker';
 import { mapDeliveryNoteToDTO } from '@/lib/utils/mapper';
+import { pdfService } from '@/lib/utils/pdfGenerator';
 import { createDeliveryNoteSchema, updateDeliveryNoteSchema } from '@/lib/validations/schemas';
 
 // ─── Types ────────────────────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { prisma } from '@/lib/db';
-import { logActivity } from '@/lib/services/activityLogger';
+import { logActivity } from '@/lib/utils/activityLogger';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/table';
 import { ROUTES } from '@/lib/constants/routes';
 import { useCreateSupplierOrder } from '@/lib/hooks/useSupplierOrders';
-import { ImportResult } from '@/lib/services/proformaImport/types';
+import { ImportResult } from '@/lib/utils/priceLists/proformaImport/types';
 import {
   calculateWeightedAvgSales,
   calculateEstimatedSaleTime,

@@ -1,13 +1,13 @@
 import { NextRequest } from 'next/server';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { prisma } from '@/lib/db';
-import { logActivity } from '@/lib/services/activityLogger';
-import { ChangeTracker } from '@/lib/services/changeTracker';
+import { logActivity } from '@/lib/utils/activityLogger';
+import { ChangeTracker } from '@/lib/utils/changeTracker';
 import {
   calculateClientClassification,
   getClientClassificationCacheInfo,
-} from '@/lib/services/clientClassification';
-import { calculateClientSalesTrends } from '@/lib/services/clientSalesTrends';
+} from '@/lib/utils/clients/clientClassification';
+import { calculateClientSalesTrends } from '@/lib/utils/clients/clientSalesTrends';
 import { logger } from '@/lib/utils/logger';
 import { mapClientToDTO } from '@/lib/utils/mapper';
 import { CreateClientInput, UpdateClientInput } from '@/lib/validations/schemas';

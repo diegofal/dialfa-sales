@@ -29,11 +29,11 @@ jest.mock('@/lib/db', () => ({
   },
 }));
 
-jest.mock('@/lib/services/activityLogger', () => ({
+jest.mock('@/lib/utils/activityLogger', () => ({
   logActivity: jest.fn().mockResolvedValue(1n),
 }));
 
-jest.mock('@/lib/services/changeTracker', () => ({
+jest.mock('@/lib/utils/changeTracker', () => ({
   ChangeTracker: jest.fn().mockImplementation(() => ({
     trackBefore: jest.fn().mockResolvedValue(undefined),
     trackAfter: jest.fn().mockResolvedValue(undefined),
@@ -43,7 +43,7 @@ jest.mock('@/lib/services/changeTracker', () => ({
   })),
 }));
 
-jest.mock('@/lib/services/clientClassification', () => ({
+jest.mock('@/lib/utils/clients/clientClassification', () => ({
   calculateClientClassification: jest.fn().mockResolvedValue({
     byStatus: {
       active: { clients: [] },
@@ -55,7 +55,7 @@ jest.mock('@/lib/services/clientClassification', () => ({
   getClientClassificationCacheInfo: jest.fn(),
 }));
 
-jest.mock('@/lib/services/clientSalesTrends', () => ({
+jest.mock('@/lib/utils/clients/clientSalesTrends', () => ({
   calculateClientSalesTrends: jest.fn().mockResolvedValue({ data: new Map(), labels: [] }),
 }));
 

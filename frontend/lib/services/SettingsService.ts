@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server';
 import { OPERATIONS } from '@/lib/constants/operations';
 import { prisma } from '@/lib/db';
-import { logActivity } from '@/lib/services/activityLogger';
-import { ChangeTracker } from '@/lib/services/changeTracker';
+import { logActivity } from '@/lib/utils/activityLogger';
+import { ChangeTracker } from '@/lib/utils/changeTracker';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
