@@ -96,16 +96,6 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
   // Use items from the active draft tab only (not from saved orders)
   const items = activeDraftTab.items;
 
-  // Log for debugging
-  console.warn('📋 QuickCartPopup state:', {
-    activeTabId: activeTab.id,
-    activeTabIsOrder: !!activeTab.orderId,
-    activeDraftTabId: activeDraftTab.id,
-    draftTabsCount: draftTabs.length,
-    itemsCount: items.length,
-    itemsShown: items.map((i) => ({ id: i.article.id, code: i.article.code })),
-  });
-
   // Search articles for editing
   const { data: editArticlesResult } = useArticles({
     searchTerm: editCode,
@@ -512,17 +502,6 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
   // When fixed buttons exist: button is at bottom-24, so popup needs more clearance
   const popupPosition = positions.popup.bottom;
   const popupRight = positions.popup.right;
-
-  // Debug logging in development
-  if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-    console.warn('🎨 Cart Popup positions:', {
-      popupBottom: popupPosition,
-      popupRight: popupRight,
-      isExpanded,
-      dimensions: currentDimensions,
-      hasBottomBar: positions.hasBottomBar,
-    });
-  }
 
   return (
     <>

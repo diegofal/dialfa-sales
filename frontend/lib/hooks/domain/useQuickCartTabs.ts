@@ -52,13 +52,9 @@ const getStateFromStorage = (): QuickCartState => {
 // Helper to save cart to localStorage
 const saveStateToStorage = (state: QuickCartState) => {
   try {
-    console.warn('Saving state to localStorage:', state);
     if (state.tabs.length === 0) {
-      console.warn('WARNING: Saving empty tabs array!');
-      console.trace('Stack trace for empty save:');
     }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    console.warn('State saved successfully');
     dispatchCartUpdate();
   } catch (error) {
     console.error('Error saving quick cart:', error);
@@ -78,7 +74,6 @@ export function useQuickCartTabs() {
   // Load cart from localStorage on mount
   useEffect(() => {
     const loadedState = getStateFromStorage();
-    console.warn('Loading state from localStorage on mount:', loadedState);
     setState(loadedState);
     setIsLoaded(true);
   }, []);
@@ -87,7 +82,6 @@ export function useQuickCartTabs() {
   useEffect(() => {
     const handleCartUpdate = () => {
       const updatedState = getStateFromStorage();
-      console.warn('Cart update event received, loading from localStorage:', updatedState);
       setState(updatedState);
     };
 
@@ -164,12 +158,6 @@ export function useQuickCartTabs() {
   // Set client for active tab (or first draft tab if active is an order)
   const setClient = (clientId: number, clientName: string) => {
     const targetTabId = getTargetTabId();
-    console.warn('👤 setClient:', {
-      clientId,
-      clientName,
-      activeTabId: state.activeTabId,
-      targetTabId,
-    });
 
     if (!targetTabId) {
       console.error('👤 ERROR: No target tab found for setClient!');
@@ -192,7 +180,6 @@ export function useQuickCartTabs() {
   // Clear client for active tab (or first draft tab if active is an order)
   const clearClient = () => {
     const targetTabId = getTargetTabId();
-    console.warn('👤 clearClient:', { activeTabId: state.activeTabId, targetTabId });
 
     if (!targetTabId) {
       console.error('👤 ERROR: No target tab found for clearClient!');
@@ -239,17 +226,9 @@ export function useQuickCartTabs() {
   const addItem = (article: Article, quantity: number = 1, discountPercent?: number) => {
     let targetTabId = getTargetTabId();
 
-    console.warn('➕ addItem called:', {
-      articleCode: article.code,
-      quantity,
-      activeTabId: state.activeTabId,
-      targetTabId,
-    });
-
     // If no draft tab exists, create one
     let tabsToUpdate = state.tabs;
     if (!targetTabId) {
-      console.warn('➕ No draft tab exists, creating one');
       const newDraftTab: QuickCartTab = {
         id: `tab-${Date.now()}`,
         name: `Pedido ${state.tabs.length + 1}`,
@@ -267,14 +246,12 @@ export function useQuickCartTabs() {
       let updatedItems: QuickCartItem[];
 
       if (existingIndex >= 0) {
-        console.warn('➕ Item already exists, updating quantity');
         updatedItems = [...tab.items];
         updatedItems[existingIndex] = {
           ...updatedItems[existingIndex],
           quantity: updatedItems[existingIndex].quantity + quantity,
         };
       } else {
-        console.warn('➕ Adding new item');
         updatedItems = [
           ...tab.items,
           {
@@ -285,7 +262,6 @@ export function useQuickCartTabs() {
         ];
       }
 
-      console.warn('➕ Updated items count:', updatedItems.length);
       return { ...tab, items: updatedItems };
     });
 
@@ -305,7 +281,6 @@ export function useQuickCartTabs() {
     if (activeTabData?.orderId) {
       // Active tab is an order, use first draft tab
       const firstDraftTab = state.tabs.find((t) => !t.orderId);
-      console.warn('🎯 Active tab is order, using draft tab:', firstDraftTab?.id || 'NONE');
       return firstDraftTab?.id || '';
     }
     return state.activeTabId;
@@ -314,13 +289,6 @@ export function useQuickCartTabs() {
   // Remove item from active tab (or first draft tab if active is an order)
   const removeItem = (articleId: number) => {
     const targetTabId = getTargetTabId();
-
-    console.warn('🗑️ removeItem called:', {
-      articleId,
-      activeTabId: state.activeTabId,
-      targetTabId,
-      isActiveTabOrder: state.activeTabId.startsWith('order-'),
-    });
 
     if (!targetTabId) {
       console.error('🗑️ ERROR: No target tab found!');
@@ -331,17 +299,7 @@ export function useQuickCartTabs() {
       if (tab.id !== targetTabId) {
         return tab;
       }
-      console.warn('🗑️ Found target tab, removing item:', {
-        tabId: tab.id,
-        tabName: tab.name,
-        currentItems: tab.items.map((i) => i.article.id),
-        removing: articleId,
-      });
       const filteredItems = tab.items.filter((item) => item.article.id !== articleId);
-      console.warn(
-        '🗑️ Items after filter:',
-        filteredItems.map((i) => i.article.id)
-      );
       return {
         ...tab,
         items: filteredItems,
@@ -365,7 +323,6 @@ export function useQuickCartTabs() {
     }
 
     const targetTabId = getTargetTabId();
-    console.warn('🔢 updateQuantity:', { articleId, quantity, targetTabId });
 
     if (!targetTabId) return;
 
@@ -525,13 +482,10 @@ export function useQuickCartTabs() {
     clientName: string,
     items: QuickCartItem[] = []
   ) => {
-    console.warn('addOrUpdateOrderTab called:', { orderId, orderNumber, clientId, clientName });
-
     // Check if a tab for this order already exists
     const existingTabIndex = state.tabs.findIndex((tab) => tab.orderId === orderId);
 
     if (existingTabIndex >= 0) {
-      console.warn('Updating existing order tab at index:', existingTabIndex);
       // Update existing tab and set as active
       const updatedTabs = [...state.tabs];
       updatedTabs[existingTabIndex] = {
@@ -550,10 +504,8 @@ export function useQuickCartTabs() {
 
       saveStateToStorage(newState);
       setState(newState);
-      console.warn('Order tab updated, returning ID:', updatedTabs[existingTabIndex].id);
       return updatedTabs[existingTabIndex].id;
     } else {
-      console.warn('Creating new tab for order');
       // Create new tab for this order
       const newTab: QuickCartTab = {
         id: `order-${orderId}-${Date.now()}`,
@@ -573,7 +525,6 @@ export function useQuickCartTabs() {
 
       saveStateToStorage(newState);
       setState(newState);
-      console.warn('Order tab created, returning ID:', newTab.id);
       return newTab.id;
     }
   };
