@@ -67,35 +67,22 @@ describe('list', () => {
     mockCount.mockResolvedValue(1);
     mockFindMany.mockResolvedValue([mockFeedback]);
 
-    const result = await list({ page: 1, limit: 10, isAdmin: true });
+    const result = await list({ page: 1, limit: 10 });
 
     expect(result.data).toHaveLength(1);
     expect(result.data[0].id).toBe(1);
     expect(result.pagination.total).toBe(1);
   });
 
-  it('filters by userId for non-admin users', async () => {
+  it('does not filter by userId for any users', async () => {
     mockCount.mockResolvedValue(0);
     mockFindMany.mockResolvedValue([]);
 
-    await list({ page: 1, limit: 10, isAdmin: false, userId: 5 });
+    await list({ page: 1, limit: 10 });
 
     expect(mockFindMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ user_id: 5 }),
-      })
-    );
-  });
-
-  it('does not filter by userId for admin users', async () => {
-    mockCount.mockResolvedValue(0);
-    mockFindMany.mockResolvedValue([]);
-
-    await list({ page: 1, limit: 10, isAdmin: true, userId: 5 });
-
-    expect(mockFindMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.not.objectContaining({ user_id: 5 }),
+        where: expect.not.objectContaining({ user_id: expect.anything() }),
       })
     );
   });
@@ -104,7 +91,7 @@ describe('list', () => {
     mockCount.mockResolvedValue(0);
     mockFindMany.mockResolvedValue([]);
 
-    await list({ page: 1, limit: 10, isAdmin: true, status: 'resolved', type: 'bug' });
+    await list({ page: 1, limit: 10, status: 'resolved', type: 'bug' });
 
     expect(mockFindMany).toHaveBeenCalledWith(
       expect.objectContaining({

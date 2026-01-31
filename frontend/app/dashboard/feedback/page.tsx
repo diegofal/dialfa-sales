@@ -185,8 +185,8 @@ export default function FeedbackPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Tus Envíos</CardTitle>
-          <CardDescription>Revisa el estado de tus reportes y sugerencias</CardDescription>
+          <CardTitle>Todos los Feedbacks</CardTitle>
+          <CardDescription>Revisa todos los reportes y sugerencias de la comunidad</CardDescription>
         </CardHeader>
         <CardContent>
           {isLoading ? (
@@ -196,8 +196,10 @@ export default function FeedbackPage() {
           ) : feedbacks.length === 0 ? (
             <div className="text-muted-foreground py-8 text-center">
               <MessageSquare className="mx-auto mb-4 h-12 w-12 opacity-50" />
-              <p>Aún no has enviado ningún feedback</p>
-              <p className="mt-2 text-sm">Haz clic en &quot;Enviar Feedback&quot; para comenzar</p>
+              <p>No hay feedback en el sistema aún</p>
+              <p className="mt-2 text-sm">
+                Haz clic en &quot;Enviar Feedback&quot; para ser el primero
+              </p>
             </div>
           ) : (
             <div className="space-y-4">

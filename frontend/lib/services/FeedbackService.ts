@@ -10,8 +10,6 @@ export interface FeedbackListParams {
   limit: number;
   status?: string;
   type?: string;
-  userId?: number;
-  isAdmin: boolean;
 }
 
 export interface CreateFeedbackData {
@@ -49,15 +47,12 @@ function mapFeedbackToDTO(feedback: any) {
 // ─── Service ──────────────────────────────────────────────────────────────────
 
 export async function list(params: FeedbackListParams) {
-  const { page, limit, status, type, userId, isAdmin } = params;
+  const { page, limit, status, type } = params;
   const skip = (page - 1) * limit;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const where: Record<string, any> = {};
 
-  if (!isAdmin && userId) {
-    where.user_id = userId;
-  }
   if (status) {
     where.status = status;
   }

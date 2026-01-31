@@ -11,15 +11,12 @@ export async function GET(request: NextRequest) {
     }
 
     const { searchParams } = new URL(request.url);
-    const isAdmin = session.role?.toLowerCase() === 'admin';
 
     const result = await FeedbackService.list({
       page: parseInt(searchParams.get('page') || '1'),
       limit: parseInt(searchParams.get('limit') || '50'),
       status: searchParams.get('status') || undefined,
       type: searchParams.get('type') || undefined,
-      userId: session.userId,
-      isAdmin,
     });
 
     return NextResponse.json(result);
