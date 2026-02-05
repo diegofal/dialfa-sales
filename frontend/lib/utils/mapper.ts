@@ -55,7 +55,7 @@ export interface ClientDTO {
   code: string;
   businessName: string;
   cuit: string | null;
-  taxConditionId: bigint;
+  taxConditionId: number;
   taxConditionName: string;
   address: string | null;
   city: string | null;
@@ -255,7 +255,7 @@ export function mapClientToDTO(client: unknown): ClientDTO {
     code: c.code as string,
     businessName: c.business_name as string,
     cuit: c.cuit as string | null,
-    taxConditionId: c.tax_condition_id as bigint,
+    taxConditionId: toInt(c.tax_condition_id as bigint | number),
     taxConditionName: taxConditions?.name || '',
     address: c.address as string | null,
     city: c.city as string | null,
@@ -268,7 +268,7 @@ export function mapClientToDTO(client: unknown): ClientDTO {
     operationTypeName: operationTypes?.name || '',
     transporterId: c.transporter_id as bigint | null,
     transporterName: transporters?.name || '',
-    paymentTermId: c.payment_term_id as number,
+    paymentTermId: toInt(c.payment_term_id as bigint | number),
     paymentTermName: paymentTerms?.name || null,
     creditLimit: toFloatOrNull(c.credit_limit),
     currentBalance: toFloat(c.current_balance),

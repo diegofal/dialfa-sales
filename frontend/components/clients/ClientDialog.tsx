@@ -5,6 +5,7 @@ import { useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import * as z from 'zod';
 import { Button } from '@/components/ui/button';
+import { CUITInput } from '@/components/ui/cuit-input';
 import {
   Dialog,
   DialogContent,
@@ -22,20 +23,29 @@ import {
   FormMessage,
 } from '@/components/ui/form';
 import { Input } from '@/components/ui/input';
-import { useCreateClient, useUpdateClient } from '@/lib/hooks/domain/useClients';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { useCreateClient, useUpdateClient, useNextClientCode } from '@/lib/hooks/domain/useClients';
+import { useTaxConditions } from '@/lib/hooks/domain/useLookups';
+import { usePaymentTerms } from '@/lib/hooks/domain/usePaymentTerms';
 import type { ClientDto } from '@/types/api';
 
 const clientSchema = z.object({
   code: z.string().min(1, 'El código es requerido'),
   businessName: z.string().min(1, 'La razón social es requerida'),
-  cuit: z.string().optional(),
+  cuit: z.string().min(1, 'El CUIT es requerido'),
   address: z.string().optional(),
   city: z.string().optional(),
   postalCode: z.string().optional(),
   phone: z.string().optional(),
   email: z.string().email('Email inválido').optional().or(z.literal('')),
-  taxConditionId: z.number().min(1, 'La condición de IVA es requerida'),
-  operationTypeId: z.number().min(1, 'El tipo de operatoria es requerido'),
+  taxConditionId: z.number().int().positive('Debe seleccionar una condición de IVA'),
+  paymentTermId: z.number().int().positive('Debe seleccionar una condición de pago'),
 });
 
 type ClientFormValues = z.infer<typeof clientSchema>;
@@ -49,6 +59,11 @@ interface ClientDialogProps {
 export default function ClientDialog({ open, onClose, client }: ClientDialogProps) {
   const createMutation = useCreateClient();
   const updateMutation = useUpdateClient();
+  const { data: taxConditions = [], isLoading: loadingTaxConditions } = useTaxConditions();
+  const { data: paymentTerms = [], isLoading: loadingPaymentTerms } = usePaymentTerms({
+    activeOnly: true,
+  });
+  const { data: nextCode, refetch: refetchNextCode } = useNextClientCode();
   const isEditing = !!client;
 
   const form = useForm<ClientFormValues>({
@@ -62,8 +77,8 @@ export default function ClientDialog({ open, onClose, client }: ClientDialogProp
       postalCode: '',
       phone: '',
       email: '',
-      taxConditionId: 1,
-      operationTypeId: 1,
+      taxConditionId: undefined as unknown as number,
+      paymentTermId: undefined as unknown as number,
     },
   });
 
@@ -78,24 +93,27 @@ export default function ClientDialog({ open, onClose, client }: ClientDialogProp
         postalCode: client.postalCode || '',
         phone: client.phone || '',
         email: client.email || '',
-        taxConditionId: 1, // You might want to extract this from the client object
-        operationTypeId: 1, // You might want to extract this from the client object
+        taxConditionId: Number(client.taxConditionId),
+        paymentTermId: client.paymentTermId,
       });
     } else {
-      form.reset({
-        code: '',
-        businessName: '',
-        cuit: '',
-        address: '',
-        city: '',
-        postalCode: '',
-        phone: '',
-        email: '',
-        taxConditionId: 1,
-        operationTypeId: 1,
+      // Para nuevo cliente, obtener el siguiente código
+      refetchNextCode().then(() => {
+        form.reset({
+          code: nextCode || '',
+          businessName: '',
+          cuit: '',
+          address: '',
+          city: '',
+          postalCode: '',
+          phone: '',
+          email: '',
+          taxConditionId: undefined as unknown as number,
+          paymentTermId: undefined as unknown as number,
+        });
       });
     }
-  }, [client, form]);
+  }, [client, form, nextCode, refetchNextCode]);
 
   const onSubmit = async (data: ClientFormValues) => {
     try {
@@ -142,7 +160,7 @@ export default function ClientDialog({ open, onClose, client }: ClientDialogProp
                   <FormItem>
                     <FormLabel>Código *</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="CLI001" />
+                      <Input {...field} placeholder="CLI001" disabled={!isEditing} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -154,9 +172,14 @@ export default function ClientDialog({ open, onClose, client }: ClientDialogProp
                 name="cuit"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>CUIT</FormLabel>
+                    <FormLabel>CUIT *</FormLabel>
                     <FormControl>
-                      <Input {...field} placeholder="20-12345678-9" />
+                      <CUITInput
+                        value={field.value}
+                        onChange={field.onChange}
+                        onBlur={field.onBlur}
+                        name={field.name}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -259,15 +282,24 @@ export default function ClientDialog({ open, onClose, client }: ClientDialogProp
                 render={({ field }) => (
                   <FormItem>
                     <FormLabel>Condición IVA *</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="number"
-                        min="1"
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
-                        value={field.value}
-                      />
-                    </FormControl>
+                    <Select
+                      onValueChange={(value) => field.onChange(parseInt(value))}
+                      value={field.value ? field.value.toString() : ''}
+                      disabled={loadingTaxConditions}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccione una condición" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {taxConditions.map((condition) => (
+                          <SelectItem key={condition.id} value={condition.id.toString()}>
+                            {condition.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}
@@ -275,19 +307,28 @@ export default function ClientDialog({ open, onClose, client }: ClientDialogProp
 
               <FormField
                 control={form.control}
-                name="operationTypeId"
+                name="paymentTermId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Tipo de Operatoria *</FormLabel>
-                    <FormControl>
-                      <Input
-                        {...field}
-                        type="number"
-                        min="1"
-                        onChange={(e) => field.onChange(parseInt(e.target.value) || 1)}
-                        value={field.value}
-                      />
-                    </FormControl>
+                    <FormLabel>Condición de Pago *</FormLabel>
+                    <Select
+                      onValueChange={(value) => field.onChange(parseInt(value))}
+                      value={field.value ? field.value.toString() : ''}
+                      disabled={loadingPaymentTerms}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Seleccione una condición de pago" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {paymentTerms.map((term) => (
+                          <SelectItem key={term.id} value={term.id.toString()}>
+                            {term.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                     <FormMessage />
                   </FormItem>
                 )}

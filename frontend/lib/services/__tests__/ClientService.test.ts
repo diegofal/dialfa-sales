@@ -157,7 +157,7 @@ describe('create', () => {
         postalCode: '5000',
         provinceId: 2,
         phone: '+5435100001111',
-        operationTypeId: 1,
+        paymentTermId: 1,
       },
       createMockRequest()
     );
@@ -168,12 +168,14 @@ describe('create', () => {
         business_name: 'New Corp',
         cuit: '20-87654321-0',
         tax_condition_id: 1,
+        payment_term_id: 1,
+        operation_type_id: 1,
       }),
       include: expect.any(Object),
     });
   });
 
-  it('defaults paymentTermId to 1 when not provided', async () => {
+  it('requires paymentTermId when not provided', async () => {
     mockCreate.mockResolvedValue(mockClient);
 
     await create(
@@ -187,13 +189,16 @@ describe('create', () => {
         postalCode: '1000',
         provinceId: 1,
         phone: '123',
-        operationTypeId: 1,
+        paymentTermId: 1,
       },
       createMockRequest()
     );
 
     expect(mockCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({ payment_term_id: 1 }),
+      data: expect.objectContaining({
+        payment_term_id: 1,
+        operation_type_id: 1,
+      }),
       include: expect.any(Object),
     });
   });
@@ -212,14 +217,16 @@ describe('create', () => {
         postalCode: '1000',
         provinceId: 1,
         phone: '123',
-        operationTypeId: 1,
         paymentTermId: 3,
       },
       createMockRequest()
     );
 
     expect(mockCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({ payment_term_id: 3 }),
+      data: expect.objectContaining({
+        payment_term_id: 3,
+        operation_type_id: 3,
+      }),
       include: expect.any(Object),
     });
   });

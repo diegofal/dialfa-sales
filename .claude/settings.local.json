@@ -56,7 +56,8 @@
       "Bash(del sentry.client.config.ts sentry.server.config.ts sentry.edge.config.ts)",
       "Bash(del SENTRY_SETUP.md)",
       "Bash(npm uninstall:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(psql:*)"
     ]
   }
 }

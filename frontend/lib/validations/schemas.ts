@@ -81,7 +81,7 @@ export const createClientSchema = z.object({
     .string()
     .min(1, 'La razón social es requerida')
     .max(200, 'La razón social no puede exceder 200 caracteres'),
-  cuit: z.string().max(11).optional().nullable(),
+  cuit: z.string().min(1, 'El CUIT es requerido').max(11, 'El CUIT no puede exceder 11 caracteres'),
   taxConditionId: z.coerce.number().int().min(1, 'Debe seleccionar una condición de IVA'),
   address: z.string().max(200).optional().nullable(),
   city: z.string().max(100).optional().nullable(),
@@ -89,16 +89,15 @@ export const createClientSchema = z.object({
   provinceId: z.coerce.number().int().optional().nullable(),
   phone: z.string().max(50).optional().nullable(),
   email: z.string().email('Email inválido').max(100).optional().nullable().or(z.literal('')),
-  operationTypeId: z.coerce.number().int().min(1, 'Debe seleccionar un tipo de operación'),
+  paymentTermId: z.coerce.number().int().min(1, 'Debe seleccionar una condición de pago'),
   transporterId: z.coerce.number().int().optional().nullable(),
   sellerId: z.coerce.number().int().optional().nullable(),
   creditLimit: z.coerce.number().min(0).optional().nullable(),
-  paymentTermId: z.coerce.number().int().min(1, 'Debe seleccionar una condición de pago'),
 });
 
 export const updateClientSchema = createClientSchema
   .partial()
-  .required({ code: true, businessName: true, taxConditionId: true, operationTypeId: true });
+  .required({ code: true, businessName: true, taxConditionId: true, paymentTermId: true });
 
 // Sales Order Item Schema
 export const salesOrderItemSchema = z.object({

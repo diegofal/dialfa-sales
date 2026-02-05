@@ -213,8 +213,8 @@ describe('createClientSchema', () => {
   const validClient = {
     code: 'CLI-001',
     businessName: 'Acme Corp',
+    cuit: '20123456789',
     taxConditionId: 1,
-    operationTypeId: 1,
     paymentTermId: 1,
   };
 
@@ -233,13 +233,18 @@ describe('createClientSchema', () => {
     expect(result.success).toBe(false);
   });
 
+  it('rejects empty cuit', () => {
+    const result = createClientSchema.safeParse({ ...validClient, cuit: '' });
+    expect(result.success).toBe(false);
+  });
+
   it('rejects invalid taxConditionId (0)', () => {
     const result = createClientSchema.safeParse({ ...validClient, taxConditionId: 0 });
     expect(result.success).toBe(false);
   });
 
-  it('rejects invalid operationTypeId (0)', () => {
-    const result = createClientSchema.safeParse({ ...validClient, operationTypeId: 0 });
+  it('rejects invalid paymentTermId (0)', () => {
+    const result = createClientSchema.safeParse({ ...validClient, paymentTermId: 0 });
     expect(result.success).toBe(false);
   });
 
@@ -271,7 +276,6 @@ describe('createClientSchema', () => {
   it('allows null optional fields', () => {
     const result = createClientSchema.safeParse({
       ...validClient,
-      cuit: null,
       address: null,
       city: null,
       postalCode: null,

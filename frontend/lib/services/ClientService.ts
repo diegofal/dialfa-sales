@@ -185,8 +185,6 @@ export async function getById(id: bigint) {
 }
 
 export async function create(data: CreateClientInput, request: NextRequest) {
-  const paymentTermId = data.paymentTermId || 1;
-
   const client = await prisma.clients.create({
     data: {
       code: data.code,
@@ -199,11 +197,11 @@ export async function create(data: CreateClientInput, request: NextRequest) {
       province_id: data.provinceId,
       phone: data.phone,
       email: data.email || null,
-      operation_type_id: data.operationTypeId,
+      operation_type_id: data.paymentTermId, // Usar paymentTermId en operation_type_id por compatibilidad
       transporter_id: data.transporterId,
       seller_id: data.sellerId,
       credit_limit: data.creditLimit,
-      payment_term_id: paymentTermId,
+      payment_term_id: data.paymentTermId,
       created_at: new Date(),
       updated_at: new Date(),
     },
@@ -255,7 +253,7 @@ export async function update(id: bigint, data: UpdateClientInput) {
       province_id: data.provinceId,
       phone: data.phone,
       email: data.email || null,
-      operation_type_id: data.operationTypeId,
+      operation_type_id: data.paymentTermId, // Usar paymentTermId en operation_type_id por compatibilidad
       transporter_id: data.transporterId,
       seller_id: data.sellerId,
       credit_limit: data.creditLimit,

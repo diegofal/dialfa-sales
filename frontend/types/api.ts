@@ -26,9 +26,10 @@ export interface ClientDto {
   phone: string | null;
   email: string | null;
   creditLimit: number | null;
+  taxConditionId: number;
+  taxConditionName: string | null;
   paymentTermId: number;
   paymentTermName: string | null;
-  taxConditionName: string | null;
   provinceName: string | null;
   operationTypeName: string | null;
   transporterName: string | null;
@@ -56,11 +57,10 @@ export interface CreateClientRequest {
   phone?: string;
   email?: string;
   taxConditionId: number;
-  operationTypeId: number;
+  paymentTermId: number;
   transporterId?: number;
   sellerId?: number;
   creditLimit?: number;
-  paymentTermId?: number;
 }
 
 export interface UpdateClientRequest extends CreateClientRequest {
@@ -70,4 +70,17 @@ export interface UpdateClientRequest extends CreateClientRequest {
 export interface ApiError {
   message: string;
   errors?: Record<string, string[]>;
+}
+
+// Lookup Types
+export interface TaxCondition {
+  id: number;
+  name: string;
+  code: string;
+}
+
+export interface OperationType {
+  id: number;
+  name: string;
+  code: string;
 }
