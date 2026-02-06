@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserFromRequest } from '@/lib/auth/roles';
+import { requireRoles, requireAdmin, ROLES } from '@/lib/auth/roles';
 import { handleError } from '@/lib/errors';
 import * as ClientService from '@/lib/services/ClientService';
 import { updateClientSchema } from '@/lib/validations/schemas';
@@ -21,9 +21,9 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const user = getUserFromRequest(request);
-    if (user.role?.toLowerCase() !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const auth = requireRoles(request, [ROLES.ADMIN, ROLES.VENDEDOR]);
+    if (!auth.authorized) {
+      return auth.error;
     }
 
     const { id } = await params;
@@ -46,9 +46,9 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = getUserFromRequest(request);
-    if (user.role?.toLowerCase() !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const auth = requireAdmin(request);
+    if (!auth.authorized) {
+      return auth.error;
     }
 
     const { id } = await params;

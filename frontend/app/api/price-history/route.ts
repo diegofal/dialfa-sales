@@ -5,8 +5,8 @@ import * as PriceListService from '@/lib/services/PriceListService';
 
 export async function GET(request: NextRequest) {
   try {
-    const { authorized, error } = requireAdmin(request);
-    if (!authorized) return error!;
+    const auth = requireAdmin(request);
+    if (!auth.authorized) return auth.error;
 
     const searchParams = request.nextUrl.searchParams;
     const result = await PriceListService.getHistory({

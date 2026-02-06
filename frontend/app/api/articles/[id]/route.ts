@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserFromRequest } from '@/lib/auth/roles';
+import { RESOURCES, ACTIONS } from '@/lib/auth/permissions';
+import { requirePermission } from '@/lib/auth/roles';
 import { handleError } from '@/lib/errors';
 import * as ArticleService from '@/lib/services/ArticleService';
 import { updateArticleSchema } from '@/lib/validations/schemas';
@@ -21,10 +22,8 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const user = getUserFromRequest(request);
-    if (user.role?.toLowerCase() !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const auth = requirePermission(request, RESOURCES.ARTICLES, ACTIONS.UPDATE);
+    if (!auth.authorized) return auth.error;
 
     const { id } = await params;
     const body = await request.json();
@@ -46,10 +45,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const user = getUserFromRequest(request);
-    if (user.role?.toLowerCase() !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const auth = requirePermission(request, RESOURCES.ARTICLES, ACTIONS.DELETE);
+    if (!auth.authorized) return auth.error;
 
     const { id } = await params;
     const result = await ArticleService.remove(BigInt(id), request);

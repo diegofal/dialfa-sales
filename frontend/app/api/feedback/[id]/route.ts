@@ -6,8 +6,8 @@ import * as FeedbackService from '@/lib/services/FeedbackService';
 
 export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { authorized, error } = requireAdmin(request);
-    if (!authorized) return error!;
+    const auth = requireAdmin(request);
+    if (!auth.authorized) return auth.error;
 
     const session = await getSession();
     if (!session) {
@@ -43,8 +43,8 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { authorized, error } = requireAdmin(request);
-    if (!authorized) return error!;
+    const auth = requireAdmin(request);
+    if (!auth.authorized) return auth.error;
 
     const { id } = await params;
     const feedbackId = parseInt(id);

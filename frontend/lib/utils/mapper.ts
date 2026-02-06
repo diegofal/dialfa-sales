@@ -268,7 +268,7 @@ export function mapClientToDTO(client: unknown): ClientDTO {
     operationTypeName: operationTypes?.name || '',
     transporterId: c.transporter_id as bigint | null,
     transporterName: transporters?.name || '',
-    paymentTermId: toInt(c.payment_term_id as bigint | number),
+    paymentTermId: c.payment_term_id ? toInt(c.payment_term_id as bigint | number) : 0,
     paymentTermName: paymentTerms?.name || null,
     creditLimit: toFloatOrNull(c.credit_limit),
     currentBalance: toFloat(c.current_balance),

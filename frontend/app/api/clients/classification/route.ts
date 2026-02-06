@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserFromRequest } from '@/lib/auth/roles';
+import { RESOURCES, ACTIONS } from '@/lib/auth/permissions';
+import { requirePermission } from '@/lib/auth/roles';
 import { handleError } from '@/lib/errors';
 import * as ClientService from '@/lib/services/ClientService';
 import { ClientStatus } from '@/types/clientClassification';
@@ -30,10 +31,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = getUserFromRequest(request);
-    if (user.role?.toLowerCase() !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const auth = requirePermission(request, RESOURCES.CLIENTS, ACTIONS.CLASSIFICATION);
+    if (!auth.authorized) return auth.error;
 
     const body = await request.json();
     const result = await ClientService.getClassification(body.config || {}, true);

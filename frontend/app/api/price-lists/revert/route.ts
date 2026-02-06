@@ -5,9 +5,9 @@ import * as PriceListService from '@/lib/services/PriceListService';
 
 export async function POST(request: NextRequest) {
   try {
-    const { authorized, error, user } = requireAdmin(request);
-    if (!authorized) {
-      return error || NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const auth = requireAdmin(request);
+    if (!auth.authorized) {
+      return auth.error || NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     const body = await request.json();
@@ -19,8 +19,8 @@ export async function POST(request: NextRequest) {
 
     const result = await PriceListService.revertSingle(
       priceHistoryId,
-      user?.userId,
-      user?.email,
+      auth.user?.userId,
+      auth.user?.email,
       request
     );
 

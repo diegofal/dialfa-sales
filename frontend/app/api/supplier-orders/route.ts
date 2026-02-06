@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserFromRequest } from '@/lib/auth/roles';
+import { requireAdmin } from '@/lib/auth/roles';
 import { handleError } from '@/lib/errors';
 import * as SupplierOrderService from '@/lib/services/SupplierOrderService';
 
@@ -21,10 +21,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = getUserFromRequest(request);
-    if (!user || user.role !== 'admin') {
-      return NextResponse.json({ error: 'No autorizado' }, { status: 401 });
-    }
+    const auth = requireAdmin(request);
+    if (!auth.authorized) return auth.error;
+    const user = auth.user;
 
     const body = await request.json();
     const result = await SupplierOrderService.create(body, user.userId!, request);

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserFromRequest } from '@/lib/auth/roles';
+import { requireRoles, ROLES } from '@/lib/auth/roles';
 import { handleError } from '@/lib/errors';
 import * as ClientService from '@/lib/services/ClientService';
 import { createClientSchema } from '@/lib/validations/schemas';
@@ -25,9 +25,9 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const user = getUserFromRequest(request);
-    if (user.role?.toLowerCase() !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    const auth = requireRoles(request, [ROLES.ADMIN, ROLES.VENDEDOR]);
+    if (!auth.authorized) {
+      return auth.error;
     }
 
     const body = await request.json();

@@ -5,8 +5,8 @@ import { handleError } from '@/lib/errors';
 
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { authorized, error } = requireAdmin(request);
-    if (!authorized) return error!;
+    const auth = requireAdmin(request);
+    if (!auth.authorized) return auth.error;
 
     const { id } = await params;
     const activityLogId = BigInt(id);

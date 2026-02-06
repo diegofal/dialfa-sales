@@ -93,8 +93,9 @@ export default function ClientDialog({ open, onClose, client }: ClientDialogProp
         postalCode: client.postalCode || '',
         phone: client.phone || '',
         email: client.email || '',
-        taxConditionId: Number(client.taxConditionId),
-        paymentTermId: client.paymentTermId,
+        taxConditionId: Number(client.taxConditionId) || (undefined as unknown as number),
+        paymentTermId:
+          client.paymentTermId > 0 ? client.paymentTermId : (undefined as unknown as number),
       });
     } else {
       // Para nuevo cliente, obtener el siguiente código

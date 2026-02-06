@@ -6,8 +6,8 @@ import { handleError } from '@/lib/errors';
 
 export async function GET(request: NextRequest) {
   try {
-    const { authorized, error } = requireAdmin(request);
-    if (!authorized) return error!;
+    const auth = requireAdmin(request);
+    if (!auth.authorized) return auth.error;
 
     const { searchParams } = new URL(request.url);
     const page = parseInt(searchParams.get('page') || '1');

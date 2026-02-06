@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { z } from 'zod';
-import { getUserFromRequest } from '@/lib/auth/roles';
+import { requireAdmin } from '@/lib/auth/roles';
 import { handleError } from '@/lib/errors';
 import * as CategoryService from '@/lib/services/CategoryService';
 
@@ -24,10 +24,8 @@ export async function GET(_request: NextRequest, { params }: { params: Promise<{
 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const user = getUserFromRequest(request);
-    if (user.role?.toLowerCase() !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const auth = requireAdmin(request);
+    if (!auth.authorized) return auth.error;
 
     const { id } = await params;
     const body = await request.json();

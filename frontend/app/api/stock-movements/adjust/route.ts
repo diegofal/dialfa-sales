@@ -1,14 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserFromRequest } from '@/lib/auth/roles';
+import { RESOURCES, ACTIONS } from '@/lib/auth/permissions';
+import { requirePermission } from '@/lib/auth/roles';
 import { handleError } from '@/lib/errors';
 import * as ArticleService from '@/lib/services/ArticleService';
 
 export async function POST(request: NextRequest) {
   try {
-    const user = getUserFromRequest(request);
-    if (user.role?.toLowerCase() !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
+    const auth = requirePermission(request, RESOURCES.STOCK_MOVEMENTS, ACTIONS.ADJUST);
+    if (!auth.authorized) return auth.error;
 
     const body = await request.json();
     const result = await ArticleService.adjustStock(body, request);
