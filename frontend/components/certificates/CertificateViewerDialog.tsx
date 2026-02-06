@@ -2,11 +2,12 @@
 
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Download, ExternalLink, FileText, Loader2 } from 'lucide-react';
+import { Download, ExternalLink, FileText, Loader2, Link2 } from 'lucide-react';
 import { useEffect, useState } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Label } from '@/components/ui/label';
 import { useCertificate } from '@/lib/hooks/domain/useCertificates';
 import { TiffViewer } from './TiffViewer';
 
@@ -105,6 +106,70 @@ export function CertificateViewerDialog({
                         <span className="text-muted-foreground ml-1">- {colada.description}</span>
                       )}
                     </Badge>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Archivo Padre */}
+            {certificate.parent && (
+              <div className="mb-4 space-y-2">
+                <Label>Archivo Padre</Label>
+                <div className="flex items-center gap-2 rounded-md border p-3">
+                  <Link2 className="text-muted-foreground h-4 w-4" />
+                  <div className="flex-1">
+                    <div className="font-medium">{certificate.parent.file_name}</div>
+                    {certificate.parent.category && (
+                      <Badge variant="outline" className="mt-1">
+                        {certificate.parent.category}
+                      </Badge>
+                    )}
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => {
+                      onOpenChange(false);
+                      setTimeout(() => {
+                        window.location.href = `/dashboard/certificates?id=${certificate.parent?.id}`;
+                      }, 100);
+                    }}
+                  >
+                    Ver
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {/* Archivos Hijos */}
+            {certificate.children && certificate.children.length > 0 && (
+              <div className="mb-4 space-y-2">
+                <Label>Archivos Hijos ({certificate.children.length})</Label>
+                <div className="space-y-2">
+                  {certificate.children.map((child) => (
+                    <div key={child.id} className="flex items-center gap-2 rounded-md border p-2">
+                      <FileText className="text-muted-foreground h-4 w-4" />
+                      <div className="flex-1">
+                        <div className="text-sm font-medium">{child.file_name}</div>
+                        {child.category && (
+                          <Badge variant="outline" className="mt-1 text-xs">
+                            {child.category}
+                          </Badge>
+                        )}
+                      </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          onOpenChange(false);
+                          setTimeout(() => {
+                            window.location.href = `/dashboard/certificates?id=${child.id}`;
+                          }, 100);
+                        }}
+                      >
+                        Ver
+                      </Button>
+                    </div>
                   ))}
                 </div>
               </div>

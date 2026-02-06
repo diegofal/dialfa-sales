@@ -50,6 +50,8 @@ interface SyncStats {
   alreadyExisted: number;
   fileNotFound: number;
   failed: number;
+  parentsLinked: number;
+  parentNotFound: number;
   errors: Array<{ file: string; error: string }>;
 }
 
@@ -58,6 +60,20 @@ type CertificateWithColadas = Prisma.certificatesGetPayload<{
     certificate_coladas: {
       include: {
         colada: true;
+      };
+    };
+    parent: {
+      select: {
+        id: true;
+        file_name: true;
+        category: true;
+      };
+    };
+    children: {
+      select: {
+        id: true;
+        file_name: true;
+        category: true;
       };
     };
   };
@@ -86,6 +102,19 @@ function serializeCertificate(cert: CertificateWithColadas): CertificateResponse
         material_type: cc.colada.material_type,
         created_at: cc.colada.created_at.toISOString(),
         updated_at: cc.colada.updated_at.toISOString(),
+      })) || [],
+    parent: cert.parent
+      ? {
+          id: cert.parent.id.toString(),
+          file_name: cert.parent.file_name,
+          category: cert.parent.category,
+        }
+      : null,
+    children:
+      cert.children?.map((child) => ({
+        id: child.id.toString(),
+        file_name: child.file_name,
+        category: child.category,
       })) || [],
   };
 }
@@ -163,50 +192,105 @@ export async function list(params: CertificateListParams) {
   const { colada, category, fileType, page, limit } = params;
   const skip = (page - 1) * limit;
 
-  const where: Prisma.certificatesWhereInput = {
+  const baseWhere: Prisma.certificatesWhereInput = {
     deleted_at: null,
   };
 
-  if (category) {
-    where.category = category;
-  }
-
-  if (fileType) {
-    where.file_type = fileType;
-  }
+  if (category) baseWhere.category = category;
+  if (fileType) baseWhere.file_type = fileType;
 
   if (colada) {
-    where.certificate_coladas = {
-      some: {
-        colada: {
-          colada_number: {
-            contains: colada,
-            mode: 'insensitive',
+    // 1. Encontrar certificados directos con la colada
+    const directMatches = await prisma.certificates.findMany({
+      where: {
+        ...baseWhere,
+        certificate_coladas: {
+          some: {
+            colada: {
+              colada_number: { contains: colada, mode: 'insensitive' },
+            },
           },
         },
       },
+      select: { id: true, parent_id: true },
+    });
+
+    // 2. Extraer IDs: directos + padres
+    const directIds = directMatches.map((c) => c.id);
+    const parentIds = directMatches
+      .filter((c) => c.parent_id !== null)
+      .map((c) => c.parent_id as bigint);
+
+    // 3. Buscar hijos (certificados cuyo parent_id está en directIds)
+    const children = await prisma.certificates.findMany({
+      where: {
+        parent_id: { in: directIds },
+        deleted_at: null,
+      },
+      select: { id: true },
+    });
+    const childrenIds = children.map((c) => c.id);
+
+    // 4. Combinar IDs sin duplicados
+    const allIds = Array.from(new Set([...directIds, ...parentIds, ...childrenIds]));
+
+    // 5. Query final
+    const where: Prisma.certificatesWhereInput = {
+      ...baseWhere,
+      id: { in: allIds },
+    };
+
+    const [certificates, total] = await Promise.all([
+      prisma.certificates.findMany({
+        where,
+        include: {
+          certificate_coladas: { include: { colada: true } },
+          parent: {
+            select: { id: true, file_name: true, category: true },
+          },
+          children: {
+            where: { deleted_at: null },
+            select: { id: true, file_name: true, category: true },
+          },
+        },
+        skip,
+        take: limit,
+        orderBy: { created_at: 'desc' },
+      }),
+      prisma.certificates.count({ where }),
+    ]);
+
+    return {
+      data: certificates.map(serializeCertificate),
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
+    };
+  } else {
+    // Sin filtro de colada: query normal con parent y children
+    const [certificates, total] = await Promise.all([
+      prisma.certificates.findMany({
+        where: baseWhere,
+        include: {
+          certificate_coladas: { include: { colada: true } },
+          parent: {
+            select: { id: true, file_name: true, category: true },
+          },
+          children: {
+            where: { deleted_at: null },
+            select: { id: true, file_name: true, category: true },
+          },
+        },
+        skip,
+        take: limit,
+        orderBy: { created_at: 'desc' },
+      }),
+      prisma.certificates.count({ where: baseWhere }),
+    ]);
+
+    return {
+      data: certificates.map(serializeCertificate),
+      pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
     };
   }
-
-  const [certificates, total] = await Promise.all([
-    prisma.certificates.findMany({
-      where,
-      include: {
-        certificate_coladas: {
-          include: { colada: true },
-        },
-      },
-      skip,
-      take: limit,
-      orderBy: { created_at: 'desc' },
-    }),
-    prisma.certificates.count({ where }),
-  ]);
-
-  return {
-    data: certificates.map(serializeCertificate),
-    pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
-  };
 }
 
 export async function getById(id: bigint) {
@@ -215,6 +299,13 @@ export async function getById(id: bigint) {
     include: {
       certificate_coladas: {
         include: { colada: true },
+      },
+      parent: {
+        select: { id: true, file_name: true, category: true },
+      },
+      children: {
+        where: { deleted_at: null },
+        select: { id: true, file_name: true, category: true },
       },
     },
   });
@@ -307,6 +398,13 @@ export async function upload(
       certificate_coladas: {
         include: { colada: true },
       },
+      parent: {
+        select: { id: true, file_name: true, category: true },
+      },
+      children: {
+        where: { deleted_at: null },
+        select: { id: true, file_name: true, category: true },
+      },
     },
   });
 
@@ -316,10 +414,24 @@ export async function upload(
 export async function remove(id: bigint, request: NextRequest) {
   const certificate = await prisma.certificates.findUnique({
     where: { id, deleted_at: null },
+    include: {
+      children: {
+        where: { deleted_at: null },
+        select: { id: true },
+      },
+    },
   });
 
   if (!certificate) {
     return { error: 'Certificate not found', status: 404 };
+  }
+
+  // Prevenir eliminación si tiene hijos
+  if (certificate.children.length > 0) {
+    return {
+      error: `No se puede eliminar. Este certificado es padre de ${certificate.children.length} archivo(s). Elimina primero los archivos hijos.`,
+      status: 400,
+    };
   }
 
   // Delete from storage
@@ -359,41 +471,54 @@ export async function syncFromExcel(file: File, request: NextRequest) {
   const sheet = workbook.Sheets[workbook.SheetNames[0]];
   const data = XLSX.utils.sheet_to_json(sheet, { defval: null }) as Record<string, unknown>[];
 
-  // Build file → coladas map
-  const fileToColadas = new Map<string, string[]>();
+  // Build file → metadata map
+  interface FileMetadata {
+    coladas: string[];
+    parentFileName: string | null;
+  }
+
+  const fileMetadata = new Map<string, FileMetadata>();
   let currentFile = '';
 
   for (const row of data) {
     const fileName = row['NOMBRE DEL ARCHIVO  '];
+    const parentFile = row['ORIGEN'];
     const colada = row['COLADA'];
 
     if (fileName && fileName.toString().trim()) {
       currentFile = fileName.toString().trim();
-      if (!fileToColadas.has(currentFile)) {
-        fileToColadas.set(currentFile, []);
+      if (!fileMetadata.has(currentFile)) {
+        fileMetadata.set(currentFile, {
+          coladas: [],
+          parentFileName: parentFile ? parentFile.toString().trim() : null,
+        });
       }
     }
 
     if (colada && colada.toString().trim() && currentFile) {
       const coladaStr = colada.toString().trim();
-      const existing = fileToColadas.get(currentFile);
-      if (existing && !existing.includes(coladaStr)) {
-        existing.push(coladaStr);
+      const existing = fileMetadata.get(currentFile);
+      if (existing && !existing.coladas.includes(coladaStr)) {
+        existing.coladas.push(coladaStr);
       }
     }
   }
 
   const stats: SyncStats = {
-    totalInExcel: fileToColadas.size,
+    totalInExcel: fileMetadata.size,
     newUploaded: 0,
     coladasUpdated: 0,
     alreadyExisted: 0,
     fileNotFound: 0,
     failed: 0,
+    parentsLinked: 0,
+    parentNotFound: 0,
     errors: [],
   };
 
-  for (const [fileName, coladaNumbers] of fileToColadas) {
+  // PASADA 1: Subir archivos sin vincular padres
+  for (const [fileName, metadata] of fileMetadata) {
+    const coladaNumbers = metadata.coladas;
     try {
       const existing = await prisma.certificates.findFirst({
         where: { file_name: fileName, deleted_at: null },
@@ -473,6 +598,54 @@ export async function syncFromExcel(file: File, request: NextRequest) {
       stats.errors.push({
         file: fileName,
         error: error instanceof Error ? error.message : 'Error desconocido',
+      });
+    }
+  }
+
+  // PASADA 2: Vincular relaciones padre-hijo
+  for (const [fileName, metadata] of fileMetadata) {
+    if (!metadata.parentFileName) continue;
+
+    try {
+      const childCert = await prisma.certificates.findFirst({
+        where: { file_name: fileName, deleted_at: null },
+      });
+
+      if (!childCert) continue;
+
+      const parentCert = await prisma.certificates.findFirst({
+        where: { file_name: metadata.parentFileName, deleted_at: null },
+      });
+
+      if (!parentCert) {
+        stats.parentNotFound++;
+        stats.errors.push({
+          file: fileName,
+          error: `Padre no encontrado: ${metadata.parentFileName}`,
+        });
+        continue;
+      }
+
+      // Validar que no crea ciclo
+      if (parentCert.parent_id === childCert.id) {
+        stats.errors.push({
+          file: fileName,
+          error: `Referencia circular con ${metadata.parentFileName}`,
+        });
+        continue;
+      }
+
+      // Vincular padre
+      await prisma.certificates.update({
+        where: { id: childCert.id },
+        data: { parent_id: parentCert.id },
+      });
+
+      stats.parentsLinked++;
+    } catch (error) {
+      stats.errors.push({
+        file: fileName,
+        error: `Error vinculando padre: ${error instanceof Error ? error.message : 'Error desconocido'}`,
       });
     }
   }

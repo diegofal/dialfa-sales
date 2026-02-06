@@ -25,6 +25,8 @@ interface SyncStats {
   alreadyExisted: number;
   fileNotFound: number;
   failed: number;
+  parentsLinked: number;
+  parentNotFound: number;
   errors: Array<{ file: string; error: string }>;
 }
 
@@ -182,6 +184,22 @@ export function SyncExcelDialog({ open, onOpenChange, onComplete }: SyncExcelDia
                   <div className="text-2xl font-bold">{stats.alreadyExisted}</div>
                   <div className="text-muted-foreground text-sm">Sin cambios</div>
                 </div>
+                {stats.parentsLinked > 0 && (
+                  <div className="rounded-lg bg-purple-50 p-4 dark:bg-purple-950">
+                    <div className="text-2xl font-bold text-purple-600">{stats.parentsLinked}</div>
+                    <div className="text-muted-foreground text-sm">
+                      Relaciones padre-hijo creadas
+                    </div>
+                  </div>
+                )}
+                {stats.parentNotFound > 0 && (
+                  <div className="rounded-lg bg-amber-50 p-4 dark:bg-amber-950">
+                    <div className="text-2xl font-bold text-amber-600">{stats.parentNotFound}</div>
+                    <div className="text-muted-foreground text-sm">
+                      Archivos padre no encontrados
+                    </div>
+                  </div>
+                )}
               </div>
 
               {(stats.fileNotFound > 0 || stats.failed > 0) && (

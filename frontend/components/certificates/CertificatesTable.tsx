@@ -2,7 +2,7 @@
 
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
-import { Eye, Trash2, Download, FileText, FileImage, FileSpreadsheet } from 'lucide-react';
+import { Eye, Trash2, Download, FileText, FileImage, FileSpreadsheet, Link2 } from 'lucide-react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -109,6 +109,7 @@ export function CertificatesTable({
             <TableHead>Archivo</TableHead>
             <TableHead>Categoría</TableHead>
             <TableHead>Coladas</TableHead>
+            <TableHead>Relación</TableHead>
             <TableHead className="text-right">Tamaño</TableHead>
             <TableHead>Fecha</TableHead>
             <TableHead className="w-[150px] text-right">Acciones</TableHead>
@@ -142,6 +143,22 @@ export function CertificatesTable({
                   {certificate.coladas.length > 3 && (
                     <Badge variant="outline" className="text-xs">
                       +{certificate.coladas.length - 3}
+                    </Badge>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="flex items-center gap-1">
+                  {certificate.parent && (
+                    <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                      <Link2 className="h-3 w-3" />
+                      Hijo
+                    </Badge>
+                  )}
+                  {certificate.children && certificate.children.length > 0 && (
+                    <Badge variant="outline" className="flex items-center gap-1 text-xs">
+                      <FileText className="h-3 w-3" />
+                      Padre ({certificate.children.length})
                     </Badge>
                   )}
                 </div>

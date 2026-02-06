@@ -51,6 +51,18 @@ export interface CertificateResponse {
   updated_at: string;
   coladas: ColadaResponse[];
   signed_url?: string;
+
+  // Relación padre-hijo
+  parent: {
+    id: string;
+    file_name: string;
+    category: string | null;
+  } | null;
+  children: Array<{
+    id: string;
+    file_name: string;
+    category: string | null;
+  }>;
 }
 
 export interface ColadaResponse {
