@@ -300,10 +300,8 @@ export function usePermission(resource: Resource, action: Action): boolean {
 
   // Placeholder implementation - will be completed in integration phase
   // TODO: Integrate with auth store
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _unusedResource = resource;
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _unusedAction = action;
+  void resource;
+  void action;
   return false;
 }
 
@@ -330,7 +328,6 @@ export function usePermissions(
 
   // Placeholder implementation - will be completed in integration phase
   // TODO: Integrate with auth store
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _unusedChecks = checks;
+  void checks;
   return {};
 }
