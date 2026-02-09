@@ -324,6 +324,44 @@ Después de CADA modificación de código:
 2. **Usa los mismos patrones** de componentes, hooks, API routes
 3. **No reinventes** - el proyecto tiene convenciones establecidas
 
+### REGLA #4: NUNCA COMMITEAR DIRECTO A MAIN
+
+**🚨 OBLIGATORIO - NO HAY EXCEPCIONES 🚨**
+
+- ❌ NUNCA hagas commits directamente en la rama `main`
+- ❌ NUNCA hagas push directo a `origin/main` sin pasar por un feature branch
+- ✅ SIEMPRE crear un feature branch para cada cambio
+- ✅ SIEMPRE hacer merge a main cuando esté listo
+- ✅ SIEMPRE limpiar branches después del merge (local + remoto)
+
+**Flujo obligatorio de Git:**
+
+```
+1. git checkout -b <tipo>/<descripcion>    # Crear feature branch
+   Tipos: fix/, feat/, docs/, refactor/, chore/
+   ↓
+2. Hacer commits en el feature branch
+   ↓
+3. git push -u origin <branch>             # Push branch al remoto
+   ↓
+4. git checkout main && git pull            # Actualizar main
+   ↓
+5. git merge <branch> --no-ff              # Merge con merge commit
+   ↓
+6. git push origin main                    # Push main
+   ↓
+7. git branch -d <branch>                  # Borrar branch local
+   git push origin --delete <branch>       # Borrar branch remoto
+```
+
+**Naming de branches:**
+
+- `fix/descripcion-corta` - Bug fixes
+- `feat/descripcion-corta` - Nuevas features
+- `docs/descripcion-corta` - Documentación
+- `refactor/descripcion-corta` - Refactoring
+- `chore/descripcion-corta` - Mantenimiento
+
 ### Flujo de Trabajo Obligatorio:
 
 ```
@@ -331,14 +369,18 @@ Después de CADA modificación de código:
    ↓
 2. Entender el contexto y la estructura existente
    ↓
-3. Hacer cambio siguiendo patrones existentes
+3. Crear feature branch (NUNCA trabajar en main)
    ↓
-4. Verificar que compila y funciona
+4. Hacer cambio siguiendo patrones existentes
+   ↓
+5. Verificar que compila y funciona
    ↓
    ├─ Funciona → Continuar
    └─ Falla → DETENER, arreglar, volver a verificar
    ↓
-5. Listo
+6. Merge a main, push, limpiar branches
+   ↓
+7. Listo
 ```
 
 **Recuerda:**
@@ -347,3 +389,4 @@ Después de CADA modificación de código:
 - Seguir la estructura de carpetas existente
 - Usar TypeScript correctamente (no `any`)
 - Manejar errores con try/catch y Sentry
+- NUNCA commitear directo a main
