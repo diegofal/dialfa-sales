@@ -221,18 +221,33 @@ export async function list(params: CertificateListParams) {
       .filter((c) => c.parent_id !== null)
       .map((c) => c.parent_id as bigint);
 
-    // 3. Buscar hijos (certificados cuyo parent_id está en directIds)
-    const children = await prisma.certificates.findMany({
+    // 3. Buscar hijos de certificados directos
+    const childrenOfDirects = await prisma.certificates.findMany({
       where: {
         parent_id: { in: directIds },
         deleted_at: null,
       },
       select: { id: true },
     });
-    const childrenIds = children.map((c) => c.id);
 
-    // 4. Combinar IDs sin duplicados
-    const allIds = Array.from(new Set([...directIds, ...parentIds, ...childrenIds]));
+    // 4. Buscar TODOS los hijos de los padres incluidos
+    const childrenOfParents = await prisma.certificates.findMany({
+      where: {
+        parent_id: { in: parentIds },
+        deleted_at: null,
+      },
+      select: { id: true },
+    });
+
+    // 5. Combinar IDs sin duplicados
+    const allIds = Array.from(
+      new Set([
+        ...directIds,
+        ...parentIds,
+        ...childrenOfDirects.map((c) => c.id),
+        ...childrenOfParents.map((c) => c.id),
+      ])
+    );
 
     // 5. Query final
     const where: Prisma.certificatesWhereInput = {
