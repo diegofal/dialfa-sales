@@ -170,6 +170,7 @@ export default function CertificatesPage() {
       <CertificatesTable
         certificates={data?.data || []}
         isLoading={isLoading}
+        searchedColada={coladaSearch || undefined}
         onView={handleView}
         onDownload={handleDownload}
         onDelete={handleDelete}
