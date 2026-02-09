@@ -80,11 +80,12 @@ function groupByFamily(certificates: CertificateResponse[]): CertificateResponse
   const result: CertificateResponse[] = [];
   const processedIds = new Set<string>();
 
+  // First pass: Process parents (certificates without parent) and their children
   for (const cert of certificates) {
-    // Skip if already processed (as a child of another certificate)
-    if (processedIds.has(cert.id)) continue;
+    // Skip if already processed or if it has a parent (will be processed with its parent)
+    if (processedIds.has(cert.id) || cert.parent) continue;
 
-    // Add the current certificate
+    // Add the parent certificate
     result.push(cert);
     processedIds.add(cert.id);
 
@@ -97,6 +98,14 @@ function groupByFamily(certificates: CertificateResponse[]): CertificateResponse
           processedIds.add(childCert.id);
         }
       }
+    }
+  }
+
+  // Second pass: Add orphaned children (children whose parent is not in the list)
+  for (const cert of certificates) {
+    if (!processedIds.has(cert.id)) {
+      result.push(cert);
+      processedIds.add(cert.id);
     }
   }
 
