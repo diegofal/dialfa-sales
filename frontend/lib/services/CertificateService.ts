@@ -442,7 +442,7 @@ export async function remove(id: bigint, request: NextRequest) {
   }
 
   // Prevenir eliminación si tiene hijos
-  if (certificate.children.length > 0) {
+  if (certificate.children && certificate.children.length > 0) {
     return {
       error: `No se puede eliminar. Este certificado es padre de ${certificate.children.length} archivo(s). Elimina primero los archivos hijos.`,
       status: 400,
