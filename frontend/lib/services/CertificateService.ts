@@ -207,7 +207,7 @@ export async function list(params: CertificateListParams) {
         certificate_coladas: {
           some: {
             colada: {
-              colada_number: { contains: colada, mode: 'insensitive' },
+              colada_number: { equals: colada, mode: 'insensitive' },
             },
           },
         },
