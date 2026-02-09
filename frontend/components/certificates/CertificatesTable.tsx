@@ -75,6 +75,34 @@ function formatFileSize(bytes: string | null): string {
   return `${(size / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+// Group certificates by family (parent + children together)
+function groupByFamily(certificates: CertificateResponse[]): CertificateResponse[] {
+  const result: CertificateResponse[] = [];
+  const processedIds = new Set<string>();
+
+  for (const cert of certificates) {
+    // Skip if already processed (as a child of another certificate)
+    if (processedIds.has(cert.id)) continue;
+
+    // Add the current certificate
+    result.push(cert);
+    processedIds.add(cert.id);
+
+    // If it's a parent, add its children immediately after
+    if (cert.children && cert.children.length > 0) {
+      for (const child of cert.children) {
+        const childCert = certificates.find((c) => c.id === child.id);
+        if (childCert && !processedIds.has(childCert.id)) {
+          result.push(childCert);
+          processedIds.add(childCert.id);
+        }
+      }
+    }
+  }
+
+  return result;
+}
+
 export function CertificatesTable({
   certificates,
   isLoading,
@@ -100,6 +128,9 @@ export function CertificatesTable({
     );
   }
 
+  // Group certificates by family (parent + children together)
+  const groupedCertificates = groupByFamily(certificates);
+
   return (
     <div className="rounded-md border">
       <Table>
@@ -116,7 +147,7 @@ export function CertificatesTable({
           </TableRow>
         </TableHeader>
         <TableBody>
-          {certificates.map((certificate) => (
+          {groupedCertificates.map((certificate) => (
             <TableRow key={certificate.id} className="hover:bg-muted/50 cursor-pointer">
               <TableCell>{getFileIcon(certificate.file_type)}</TableCell>
               <TableCell
@@ -124,7 +155,14 @@ export function CertificatesTable({
                 title={certificate.file_name}
                 onClick={() => onView(certificate)}
               >
-                {certificate.file_name}
+                <div
+                  className={
+                    certificate.parent ? 'flex items-center gap-2 pl-6' : 'flex items-center gap-2'
+                  }
+                >
+                  {certificate.parent && <span className="text-muted-foreground text-xs">└─</span>}
+                  <span className="truncate">{certificate.file_name}</span>
+                </div>
               </TableCell>
               <TableCell>
                 {certificate.category && (
