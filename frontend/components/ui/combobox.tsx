@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, ChevronsUpDown } from 'lucide-react';
+import { Check, ChevronsUpDown, Plus } from 'lucide-react';
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,6 +19,10 @@ interface ComboboxProps {
   placeholder?: string;
   emptyMessage?: string;
   className?: string;
+  /** When true, allows typing a custom value not in the options list */
+  allowCustom?: boolean;
+  /** Label for the "use custom" option, e.g. 'Usar "{search}"' */
+  customLabel?: (search: string) => string;
 }
 
 export function Combobox({
@@ -28,6 +32,8 @@ export function Combobox({
   placeholder = 'Seleccionar...',
   emptyMessage = 'No se encontraron resultados',
   className,
+  allowCustom = false,
+  customLabel,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState('');
@@ -39,11 +45,32 @@ export function Combobox({
 
   const selectedOption = options.find((option) => option.value === value);
 
+  // Check if the search text exactly matches an existing option
+  const exactMatch = search.trim()
+    ? options.some((o) => o.label.toLowerCase() === search.trim().toLowerCase())
+    : true;
+
+  const showCustomOption = allowCustom && search.trim() && !exactMatch;
+
   const handleSelect = (selectedValue: string) => {
     onValueChange?.(selectedValue === value ? '' : selectedValue);
     setOpen(false);
     setSearch('');
   };
+
+  const handleSelectCustom = () => {
+    const customValue = `custom:${search.trim()}`;
+    onValueChange?.(customValue);
+    setOpen(false);
+    setSearch('');
+  };
+
+  // Display label: for custom values show the text part, for options show the label
+  const displayLabel = React.useMemo(() => {
+    if (selectedOption) return selectedOption.label;
+    if (value?.startsWith('custom:')) return value.slice(7);
+    return null;
+  }, [selectedOption, value]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -54,7 +81,7 @@ export function Combobox({
           aria-expanded={open}
           className={cn('w-full justify-between', className)}
         >
-          {selectedOption ? selectedOption.label : placeholder}
+          {displayLabel || placeholder}
           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
         </Button>
       </PopoverTrigger>
@@ -64,11 +91,29 @@ export function Combobox({
             placeholder="Buscar..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && showCustomOption) {
+                e.preventDefault();
+                handleSelectCustom();
+              }
+            }}
             className="h-9"
           />
         </div>
         <div className="max-h-[300px] overflow-y-auto">
-          {filteredOptions.length === 0 ? (
+          {/* Custom value option */}
+          {showCustomOption && (
+            <div className="p-1">
+              <button
+                onClick={handleSelectCustom}
+                className="hover:bg-accent hover:text-accent-foreground relative flex w-full cursor-pointer items-center rounded-sm px-2 py-1.5 text-sm outline-none select-none"
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                {customLabel ? customLabel(search.trim()) : `Usar "${search.trim()}"`}
+              </button>
+            </div>
+          )}
+          {filteredOptions.length === 0 && !showCustomOption ? (
             <div className="text-muted-foreground py-6 text-center text-sm">{emptyMessage}</div>
           ) : (
             <div className="p-1">

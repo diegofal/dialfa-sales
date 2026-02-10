@@ -1,8 +1,8 @@
 'use client';
 
-import { ArrowLeft, Edit2, Printer, Save, Trash2, Eye, X } from 'lucide-react';
+import { ArrowLeft, Printer, Trash2, Eye } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,6 +16,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Combobox } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
 import {
   Table,
@@ -51,18 +52,12 @@ export default function DeliveryNoteDetailPage() {
   >([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [editData, setEditData] = useState({
+    transporterValue: 'none' as string,
     weightKg: '',
     packagesCount: '',
     declaredValue: '',
     notes: '',
   });
-
-  // Transporter inline editing state
-  const [isEditingTransporter, setIsEditingTransporter] = useState(false);
-  const [editedTransporterName, setEditedTransporterName] = useState('');
-  const [showSuggestions, setShowSuggestions] = useState(false);
-  const transporterInputRef = useRef<HTMLInputElement>(null);
-  const suggestionsRef = useRef<HTMLDivElement>(null);
 
   // Add to tabs when deliveryNote is loaded
   useEffect(() => {
@@ -74,8 +69,15 @@ export default function DeliveryNoteDetailPage() {
         clientName: deliveryNote.clientBusinessName,
         salesOrderNumber: deliveryNote.salesOrderNumber,
       });
-      // Initialize edit data
+      // Initialize edit data - compute transporter combobox value
+      let transporterValue = 'none';
+      if (deliveryNote.transporterId) {
+        transporterValue = String(deliveryNote.transporterId);
+      } else if (deliveryNote.transporterName) {
+        transporterValue = `custom:${deliveryNote.transporterName}`;
+      }
       setEditData({
+        transporterValue,
         weightKg: deliveryNote.weightKg?.toString() || '',
         packagesCount: deliveryNote.packagesCount?.toString() || '',
         declaredValue: deliveryNote.declaredValue?.toString() || '',
@@ -90,22 +92,6 @@ export default function DeliveryNoteDetailPage() {
       .then((res) => res.json())
       .then((data) => setTransporters(data))
       .catch(() => {});
-  }, []);
-
-  // Close suggestions when clicking outside
-  useEffect(() => {
-    function handleClickOutside(event: MouseEvent) {
-      if (
-        suggestionsRef.current &&
-        !suggestionsRef.current.contains(event.target as Node) &&
-        transporterInputRef.current &&
-        !transporterInputRef.current.contains(event.target as Node)
-      ) {
-        setShowSuggestions(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   if (isLoading) {
@@ -157,13 +143,44 @@ export default function DeliveryNoteDetailPage() {
     });
   };
 
-  const handleFieldUpdate = (field: keyof typeof editData, value: string | number | null) => {
-    if (!deliveryNote) return;
+  // Parse a combobox value into transporterId + transporterName
+  const parseTransporterValue = (comboValue: string) => {
+    if (comboValue === 'none' || comboValue === '') {
+      return { transporterId: null, transporterName: null };
+    }
+    if (comboValue.startsWith('custom:')) {
+      return { transporterId: null, transporterName: comboValue.slice(7) };
+    }
+    return { transporterId: Number(comboValue), transporterName: null };
+  };
+
+  const handleTransporterChange = (value: string) => {
+    setEditData({ ...editData, transporterValue: value });
+
+    const { transporterId, transporterName } = parseTransporterValue(value);
 
     const updateData = {
       deliveryDate: deliveryNote.deliveryDate,
-      transporterId: deliveryNote.transporterId,
-      transporterName: deliveryNote.transporterName,
+      transporterId,
+      transporterName,
+      weightKg: editData.weightKg ? parseFloat(editData.weightKg) : null,
+      packagesCount: editData.packagesCount ? parseInt(editData.packagesCount) : null,
+      declaredValue: editData.declaredValue ? parseFloat(editData.declaredValue) : null,
+      notes: editData.notes.trim() || null,
+    };
+
+    updateDeliveryNoteMutation.mutate({ id: deliveryNoteId, data: updateData });
+  };
+
+  const handleFieldUpdate = (field: string, value: string | number | null) => {
+    if (!deliveryNote) return;
+
+    const { transporterId, transporterName } = parseTransporterValue(editData.transporterValue);
+
+    const updateData = {
+      deliveryDate: deliveryNote.deliveryDate,
+      transporterId,
+      transporterName,
       weightKg:
         field === 'weightKg'
           ? value
@@ -194,65 +211,9 @@ export default function DeliveryNoteDetailPage() {
     updateDeliveryNoteMutation.mutate({ id: deliveryNoteId, data: updateData });
   };
 
-  // Transporter edit handlers
-  const handleStartEditTransporter = () => {
-    setEditedTransporterName(deliveryNote.transporterName || '');
-    setIsEditingTransporter(true);
-    setShowSuggestions(false);
-    setTimeout(() => transporterInputRef.current?.focus(), 0);
-  };
-
-  const handleCancelEditTransporter = () => {
-    setIsEditingTransporter(false);
-    setEditedTransporterName('');
-    setShowSuggestions(false);
-  };
-
-  const handleSaveTransporter = (name?: string) => {
-    if (!deliveryNote) return;
-
-    const transporterNameValue = (name ?? editedTransporterName).trim();
-
-    // Check if it matches an existing transporter
-    const matchedTransporter = transporters.find(
-      (t) => t.name.toLowerCase() === transporterNameValue.toLowerCase()
-    );
-
-    const updateData = {
-      deliveryDate: deliveryNote.deliveryDate,
-      transporterId: matchedTransporter ? matchedTransporter.id : null,
-      transporterName: matchedTransporter ? null : transporterNameValue || null,
-      weightKg: editData.weightKg ? parseFloat(editData.weightKg) : null,
-      packagesCount: editData.packagesCount ? parseInt(editData.packagesCount) : null,
-      declaredValue: editData.declaredValue ? parseFloat(editData.declaredValue) : null,
-      notes: editData.notes.trim() || null,
-    };
-
-    updateDeliveryNoteMutation.mutate(
-      { id: deliveryNoteId, data: updateData },
-      {
-        onSuccess: () => {
-          setIsEditingTransporter(false);
-          setEditedTransporterName('');
-          setShowSuggestions(false);
-        },
-      }
-    );
-  };
-
-  const handleSelectSuggestion = (transporter: { id: number; name: string }) => {
-    setEditedTransporterName(transporter.name);
-    setShowSuggestions(false);
-    handleSaveTransporter(transporter.name);
-  };
-
-  // Filter suggestions based on current input
-  const filteredSuggestions = editedTransporterName.trim()
-    ? transporters.filter((t) => t.name.toLowerCase().includes(editedTransporterName.toLowerCase()))
-    : transporters;
-
-  // Get the currently linked transporter (for showing address)
-  const linkedTransporter = transporters.find((t) => t.id === deliveryNote.transporterId);
+  // Get the currently selected transporter (for showing address)
+  const { transporterId: currentTransporterId } = parseTransporterValue(editData.transporterValue);
+  const selectedTransporter = transporters.find((t) => t.id === currentTransporterId);
 
   return (
     <div className="space-y-6 pb-24">
@@ -307,93 +268,31 @@ export default function DeliveryNoteDetailPage() {
               </p>
             </div>
 
-            {/* Transportista - Editable with text input */}
+            {/* Transportista - Combobox con opción de texto libre */}
             <div>
               <p className="text-muted-foreground mb-1 text-sm">Transportista</p>
-              {isEditingTransporter ? (
-                <div className="relative">
-                  <div className="flex items-center gap-1">
-                    <Input
-                      ref={transporterInputRef}
-                      type="text"
-                      value={editedTransporterName}
-                      onChange={(e) => {
-                        setEditedTransporterName(e.target.value);
-                        setShowSuggestions(true);
-                      }}
-                      onFocus={() => setShowSuggestions(true)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSaveTransporter();
-                        if (e.key === 'Escape') handleCancelEditTransporter();
-                      }}
-                      placeholder="Nombre del transportista..."
-                      className="h-8"
-                      disabled={updateDeliveryNoteMutation.isPending}
-                    />
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8 shrink-0"
-                      onClick={() => handleSaveTransporter()}
-                      disabled={updateDeliveryNoteMutation.isPending}
-                      title="Guardar"
-                    >
-                      <Save className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-8 w-8 shrink-0"
-                      onClick={handleCancelEditTransporter}
-                      disabled={updateDeliveryNoteMutation.isPending}
-                      title="Cancelar"
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  {/* Suggestions dropdown */}
-                  {showSuggestions && filteredSuggestions.length > 0 && (
-                    <div
-                      ref={suggestionsRef}
-                      className="bg-popover border-border absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-md border shadow-md"
-                    >
-                      {filteredSuggestions.map((t) => (
-                        <button
-                          key={t.id}
-                          type="button"
-                          className="hover:bg-accent w-full px-3 py-2 text-left text-sm"
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => handleSelectSuggestion(t)}
-                        >
-                          {t.name}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <div className="flex items-center gap-1">
-                  <span className="font-medium">
-                    {deliveryNote.transporterName || 'Sin transportista'}
-                  </span>
-                  <Button
-                    size="icon"
-                    variant="ghost"
-                    className="h-7 w-7"
-                    onClick={handleStartEditTransporter}
-                    title="Editar transportista"
-                  >
-                    <Edit2 className="h-3.5 w-3.5" />
-                  </Button>
-                </div>
-              )}
+              <Combobox
+                options={[
+                  { value: 'none', label: 'Sin transportista' },
+                  ...transporters.map((t) => ({
+                    value: String(t.id),
+                    label: t.name,
+                  })),
+                ]}
+                value={editData.transporterValue}
+                onValueChange={handleTransporterChange}
+                placeholder="Sin transportista"
+                emptyMessage="No se encontraron transportistas"
+                allowCustom
+                customLabel={(name) => `Usar "${name}"`}
+              />
             </div>
 
             {/* Domicilio del Transportista - solo si hay transportista vinculado */}
-            {linkedTransporter?.address && (
+            {selectedTransporter?.address && (
               <div>
                 <p className="text-muted-foreground text-sm">Domicilio Transportista</p>
-                <p className="font-medium">{linkedTransporter.address}</p>
+                <p className="font-medium">{selectedTransporter.address}</p>
               </div>
             )}
 
