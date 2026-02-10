@@ -22,6 +22,7 @@ export interface CreateDeliveryNoteData {
   salesOrderId: number;
   deliveryDate: Date;
   transporterId?: number;
+  transporterName?: string;
   weightKg?: number;
   packagesCount?: number;
   declaredValue?: number;
@@ -38,6 +39,7 @@ export interface CreateDeliveryNoteData {
 export interface UpdateDeliveryNoteData {
   deliveryDate?: Date;
   transporterId?: number;
+  transporterName?: string;
   weightKg?: number;
   packagesCount?: number;
   declaredValue?: number;
@@ -186,6 +188,7 @@ export async function create(body: unknown, request: NextRequest) {
         sales_order_id: validatedData.salesOrderId,
         delivery_date: validatedData.deliveryDate,
         transporter_id: validatedData.transporterId,
+        transporter_name: validatedData.transporterName,
         weight_kg: validatedData.weightKg,
         packages_count: validatedData.packagesCount,
         declared_value: validatedData.declaredValue,
@@ -261,6 +264,7 @@ export async function update(id: bigint, body: unknown, request: NextRequest) {
     data: {
       delivery_date: validatedData.deliveryDate,
       transporter_id: validatedData.transporterId,
+      transporter_name: validatedData.transporterName,
       weight_kg: validatedData.weightKg,
       packages_count: validatedData.packagesCount,
       declared_value: validatedData.declaredValue,

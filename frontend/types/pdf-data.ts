@@ -64,6 +64,7 @@ export interface DeliveryNoteData {
   delivery_date: Date | string;
   delivery_number: string;
   transporter_id?: number | null;
+  transporter_name?: string | null;
   weight_kg?: number | string | Decimal | null;
   packages_count?: number | null;
   declared_value?: number | string | Decimal | null;

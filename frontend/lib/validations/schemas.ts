@@ -154,6 +154,7 @@ export const createDeliveryNoteSchema = z.object({
   salesOrderId: z.coerce.bigint().refine((val) => val > 0, 'Sales Order ID is required'),
   deliveryDate: z.coerce.date(),
   transporterId: z.coerce.number().int().optional().nullable(),
+  transporterName: z.string().optional().nullable(),
   weightKg: z.coerce.number().min(0).optional().nullable(),
   packagesCount: z.coerce.number().int().min(0).optional().nullable(),
   declaredValue: z.coerce.number().min(0).optional().nullable(),
@@ -164,6 +165,7 @@ export const createDeliveryNoteSchema = z.object({
 export const updateDeliveryNoteSchema = z.object({
   deliveryDate: z.coerce.date(),
   transporterId: z.coerce.number().int().optional().nullable(),
+  transporterName: z.string().optional().nullable(),
   weightKg: z.coerce.number().min(0).optional().nullable(),
   packagesCount: z.coerce.number().int().min(0).optional().nullable(),
   declaredValue: z.coerce.number().min(0).optional().nullable(),

@@ -154,6 +154,7 @@ model delivery_notes {
   sales_order_id      BigInt
   delivery_date       DateTime              @db.Timestamptz(6)
   transporter_id      Int?
+  transporter_name    String?
   weight_kg           Decimal?              @db.Decimal
   packages_count      Int?
   declared_value      Decimal?              @db.Decimal
