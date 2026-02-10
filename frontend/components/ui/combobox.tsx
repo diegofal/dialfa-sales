@@ -1,6 +1,6 @@
 'use client';
 
-import { Check, ChevronsUpDown, Plus } from 'lucide-react';
+import { Check, ChevronsUpDown, Plus, X } from 'lucide-react';
 import * as React from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -23,6 +23,10 @@ interface ComboboxProps {
   allowCustom?: boolean;
   /** Label for the "use custom" option, e.g. 'Usar "{search}"' */
   customLabel?: (search: string) => string;
+  /** Called when a delete icon is clicked on an option. Only options with deletable values show the icon. */
+  onDelete?: (value: string) => void;
+  /** Predicate to determine which options show a delete button. Defaults to all options when onDelete is provided. */
+  isDeletable?: (value: string) => boolean;
 }
 
 export function Combobox({
@@ -34,6 +38,8 @@ export function Combobox({
   className,
   allowCustom = false,
   customLabel,
+  onDelete,
+  isDeletable,
 }: ComboboxProps) {
   const [open, setOpen] = React.useState(false);
   const [search, setSearch] = React.useState('');
@@ -117,24 +123,43 @@ export function Combobox({
             <div className="text-muted-foreground py-6 text-center text-sm">{emptyMessage}</div>
           ) : (
             <div className="p-1">
-              {filteredOptions.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => handleSelect(option.value)}
-                  className={cn(
-                    'hover:bg-accent hover:text-accent-foreground relative flex w-full cursor-pointer items-center rounded-sm px-2 py-1.5 text-sm outline-none select-none',
-                    value === option.value && 'bg-accent'
-                  )}
-                >
-                  <Check
+              {filteredOptions.map((option) => {
+                const canDelete = onDelete && (isDeletable ? isDeletable(option.value) : true);
+                return (
+                  <div
+                    key={option.value}
                     className={cn(
-                      'mr-2 h-4 w-4',
-                      value === option.value ? 'opacity-100' : 'opacity-0'
+                      'hover:bg-accent hover:text-accent-foreground group relative flex w-full cursor-pointer items-center rounded-sm px-2 py-1.5 text-sm outline-none select-none',
+                      value === option.value && 'bg-accent'
                     )}
-                  />
-                  {option.label}
-                </button>
-              ))}
+                  >
+                    <button
+                      className="flex flex-1 items-center"
+                      onClick={() => handleSelect(option.value)}
+                    >
+                      <Check
+                        className={cn(
+                          'mr-2 h-4 w-4 shrink-0',
+                          value === option.value ? 'opacity-100' : 'opacity-0'
+                        )}
+                      />
+                      {option.label}
+                    </button>
+                    {canDelete && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onDelete(option.value);
+                        }}
+                        className="text-muted-foreground hover:text-destructive ml-1 shrink-0 opacity-0 transition-opacity group-hover:opacity-100"
+                        title="Eliminar"
+                      >
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

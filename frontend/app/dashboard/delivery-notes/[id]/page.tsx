@@ -86,12 +86,16 @@ export default function DeliveryNoteDetailPage() {
     }
   }, [deliveryNote, addTab]);
 
-  // Load transporters on mount
-  useEffect(() => {
+  const loadTransporters = () => {
     fetch('/api/lookups/transporters')
       .then((res) => res.json())
       .then((data) => setTransporters(data))
       .catch(() => {});
+  };
+
+  // Load transporters on mount
+  useEffect(() => {
+    loadTransporters();
   }, []);
 
   if (isLoading) {
@@ -211,6 +215,20 @@ export default function DeliveryNoteDetailPage() {
     updateDeliveryNoteMutation.mutate({ id: deliveryNoteId, data: updateData });
   };
 
+  const handleDeleteTransporter = async (value: string) => {
+    const id = Number(value);
+    if (isNaN(id)) return;
+
+    const res = await fetch(`/api/lookups/transporters/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      loadTransporters();
+      // If the deleted transporter was selected, reset to none
+      if (editData.transporterValue === value) {
+        handleTransporterChange('none');
+      }
+    }
+  };
+
   // Get the currently selected transporter (for showing address)
   const { transporterId: currentTransporterId } = parseTransporterValue(editData.transporterValue);
   const selectedTransporter = transporters.find((t) => t.id === currentTransporterId);
@@ -285,6 +303,8 @@ export default function DeliveryNoteDetailPage() {
                 emptyMessage="No se encontraron transportistas"
                 allowCustom
                 customLabel={(name) => `Usar "${name}"`}
+                onDelete={handleDeleteTransporter}
+                isDeletable={(v) => v !== 'none'}
               />
             </div>
 
