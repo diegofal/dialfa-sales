@@ -15,12 +15,14 @@ interface CertificateViewerDialogProps {
   certificateId: string | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onNavigate?: (id: string) => void;
 }
 
 export function CertificateViewerDialog({
   certificateId,
   open,
   onOpenChange,
+  onNavigate,
 }: CertificateViewerDialogProps) {
   const { data: certificate, isLoading, error } = useCertificate(certificateId);
   const [previewError, setPreviewError] = useState(false);
@@ -128,12 +130,7 @@ export function CertificateViewerDialog({
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => {
-                      onOpenChange(false);
-                      setTimeout(() => {
-                        window.location.href = `/dashboard/certificates?id=${certificate.parent?.id}`;
-                      }, 100);
-                    }}
+                    onClick={() => onNavigate?.(certificate.parent!.id)}
                   >
                     Ver
                   </Button>
@@ -157,16 +154,7 @@ export function CertificateViewerDialog({
                           </Badge>
                         )}
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          onOpenChange(false);
-                          setTimeout(() => {
-                            window.location.href = `/dashboard/certificates?id=${child.id}`;
-                          }, 100);
-                        }}
-                      >
+                      <Button variant="ghost" size="sm" onClick={() => onNavigate?.(child.id)}>
                         Ver
                       </Button>
                     </div>
