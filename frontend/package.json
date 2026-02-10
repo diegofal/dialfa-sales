@@ -4,8 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "prisma generate && prisma migrate deploy && next build --turbopack",
-    "start": "next start",
+    "build": "prisma generate && next build --turbopack",
+    "start": "prisma migrate deploy && next start",
     "lint": "eslint",
     "migrate:scan": "tsx scripts/scan-certificates.ts",
     "migrate:test": "tsx scripts/test-migration.ts",
