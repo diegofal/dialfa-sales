@@ -449,7 +449,7 @@ export function mapDeliveryNoteToDTO(deliveryNote: unknown): DeliveryNoteDTO {
     clientBusinessName: salesOrders?.clients?.business_name || '',
     deliveryDate: (d.delivery_date as Date).toISOString(),
     transporterId: d.transporter_id ? toInt(d.transporter_id) : null,
-    transporterName: transporters?.name || null,
+    transporterName: (d.transporter_name as string) ?? transporters?.name ?? null,
     weightKg: toFloatOrNull(d.weight_kg),
     packagesCount: d.packages_count ? Number(d.packages_count) : null,
     declaredValue: toFloatOrNull(d.declared_value),

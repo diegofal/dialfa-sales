@@ -54,6 +54,7 @@ export interface CreateDeliveryNoteRequest {
   salesOrderId: number;
   deliveryDate: string;
   transporterId: number | null;
+  transporterName: string | null;
   weightKg: number | null;
   packagesCount: number | null;
   declaredValue: number | null;
@@ -64,6 +65,7 @@ export interface CreateDeliveryNoteRequest {
 export interface UpdateDeliveryNoteRequest {
   deliveryDate: string;
   transporterId: number | null;
+  transporterName: string | null;
   weightKg: number | null;
   packagesCount: number | null;
   declaredValue: number | null;

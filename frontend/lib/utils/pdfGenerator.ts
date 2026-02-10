@@ -205,13 +205,19 @@ export class PDFService {
         this.renderField(doc, template.fields.condicionIVA, taxCondition);
 
         // Datos específicos del remito - Transportista
-        if (deliveryNote.transporter_id && deliveryNote.transporters) {
-          const transporterName = deliveryNote.transporters.name || '';
+        const transporterName =
+          deliveryNote.transporter_name || deliveryNote.transporters?.name || '';
+        if (transporterName) {
           this.renderField(doc, template.fields.transportista, transporterName);
+        }
 
-          // Dirección del transportista
-          const transporterAddress = deliveryNote.transporters.address || '';
-          this.renderField(doc, template.fields.domicilioTransportista, transporterAddress);
+        // Dirección del transportista (solo si hay transportista vinculado)
+        if (deliveryNote.transporter_id && deliveryNote.transporters?.address) {
+          this.renderField(
+            doc,
+            template.fields.domicilioTransportista,
+            deliveryNote.transporters.address
+          );
         }
 
         // Peso - con formato "Peso: X kg."

@@ -1,8 +1,8 @@
 'use client';
 
-import { ArrowLeft, Printer, Trash2, Eye } from 'lucide-react';
+import { ArrowLeft, Edit2, Printer, Save, Trash2, Eye, X } from 'lucide-react';
 import { useParams, useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -16,7 +16,6 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { Combobox } from '@/components/ui/combobox';
 import { Input } from '@/components/ui/input';
 import {
   Table,
@@ -52,12 +51,18 @@ export default function DeliveryNoteDetailPage() {
   >([]);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [editData, setEditData] = useState({
-    transporterId: null as number | null,
     weightKg: '',
     packagesCount: '',
     declaredValue: '',
     notes: '',
   });
+
+  // Transporter inline editing state
+  const [isEditingTransporter, setIsEditingTransporter] = useState(false);
+  const [editedTransporterName, setEditedTransporterName] = useState('');
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const transporterInputRef = useRef<HTMLInputElement>(null);
+  const suggestionsRef = useRef<HTMLDivElement>(null);
 
   // Add to tabs when deliveryNote is loaded
   useEffect(() => {
@@ -71,7 +76,6 @@ export default function DeliveryNoteDetailPage() {
       });
       // Initialize edit data
       setEditData({
-        transporterId: deliveryNote.transporterId,
         weightKg: deliveryNote.weightKg?.toString() || '',
         packagesCount: deliveryNote.packagesCount?.toString() || '',
         declaredValue: deliveryNote.declaredValue?.toString() || '',
@@ -85,7 +89,23 @@ export default function DeliveryNoteDetailPage() {
     fetch('/api/lookups/transporters')
       .then((res) => res.json())
       .then((data) => setTransporters(data))
-      .catch((err) => console.error('Error loading transporters:', err));
+      .catch(() => {});
+  }, []);
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (
+        suggestionsRef.current &&
+        !suggestionsRef.current.contains(event.target as Node) &&
+        transporterInputRef.current &&
+        !transporterInputRef.current.contains(event.target as Node)
+      ) {
+        setShowSuggestions(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   if (isLoading) {
@@ -130,7 +150,6 @@ export default function DeliveryNoteDetailPage() {
   const handleDelete = () => {
     deleteDeliveryNoteMutation.mutate(deliveryNoteId, {
       onSuccess: () => {
-        // Remove tab from sidebar if it exists
         removeTab(`dn-${deliveryNoteId}`);
         setShowDeleteDialog(false);
         router.push(ROUTES.DELIVERY_NOTES);
@@ -143,7 +162,8 @@ export default function DeliveryNoteDetailPage() {
 
     const updateData = {
       deliveryDate: deliveryNote.deliveryDate,
-      transporterId: field === 'transporterId' ? (value as number | null) : editData.transporterId,
+      transporterId: deliveryNote.transporterId,
+      transporterName: deliveryNote.transporterName,
       weightKg:
         field === 'weightKg'
           ? value
@@ -174,7 +194,65 @@ export default function DeliveryNoteDetailPage() {
     updateDeliveryNoteMutation.mutate({ id: deliveryNoteId, data: updateData });
   };
 
-  const selectedTransporter = transporters.find((t) => t.id === editData.transporterId);
+  // Transporter edit handlers
+  const handleStartEditTransporter = () => {
+    setEditedTransporterName(deliveryNote.transporterName || '');
+    setIsEditingTransporter(true);
+    setShowSuggestions(false);
+    setTimeout(() => transporterInputRef.current?.focus(), 0);
+  };
+
+  const handleCancelEditTransporter = () => {
+    setIsEditingTransporter(false);
+    setEditedTransporterName('');
+    setShowSuggestions(false);
+  };
+
+  const handleSaveTransporter = (name?: string) => {
+    if (!deliveryNote) return;
+
+    const transporterNameValue = (name ?? editedTransporterName).trim();
+
+    // Check if it matches an existing transporter
+    const matchedTransporter = transporters.find(
+      (t) => t.name.toLowerCase() === transporterNameValue.toLowerCase()
+    );
+
+    const updateData = {
+      deliveryDate: deliveryNote.deliveryDate,
+      transporterId: matchedTransporter ? matchedTransporter.id : null,
+      transporterName: matchedTransporter ? null : transporterNameValue || null,
+      weightKg: editData.weightKg ? parseFloat(editData.weightKg) : null,
+      packagesCount: editData.packagesCount ? parseInt(editData.packagesCount) : null,
+      declaredValue: editData.declaredValue ? parseFloat(editData.declaredValue) : null,
+      notes: editData.notes.trim() || null,
+    };
+
+    updateDeliveryNoteMutation.mutate(
+      { id: deliveryNoteId, data: updateData },
+      {
+        onSuccess: () => {
+          setIsEditingTransporter(false);
+          setEditedTransporterName('');
+          setShowSuggestions(false);
+        },
+      }
+    );
+  };
+
+  const handleSelectSuggestion = (transporter: { id: number; name: string }) => {
+    setEditedTransporterName(transporter.name);
+    setShowSuggestions(false);
+    handleSaveTransporter(transporter.name);
+  };
+
+  // Filter suggestions based on current input
+  const filteredSuggestions = editedTransporterName.trim()
+    ? transporters.filter((t) => t.name.toLowerCase().includes(editedTransporterName.toLowerCase()))
+    : transporters;
+
+  // Get the currently linked transporter (for showing address)
+  const linkedTransporter = transporters.find((t) => t.id === deliveryNote.transporterId);
 
   return (
     <div className="space-y-6 pb-24">
@@ -229,35 +307,93 @@ export default function DeliveryNoteDetailPage() {
               </p>
             </div>
 
-            {/* Transportista */}
+            {/* Transportista - Editable with text input */}
             <div>
               <p className="text-muted-foreground mb-1 text-sm">Transportista</p>
-              <Combobox
-                options={[
-                  { value: 'none', label: 'Sin transportista' },
-                  ...transporters.map((t) => ({
-                    value: String(t.id),
-                    label: t.name,
-                  })),
-                ]}
-                value={editData.transporterId ? String(editData.transporterId) : 'none'}
-                onValueChange={(value) => {
-                  const transporterId = value === 'none' ? null : Number(value);
-                  setEditData({ ...editData, transporterId });
-                  handleFieldUpdate('transporterId', transporterId);
-                }}
-                placeholder="Sin transportista"
-                emptyMessage="No se encontraron transportistas"
-              />
+              {isEditingTransporter ? (
+                <div className="relative">
+                  <div className="flex items-center gap-1">
+                    <Input
+                      ref={transporterInputRef}
+                      type="text"
+                      value={editedTransporterName}
+                      onChange={(e) => {
+                        setEditedTransporterName(e.target.value);
+                        setShowSuggestions(true);
+                      }}
+                      onFocus={() => setShowSuggestions(true)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') handleSaveTransporter();
+                        if (e.key === 'Escape') handleCancelEditTransporter();
+                      }}
+                      placeholder="Nombre del transportista..."
+                      className="h-8"
+                      disabled={updateDeliveryNoteMutation.isPending}
+                    />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 shrink-0"
+                      onClick={() => handleSaveTransporter()}
+                      disabled={updateDeliveryNoteMutation.isPending}
+                      title="Guardar"
+                    >
+                      <Save className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-8 w-8 shrink-0"
+                      onClick={handleCancelEditTransporter}
+                      disabled={updateDeliveryNoteMutation.isPending}
+                      title="Cancelar"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  {/* Suggestions dropdown */}
+                  {showSuggestions && filteredSuggestions.length > 0 && (
+                    <div
+                      ref={suggestionsRef}
+                      className="bg-popover border-border absolute z-10 mt-1 max-h-48 w-full overflow-auto rounded-md border shadow-md"
+                    >
+                      {filteredSuggestions.map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          className="hover:bg-accent w-full px-3 py-2 text-left text-sm"
+                          onMouseDown={(e) => e.preventDefault()}
+                          onClick={() => handleSelectSuggestion(t)}
+                        >
+                          {t.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-1">
+                  <span className="font-medium">
+                    {deliveryNote.transporterName || 'Sin transportista'}
+                  </span>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7"
+                    onClick={handleStartEditTransporter}
+                    title="Editar transportista"
+                  >
+                    <Edit2 className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              )}
             </div>
 
-            {/* Domicilio del Transportista */}
-            {(selectedTransporter?.address || deliveryNote.transporterAddress) && (
+            {/* Domicilio del Transportista - solo si hay transportista vinculado */}
+            {linkedTransporter?.address && (
               <div>
                 <p className="text-muted-foreground text-sm">Domicilio Transportista</p>
-                <p className="font-medium">
-                  {selectedTransporter?.address || deliveryNote.transporterAddress || '-'}
-                </p>
+                <p className="font-medium">{linkedTransporter.address}</p>
               </div>
             )}
 
@@ -345,23 +481,6 @@ export default function DeliveryNoteDetailPage() {
               No hay items registrados en este remito
             </p>
           )}
-        </CardContent>
-      </Card>
-
-      {/* Metadata */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Información de Auditoría</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div>
-            <p className="text-muted-foreground text-sm">Fecha de Creación</p>
-            <p className="font-medium">{formatDate(deliveryNote.createdAt)}</p>
-          </div>
-          <div>
-            <p className="text-muted-foreground text-sm">Última Actualización</p>
-            <p className="font-medium">{formatDate(deliveryNote.updatedAt)}</p>
-          </div>
         </CardContent>
       </Card>
 
