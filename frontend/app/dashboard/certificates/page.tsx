@@ -214,6 +214,7 @@ export default function CertificatesPage() {
         certificateId={selectedCertificateId}
         open={viewerOpen}
         onOpenChange={setViewerOpen}
+        onNavigate={(id) => setSelectedCertificateId(id)}
       />
     </div>
   );
