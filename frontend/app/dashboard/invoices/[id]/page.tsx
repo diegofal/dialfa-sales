@@ -41,6 +41,7 @@ import {
   useCancelInvoice,
   usePrintInvoice,
   useUpdateInvoiceExchangeRate,
+  useUpdateInvoiceItems,
   useInvoiceStockMovements,
 } from '@/lib/hooks/domain/useInvoices';
 import { usePaymentTerms } from '@/lib/hooks/domain/usePaymentTerms';
@@ -59,6 +60,7 @@ export default function InvoiceDetailPage() {
   const cancelInvoiceMutation = useCancelInvoice();
   const printInvoiceMutation = usePrintInvoice();
   const updateExchangeRateMutation = useUpdateInvoiceExchangeRate();
+  const updateItemsMutation = useUpdateInvoiceItems();
   const { addInvoiceTab } = useQuickInvoiceTabs();
 
   const [showCancelDialog, setShowCancelDialog] = useState(false);
@@ -66,6 +68,8 @@ export default function InvoiceDetailPage() {
   const [editedExchangeRate, setEditedExchangeRate] = useState('');
   const [isEditingPaymentTerm, setIsEditingPaymentTerm] = useState(false);
   const [editedPaymentTermId, setEditedPaymentTermId] = useState<number | null>(null);
+  const [editingItemId, setEditingItemId] = useState<number | null>(null);
+  const [editedDiscount, setEditedDiscount] = useState('');
 
   // Add invoice to tabs when loaded
   useEffect(() => {
@@ -204,6 +208,39 @@ export default function InvoiceDetailPage() {
     if (invoice?.paymentTermId) {
       setEditedPaymentTermId(invoice.paymentTermId);
     }
+  };
+
+  const handleStartEditDiscount = (itemId: number, currentDiscount: number) => {
+    setEditingItemId(itemId);
+    setEditedDiscount(currentDiscount.toString());
+  };
+
+  const handleSaveDiscount = (itemId: number) => {
+    const value = parseFloat(editedDiscount);
+    if (isNaN(value) || value < 0 || value > 100) {
+      toast.error('El descuento debe estar entre 0 y 100');
+      return;
+    }
+
+    const items = invoice.items.map((item) => ({
+      id: item.id,
+      discountPercent: item.id === itemId ? value : item.discountPercent,
+    }));
+
+    updateItemsMutation.mutate(
+      { id: invoiceId, items },
+      {
+        onSuccess: () => {
+          setEditingItemId(null);
+          setEditedDiscount('');
+        },
+      }
+    );
+  };
+
+  const handleCancelEditDiscount = () => {
+    setEditingItemId(null);
+    setEditedDiscount('');
   };
 
   const formatRelativeDate = (dateString: string) => {
@@ -455,7 +492,60 @@ export default function InvoiceDetailPage() {
                       (USD {item.unitPriceUsd.toFixed(2)})
                     </span>
                   </TableCell>
-                  <TableCell className="text-right">{item.discountPercent}%</TableCell>
+                  <TableCell className="text-right">
+                    {editingItemId === item.id ? (
+                      <div className="flex items-center justify-end gap-1">
+                        <Input
+                          type="number"
+                          step="0.01"
+                          min="0"
+                          max="100"
+                          value={editedDiscount}
+                          onChange={(e) => setEditedDiscount(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') handleSaveDiscount(item.id);
+                            if (e.key === 'Escape') handleCancelEditDiscount();
+                          }}
+                          className="h-7 w-20 text-right"
+                          disabled={updateItemsMutation.isPending}
+                          autoFocus
+                        />
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6"
+                          onClick={() => handleSaveDiscount(item.id)}
+                          disabled={updateItemsMutation.isPending}
+                        >
+                          <Save className="h-3 w-3" />
+                        </Button>
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6"
+                          onClick={handleCancelEditDiscount}
+                          disabled={updateItemsMutation.isPending}
+                        >
+                          <XIcon className="h-3 w-3" />
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-end gap-1">
+                        <span>{item.discountPercent}%</span>
+                        {canEditExchangeRate && (
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6"
+                            onClick={() => handleStartEditDiscount(item.id, item.discountPercent)}
+                            title="Editar descuento"
+                          >
+                            <Edit2 className="h-3 w-3" />
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                  </TableCell>
                   <TableCell className="text-right font-medium">
                     {formatCurrency(item.lineTotal)}
                   </TableCell>
