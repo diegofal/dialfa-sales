@@ -23,60 +23,61 @@
   "fields": {
     "fecha": {
       "x": 389,
-      "y": 65,
+      "y": 68,
       "align": "left"
     },
     "numeroFactura": {
       "x": 389,
-      "y": 80,
+      "y": 83,
       "align": "left",
       "fontWeight": "bold"
     },
     "razonSocial": {
       "x": 72,
-      "y": 130,
+      "y": 136,
       "fontWeight": "bold"
     },
     "domicilio": {
       "x": 72,
-      "y": 140
+      "y": 146
     },
     "localidad": {
       "x": 72,
-      "y": 151
+      "y": 158
     },
     "provincia": {
       "x": 72,
-      "y": 169
+      "y": 176
     },
     "condicionIVA": {
       "x": 72,
-      "y": 191
+      "y": 199
     },
     "cuit": {
       "x": 331,
-      "y": 191
+      "y": 199
     },
     "subTotal": {
       "x": 29,
-      "y": 720,
+      "y": 800,
       "align": "left"
     },
     "iva": {
-      "x": 310,
-      "y": 720,
+      "x": 335,
+      "y": 800,
       "align": "left"
     },
     "total": {
-      "x": 497,
-      "y": 720,
+      "x": 540,
+      "y": 800,
       "align": "right",
       "fontWeight": "bold",
-      "fontSize": 12
+      "fontSize": 12,
+      "maxWidth": 100
     }
   },
   "items": {
-    "startY": 252,
+    "startY": 282,
     "spacing": 12,
     "maxRows": 35,
     "columns": {
@@ -90,12 +91,12 @@
         "align": "left"
       },
       "precioUnitario": {
-        "x": 461,
+        "x": 480,
         "align": "right",
-        "maxWidth": 70
+        "maxWidth": 80
       },
       "precioTotal": {
-        "x": 540,
+        "x": 565,
         "align": "right",
         "maxWidth": 80
       }
