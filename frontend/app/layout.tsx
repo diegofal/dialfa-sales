@@ -21,6 +21,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="es" suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('color-theme');if(t&&t!=='oceano')document.documentElement.setAttribute('data-color-theme',t)}catch(e){}})()`,
+          }}
+        />
+      </head>
       <body className={inter.className}>
         <ThemeProvider>
           <QueryProvider>
