@@ -59,17 +59,17 @@
     },
     "subTotal": {
       "x": 29,
-      "y": 800,
+      "y": 770,
       "align": "left"
     },
     "iva": {
       "x": 335,
-      "y": 800,
+      "y": 770,
       "align": "left"
     },
     "total": {
       "x": 540,
-      "y": 800,
+      "y": 770,
       "align": "right",
       "fontWeight": "bold",
       "fontSize": 12,
