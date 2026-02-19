@@ -175,7 +175,7 @@ export const PERMISSIONS: Record<Resource, Partial<Record<Action, PermissionRule
     [ACTIONS.LIST]: { roles: [ROLES.ADMIN], description: 'List stock movements' },
     [ACTIONS.READ]: { roles: [ROLES.ADMIN], description: 'Read stock movement details' },
     [ACTIONS.CREATE]: { roles: [ROLES.ADMIN], description: 'Create stock movements' },
-    [ACTIONS.ADJUST]: { roles: [ROLES.ADMIN], description: 'Adjust stock levels' },
+    [ACTIONS.ADJUST]: { roles: [ROLES.ADMIN, ROLES.VENDEDOR], description: 'Adjust stock levels' },
   },
 
   // ACTIVITY LOGS
