@@ -3,7 +3,7 @@ import { requireAdmin } from '@/lib/auth/roles';
 import { handleError } from '@/lib/errors';
 import * as PriceListService from '@/lib/services/PriceListService';
 
-export async function POST(request: NextRequest) {
+export async function PUT(request: NextRequest) {
   try {
     const auth = requireAdmin(request);
     if (!auth.authorized) {
