@@ -41,7 +41,7 @@ interface SupplierOrderPanelProps {
   onQuantityChange: (articleId: number, quantity: number) => void;
   onRemove: (articleId: number) => void;
   onClear: () => void;
-  onCreateOrder: () => void;
+  onViewOrder?: () => void;
   isSaving?: boolean;
   isLoading?: boolean;
 }
@@ -54,7 +54,7 @@ export function SupplierOrderPanel({
   onQuantityChange,
   onRemove,
   onClear,
-  onCreateOrder,
+  onViewOrder,
   isSaving = false,
   isLoading = false,
 }: SupplierOrderPanelProps) {
@@ -421,10 +421,12 @@ export function SupplierOrderPanel({
               <Trash2 className="mr-2 h-4 w-4" />
               Limpiar
             </Button>
-            <Button size="sm" onClick={onCreateOrder} disabled={isSaving}>
-              <ShoppingCart className="mr-2 h-4 w-4" />
-              Crear Pedido
-            </Button>
+            {onViewOrder && (
+              <Button size="sm" variant="outline" onClick={onViewOrder} disabled={isSaving}>
+                <ShoppingCart className="mr-2 h-4 w-4" />
+                Ver Pedido
+              </Button>
+            )}
           </div>
         </div>
 
