@@ -1,5 +1,5 @@
 import axios from 'axios';
-import { useState, useCallback, useEffect, useRef } from 'react';
+import { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { toast } from 'sonner';
 import {
   calculateWeightedAvgSales,
@@ -11,6 +11,7 @@ import { SupplierOrderItem, SupplierOrderItemDto } from '@/types/supplierOrder';
 import {
   useCreateSupplierOrder,
   useUpdateSupplierOrder,
+  useDeleteSupplierOrder,
   useSupplierOrders,
 } from './useSupplierOrders';
 
@@ -38,6 +39,7 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
   );
   const createMutation = useCreateSupplierOrder({ silent: true });
   const updateMutation = useUpdateSupplierOrder({ silent: true });
+  const deleteMutation = useDeleteSupplierOrder({ silent: true });
 
   // Load the first draft on mount
   useEffect(() => {
@@ -316,6 +318,27 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
     pendingSaveRef.current = null;
   }, []);
 
+  const deleteDraft = useCallback(async () => {
+    // Cancel any pending autosave
+    if (saveTimerRef.current) {
+      clearTimeout(saveTimerRef.current);
+      saveTimerRef.current = null;
+    }
+    pendingSaveRef.current = null;
+
+    // Delete from DB if there's an active draft
+    if (currentDraftId) {
+      try {
+        await deleteMutation.mutateAsync(currentDraftId);
+      } catch {
+        // Error captured by Sentry; still clear local state
+      }
+    }
+
+    setItems(new Map());
+    setCurrentDraftId(null);
+  }, [currentDraftId, deleteMutation]);
+
   const getItems = useCallback(() => {
     return Array.from(items.values());
   }, [items]);
@@ -362,15 +385,21 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
     [trendMonths]
   );
 
+  const hasDraft = items.size > 0;
+  const draftArticleIds = useMemo(() => new Set(items.keys()), [items]);
+
   return {
     items,
     currentDraftId,
     isLoading,
     isSaving,
+    hasDraft,
+    draftArticleIds,
     addItem,
     removeItem,
     updateQuantity,
     clear,
+    deleteDraft,
     getItems,
     getTotalItems,
     getTotalQuantity,

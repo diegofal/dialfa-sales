@@ -3,7 +3,6 @@
 import { Plus, Search, Filter, Package, History } from 'lucide-react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { toast } from 'sonner';
 import { ArticleDialog } from '@/components/articles/ArticleDialog';
 import { ArticlesTable } from '@/components/articles/ArticlesTable';
 import { StockMovementsTable } from '@/components/articles/StockMovementsTable';
@@ -27,7 +26,6 @@ import { useArticles, useDeleteArticle } from '@/lib/hooks/domain/useArticles';
 import { useCategories } from '@/lib/hooks/domain/useCategories';
 import { useStockMovements } from '@/lib/hooks/domain/useStockMovements';
 import { useSupplierOrderDraft } from '@/lib/hooks/domain/useSupplierOrderDraft';
-import { useUpdateSupplierOrderStatus } from '@/lib/hooks/domain/useSupplierOrders';
 import { usePagination } from '@/lib/hooks/generic/usePagination';
 import { useAuthStore } from '@/store/authStore';
 import { Article } from '@/types/article';
@@ -54,7 +52,14 @@ export default function ArticlesPage() {
 
   // Supplier order draft hook with trendMonths
   const supplierOrder = useSupplierOrderDraft(supplierOrderTrendMonths);
-  const updateStatusMutation = useUpdateSupplierOrderStatus();
+
+  // Auto-restore supplier order mode when draft has items
+  useEffect(() => {
+    if (!supplierOrder.isLoading && supplierOrder.hasDraft) {
+      setSupplierOrderMode(true);
+      setSelectedArticleIds(new Set(supplierOrder.draftArticleIds));
+    }
+  }, [supplierOrder.isLoading, supplierOrder.hasDraft]);
 
   const canCreateEdit = isAdmin();
 
@@ -153,40 +158,12 @@ export default function ArticlesPage() {
 
   const handleSupplierOrderModeToggle = (checked: boolean) => {
     setSupplierOrderMode(checked);
-    if (!checked) {
-      // Clear selection when turning off
-      setSelectedArticleIds(new Set());
-      supplierOrder.clear();
-    }
+    // Don't clear draft when toggling off — it persists in DB and will auto-restore
   };
 
-  const handleCreateSupplierOrder = async () => {
-    if (supplierOrder.getTotalItems() === 0) {
-      toast.error('Agrega al menos un artículo para crear el pedido');
-      return;
-    }
-
-    if (!supplierOrder.currentDraftId) {
-      toast.error('Error: No hay borrador activo');
-      return;
-    }
-
-    try {
-      // Change status from draft to confirmed
-      await updateStatusMutation.mutateAsync({
-        id: supplierOrder.currentDraftId,
-        status: 'confirmed',
-      });
-
-      // Clear the draft and redirect
-      supplierOrder.clear();
-      setSupplierOrderMode(false);
-      setSelectedArticleIds(new Set());
-
-      toast.success('Pedido confirmado exitosamente');
+  const handleViewSupplierOrder = () => {
+    if (supplierOrder.currentDraftId) {
       router.push(`${ROUTES.SUPPLIER_ORDERS}/${supplierOrder.currentDraftId}`);
-    } catch (error) {
-      toast.error('Error al confirmar el pedido');
     }
   };
 
@@ -449,11 +426,12 @@ export default function ArticlesPage() {
                     return updated;
                   });
                 }}
-                onClear={() => {
-                  supplierOrder.clear();
+                onClear={async () => {
+                  await supplierOrder.deleteDraft();
                   setSelectedArticleIds(new Set());
+                  setSupplierOrderMode(false);
                 }}
-                onCreateOrder={handleCreateSupplierOrder}
+                onViewOrder={supplierOrder.currentDraftId ? handleViewSupplierOrder : undefined}
                 isSaving={supplierOrder.isSaving}
                 isLoading={supplierOrder.isLoading}
               />

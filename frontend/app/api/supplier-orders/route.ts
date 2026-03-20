@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
         : undefined,
     });
 
-    return NextResponse.json(result);
+    return NextResponse.json({ success: true, data: result });
   } catch (error) {
     return handleError(error);
   }

@@ -104,17 +104,21 @@ export function useUpdateSupplierOrderStatus() {
 /**
  * Delete supplier order
  */
-export function useDeleteSupplierOrder() {
+export function useDeleteSupplierOrder(options?: { silent?: boolean }) {
   const queryClient = useQueryClient();
 
   return useMutation({
     mutationFn: (id: number) => supplierOrdersApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['supplier-orders'] });
-      toast.success('Pedido eliminado exitosamente');
+      if (!options?.silent) {
+        toast.success('Pedido eliminado exitosamente');
+      }
     },
     onError: (error: Error) => {
-      toast.error(error.message || 'Error al eliminar el pedido');
+      if (!options?.silent) {
+        toast.error(error.message || 'Error al eliminar el pedido');
+      }
     },
   });
 }
