@@ -34,7 +34,7 @@ export default function ArticlesPage() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const { isAdmin } = useAuthStore();
+  const { isAdmin, isVendedor } = useAuthStore();
 
   const [dialogOpen, setDialogOpen] = useState(false);
   const [selectedArticle, setSelectedArticle] = useState<Article | null>(null);
@@ -61,7 +61,7 @@ export default function ArticlesPage() {
     }
   }, [supplierOrder.isLoading, supplierOrder.hasDraft]);
 
-  const canCreateEdit = isAdmin();
+  const canCreateEdit = isAdmin() || isVendedor();
 
   // Get initial tab from URL or default to 'articles'
   const [currentTab, setCurrentTab] = useState<string>(() => {
