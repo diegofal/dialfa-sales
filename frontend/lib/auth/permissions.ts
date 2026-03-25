@@ -70,8 +70,8 @@ export const PERMISSIONS: Record<Resource, Partial<Record<Action, PermissionRule
   [RESOURCES.ARTICLES]: {
     [ACTIONS.LIST]: { roles: [], description: 'List all articles' }, // Public
     [ACTIONS.READ]: { roles: [], description: 'Read article details' }, // Public
-    [ACTIONS.CREATE]: { roles: [ROLES.ADMIN], description: 'Create articles' },
-    [ACTIONS.UPDATE]: { roles: [ROLES.ADMIN], description: 'Update articles' },
+    [ACTIONS.CREATE]: { roles: [ROLES.ADMIN, ROLES.VENDEDOR], description: 'Create articles' },
+    [ACTIONS.UPDATE]: { roles: [ROLES.ADMIN, ROLES.VENDEDOR], description: 'Update articles' },
     [ACTIONS.DELETE]: { roles: [ROLES.ADMIN], description: 'Delete articles' },
     [ACTIONS.ABC_REFRESH]: { roles: [ROLES.ADMIN], description: 'Refresh ABC classification' },
     [ACTIONS.VALUATION]: { roles: [ROLES.ADMIN], description: 'Recalculate stock valuation' },

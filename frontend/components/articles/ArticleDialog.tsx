@@ -51,8 +51,7 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
   const { data: categories, isLoading: categoriesLoading } = useCategories({ activeOnly: true });
   const { isAdmin, isVendedor } = useAuthStore();
 
-  // Los vendedores no pueden crear ni editar artículos (solo pueden ajustar stock)
-  const canEdit = isAdmin();
+  const canEdit = isAdmin() || isVendedor();
   const isVendedorUser = isVendedor();
 
   const {
