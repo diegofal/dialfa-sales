@@ -1,10 +1,11 @@
 'use client';
 
-import { Plus, Search, Filter, Package, History } from 'lucide-react';
+import { Plus, Search, Filter, Package, History, BarChart3 } from 'lucide-react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { ArticleDialog } from '@/components/articles/ArticleDialog';
 import { ArticlesTable } from '@/components/articles/ArticlesTable';
+import { SalesAnalyticsTab } from '@/components/articles/SalesAnalyticsTab';
 import { StockMovementsTable } from '@/components/articles/StockMovementsTable';
 import { SupplierOrderPanel } from '@/components/articles/SupplierOrderPanel';
 import { Badge } from '@/components/ui/badge';
@@ -207,7 +208,7 @@ export default function ArticlesPage() {
       </div>
 
       <Tabs value={currentTab} onValueChange={handleTabChange} className="w-full">
-        <TabsList className="grid w-full max-w-md grid-cols-2">
+        <TabsList className="grid w-full max-w-2xl grid-cols-3">
           <TabsTrigger value="articles" className="flex items-center gap-2">
             <Package className="h-4 w-4" />
             Artículos
@@ -215,6 +216,10 @@ export default function ArticlesPage() {
           <TabsTrigger value="movements" className="flex items-center gap-2">
             <History className="h-4 w-4" />
             Movimientos de Stock
+          </TabsTrigger>
+          <TabsTrigger value="sales-analytics" className="flex items-center gap-2">
+            <BarChart3 className="h-4 w-4" />
+            Análisis de Ventas
           </TabsTrigger>
         </TabsList>
 
@@ -472,6 +477,10 @@ export default function ArticlesPage() {
               No se encontraron movimientos de stock
             </div>
           )}
+        </TabsContent>
+
+        <TabsContent value="sales-analytics" className="space-y-4">
+          <SalesAnalyticsTab />
         </TabsContent>
       </Tabs>
 
