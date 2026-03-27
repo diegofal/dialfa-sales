@@ -27,14 +27,16 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
   // Debounce timer ref
   const saveTimerRef = useRef<NodeJS.Timeout | null>(null);
   const pendingSaveRef = useRef<Map<number, SupplierOrderItem> | null>(null);
+  const currentDraftIdRef = useRef<number | null>(null);
+  currentDraftIdRef.current = currentDraftId;
 
-  // Fetch existing drafts - with refetchOnMount: false to avoid constant reloading
+  // Fetch existing drafts - refetch on mount to restore after navigation
   const { data: draftsData } = useSupplierOrders(
     { status: 'draft' },
     {
-      refetchOnMount: false,
+      refetchOnMount: 'always',
       refetchOnWindowFocus: false,
-      staleTime: 5 * 60 * 1000, // 5 minutes
+      staleTime: 30 * 1000, // 30 seconds
     }
   );
   const createMutation = useCreateSupplierOrder({ silent: true });
@@ -169,11 +171,90 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
     }
   }, [draftsData, trendMonths]);
 
-  // Cleanup timer on unmount
+  // Re-fetch sales trends when trendMonths changes for items already in state
+  const prevTrendMonthsRef = useRef(trendMonths);
+  useEffect(() => {
+    if (prevTrendMonthsRef.current === trendMonths) return;
+    prevTrendMonthsRef.current = trendMonths;
+
+    if (items.size === 0) return;
+
+    const articleIds = Array.from(items.keys());
+    axios
+      .get('/api/articles', {
+        params: {
+          ids: articleIds.join(','),
+          includeTrends: 'true',
+          includeLastSaleDate: 'true',
+          trendMonths,
+        },
+      })
+      .then((response) => {
+        const articlesMap = new Map<number, Article>();
+        response.data.data.forEach((article: Article) => {
+          articlesMap.set(article.id, article);
+        });
+
+        setItems((prev) => {
+          const updated = new Map(prev);
+          for (const [id, item] of updated) {
+            const freshArticle = articlesMap.get(id);
+            if (freshArticle) {
+              const avgSales = calculateWeightedAvgSales(freshArticle.salesTrend, trendMonths);
+              updated.set(id, {
+                ...item,
+                article: freshArticle,
+                avgMonthlySales: avgSales,
+                estimatedSaleTime: calculateEstimatedSaleTime(item.quantity, avgSales),
+              });
+            }
+          }
+          return updated;
+        });
+      })
+      .catch(() => {
+        // Silently fail - keep existing data
+      });
+  }, [trendMonths, items.size]);
+
+  // Flush pending save on unmount (fire-and-forget)
   useEffect(() => {
     return () => {
       if (saveTimerRef.current) {
         clearTimeout(saveTimerRef.current);
+        saveTimerRef.current = null;
+      }
+      const pending = pendingSaveRef.current;
+      if (pending && pending.size > 0) {
+        const itemsArray = Array.from(pending.values());
+        const orderData = {
+          items: itemsArray.map((item) => ({
+            articleId: item.article.id,
+            articleCode: item.article.code,
+            articleDescription: item.article.description,
+            quantity: item.quantity,
+            currentStock: item.currentStock,
+            minimumStock: item.minimumStock,
+            avgMonthlySales: item.avgMonthlySales,
+            estimatedSaleTime: item.estimatedSaleTime,
+          })),
+        };
+        const draftId = currentDraftIdRef.current;
+        const url = draftId ? `/api/supplier-orders/${draftId}` : '/api/supplier-orders';
+        const method = draftId ? 'PUT' : 'POST';
+        // Fire-and-forget fetch with keepalive to survive unmount
+        const body = JSON.stringify(orderData);
+        try {
+          fetch(url, {
+            method,
+            headers: { 'Content-Type': 'application/json' },
+            body,
+            keepalive: true,
+          });
+        } catch {
+          // Best effort - nothing more we can do on unmount
+        }
+        pendingSaveRef.current = null;
       }
     };
   }, []);
@@ -261,6 +342,40 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
             avgMonthlySales: avgSales,
             estimatedSaleTime: calculateEstimatedSaleTime(quantity, avgSales),
           });
+        }
+
+        debouncedSave(updated);
+        return updated;
+      });
+    },
+    [debouncedSave, trendMonths]
+  );
+
+  const addItems = useCallback(
+    (entries: { article: Article; quantity: number }[]) => {
+      setItems((prev) => {
+        const updated = new Map(prev);
+        for (const { article, quantity } of entries) {
+          const avgSales = calculateWeightedAvgSales(article.salesTrend, trendMonths);
+          const existing = updated.get(article.id);
+
+          if (existing) {
+            const newQty = existing.quantity + quantity;
+            updated.set(article.id, {
+              ...existing,
+              quantity: newQty,
+              estimatedSaleTime: calculateEstimatedSaleTime(newQty, avgSales),
+            });
+          } else {
+            updated.set(article.id, {
+              article,
+              quantity,
+              currentStock: Number(article.stock),
+              minimumStock: Number(article.minimumStock),
+              avgMonthlySales: avgSales,
+              estimatedSaleTime: calculateEstimatedSaleTime(quantity, avgSales),
+            });
+          }
         }
 
         debouncedSave(updated);
@@ -396,6 +511,7 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
     hasDraft,
     draftArticleIds,
     addItem,
+    addItems,
     removeItem,
     updateQuantity,
     clear,

@@ -8,7 +8,10 @@ import {
   Loader2,
   Clock,
   Download,
+  Upload,
+  ArrowUpDown,
 } from 'lucide-react';
+import { useState, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -30,8 +33,68 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { formatSaleTime } from '@/lib/utils/salesCalculations';
+import {
+  formatSaleTime,
+  calculateWeightedAvgSales,
+  calculateEstimatedSaleTime,
+} from '@/lib/utils/salesCalculations';
 import { SupplierOrderItem } from '@/types/supplierOrder';
+
+type ActiveRating = 'GREAT' | 'GOOD' | 'OK' | 'SLOW' | 'NO DATA';
+
+const RATING_CONFIG: Record<
+  ActiveRating,
+  { label: string; color: string; bg: string; border: string; order: number }
+> = {
+  GREAT: {
+    label: 'Excelente',
+    color: 'text-emerald-700 dark:text-emerald-400',
+    bg: 'bg-emerald-500/10',
+    border: 'border-emerald-500/30',
+    order: 1,
+  },
+  GOOD: {
+    label: 'Bueno',
+    color: 'text-blue-700 dark:text-blue-400',
+    bg: 'bg-blue-500/10',
+    border: 'border-blue-500/30',
+    order: 2,
+  },
+  OK: {
+    label: 'Regular',
+    color: 'text-amber-700 dark:text-amber-400',
+    bg: 'bg-amber-500/10',
+    border: 'border-amber-500/30',
+    order: 3,
+  },
+  SLOW: {
+    label: 'Lento',
+    color: 'text-red-700 dark:text-red-400',
+    bg: 'bg-red-500/10',
+    border: 'border-red-500/30',
+    order: 4,
+  },
+  'NO DATA': {
+    label: 'Sin datos',
+    color: 'text-gray-500 dark:text-gray-400',
+    bg: 'bg-gray-500/10',
+    border: 'border-gray-500/30',
+    order: 5,
+  },
+};
+
+function getActiveRating(item: SupplierOrderItem): ActiveRating {
+  const trend = item.article.activeStockTrend;
+  if (!trend || trend.length === 0) return 'NO DATA';
+  const wma = calculateWeightedAvgSales(trend, trend.length);
+  if (wma <= 0) return 'NO DATA';
+  const est = calculateEstimatedSaleTime(item.quantity, wma);
+  if (!isFinite(est)) return 'NO DATA';
+  if (est <= 12) return 'GREAT';
+  if (est <= 24) return 'GOOD';
+  if (est <= 60) return 'OK';
+  return 'SLOW';
+}
 
 interface SupplierOrderPanelProps {
   items: SupplierOrderItem[];
@@ -42,8 +105,10 @@ interface SupplierOrderPanelProps {
   onRemove: (articleId: number) => void;
   onClear: () => void;
   onViewOrder?: () => void;
+  onImportCsv?: (file: File) => void;
   isSaving?: boolean;
   isLoading?: boolean;
+  isImporting?: boolean;
 }
 
 export function SupplierOrderPanel({
@@ -55,9 +120,37 @@ export function SupplierOrderPanel({
   onRemove,
   onClear,
   onViewOrder,
+  onImportCsv,
   isSaving = false,
   isLoading = false,
+  isImporting = false,
 }: SupplierOrderPanelProps) {
+  const [ratingFilter, setRatingFilter] = useState<ActiveRating | 'ALL'>('ALL');
+  const [sortByRating, setSortByRating] = useState(false);
+
+  const processedItems = useMemo(() => {
+    let result = items.map((item) => ({ ...item, _rating: getActiveRating(item) }));
+
+    if (ratingFilter !== 'ALL') {
+      result = result.filter((item) => item._rating === ratingFilter);
+    }
+
+    if (sortByRating) {
+      result.sort((a, b) => RATING_CONFIG[a._rating].order - RATING_CONFIG[b._rating].order);
+    }
+
+    return result;
+  }, [items, ratingFilter, sortByRating]);
+
+  const ratingCounts = useMemo(() => {
+    const counts: Record<string, number> = { ALL: items.length };
+    for (const item of items) {
+      const r = getActiveRating(item);
+      counts[r] = (counts[r] || 0) + 1;
+    }
+    return counts;
+  }, [items]);
+
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-AR', {
       style: 'currency',
@@ -375,6 +468,36 @@ export function SupplierOrderPanel({
           <ShoppingCart className="mb-3 h-12 w-12 opacity-30" />
           <p className="text-sm">No hay artículos seleccionados para el pedido</p>
           <p className="mt-1 text-xs">Selecciona artículos de la tabla para agregarlos</p>
+          {onImportCsv && (
+            <div className="mt-4">
+              <input
+                type="file"
+                accept=".csv"
+                className="hidden"
+                id="csv-import-input-empty"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    onImportCsv(file);
+                    e.target.value = '';
+                  }
+                }}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={isImporting}
+                onClick={() => document.getElementById('csv-import-input-empty')?.click()}
+              >
+                {isImporting ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Upload className="mr-2 h-4 w-4" />
+                )}
+                Importar CSV
+              </Button>
+            </div>
+          )}
         </div>
       </Card>
     );
@@ -408,6 +531,36 @@ export function SupplierOrderPanel({
             </p>
           </div>
           <div className="flex gap-2">
+            {onImportCsv && (
+              <>
+                <input
+                  type="file"
+                  accept=".csv"
+                  className="hidden"
+                  id="csv-import-input"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      onImportCsv(file);
+                      e.target.value = '';
+                    }
+                  }}
+                />
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={isImporting || isSaving}
+                  onClick={() => document.getElementById('csv-import-input')?.click()}
+                >
+                  {isImporting ? (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  ) : (
+                    <Upload className="mr-2 h-4 w-4" />
+                  )}
+                  Importar CSV
+                </Button>
+              </>
+            )}
             <Button
               variant="outline"
               size="sm"
@@ -453,6 +606,30 @@ export function SupplierOrderPanel({
           </div>
         )}
 
+        {/* Rating Filter */}
+        {items.length > 0 && (
+          <div className="bg-muted/50 flex flex-wrap items-center gap-2 rounded-lg p-3">
+            <span className="text-sm font-medium">Clasificación activa:</span>
+            {(['ALL', 'GREAT', 'GOOD', 'OK', 'SLOW', 'NO DATA'] as const).map((r) => {
+              const isActive = ratingFilter === r;
+              const count = ratingCounts[r] || 0;
+              if (r !== 'ALL' && count === 0) return null;
+              const cfg = r === 'ALL' ? null : RATING_CONFIG[r];
+              return (
+                <Button
+                  key={r}
+                  variant={isActive ? 'default' : 'outline'}
+                  size="sm"
+                  className={`h-7 text-xs ${!isActive && cfg ? `${cfg.color} ${cfg.bg} ${cfg.border}` : ''}`}
+                  onClick={() => setRatingFilter(r)}
+                >
+                  {r === 'ALL' ? 'Todos' : cfg!.label} ({count})
+                </Button>
+              );
+            })}
+          </div>
+        )}
+
         {/* Table */}
         <div className="overflow-x-auto rounded-md border">
           <Table>
@@ -464,6 +641,7 @@ export function SupplierOrderPanel({
                 <TableHead className="text-right">Stock Actual</TableHead>
                 <TableHead className="text-right">Stock Mín.</TableHead>
                 <TableHead>Tendencia ({trendMonths} meses)</TableHead>
+                <TableHead>Tend. Activa</TableHead>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
@@ -496,6 +674,32 @@ export function SupplierOrderPanel({
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
+                      <TableHead className="cursor-help text-right">T. Est. Activa</TableHead>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">
+                        Tiempo estimado usando el mejor período histórico de actividad
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <TableHead
+                        className="cursor-pointer text-center"
+                        onClick={() => setSortByRating(!sortByRating)}
+                      >
+                        Clasif. <ArrowUpDown className="ml-1 inline h-3 w-3" />
+                      </TableHead>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p className="max-w-xs">
+                        Clasificación basada en T. Est. Activa: Excelente (≤1a), Bueno (1-2a),
+                        Regular (2-5a), Lento (&gt;5a). Click para ordenar.
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
                       <TableHead className="cursor-help">Última Venta</TableHead>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -509,7 +713,7 @@ export function SupplierOrderPanel({
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((item) => (
+              {processedItems.map((item) => (
                 <TableRow key={item.article.id}>
                   <TableCell className="font-mono font-medium">{item.article.code}</TableCell>
                   <TableCell>
@@ -542,29 +746,73 @@ export function SupplierOrderPanel({
                   </TableCell>
                   <TableCell>
                     {item.article.salesTrend && item.article.salesTrend.length > 0 ? (
-                      <SparklineWithTooltip
-                        data={item.article.salesTrend}
-                        labels={item.article.salesTrendLabels}
-                        width={Math.min(180, Math.max(80, item.article.salesTrend.length * 10))}
-                        height={40}
-                        color={
-                          item.article.abcClass === 'A'
-                            ? 'rgb(34, 197, 94)' // green-500
-                            : item.article.abcClass === 'B'
-                              ? 'rgb(59, 130, 246)' // blue-500
-                              : 'rgb(107, 114, 128)' // gray-500
-                        }
-                        fillColor={
-                          item.article.abcClass === 'A'
-                            ? 'rgba(34, 197, 94, 0.1)'
-                            : item.article.abcClass === 'B'
-                              ? 'rgba(59, 130, 246, 0.1)'
-                              : 'rgba(107, 114, 128, 0.1)'
-                        }
-                        formatValue={(v) => `${v} unidades`}
-                      />
+                      <div className="flex flex-col">
+                        <SparklineWithTooltip
+                          data={item.article.salesTrend}
+                          labels={item.article.salesTrendLabels}
+                          width={Math.min(180, Math.max(80, item.article.salesTrend.length * 10))}
+                          height={40}
+                          color={
+                            item.article.abcClass === 'A'
+                              ? 'rgb(34, 197, 94)'
+                              : item.article.abcClass === 'B'
+                                ? 'rgb(59, 130, 246)'
+                                : 'rgb(107, 114, 128)'
+                          }
+                          fillColor={
+                            item.article.abcClass === 'A'
+                              ? 'rgba(34, 197, 94, 0.1)'
+                              : item.article.abcClass === 'B'
+                                ? 'rgba(59, 130, 246, 0.1)'
+                                : 'rgba(107, 114, 128, 0.1)'
+                          }
+                          formatValue={(v) => `${v} unidades`}
+                        />
+                        {item.article.salesTrendLabels &&
+                          item.article.salesTrendLabels.length > 0 && (
+                            <span className="text-muted-foreground text-[10px]">
+                              {item.article.salesTrendLabels[0]} -{' '}
+                              {
+                                item.article.salesTrendLabels[
+                                  item.article.salesTrendLabels.length - 1
+                                ]
+                              }
+                            </span>
+                          )}
+                      </div>
                     ) : (
                       <span className="text-muted-foreground text-xs">Sin datos</span>
+                    )}
+                  </TableCell>
+
+                  {/* Tendencia Activa */}
+                  <TableCell>
+                    {item.article.activeStockTrend && item.article.activeStockTrend.length > 0 ? (
+                      <div className="flex flex-col">
+                        <SparklineWithTooltip
+                          data={item.article.activeStockTrend}
+                          labels={item.article.activeStockTrendLabels}
+                          width={Math.min(
+                            180,
+                            Math.max(80, item.article.activeStockTrend.length * 15)
+                          )}
+                          height={40}
+                          color="rgb(245, 158, 11)"
+                          fillColor="rgba(245, 158, 11, 0.1)"
+                          formatValue={(v) => `${v} unidades`}
+                        />
+                        <span className="text-muted-foreground text-[10px]">
+                          {item.article.activeStockTrendLabels?.[0]} -{' '}
+                          {
+                            item.article.activeStockTrendLabels?.[
+                              item.article.activeStockTrendLabels.length - 1
+                            ]
+                          }{' '}
+                          ({item.article.activeStockMonths}m)
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">= completa</span>
                     )}
                   </TableCell>
 
@@ -598,6 +846,46 @@ export function SupplierOrderPanel({
                     >
                       {formatSaleTime(item.estimatedSaleTime)}
                     </Badge>
+                  </TableCell>
+
+                  {/* T. Est. Venta (Activa) */}
+                  <TableCell className="text-right">
+                    {item.article.activeStockTrend && item.article.activeStockTrend.length > 0 ? (
+                      (() => {
+                        const activeWma = calculateWeightedAvgSales(
+                          item.article.activeStockTrend,
+                          item.article.activeStockTrend.length
+                        );
+                        const activeEstTime = calculateEstimatedSaleTime(item.quantity, activeWma);
+                        return (
+                          <Badge
+                            variant={
+                              isFinite(activeEstTime) && activeEstTime > 0 ? 'secondary' : 'outline'
+                            }
+                            className="border-amber-500/30 bg-amber-500/10 text-xs text-amber-600 dark:text-amber-400"
+                          >
+                            {formatSaleTime(activeEstTime)}
+                          </Badge>
+                        );
+                      })()
+                    ) : (
+                      <span className="text-muted-foreground text-xs">-</span>
+                    )}
+                  </TableCell>
+
+                  {/* Clasificación */}
+                  <TableCell className="text-center">
+                    {(() => {
+                      const cfg = RATING_CONFIG[item._rating];
+                      return (
+                        <Badge
+                          variant="outline"
+                          className={`text-xs ${cfg.color} ${cfg.bg} ${cfg.border}`}
+                        >
+                          {cfg.label}
+                        </Badge>
+                      );
+                    })()}
                   </TableCell>
 
                   {/* Última Venta */}

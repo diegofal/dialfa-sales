@@ -8,7 +8,12 @@ import {
   refreshABCClassification,
   getABCCacheInfo,
 } from '@/lib/utils/articles/abcClassification';
-import { calculateSalesTrends, calculateLastSaleDates } from '@/lib/utils/articles/salesTrends';
+import {
+  calculateSalesTrends,
+  calculateLastSaleDates,
+  calculateActiveStockTrends,
+  ActiveStockTrendResult,
+} from '@/lib/utils/articles/salesTrends';
 import {
   calculateStockValuation,
   getStockValuationCacheInfo,
@@ -39,6 +44,9 @@ type EnrichedArticleDTO = ReturnType<typeof mapArticleToDTO> & {
   abcClass?: string | null;
   salesTrend?: number[];
   salesTrendLabels?: string[];
+  activeStockTrend?: number[];
+  activeStockTrendLabels?: string[];
+  activeStockMonths?: number;
   lastSaleDate?: string | null;
 };
 
@@ -56,6 +64,7 @@ export interface ArticleListParams {
   hasStockOnly?: boolean;
   zeroStockOnly?: boolean;
   ids?: string;
+  codes?: string;
   includeTrends?: boolean;
 }
 
@@ -111,7 +120,8 @@ function enrichArticle(
   article: ArticleWithCategory,
   abcMap: Map<string, 'A' | 'B' | 'C'> | null,
   trendsData: { data: Map<string, number[]>; labels: string[] } | null,
-  lastSaleDates: Map<string, Date | null> | null
+  lastSaleDates: Map<string, Date | null> | null,
+  activeTrends: ActiveStockTrendResult | null = null
 ): EnrichedArticleDTO {
   const dto = mapArticleToDTO(article) as EnrichedArticleDTO;
 
@@ -122,6 +132,15 @@ function enrichArticle(
   if (trendsData) {
     dto.salesTrend = trendsData.data.get(article.id.toString()) || [];
     dto.salesTrendLabels = trendsData.labels;
+  }
+
+  if (activeTrends) {
+    const active = activeTrends.data.get(article.id.toString());
+    if (active) {
+      dto.activeStockTrend = active.trend;
+      dto.activeStockTrendLabels = active.labels;
+      dto.activeStockMonths = active.activeMonths;
+    }
   }
 
   if (lastSaleDates) {
@@ -147,6 +166,7 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
     hasStockOnly,
     zeroStockOnly,
     ids,
+    codes,
     includeTrends,
   } = params;
 
@@ -159,6 +179,11 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
   if (ids) {
     const idArray = ids.split(',').map((id) => BigInt(id.trim()));
     where.id = { in: idArray };
+  }
+
+  if (codes) {
+    const codeArray = codes.split(',').map((c) => c.trim());
+    where.code = { in: codeArray };
   }
 
   if (search) {
@@ -185,6 +210,7 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
   // Get ABC classification and trends if requested
   let abcMap: Map<string, 'A' | 'B' | 'C'> | null = null;
   let trendsData: { data: Map<string, number[]>; labels: string[] } | null = null;
+  let activeTrends: ActiveStockTrendResult | null = null;
   let lastSaleDates: Map<string, Date | null> | null = null;
 
   try {
@@ -199,6 +225,10 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
         calculateABCClassification(),
         calculateSalesTrends(trendMonths),
       ]);
+      // Calculate active stock trends after sales trends are cached
+      if (includeTrends) {
+        activeTrends = await calculateActiveStockTrends(trendMonths);
+      }
     } catch (error) {
       logger.error('Error getting ABC/Trends classification', {}, error as Error);
     }
@@ -229,7 +259,9 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
       });
     }
 
-    const mappedArticles = filtered.map((a) => enrichArticle(a, abcMap, trendsData, lastSaleDates));
+    const mappedArticles = filtered.map((a) =>
+      enrichArticle(a, abcMap, trendsData, lastSaleDates, activeTrends)
+    );
 
     if (salesSort && trendsData) {
       mappedArticles.sort((a, b) => {
@@ -249,7 +281,7 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
     totalCount = mappedArticles.length;
     finalArticles = mappedArticles.slice(skip, skip + limit);
   } else {
-    const shouldPaginate = !ids;
+    const shouldPaginate = !ids && !codes;
 
     const [articles, total] = await Promise.all([
       prisma.articles.findMany({
@@ -263,7 +295,7 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
     ]);
 
     finalArticles = (articles as ArticleWithCategory[]).map((a) =>
-      enrichArticle(a, abcMap, trendsData, lastSaleDates)
+      enrichArticle(a, abcMap, trendsData, lastSaleDates, activeTrends)
     );
     totalCount = total;
   }
@@ -280,7 +312,8 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
         exactMatch as ArticleWithCategory,
         abcMap,
         trendsData,
-        lastSaleDates
+        lastSaleDates,
+        activeTrends
       );
       finalArticles = finalArticles.filter((a) => a.id !== exactMatchDTO.id);
       finalArticles.unshift(exactMatchDTO);

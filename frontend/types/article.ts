@@ -19,6 +19,9 @@ export interface Article {
   abcClass?: 'A' | 'B' | 'C' | null;
   salesTrend?: number[];
   salesTrendLabels?: string[];
+  activeStockTrend?: number[];
+  activeStockTrendLabels?: string[];
+  activeStockMonths?: number;
   lastSaleDate?: string | null; // ISO date string
   weightKg?: number | null;
   lastPurchasePrice?: number | null;

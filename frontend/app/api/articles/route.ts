@@ -22,6 +22,7 @@ export async function GET(request: NextRequest) {
       hasStockOnly: searchParams.get('hasStockOnly') === 'true',
       zeroStockOnly: searchParams.get('zeroStockOnly') === 'true',
       ids: searchParams.get('ids') || undefined,
+      codes: searchParams.get('codes') || undefined,
       includeTrends: searchParams.get('includeTrends') === 'true',
     });
 
