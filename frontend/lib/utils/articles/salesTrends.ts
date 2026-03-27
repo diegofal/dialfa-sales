@@ -164,6 +164,161 @@ export async function calculateSalesTrends(
   }
 }
 
+export interface ActiveStockTrendResult {
+  /** articleId -> { trend, labels, activeMonths } */
+  data: Map<string, { trend: number[]; labels: string[]; activeMonths: number }>;
+}
+
+const activeStockCache: {
+  data: Map<number, ActiveStockTrendResult> | null;
+  timestamp: number | null;
+} = {
+  data: null,
+  timestamp: null,
+};
+
+/**
+ * Busca en TODA la historia de ventas el mejor período de N meses consecutivos
+ * con mayor actividad (más meses con ventas) para cada artículo.
+ *
+ * Si el mejor período coincide con el período actual (últimos N meses), se omite.
+ */
+export async function calculateActiveStockTrends(
+  monthsToShow: number = 12
+): Promise<ActiveStockTrendResult> {
+  // Check cache
+  const now = Date.now();
+  if (
+    activeStockCache.data &&
+    activeStockCache.timestamp &&
+    now - activeStockCache.timestamp < CACHE_DURATION
+  ) {
+    const cached = activeStockCache.data.get(monthsToShow);
+    if (cached) return cached;
+  }
+
+  // 1. Get ALL sales grouped by article + month (entire history)
+  const allSales = await prisma.$queryRaw<
+    Array<{ article_id: bigint; month: string; qty: number }>
+  >`
+    SELECT
+      soi.article_id,
+      TO_CHAR(i.invoice_date, 'YYYY-MM') as month,
+      SUM(soi.quantity) as qty
+    FROM sales_order_items soi
+    INNER JOIN sales_orders so ON soi.sales_order_id = so.id
+    INNER JOIN invoices i ON i.sales_order_id = so.id
+    WHERE i.is_printed = true
+      AND i.is_cancelled = false
+      AND so.deleted_at IS NULL
+      AND i.deleted_at IS NULL
+    GROUP BY soi.article_id, TO_CHAR(i.invoice_date, 'YYYY-MM')
+    ORDER BY soi.article_id, month
+  `;
+
+  // 2. Group by article
+  const articleSales = new Map<string, Map<string, number>>();
+  for (const row of allSales) {
+    const artId = row.article_id.toString();
+    if (!articleSales.has(artId)) articleSales.set(artId, new Map());
+    articleSales.get(artId)!.set(row.month, Number(row.qty));
+  }
+
+  // 3. Get current period labels for comparison
+  const { labels: currentLabels } = await calculateSalesTrends(monthsToShow);
+
+  // Helper: generate consecutive month keys from a start year/month
+  function generateMonthKeys(startYear: number, startMonth: number, count: number): string[] {
+    const keys: string[] = [];
+    for (let i = 0; i < count; i++) {
+      const d = new Date(startYear, startMonth - 1 + i, 1);
+      keys.push(`${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}`);
+    }
+    return keys;
+  }
+
+  function monthKeyToLabel(key: string): string {
+    const [y, m] = key.split('-').map(Number);
+    const d = new Date(y, m - 1, 1);
+    return d.toLocaleDateString('es-AR', { month: 'short', year: '2-digit' });
+  }
+
+  const result = new Map<string, { trend: number[]; labels: string[]; activeMonths: number }>();
+
+  for (const [articleId, salesByMonth] of articleSales.entries()) {
+    const months = Array.from(salesByMonth.keys()).sort();
+    if (months.length === 0) continue;
+
+    // Parse first and last month
+    const [firstY, firstM] = months[0].split('-').map(Number);
+    const [lastY, lastM] = months[months.length - 1].split('-').map(Number);
+
+    // Total months span from first to last sale
+    const totalSpan = (lastY - firstY) * 12 + (lastM - firstM) + 1;
+
+    // If history is shorter than window, skip
+    if (totalSpan < monthsToShow) continue;
+
+    // Sliding window: find the window of monthsToShow with most active months
+    let bestScore = 0;
+    let bestQty = 0;
+    let bestStartY = firstY;
+    let bestStartM = firstM;
+
+    const windowCount = totalSpan - monthsToShow + 1;
+    for (let w = 0; w < windowCount; w++) {
+      const d = new Date(firstY, firstM - 1 + w, 1);
+      const wY = d.getFullYear();
+      const wM = d.getMonth() + 1;
+      const windowKeys = generateMonthKeys(wY, wM, monthsToShow);
+
+      let activeCount = 0;
+      let totalQty = 0;
+      for (const key of windowKeys) {
+        const qty = salesByMonth.get(key) || 0;
+        if (qty > 0) activeCount++;
+        totalQty += qty;
+      }
+
+      if (activeCount > bestScore || (activeCount === bestScore && totalQty > bestQty)) {
+        bestScore = activeCount;
+        bestQty = totalQty;
+        bestStartY = wY;
+        bestStartM = wM;
+      }
+    }
+
+    // Build the best window trend
+    const bestKeys = generateMonthKeys(bestStartY, bestStartM, monthsToShow);
+    const bestLabels = bestKeys.map(monthKeyToLabel);
+
+    // Skip if the best window IS the current period
+    if (
+      bestLabels[0] === currentLabels[0] &&
+      bestLabels[bestLabels.length - 1] === currentLabels[currentLabels.length - 1]
+    ) {
+      continue;
+    }
+
+    const trend = bestKeys.map((k) => salesByMonth.get(k) || 0);
+
+    result.set(articleId, {
+      trend,
+      labels: bestLabels,
+      activeMonths: bestScore,
+    });
+  }
+
+  const resultObj: ActiveStockTrendResult = { data: result };
+
+  // Update cache
+  if (!activeStockCache.data) activeStockCache.data = new Map();
+  activeStockCache.data.set(monthsToShow, resultObj);
+  activeStockCache.timestamp = now;
+
+  return resultObj;
+}
+
 /**
  * Obtiene la tendencia de ventas de un artículo específico
  * @param articleId - ID del artículo

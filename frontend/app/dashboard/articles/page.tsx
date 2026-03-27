@@ -25,6 +25,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ROUTES } from '@/lib/constants/routes';
 import { useArticles, useDeleteArticle } from '@/lib/hooks/domain/useArticles';
 import { useCategories } from '@/lib/hooks/domain/useCategories';
+import { useImportCsvToOrder } from '@/lib/hooks/domain/useImportCsvToOrder';
 import { useStockMovements } from '@/lib/hooks/domain/useStockMovements';
 import { useSupplierOrderDraft } from '@/lib/hooks/domain/useSupplierOrderDraft';
 import { usePagination } from '@/lib/hooks/generic/usePagination';
@@ -53,6 +54,10 @@ export default function ArticlesPage() {
 
   // Supplier order draft hook with trendMonths
   const supplierOrder = useSupplierOrderDraft(supplierOrderTrendMonths);
+  const { importCsv, isImporting } = useImportCsvToOrder(
+    supplierOrder.addItems,
+    supplierOrderTrendMonths
+  );
 
   // Auto-restore supplier order mode when draft has items
   useEffect(() => {
@@ -437,8 +442,10 @@ export default function ArticlesPage() {
                   setSupplierOrderMode(false);
                 }}
                 onViewOrder={supplierOrder.currentDraftId ? handleViewSupplierOrder : undefined}
+                onImportCsv={importCsv}
                 isSaving={supplierOrder.isSaving}
                 isLoading={supplierOrder.isLoading}
+                isImporting={isImporting}
               />
             </div>
           )}
