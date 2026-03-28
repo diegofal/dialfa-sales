@@ -17,6 +17,15 @@ import { SalesKPICards } from './SalesKPICards';
 import { StockEvolutionChart } from './StockEvolutionChart';
 import { TopArticlesChart } from './TopArticlesChart';
 
+function getCurrentMonthDates(): { start: string; end: string } {
+  const end = new Date();
+  const start = new Date(end.getFullYear(), end.getMonth(), 1);
+  return {
+    start: start.toISOString().split('T')[0],
+    end: end.toISOString().split('T')[0],
+  };
+}
+
 function getPresetDates(months: number): { start: string; end: string } {
   const end = new Date();
   const start = new Date(end);
@@ -29,10 +38,10 @@ function getPresetDates(months: number): { start: string; end: string } {
 }
 
 export function SalesAnalyticsTab() {
-  const defaultDates = getPresetDates(12);
+  const defaultDates = getCurrentMonthDates();
   const [startDate, setStartDate] = useState<string>(defaultDates.start);
   const [endDate, setEndDate] = useState<string>(defaultDates.end);
-  const [presetValue, setPresetValue] = useState<string>('12');
+  const [presetValue, setPresetValue] = useState<string>('current_month');
   const [categoryId, setCategoryId] = useState<string>('all');
 
   const { data: categories } = useCategories({ activeOnly: true });
@@ -46,8 +55,8 @@ export function SalesAnalyticsTab() {
 
   const handlePresetChange = (value: string) => {
     setPresetValue(value);
-    const months = parseInt(value);
-    const dates = getPresetDates(months);
+    const dates =
+      value === 'current_month' ? getCurrentMonthDates() : getPresetDates(parseInt(value));
     setStartDate(dates.start);
     setEndDate(dates.end);
   };
@@ -73,6 +82,7 @@ export function SalesAnalyticsTab() {
               <SelectValue placeholder="12 meses" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="current_month">Mes actual</SelectItem>
               <SelectItem value="1">Último mes</SelectItem>
               <SelectItem value="3">Últimos 3 meses</SelectItem>
               <SelectItem value="6">Últimos 6 meses</SelectItem>
