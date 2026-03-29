@@ -1,15 +1,21 @@
 'use client';
 
-import { AlertCircle, Loader2 } from 'lucide-react';
+import { AlertCircle, Download, Loader2 } from 'lucide-react';
 import { useState } from 'react';
+import { toast } from 'sonner';
 import { ValuationByCategory } from '@/components/articles/ValuationByCategory';
 import { ValuationFilters } from '@/components/articles/ValuationFilters';
 import { ValuationSummary } from '@/components/articles/ValuationSummary';
 import { ValuationTable } from '@/components/articles/ValuationTable';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
 import { useStockValuation, useRefreshStockValuation } from '@/lib/hooks/domain/useStockValuation';
 import { useAuthStore } from '@/store/authStore';
-import { StockClassificationConfig, StockStatus } from '@/types/stockValuation';
+import {
+  StockClassificationConfig,
+  StockStatus,
+  StockValuationMetrics,
+} from '@/types/stockValuation';
 
 export default function ValuationPage() {
   const { isAdmin } = useAuthStore();
@@ -85,6 +91,78 @@ export default function ValuationPage() {
 
   // Ordenar por valor de stock descendente
   const sortedArticles = [...filteredArticles].sort((a, b) => b.stockValue - a.stockValue);
+
+  const handleExportCSV = (articles: StockValuationMetrics[]) => {
+    if (articles.length === 0) {
+      toast.error('No hay datos para exportar');
+      return;
+    }
+
+    const statusLabels: Record<StockStatus, string> = {
+      [StockStatus.ACTIVE]: 'Activo',
+      [StockStatus.SLOW_MOVING]: 'Mov. Lento',
+      [StockStatus.DEAD_STOCK]: 'Stock Muerto',
+      [StockStatus.NEVER_SOLD]: 'Nunca Vendido',
+    };
+
+    const formatDate = (date: Date | null) => {
+      if (!date) return '';
+      return new Date(date).toLocaleDateString('es-AR');
+    };
+
+    const headers = [
+      'Código',
+      'Descripción',
+      'Categoría',
+      'Estado',
+      'Stock',
+      'Última Venta',
+      'Días Sin Venta',
+      'Prom. Ventas/Mes',
+      'Tendencia',
+      'Costo Unitario',
+      'Valor Costo',
+      'Precio Lista',
+      'Valor Lista',
+      'Meses de Inventario',
+    ];
+
+    const rows = articles.map((a) => [
+      a.articleCode,
+      `"${a.articleDescription.replace(/"/g, '""')}"`,
+      `"${a.categoryName.replace(/"/g, '""')}"`,
+      statusLabels[a.status],
+      a.currentStock.toFixed(2),
+      formatDate(a.lastSaleDate),
+      a.daysSinceLastSale !== null ? a.daysSinceLastSale.toString() : '',
+      a.avgMonthlySales.toFixed(2),
+      a.salesTrendDirection === 'increasing'
+        ? 'Subiendo'
+        : a.salesTrendDirection === 'decreasing'
+          ? 'Bajando'
+          : a.salesTrendDirection === 'stable'
+            ? 'Estable'
+            : 'Sin datos',
+      a.unitCost.toFixed(2),
+      a.stockValue.toFixed(2),
+      a.unitPrice.toFixed(2),
+      a.stockValueAtListPrice.toFixed(2),
+      a.monthsOfInventory.toFixed(1),
+    ]);
+
+    const csvContent = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n');
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `valorizacion-stock-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast.success(`${articles.length} artículos exportados a CSV`);
+  };
 
   return (
     <div className="space-y-6">
@@ -184,9 +262,21 @@ export default function ValuationPage() {
                   </button>
                 )}
               </div>
-              <p className="text-muted-foreground text-sm">
-                {sortedArticles.length} artículo{sortedArticles.length !== 1 ? 's' : ''}
-              </p>
+              <div className="flex items-center gap-3">
+                <p className="text-muted-foreground text-sm">
+                  {sortedArticles.length} artículo{sortedArticles.length !== 1 ? 's' : ''}
+                </p>
+                {sortedArticles.length > 0 && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleExportCSV(sortedArticles)}
+                  >
+                    <Download className="mr-1 h-3 w-3" />
+                    Exportar CSV
+                  </Button>
+                )}
+              </div>
             </div>
 
             {sortedArticles.length > 0 ? (
