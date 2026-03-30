@@ -10,6 +10,8 @@ import {
   Download,
   Upload,
   ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
@@ -126,7 +128,22 @@ export function SupplierOrderPanel({
   isImporting = false,
 }: SupplierOrderPanelProps) {
   const [ratingFilter, setRatingFilter] = useState<ActiveRating | 'ALL'>('ALL');
-  const [sortByRating, setSortByRating] = useState(false);
+  const [sortKey, setSortKey] = useState<string | null>(null);
+  const [sortDesc, setSortDesc] = useState(false);
+
+  const handleSort = (key: string) => {
+    if (sortKey === key) {
+      if (sortDesc) {
+        setSortKey(null);
+        setSortDesc(false);
+      } else {
+        setSortDesc(true);
+      }
+    } else {
+      setSortKey(key);
+      setSortDesc(false);
+    }
+  };
 
   const processedItems = useMemo(() => {
     let result = items.map((item) => ({ ...item, _rating: getActiveRating(item) }));
@@ -135,12 +152,75 @@ export function SupplierOrderPanel({
       result = result.filter((item) => item._rating === ratingFilter);
     }
 
-    if (sortByRating) {
-      result.sort((a, b) => RATING_CONFIG[a._rating].order - RATING_CONFIG[b._rating].order);
+    if (sortKey) {
+      const dir = sortDesc ? -1 : 1;
+      result.sort((a, b) => {
+        let aVal: number | string = 0;
+        let bVal: number | string = 0;
+        switch (sortKey) {
+          case 'Code':
+            return a.article.code.localeCompare(b.article.code) * dir;
+          case 'Description':
+            return a.article.description.localeCompare(b.article.description) * dir;
+          case 'Quantity':
+            aVal = a.quantity;
+            bVal = b.quantity;
+            break;
+          case 'Stock':
+            aVal = a.currentStock;
+            bVal = b.currentStock;
+            break;
+          case 'MinStock':
+            aVal = a.minimumStock;
+            bVal = b.minimumStock;
+            break;
+          case 'Price':
+            aVal = a.article.unitPrice;
+            bVal = b.article.unitPrice;
+            break;
+          case 'WMA':
+            aVal = a.avgMonthlySales;
+            bVal = b.avgMonthlySales;
+            break;
+          case 'EstTime':
+            aVal = isFinite(a.estimatedSaleTime) ? a.estimatedSaleTime : 999999;
+            bVal = isFinite(b.estimatedSaleTime) ? b.estimatedSaleTime : 999999;
+            break;
+          case 'ActiveEstTime': {
+            const aWma = a.article.activeStockTrend?.length
+              ? calculateWeightedAvgSales(
+                  a.article.activeStockTrend,
+                  a.article.activeStockTrend.length
+                )
+              : 0;
+            const bWma = b.article.activeStockTrend?.length
+              ? calculateWeightedAvgSales(
+                  b.article.activeStockTrend,
+                  b.article.activeStockTrend.length
+                )
+              : 0;
+            aVal = aWma > 0 ? calculateEstimatedSaleTime(a.quantity, aWma) : 999999;
+            bVal = bWma > 0 ? calculateEstimatedSaleTime(b.quantity, bWma) : 999999;
+            if (!isFinite(aVal)) aVal = 999999;
+            if (!isFinite(bVal)) bVal = 999999;
+            break;
+          }
+          case 'Rating':
+            aVal = RATING_CONFIG[a._rating].order;
+            bVal = RATING_CONFIG[b._rating].order;
+            break;
+          case 'LastSale': {
+            aVal = a.article.lastSaleDate ? new Date(a.article.lastSaleDate).getTime() : 0;
+            bVal = b.article.lastSaleDate ? new Date(b.article.lastSaleDate).getTime() : 0;
+            break;
+          }
+        }
+        return ((aVal as number) - (bVal as number)) * dir;
+      });
     }
 
     return result;
-  }, [items, ratingFilter, sortByRating]);
+  }, [items, ratingFilter, sortKey, sortDesc]);
 
   const ratingCounts = useMemo(() => {
     const counts: Record<string, number> = { ALL: items.length };
@@ -150,6 +230,15 @@ export function SupplierOrderPanel({
     }
     return counts;
   }, [items]);
+
+  const SortIcon = ({ col }: { col: string }) => {
+    if (sortKey !== col) return <ArrowUpDown className="ml-1 inline h-3 w-3 opacity-30" />;
+    return sortDesc ? (
+      <ArrowDown className="text-primary ml-1 inline h-3 w-3" />
+    ) : (
+      <ArrowUp className="text-primary ml-1 inline h-3 w-3" />
+    );
+  };
 
   const formatPrice = (price: number) => {
     return new Intl.NumberFormat('es-AR', {
@@ -670,17 +759,41 @@ export function SupplierOrderPanel({
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Código</TableHead>
-                <TableHead>Descripción</TableHead>
-                <TableHead className="text-right">Cantidad</TableHead>
-                <TableHead className="text-right">Stock Actual</TableHead>
-                <TableHead className="text-right">Stock Mín.</TableHead>
+                <TableHead className="cursor-pointer" onClick={() => handleSort('Code')}>
+                  Código <SortIcon col="Code" />
+                </TableHead>
+                <TableHead className="cursor-pointer" onClick={() => handleSort('Description')}>
+                  Descripción <SortIcon col="Description" />
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer text-right"
+                  onClick={() => handleSort('Quantity')}
+                >
+                  Cantidad <SortIcon col="Quantity" />
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer text-right"
+                  onClick={() => handleSort('Stock')}
+                >
+                  Stock Actual <SortIcon col="Stock" />
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer text-right"
+                  onClick={() => handleSort('MinStock')}
+                >
+                  Stock Mín. <SortIcon col="MinStock" />
+                </TableHead>
                 <TableHead>Tendencia ({trendMonths} meses)</TableHead>
                 <TableHead>Tend. Activa</TableHead>
                 <TooltipProvider>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <TableHead className="cursor-help text-right">Precio Unit.</TableHead>
+                      <TableHead
+                        className="cursor-pointer text-right"
+                        onClick={() => handleSort('Price')}
+                      >
+                        Precio Unit. <SortIcon col="Price" />
+                      </TableHead>
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs">Precio unitario del artículo</p>
@@ -688,18 +801,28 @@ export function SupplierOrderPanel({
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <TableHead className="cursor-help text-right">Prom Ponderado</TableHead>
+                      <TableHead
+                        className="cursor-pointer text-right"
+                        onClick={() => handleSort('WMA')}
+                      >
+                        Prom Ponderado <SortIcon col="WMA" />
+                      </TableHead>
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs">
                         Promedio ponderado de ventas (WMA) sobre los últimos {trendMonths} meses. Da
-                        más peso a los meses recientes. Recomendado por análisis estadístico.
+                        más peso a los meses recientes.
                       </p>
                     </TooltipContent>
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <TableHead className="cursor-help text-right">T. Est. Venta</TableHead>
+                      <TableHead
+                        className="cursor-pointer text-right"
+                        onClick={() => handleSort('EstTime')}
+                      >
+                        T. Est. Venta <SortIcon col="EstTime" />
+                      </TableHead>
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs">
@@ -709,7 +832,12 @@ export function SupplierOrderPanel({
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <TableHead className="cursor-help text-right">T. Est. Activa</TableHead>
+                      <TableHead
+                        className="cursor-pointer text-right"
+                        onClick={() => handleSort('ActiveEstTime')}
+                      >
+                        T. Est. Activa <SortIcon col="ActiveEstTime" />
+                      </TableHead>
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs">
@@ -721,9 +849,9 @@ export function SupplierOrderPanel({
                     <TooltipTrigger asChild>
                       <TableHead
                         className="cursor-pointer text-center"
-                        onClick={() => setSortByRating(!sortByRating)}
+                        onClick={() => handleSort('Rating')}
                       >
-                        Clasif. <ArrowUpDown className="ml-1 inline h-3 w-3" />
+                        Clasif. <SortIcon col="Rating" />
                       </TableHead>
                     </TooltipTrigger>
                     <TooltipContent>
@@ -735,7 +863,9 @@ export function SupplierOrderPanel({
                   </Tooltip>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <TableHead className="cursor-help">Última Venta</TableHead>
+                      <TableHead className="cursor-pointer" onClick={() => handleSort('LastSale')}>
+                        Última Venta <SortIcon col="LastSale" />
+                      </TableHead>
                     </TooltipTrigger>
                     <TooltipContent>
                       <p className="max-w-xs">
