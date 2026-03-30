@@ -112,6 +112,7 @@ export default function ArticlesPage() {
     sortBy: pagination.sortBy,
     sortDescending: pagination.sortDescending,
     includeABC: true,
+    includeTrends: true,
     abcFilter: abcFilter !== 'all' ? abcFilter : undefined,
     salesSort: salesSortFilter !== 'none' ? salesSortFilter : undefined,
     trendMonths,
@@ -399,6 +400,7 @@ export default function ArticlesPage() {
                 currentSortBy={pagination.sortBy}
                 currentSortDescending={pagination.sortDescending}
                 onSort={setSorting}
+                trendMonths={trendMonths}
                 selectionMode={supplierOrderMode}
                 selectedIds={selectedArticleIds}
                 onToggleSelect={handleToggleSelect}
