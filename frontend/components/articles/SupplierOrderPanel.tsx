@@ -410,6 +410,10 @@ export function SupplierOrderPanel({
     .badge-emerald { background: rgba(16,185,129,0.15); color: #34d399; }
     .badge-red { background: rgba(239,68,68,0.15); color: #f87171; }
     .low-stock { color: #ef4444; font-weight: 600; }
+    th.sortable { cursor: pointer; user-select: none; }
+    th.sortable:hover { background: #333333; }
+    .sort-icon { opacity: 0.3; font-size: 10px; }
+    th.sort-asc .sort-icon, th.sort-desc .sort-icon { opacity: 1; color: #60a5fa; }
     .footer {
       margin-top: 40px;
       padding-top: 20px;
@@ -460,19 +464,19 @@ export function SupplierOrderPanel({
     <table>
       <thead>
         <tr>
-          <th>Código</th>
-          <th>Descripción</th>
-          <th class="text-right">Cantidad</th>
-          <th class="text-right">Stock Actual</th>
-          <th class="text-right">Stock Mín.</th>
+          <th class="sortable" data-col="0" data-type="string">Código <span class="sort-icon">⇅</span></th>
+          <th class="sortable" data-col="1" data-type="string">Descripción <span class="sort-icon">⇅</span></th>
+          <th class="sortable text-right" data-col="2" data-type="number">Cantidad <span class="sort-icon">⇅</span></th>
+          <th class="sortable text-right" data-col="3" data-type="number">Stock Actual <span class="sort-icon">⇅</span></th>
+          <th class="sortable text-right" data-col="4" data-type="number">Stock Mín. <span class="sort-icon">⇅</span></th>
           <th>Tendencia (${trendMonths} meses)</th>
           <th>Tend. Activa</th>
-          <th class="text-right">Precio Unit.</th>
-          <th class="text-right">Prom Ponderado</th>
-          <th class="text-right">T. Est. Venta</th>
-          <th class="text-right">T. Est. Activa</th>
-          <th class="text-center">Clasif.</th>
-          <th>Última Venta</th>
+          <th class="sortable text-right" data-col="7" data-type="number">Precio Unit. <span class="sort-icon">⇅</span></th>
+          <th class="sortable text-right" data-col="8" data-type="number">Prom Ponderado <span class="sort-icon">⇅</span></th>
+          <th class="sortable text-right" data-col="9" data-type="number">T. Est. Venta <span class="sort-icon">⇅</span></th>
+          <th class="sortable text-right" data-col="10" data-type="number">T. Est. Activa <span class="sort-icon">⇅</span></th>
+          <th class="sortable text-center" data-col="11" data-type="string">Clasif. <span class="sort-icon">⇅</span></th>
+          <th class="sortable" data-col="12" data-type="date">Última Venta <span class="sort-icon">⇅</span></th>
         </tr>
       </thead>
       <tbody>
@@ -565,6 +569,56 @@ export function SupplierOrderPanel({
       <p>Documento generado automáticamente • No requiere firma</p>
     </div>
   </div>
+  <script>
+    document.querySelectorAll('th.sortable').forEach(th => {
+      th.addEventListener('click', () => {
+        const table = th.closest('table');
+        const tbody = table.querySelector('tbody');
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        const col = parseInt(th.dataset.col);
+        const type = th.dataset.type;
+        const isAsc = th.classList.contains('sort-asc');
+        const isDesc = th.classList.contains('sort-desc');
+        table.querySelectorAll('th').forEach(h => {
+          h.classList.remove('sort-asc', 'sort-desc');
+          const icon = h.querySelector('.sort-icon');
+          if (icon) icon.textContent = '⇅';
+        });
+        if (isAsc) {
+          th.classList.add('sort-desc');
+          th.querySelector('.sort-icon').textContent = '↓';
+        } else if (isDesc) {
+          tbody.append(...rows.sort((a, b) => a.dataset.orig - b.dataset.orig));
+          return;
+        } else {
+          th.classList.add('sort-asc');
+          th.querySelector('.sort-icon').textContent = '↑';
+        }
+        const dir = th.classList.contains('sort-desc') ? -1 : 1;
+        rows.sort((a, b) => {
+          const aCell = a.cells[col]?.textContent.trim() || '';
+          const bCell = b.cells[col]?.textContent.trim() || '';
+          if (type === 'number') {
+            const aNum = parseFloat(aCell.replace(/[^0-9.,-]/g, '').replace(',', '.')) || 0;
+            const bNum = parseFloat(bCell.replace(/[^0-9.,-]/g, '').replace(',', '.')) || 0;
+            const aInf = aCell.includes('Infinito') || aCell.includes('∞');
+            const bInf = bCell.includes('Infinito') || bCell.includes('∞');
+            if (aInf && bInf) return 0;
+            if (aInf) return 1;
+            if (bInf) return -1;
+            return (aNum - bNum) * dir;
+          }
+          if (type === 'date') {
+            const parse = s => { const p = s.split('/'); return p.length === 3 ? new Date(p[2], p[1]-1, p[0]).getTime() : 0; };
+            return (parse(aCell) - parse(bCell)) * dir;
+          }
+          return aCell.localeCompare(bCell) * dir;
+        });
+        tbody.append(...rows);
+      });
+    });
+    document.querySelectorAll('tbody tr').forEach((r, i) => r.dataset.orig = i);
+  </script>
 </body>
 </html>
     `.trim();
