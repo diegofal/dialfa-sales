@@ -21,6 +21,10 @@ import {
 import { ChangeTracker } from '@/lib/utils/changeTracker';
 import { logger } from '@/lib/utils/logger';
 import { mapArticleToDTO } from '@/lib/utils/mapper';
+import {
+  calculateWeightedAvgSales,
+  calculateEstimatedSaleTime,
+} from '@/lib/utils/salesCalculations';
 import { CreateArticleInput, UpdateArticleInput } from '@/lib/validations/schemas';
 import { StockStatus } from '@/types/stockValuation';
 
@@ -59,6 +63,8 @@ export interface ArticleListParams {
   includeABC?: boolean;
   abcFilter?: string;
   salesSort?: string;
+  sortBy?: string;
+  sortDescending?: boolean;
   trendMonths?: number;
   lowStockOnly?: boolean;
   hasStockOnly?: boolean;
@@ -67,6 +73,36 @@ export interface ArticleListParams {
   codes?: string;
   includeTrends?: boolean;
 }
+
+// Rating helper for calculated sorting
+function getArticleRating(
+  article: EnrichedArticleDTO,
+  _trendMonths: number
+): 'GREAT' | 'GOOD' | 'OK' | 'SLOW' | 'NO DATA' {
+  const trend = article.activeStockTrend;
+  if (!trend || trend.length === 0) return 'NO DATA';
+  const wma = calculateWeightedAvgSales(trend, trend.length);
+  if (wma <= 0) return 'NO DATA';
+  const est = calculateEstimatedSaleTime(article.stock, wma);
+  if (!isFinite(est)) return 'NO DATA';
+  if (est <= 12) return 'GREAT';
+  if (est <= 24) return 'GOOD';
+  if (est <= 60) return 'OK';
+  return 'SLOW';
+}
+
+// Sort key mapping: UI sort keys → Prisma column names
+const DB_SORT_KEY_MAP: Record<string, string> = {
+  Code: 'code',
+  Description: 'description',
+  Stock: 'stock',
+  MinimumStock: 'minimum_stock',
+  UnitPrice: 'unit_price',
+  Category: 'category_id',
+};
+
+// Sort keys that require full dataset (calculated columns)
+const CALCULATED_SORT_KEYS = ['WMA', 'EstSaleTime', 'ActiveEstSaleTime', 'Rating', 'LastSaleDate'];
 
 export interface ArticleListResult {
   data: EnrichedArticleDTO[];
@@ -161,6 +197,8 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
     includeABC,
     abcFilter,
     salesSort,
+    sortBy,
+    sortDescending,
     trendMonths = 12,
     lowStockOnly,
     hasStockOnly,
@@ -219,14 +257,17 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
     logger.error('Error getting LastSale dates', {}, error as Error);
   }
 
-  if (includeABC || abcFilter || salesSort || includeTrends) {
+  const isCalculatedSort = !!(sortBy && CALCULATED_SORT_KEYS.includes(sortBy));
+  const needsTrendsForSort = isCalculatedSort || !!(sortBy && sortBy === 'LastSaleDate');
+
+  if (includeABC || abcFilter || salesSort || includeTrends || needsTrendsForSort) {
     try {
       [abcMap, trendsData] = await Promise.all([
         calculateABCClassification(),
         calculateSalesTrends(trendMonths),
       ]);
       // Calculate active stock trends after sales trends are cached
-      if (includeTrends) {
+      if (includeTrends || isCalculatedSort) {
         activeTrends = await calculateActiveStockTrends(trendMonths);
       }
     } catch (error) {
@@ -234,7 +275,7 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
     }
   }
 
-  const needsFullDataset = !!(abcFilter || salesSort || lowStockOnly);
+  const needsFullDataset = !!(abcFilter || salesSort || lowStockOnly || isCalculatedSort);
 
   let finalArticles: EnrichedArticleDTO[] = [];
   let totalCount = 0;
@@ -269,6 +310,64 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
         const bSales = b.salesTrend?.reduce((sum, val) => sum + val, 0) || 0;
         return salesSort === 'most' ? bSales - aSales : aSales - bSales;
       });
+    } else if (isCalculatedSort && sortBy) {
+      const dir = sortDescending ? -1 : 1;
+      mappedArticles.sort((a, b) => {
+        let aVal = 0;
+        let bVal = 0;
+        switch (sortBy) {
+          case 'WMA':
+            aVal = calculateWeightedAvgSales(a.salesTrend, trendMonths);
+            bVal = calculateWeightedAvgSales(b.salesTrend, trendMonths);
+            break;
+          case 'EstSaleTime': {
+            const aWma = calculateWeightedAvgSales(a.salesTrend, trendMonths);
+            const bWma = calculateWeightedAvgSales(b.salesTrend, trendMonths);
+            aVal = aWma > 0 ? calculateEstimatedSaleTime(a.stock, aWma) : Infinity;
+            bVal = bWma > 0 ? calculateEstimatedSaleTime(b.stock, bWma) : Infinity;
+            if (!isFinite(aVal) && !isFinite(bVal)) return 0;
+            if (!isFinite(aVal)) return 1;
+            if (!isFinite(bVal)) return -1;
+            break;
+          }
+          case 'ActiveEstSaleTime': {
+            const aActiveWma = a.activeStockTrend?.length
+              ? calculateWeightedAvgSales(a.activeStockTrend, a.activeStockTrend.length)
+              : 0;
+            const bActiveWma = b.activeStockTrend?.length
+              ? calculateWeightedAvgSales(b.activeStockTrend, b.activeStockTrend.length)
+              : 0;
+            aVal = aActiveWma > 0 ? calculateEstimatedSaleTime(a.stock, aActiveWma) : Infinity;
+            bVal = bActiveWma > 0 ? calculateEstimatedSaleTime(b.stock, bActiveWma) : Infinity;
+            if (!isFinite(aVal) && !isFinite(bVal)) return 0;
+            if (!isFinite(aVal)) return 1;
+            if (!isFinite(bVal)) return -1;
+            break;
+          }
+          case 'Rating': {
+            const ratingOrder: Record<string, number> = {
+              GREAT: 1,
+              GOOD: 2,
+              OK: 3,
+              SLOW: 4,
+              'NO DATA': 5,
+            };
+            const aRating = getArticleRating(a, trendMonths);
+            const bRating = getArticleRating(b, trendMonths);
+            aVal = ratingOrder[aRating] || 5;
+            bVal = ratingOrder[bRating] || 5;
+            break;
+          }
+          case 'LastSaleDate': {
+            const aDate = a.lastSaleDate ? new Date(a.lastSaleDate).getTime() : 0;
+            const bDate = b.lastSaleDate ? new Date(b.lastSaleDate).getTime() : 0;
+            aVal = aDate;
+            bVal = bDate;
+            break;
+          }
+        }
+        return (aVal - bVal) * dir;
+      });
     } else {
       mappedArticles.sort((a, b) => {
         const aOrder = a.displayOrder ?? 999999;
@@ -283,11 +382,16 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
   } else {
     const shouldPaginate = !ids && !codes;
 
+    const orderBy =
+      sortBy && DB_SORT_KEY_MAP[sortBy]
+        ? [{ [DB_SORT_KEY_MAP[sortBy]]: sortDescending ? 'desc' : 'asc' }]
+        : [{ display_order: 'asc' as const }, { code: 'asc' as const }];
+
     const [articles, total] = await Promise.all([
       prisma.articles.findMany({
         where,
         include: { categories: true },
-        orderBy: [{ display_order: 'asc' }, { code: 'asc' }],
+        orderBy,
         skip: shouldPaginate ? skip : undefined,
         take: shouldPaginate ? limit : undefined,
       }),

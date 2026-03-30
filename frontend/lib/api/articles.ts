@@ -29,6 +29,8 @@ export const articlesApi = {
       includeTrends: params.includeTrends,
       abcFilter: params.abcFilter,
       salesSort: params.salesSort,
+      sortBy: params.sortBy,
+      sortDescending: params.sortDescending,
       trendMonths: params.trendMonths,
       lowStockOnly: params.lowStockOnly,
       hasStockOnly: params.hasStockOnly,

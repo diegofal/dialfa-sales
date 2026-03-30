@@ -215,7 +215,7 @@ export function SupplierOrderPanel({
       </svg>`;
     };
 
-    // Generate HTML content
+    // Generate HTML content with dark mode
     const htmlContent = `
 <!DOCTYPE html>
 <html lang="es">
@@ -228,24 +228,25 @@ export function SupplierOrderPanel({
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       padding: 20px;
-      background: #f5f5f5;
+      background: #0a0a0a;
+      color: #e5e5e5;
     }
     .container {
       max-width: 100%;
       margin: 0 auto;
-      background: white;
+      background: #171717;
       padding: 30px;
       border-radius: 8px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.4);
       overflow-x: auto;
     }
     h1 {
-      color: #1f2937;
+      color: #f5f5f5;
       margin-bottom: 10px;
       font-size: 28px;
     }
     .subtitle {
-      color: #6b7280;
+      color: #a3a3a3;
       margin-bottom: 30px;
       font-size: 14px;
     }
@@ -254,57 +255,58 @@ export function SupplierOrderPanel({
       gap: 20px;
       margin-bottom: 30px;
       padding: 20px;
-      background: #f9fafb;
+      background: #262626;
       border-radius: 6px;
     }
-    .summary-item {
-      flex: 1;
-    }
+    .summary-item { flex: 1; }
     .summary-label {
-      color: #6b7280;
+      color: #a3a3a3;
       font-size: 12px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
       margin-bottom: 5px;
     }
     .summary-value {
-      color: #1f2937;
+      color: #f5f5f5;
       font-size: 24px;
       font-weight: 600;
     }
     table {
       width: 100%;
-      min-width: 2000px;
+      min-width: 2200px;
       border-collapse: collapse;
       margin-bottom: 20px;
       font-size: 11px;
     }
     th {
-      background: #f3f4f6;
+      background: #262626;
       padding: 8px 6px;
       text-align: left;
       font-weight: 600;
       font-size: 10px;
-      color: #374151;
+      color: #a3a3a3;
       text-transform: uppercase;
       letter-spacing: 0.3px;
-      border-bottom: 2px solid #e5e7eb;
+      border-bottom: 2px solid #404040;
       white-space: nowrap;
     }
     th.text-right { text-align: right; }
+    th.text-center { text-align: center; }
     td {
       padding: 8px 6px;
-      border-bottom: 1px solid #e5e7eb;
+      border-bottom: 1px solid #333333;
       font-size: 11px;
-      color: #1f2937;
+      color: #e5e5e5;
       white-space: nowrap;
     }
     td.text-right { text-align: right; }
+    td.text-center { text-align: center; }
     td.code {
       font-family: 'Courier New', monospace;
       font-weight: 600;
-      color: #059669;
+      color: #34d399;
     }
+    .muted { color: #737373; font-size: 10px; }
     .badge {
       display: inline-block;
       padding: 4px 8px;
@@ -312,33 +314,30 @@ export function SupplierOrderPanel({
       font-size: 11px;
       font-weight: 600;
     }
-    .badge-green {
-      background: #d1fae5;
-      color: #065f46;
-    }
-    .badge-blue {
-      background: #dbeafe;
-      color: #1e40af;
-    }
-    .badge-gray {
-      background: #f3f4f6;
-      color: #374151;
-    }
-    .low-stock {
-      color: #dc2626;
-      font-weight: 600;
-    }
+    .badge-green { background: rgba(16,185,129,0.15); color: #34d399; }
+    .badge-blue { background: rgba(59,130,246,0.15); color: #60a5fa; }
+    .badge-gray { background: rgba(107,114,128,0.15); color: #9ca3af; }
+    .badge-amber { background: rgba(245,158,11,0.15); color: #fbbf24; }
+    .badge-emerald { background: rgba(16,185,129,0.15); color: #34d399; }
+    .badge-red { background: rgba(239,68,68,0.15); color: #f87171; }
+    .low-stock { color: #ef4444; font-weight: 600; }
     .footer {
       margin-top: 40px;
       padding-top: 20px;
-      border-top: 2px solid #e5e7eb;
+      border-top: 2px solid #404040;
       text-align: center;
-      color: #6b7280;
+      color: #737373;
       font-size: 12px;
     }
     @media print {
-      body { background: white; padding: 0; }
-      .container { box-shadow: none; }
+      body { background: white; color: #1f2937; padding: 0; }
+      .container { background: white; box-shadow: none; }
+      th { background: #f3f4f6; color: #374151; border-color: #e5e7eb; }
+      td { color: #1f2937; border-color: #e5e7eb; }
+      td.code { color: #059669; }
+      .summary { background: #f9fafb; }
+      .summary-value { color: #1f2937; }
+      .footer { border-color: #e5e7eb; color: #6b7280; }
     }
   </style>
 </head>
@@ -378,14 +377,17 @@ export function SupplierOrderPanel({
           <th class="text-right">Stock Actual</th>
           <th class="text-right">Stock Mín.</th>
           <th>Tendencia (${trendMonths} meses)</th>
+          <th>Tend. Activa</th>
           <th class="text-right">Precio Unit.</th>
           <th class="text-right">Prom Ponderado</th>
           <th class="text-right">T. Est. Venta</th>
+          <th class="text-right">T. Est. Activa</th>
+          <th class="text-center">Clasif.</th>
           <th>Última Venta</th>
         </tr>
       </thead>
       <tbody>
-        ${items
+        ${processedItems
           .map((item) => {
             const isLowStock = item.currentStock < item.minimumStock;
             const abcClass = item.article.abcClass || 'C';
@@ -394,7 +396,34 @@ export function SupplierOrderPanel({
             const sparklineSVG =
               item.article.salesTrend && item.article.salesTrend.length > 0
                 ? generateSparklineSVG(item.article.salesTrend, 120, 30, sparklineColor)
-                : '<span style="color: #9ca3af; font-size: 12px;">Sin datos</span>';
+                : '<span class="muted">Sin datos</span>';
+
+            const activeSparklineSVG =
+              item.article.activeStockTrend && item.article.activeStockTrend.length > 0
+                ? generateSparklineSVG(item.article.activeStockTrend, 120, 30, '#f59e0b')
+                : '<span class="muted">= completa</span>';
+
+            const activeWma = item.article.activeStockTrend?.length
+              ? calculateWeightedAvgSales(
+                  item.article.activeStockTrend,
+                  item.article.activeStockTrend.length
+                )
+              : 0;
+            const activeEstTime =
+              activeWma > 0 ? calculateEstimatedSaleTime(item.quantity, activeWma) : Infinity;
+
+            const rating = getActiveRating(item);
+            const ratingCfg = RATING_CONFIG[rating];
+            const ratingBadgeClass =
+              rating === 'GREAT'
+                ? 'badge-emerald'
+                : rating === 'GOOD'
+                  ? 'badge-blue'
+                  : rating === 'OK'
+                    ? 'badge-amber'
+                    : rating === 'SLOW'
+                      ? 'badge-red'
+                      : 'badge-gray';
 
             const lastSaleDateFormatted = item.article.lastSaleDate
               ? new Date(item.article.lastSaleDate).toLocaleDateString('es-AR', {
@@ -402,20 +431,23 @@ export function SupplierOrderPanel({
                   month: '2-digit',
                   year: 'numeric',
                 })
-              : '<span style="color: #9ca3af; font-size: 12px;">Nunca</span>';
+              : '<span class="muted">Nunca</span>';
 
-            const formatBadge = (time?: number) => {
-              const timeValue = time ?? Infinity;
-              const badgeClass =
-                !isFinite(timeValue) || timeValue === 0
-                  ? 'badge-gray'
-                  : abcClass === 'A'
-                    ? 'badge-green'
-                    : abcClass === 'B'
-                      ? 'badge-blue'
-                      : 'badge-gray';
-              return `<span class="badge ${badgeClass}">${formatSaleTimeLocal(timeValue)}</span>`;
+            const formatBadge = (time: number, badgeClass: string) => {
+              return `<span class="badge ${badgeClass}">${formatSaleTimeLocal(time)}</span>`;
             };
+
+            const estBadgeClass =
+              !isFinite(item.estimatedSaleTime) || item.estimatedSaleTime === 0
+                ? 'badge-gray'
+                : abcClass === 'A'
+                  ? 'badge-green'
+                  : abcClass === 'B'
+                    ? 'badge-blue'
+                    : 'badge-gray';
+
+            const activeEstBadgeClass =
+              !isFinite(activeEstTime) || activeEstTime === 0 ? 'badge-gray' : 'badge-amber';
 
             return `
           <tr>
@@ -423,11 +455,14 @@ export function SupplierOrderPanel({
             <td>${item.article.description}</td>
             <td class="text-right"><strong>${item.quantity}</strong></td>
             <td class="text-right ${isLowStock ? 'low-stock' : ''}">${item.currentStock.toFixed(0)}</td>
-            <td class="text-right" style="color: #9ca3af;">${item.minimumStock.toFixed(0)}</td>
+            <td class="text-right muted">${item.minimumStock.toFixed(0)}</td>
             <td>${sparklineSVG}</td>
+            <td>${activeSparklineSVG}</td>
             <td class="text-right"><strong>${formatPrice(item.article.unitPrice)}</strong></td>
-            <td class="text-right">${item.avgMonthlySales > 0 ? item.avgMonthlySales.toFixed(1) : '<span style="color: #9ca3af; font-size: 12px;">0.0</span>'}</td>
-            <td class="text-right">${formatBadge(item.estimatedSaleTime)}</td>
+            <td class="text-right">${item.avgMonthlySales > 0 ? item.avgMonthlySales.toFixed(1) : '<span class="muted">-</span>'}</td>
+            <td class="text-right">${formatBadge(item.estimatedSaleTime, estBadgeClass)}</td>
+            <td class="text-right">${item.article.activeStockTrend?.length ? formatBadge(activeEstTime, activeEstBadgeClass) : '<span class="muted">-</span>'}</td>
+            <td class="text-center"><span class="badge ${ratingBadgeClass}">${ratingCfg.label}</span></td>
             <td>${lastSaleDateFormatted}</td>
           </tr>
           `;

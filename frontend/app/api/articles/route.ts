@@ -17,6 +17,8 @@ export async function GET(request: NextRequest) {
       includeABC: searchParams.get('includeABC') === 'true',
       abcFilter: searchParams.get('abcFilter') || undefined,
       salesSort: searchParams.get('salesSort') || undefined,
+      sortBy: searchParams.get('sortBy') || undefined,
+      sortDescending: searchParams.get('sortDescending') === 'true',
       trendMonths: parseInt(searchParams.get('trendMonths') || '12'),
       lowStockOnly: searchParams.get('lowStockOnly') === 'true',
       hasStockOnly: searchParams.get('hasStockOnly') === 'true',
