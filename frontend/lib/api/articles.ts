@@ -12,6 +12,7 @@ export const articlesApi = {
       categoryId?: number;
       searchTerm?: string;
       includeABC?: boolean;
+      includeTrends?: boolean;
       abcFilter?: string;
       salesSort?: string;
       trendMonths?: number;
@@ -25,6 +26,7 @@ export const articlesApi = {
       // Only send isActive if activeOnly is explicitly true
       isActive: params.activeOnly === true ? 'true' : undefined,
       includeABC: params.includeABC,
+      includeTrends: params.includeTrends,
       abcFilter: params.abcFilter,
       salesSort: params.salesSort,
       trendMonths: params.trendMonths,

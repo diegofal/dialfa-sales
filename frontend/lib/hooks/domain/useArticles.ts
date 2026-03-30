@@ -11,6 +11,7 @@ export interface ArticlesListParams extends PaginationParams {
   categoryId?: number;
   searchTerm?: string;
   includeABC?: boolean;
+  includeTrends?: boolean;
   abcFilter?: string;
   salesSort?: string;
   trendMonths?: number;
