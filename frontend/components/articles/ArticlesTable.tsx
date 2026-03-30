@@ -146,7 +146,14 @@ export function ArticlesTable({
             >
               Descripción
             </SortableTableHead>
-            <SortableTableHead>Categoría</SortableTableHead>
+            <SortableTableHead
+              sortKey="Category"
+              currentSortBy={currentSortBy}
+              currentSortDescending={currentSortDescending}
+              onSort={onSort}
+            >
+              Categoría
+            </SortableTableHead>
             <SortableTableHead
               sortKey="Stock"
               currentSortBy={currentSortBy}
@@ -179,7 +186,14 @@ export function ArticlesTable({
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SortableTableHead align="right" className="cursor-help">
+                  <SortableTableHead
+                    sortKey="WMA"
+                    currentSortBy={currentSortBy}
+                    currentSortDescending={currentSortDescending}
+                    onSort={onSort}
+                    align="right"
+                    className="cursor-help"
+                  >
                     Prom Ponderado
                   </SortableTableHead>
                 </TooltipTrigger>
@@ -192,7 +206,14 @@ export function ArticlesTable({
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SortableTableHead align="right" className="cursor-help">
+                  <SortableTableHead
+                    sortKey="EstSaleTime"
+                    currentSortBy={currentSortBy}
+                    currentSortDescending={currentSortDescending}
+                    onSort={onSort}
+                    align="right"
+                    className="cursor-help"
+                  >
                     T. Est. Venta
                   </SortableTableHead>
                 </TooltipTrigger>
@@ -204,7 +225,14 @@ export function ArticlesTable({
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SortableTableHead align="right" className="cursor-help">
+                  <SortableTableHead
+                    sortKey="ActiveEstSaleTime"
+                    currentSortBy={currentSortBy}
+                    currentSortDescending={currentSortDescending}
+                    onSort={onSort}
+                    align="right"
+                    className="cursor-help"
+                  >
                     T. Est. Activa
                   </SortableTableHead>
                 </TooltipTrigger>
@@ -216,7 +244,15 @@ export function ArticlesTable({
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SortableTableHead className="cursor-help text-center">Clasif.</SortableTableHead>
+                  <SortableTableHead
+                    sortKey="Rating"
+                    currentSortBy={currentSortBy}
+                    currentSortDescending={currentSortDescending}
+                    onSort={onSort}
+                    className="cursor-help text-center"
+                  >
+                    Clasif.
+                  </SortableTableHead>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p className="max-w-xs">
@@ -226,7 +262,14 @@ export function ArticlesTable({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-            <SortableTableHead>Última Venta</SortableTableHead>
+            <SortableTableHead
+              sortKey="LastSaleDate"
+              currentSortBy={currentSortBy}
+              currentSortDescending={currentSortDescending}
+              onSort={onSort}
+            >
+              Última Venta
+            </SortableTableHead>
             <SortableTableHead align="right">Acciones</SortableTableHead>
           </TableRow>
         </TableHeader>
