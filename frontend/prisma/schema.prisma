@@ -621,3 +621,76 @@ model price_import_drafts {
 
   @@unique([user_id], map: "idx_price_import_drafts_user_id")
 }
+
+model stock_snapshots {
+  id          BigInt   @id @default(autoincrement())
+  date        DateTime @db.Timestamptz(6)
+  stock_value Decimal  @db.Decimal(18, 2)
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([date])
+}
+
+model sync_customers {
+  id           String              @id @default(uuid()) @db.Uuid
+  name         String              @db.VarChar(500)
+  type         Int
+  created_at   DateTime            @default(now()) @db.Timestamptz(6)
+  transactions sync_transactions[]
+  balances     sync_balances[]
+  errors       sync_errors[]
+
+  @@index([name])
+}
+
+model sync_transactions {
+  id              String         @id @default(uuid()) @db.Uuid
+  row_num         Int
+  invoice_number  String?        @db.VarChar(100)
+  invoice_date    DateTime?      @db.Timestamptz(6)
+  invoice_amount  Float?
+  balance         Float          @default(0)
+  payment_receipt String?        @db.VarChar(200)
+  payment_bank    String?        @db.VarChar(200)
+  payment_date    DateTime?      @db.Timestamptz(6)
+  payment_amount  Float?
+  type            Int
+  customer_id     String         @db.Uuid
+  customer        sync_customers @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+
+  @@index([customer_id])
+}
+
+model sync_balances {
+  id          String         @id @default(uuid()) @db.Uuid
+  amount      Float
+  due         Float
+  date        DateTime       @db.Timestamptz(6)
+  customer_id String         @db.Uuid
+  customer    sync_customers @relation(fields: [customer_id], references: [id], onDelete: Cascade)
+
+  @@index([customer_id])
+}
+
+model sync_errors {
+  id          String          @id @default(uuid()) @db.Uuid
+  row_num     Int             @default(0)
+  file_name   String          @db.VarChar(500)
+  action      String          @db.VarChar(100)
+  message     String
+  date        DateTime        @db.Timestamptz(6)
+  stack_trace String?
+  customer_id String?         @db.Uuid
+  customer    sync_customers? @relation(fields: [customer_id], references: [id], onDelete: SetNull)
+
+  @@index([customer_id])
+}
+
+model sync_runs {
+  id          String   @id @default(uuid()) @db.Uuid
+  start_date  DateTime @db.Timestamptz(6)
+  end_date    DateTime @db.Timestamptz(6)
+  duration_ms Float
+  has_error   Boolean  @default(false)
+  created_at  DateTime @default(now()) @db.Timestamptz(6)
+}
