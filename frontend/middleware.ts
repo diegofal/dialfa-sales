@@ -6,7 +6,7 @@ import { verifyToken } from './lib/auth/jwt';
 const publicRoutes = ['/login', '/'];
 
 // API routes that don't require authentication
-const publicApiRoutes = ['/api/auth/login'];
+const publicApiRoutes = ['/api/auth/login', '/api/cron'];
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
