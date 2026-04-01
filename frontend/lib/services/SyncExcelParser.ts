@@ -59,8 +59,8 @@ export function parseWorkbook(buffer: Buffer): ParsedCustomer[] {
       }
     }
 
-    // Group by customer name: if customer already exists, merge transactions
-    const existing = customers.find((c) => c.name === customerName);
+    // Group by customer name + type (sheet): same customer can appear in both sheets (blanco/negro)
+    const existing = customers.find((c) => c.name === customerName && c.type === sheetIndex);
     if (existing) {
       existing.transactions.push(...transactions);
     } else {

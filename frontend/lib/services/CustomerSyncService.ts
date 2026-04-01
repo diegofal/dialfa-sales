@@ -42,9 +42,9 @@ export async function runSync(): Promise<SyncRunResult> {
           if (!parsed.name || parsed.transactions.length === 0) continue;
 
           try {
-            // Find or create customer
+            // Find or create customer (by name + type to keep blanco/negro separate)
             let customer = await prisma.sync_customers.findFirst({
-              where: { name: parsed.name },
+              where: { name: parsed.name, type: parsed.type },
             });
 
             if (!customer) {
