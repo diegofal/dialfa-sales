@@ -22,8 +22,7 @@ export function parseWorkbook(buffer: Buffer): ParsedCustomer[] {
     const rows: (string | number | Date | boolean | null)[][] = XLSX.utils.sheet_to_json(sheet, {
       header: 1,
       defval: null,
-      raw: false,
-      dateNF: 'yyyy-mm-dd',
+      raw: true,
     });
 
     if (rows.length === 0) continue;
