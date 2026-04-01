@@ -30,30 +30,53 @@ export async function listAndDownloadFiles(): Promise<DriveFile[]> {
   let pageToken: string | undefined;
 
   do {
-    const response = await drive.files.list({
-      includeItemsFromAllDrives: true,
-      supportsAllDrives: true,
-      driveId: SHARED_DRIVE_ID,
-      corpora: 'drive',
-      q: `'${FOLDER_ID}' in parents`,
-      fields: 'nextPageToken, files(id, name, mimeType)',
-      pageToken,
-    });
+    let response;
+    try {
+      response = await drive.files.list({
+        includeItemsFromAllDrives: true,
+        supportsAllDrives: true,
+        driveId: SHARED_DRIVE_ID,
+        corpora: 'drive',
+        q: `'${FOLDER_ID}' in parents`,
+        fields: 'nextPageToken, files(id, name, mimeType)',
+        pageToken,
+      });
+    } catch (listError) {
+      throw new Error(
+        `Drive list failed: ${listError instanceof Error ? listError.message : String(listError)}`
+      );
+    }
 
     const fileList = response.data.files || [];
 
     for (const file of fileList) {
       if (!file.id || !file.name) continue;
+      // Skip non-Excel files (Google Docs, folders, etc. return 403 on download)
+      if (
+        file.mimeType &&
+        !file.mimeType.includes('excel') &&
+        !file.mimeType.includes('spreadsheet') &&
+        !file.mimeType.includes('octet-stream') &&
+        !file.name.endsWith('.xls') &&
+        !file.name.endsWith('.xlsx')
+      )
+        continue;
 
-      const fileResponse = await drive.files.get(
-        { fileId: file.id, alt: 'media', supportsAllDrives: true },
-        { responseType: 'arraybuffer' }
-      );
+      try {
+        const fileResponse = await drive.files.get(
+          { fileId: file.id, alt: 'media', supportsAllDrives: true },
+          { responseType: 'arraybuffer' }
+        );
 
-      files.push({
-        fileName: file.name,
-        buffer: Buffer.from(fileResponse.data as ArrayBuffer),
-      });
+        files.push({
+          fileName: file.name,
+          buffer: Buffer.from(fileResponse.data as ArrayBuffer),
+        });
+      } catch (dlError) {
+        throw new Error(
+          `Drive download failed for ${file.name}: ${dlError instanceof Error ? dlError.message : String(dlError)}`
+        );
+      }
     }
 
     pageToken = response.data.nextPageToken ?? undefined;
