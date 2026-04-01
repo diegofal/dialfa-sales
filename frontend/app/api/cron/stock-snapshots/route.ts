@@ -11,6 +11,7 @@ export async function POST(request: NextRequest) {
     }
 
     const snapshot = await StockSnapshotService.createSnapshot();
+    await StockSnapshotService.createCategorySnapshots();
 
     return NextResponse.json(snapshot, { status: 201 });
   } catch (error) {

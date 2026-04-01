@@ -1,6 +1,8 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
-import { StockSnapshot } from '@/types/stockSnapshot';
+import { calculateStockValuation } from '@/lib/utils/articles/stockValuation';
+import { StockSnapshot, StockCategorySnapshotsByStatus } from '@/types/stockSnapshot';
+import { StockStatus } from '@/types/stockValuation';
 
 /**
  * Creates a daily stock value snapshot.
@@ -77,4 +79,72 @@ function formatSnapshot(snapshot: {
       maximumFractionDigits: 2,
     }).format(value),
   };
+}
+
+/**
+ * Creates daily stock category snapshots.
+ * Idempotent: upserts one record per status per calendar day (UTC).
+ */
+export async function createCategorySnapshots(): Promise<void> {
+  const todayStart = new Date();
+  todayStart.setUTCHours(0, 0, 0, 0);
+
+  const valuation = await calculateStockValuation();
+
+  const statuses = [
+    StockStatus.ACTIVE,
+    StockStatus.SLOW_MOVING,
+    StockStatus.DEAD_STOCK,
+    StockStatus.NEVER_SOLD,
+  ];
+
+  for (const status of statuses) {
+    const statusData = valuation.byStatus[status];
+    await prisma.stock_category_snapshots.upsert({
+      where: {
+        date_status: {
+          date: todayStart,
+          status,
+        },
+      },
+      update: {
+        count: statusData.count,
+        total_value: new Prisma.Decimal(statusData.totalValue.toFixed(2)),
+      },
+      create: {
+        date: todayStart,
+        status,
+        count: statusData.count,
+        total_value: new Prisma.Decimal(statusData.totalValue.toFixed(2)),
+      },
+    });
+  }
+}
+
+/**
+ * Retrieves stock category snapshots for the last N months, grouped by status.
+ */
+export async function getCategorySnapshots(months = 6): Promise<StockCategorySnapshotsByStatus> {
+  const since = new Date();
+  since.setMonth(since.getMonth() - months);
+
+  const snapshots = await prisma.stock_category_snapshots.findMany({
+    where: {
+      date: { gte: since },
+    },
+    orderBy: { date: 'asc' },
+  });
+
+  const result: StockCategorySnapshotsByStatus = {};
+
+  for (const snap of snapshots) {
+    if (!result[snap.status]) {
+      result[snap.status] = { dates: [], counts: [], values: [] };
+    }
+    result[snap.status].dates.push(snap.date.toISOString().split('T')[0]);
+    result[snap.status].counts.push(snap.count);
+    result[snap.status].values.push(Number(snap.total_value));
+  }
+
+  return result;
 }

@@ -9,7 +9,11 @@ import { ValuationSummary } from '@/components/articles/ValuationSummary';
 import { ValuationTable } from '@/components/articles/ValuationTable';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { useStockValuation, useRefreshStockValuation } from '@/lib/hooks/domain/useStockValuation';
+import {
+  useStockValuation,
+  useRefreshStockValuation,
+  useStockCategorySnapshots,
+} from '@/lib/hooks/domain/useStockValuation';
 import { useAuthStore } from '@/store/authStore';
 import {
   StockClassificationConfig,
@@ -40,6 +44,7 @@ export default function ValuationPage() {
   };
 
   const { data: valuation, isLoading, error } = useStockValuation(valuationConfig);
+  const { data: categorySnapshots } = useStockCategorySnapshots();
   const refreshMutation = useRefreshStockValuation();
 
   const handleRefresh = () => {
@@ -210,7 +215,11 @@ export default function ValuationPage() {
       {valuation && !isLoading && (
         <>
           {/* Summary Cards */}
-          <ValuationSummary valuation={valuation} onStatusClick={handleStatusClick} />
+          <ValuationSummary
+            valuation={valuation}
+            categorySnapshots={categorySnapshots}
+            onStatusClick={handleStatusClick}
+          />
 
           {/* Category Breakdown */}
           {valuation.byCategory && valuation.byCategory.length > 0 && (

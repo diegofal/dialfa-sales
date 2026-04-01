@@ -1,10 +1,13 @@
 import { TrendingDown, Activity, PackageX } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Sparkline } from '@/components/ui/sparkline';
+import { StockCategorySnapshotsByStatus } from '@/types/stockSnapshot';
 import { StockStatus, StockValuationSummary } from '@/types/stockValuation';
 
 interface ValuationSummaryProps {
   valuation: StockValuationSummary;
+  categorySnapshots?: StockCategorySnapshotsByStatus;
   onStatusClick?: (status: StockStatus) => void;
 }
 
@@ -39,7 +42,30 @@ const statusConfig = {
   },
 };
 
-export function ValuationSummary({ valuation, onStatusClick }: ValuationSummaryProps) {
+const sparklineColors: Record<string, { stroke: string; fill: string }> = {
+  [StockStatus.ACTIVE]: {
+    stroke: 'rgb(34, 197, 94)',
+    fill: 'rgba(34, 197, 94, 0.15)',
+  },
+  [StockStatus.SLOW_MOVING]: {
+    stroke: 'rgb(234, 179, 8)',
+    fill: 'rgba(234, 179, 8, 0.15)',
+  },
+  [StockStatus.DEAD_STOCK]: {
+    stroke: 'rgb(239, 68, 68)',
+    fill: 'rgba(239, 68, 68, 0.15)',
+  },
+  [StockStatus.NEVER_SOLD]: {
+    stroke: 'rgb(156, 163, 175)',
+    fill: 'rgba(156, 163, 175, 0.15)',
+  },
+};
+
+export function ValuationSummary({
+  valuation,
+  categorySnapshots,
+  onStatusClick,
+}: ValuationSummaryProps) {
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('es-AR', {
       style: 'currency',
@@ -130,6 +156,17 @@ export function ValuationSummary({ valuation, onStatusClick }: ValuationSummaryP
                 <CardTitle className="mt-2 text-base">{config.label}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-2">
+                {categorySnapshots?.[status] && categorySnapshots[status].counts.length > 1 && (
+                  <div className="pb-1">
+                    <Sparkline
+                      data={categorySnapshots[status].counts}
+                      width={200}
+                      height={36}
+                      color={sparklineColors[status]?.stroke}
+                      fillColor={sparklineColors[status]?.fill}
+                    />
+                  </div>
+                )}
                 <div>
                   <p className="text-muted-foreground text-xs">Valor Total</p>
                   <p className="text-lg font-bold">{formatCurrency(data.totalValue)}</p>

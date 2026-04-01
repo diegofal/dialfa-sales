@@ -11,6 +11,16 @@ export async function GET(request: NextRequest) {
     }
 
     const months = parseInt(request.nextUrl.searchParams.get('months') || '12');
+    const type = request.nextUrl.searchParams.get('type');
+
+    if (type === 'category') {
+      const categoryData = await StockSnapshotService.getCategorySnapshots(months);
+      return NextResponse.json({
+        data: categoryData,
+        status: 'success',
+      });
+    }
+
     const snapshots = await StockSnapshotService.getSnapshots(months);
 
     return NextResponse.json({
