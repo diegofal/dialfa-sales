@@ -18,7 +18,7 @@ const nextConfig: NextConfig = {
   },
 
   // Keep pdfkit external so it can access its font files from node_modules
-  serverExternalPackages: ['pdfkit'],
+  serverExternalPackages: ['pdfkit', 'googleapis', 'google-auth-library'],
 
   // Configure webpack to handle pdfkit properly
   webpack: (config, { isServer }) => {

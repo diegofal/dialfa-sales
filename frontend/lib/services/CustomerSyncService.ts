@@ -22,7 +22,16 @@ export async function runSync(): Promise<SyncRunResult> {
     await prisma.$executeRaw`DELETE FROM sync_customers`;
 
     // 2. Download files from Google Drive
-    const files = await GoogleDriveService.listAndDownloadFiles();
+    let files;
+    try {
+      files = await GoogleDriveService.listAndDownloadFiles();
+    } catch (driveError) {
+      const errMsg = driveError instanceof Error ? driveError.message : String(driveError);
+      const errDetail =
+        (driveError as { code?: number; errors?: { message: string }[] })?.errors?.[0]?.message ||
+        '';
+      throw new Error(`Google Drive error: ${errMsg} | ${errDetail}`);
+    }
 
     // 3. Process each file
     for (const { fileName, buffer } of files) {
