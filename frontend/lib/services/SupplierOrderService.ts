@@ -5,6 +5,7 @@ import { logActivity } from '@/lib/utils/activityLogger';
 import { calculateSalesTrends } from '@/lib/utils/articles/salesTrends';
 import { ArticleMatcher } from '@/lib/utils/priceLists/proformaImport/article-matcher';
 import { BestflowExtractor } from '@/lib/utils/priceLists/proformaImport/bestflow-extractor';
+import { CsvExtractor } from '@/lib/utils/priceLists/proformaImport/csv-extractor';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -598,9 +599,13 @@ export async function syncWeights(orderId: bigint, userId: number, request: Next
 }
 
 export async function importProforma(file: File, request: NextRequest) {
+  const fileName = file.name.toLowerCase();
+  const isCsv = fileName.endsWith('.csv');
+  const isExcel = fileName.endsWith('.xls') || fileName.endsWith('.xlsx');
+
   // Validate file type
-  if (!file.name.endsWith('.xls') && !file.name.endsWith('.xlsx')) {
-    return { error: 'Only Excel files (.xls, .xlsx) are supported', status: 400 };
+  if (!isCsv && !isExcel) {
+    return { error: 'Only Excel (.xls, .xlsx) or CSV (.csv) files are supported', status: 400 };
   }
 
   // Validate file size (max 5MB)
@@ -612,8 +617,9 @@ export async function importProforma(file: File, request: NextRequest) {
   const arrayBuffer = await file.arrayBuffer();
   const buffer = Buffer.from(arrayBuffer);
 
-  const extractor = new BestflowExtractor();
-  const proformaData = await extractor.extract(buffer, file.name);
+  const proformaData = isCsv
+    ? await new CsvExtractor().extract(buffer, file.name)
+    : await new BestflowExtractor().extract(buffer, file.name);
 
   if (proformaData.items.length === 0) {
     return { error: 'No items found in the proforma file', status: 400 };

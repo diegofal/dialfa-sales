@@ -54,8 +54,9 @@ export function ProformaDropZone({ onImportSuccess }: ProformaDropZoneProps) {
 
   const handleFileSelect = (file: File) => {
     // Validate file type
-    if (!file.name.endsWith('.xls') && !file.name.endsWith('.xlsx')) {
-      alert('Por favor seleccione un archivo Excel (.xls o .xlsx)');
+    const name = file.name.toLowerCase();
+    if (!name.endsWith('.xls') && !name.endsWith('.xlsx') && !name.endsWith('.csv')) {
+      alert('Por favor seleccione un archivo Excel (.xls, .xlsx) o CSV (.csv)');
       return;
     }
 
@@ -124,14 +125,14 @@ export function ProformaDropZone({ onImportSuccess }: ProformaDropZoneProps) {
               Arrastra un archivo Excel aquí o haz clic para seleccionar
             </p>
             <p className="text-muted-foreground text-xs">
-              Archivos compatibles: .xls, .xlsx (máx. 5MB)
+              Archivos compatibles: .xls, .xlsx, .csv (máx. 5MB)
             </p>
           </div>
 
           <input
             ref={fileInputRef}
             type="file"
-            accept=".xls,.xlsx"
+            accept=".xls,.xlsx,.csv"
             onChange={handleFileInputChange}
             className="hidden"
           />
