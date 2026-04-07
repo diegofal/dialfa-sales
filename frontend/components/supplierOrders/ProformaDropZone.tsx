@@ -1,11 +1,17 @@
 'use client';
 
-import { Upload, FileSpreadsheet, X } from 'lucide-react';
+import { Upload, FileSpreadsheet, X, Info } from 'lucide-react';
 import { useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { useImportProforma } from '@/lib/hooks/domain/useImportProforma';
 import { ImportResult } from '@/lib/utils/priceLists/proformaImport/types';
+
+const CSV_EXAMPLE = `description,size,quantity,unit_price,total_price,unit_weight,item_number
+ELBOW 90 S3000 SW,1/2",1500,0.83,1245,0.2,7
+TEE S2000 BSPT,3/4",500,1.33,665,0.39,20
+CAP NPT,3/4",200,0.67,134,0.19,40
+Stud bolt A193-B7,1/2"X2-3/4",3000,0.09,270,0.069,52`;
 
 interface ProformaDropZoneProps {
   onImportSuccess: (result: ImportResult) => void;
@@ -14,6 +20,7 @@ interface ProformaDropZoneProps {
 export function ProformaDropZone({ onImportSuccess }: ProformaDropZoneProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [showCsvFormat, setShowCsvFormat] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importMutation = useImportProforma();
 
@@ -142,6 +149,50 @@ export function ProformaDropZone({ onImportSuccess }: ProformaDropZoneProps) {
           </Button>
         </div>
       </Card>
+
+      <button
+        type="button"
+        onClick={() => setShowCsvFormat(!showCsvFormat)}
+        className="text-muted-foreground hover:text-foreground flex items-center gap-1.5 text-xs transition-colors"
+      >
+        <Info className="h-3.5 w-3.5" />
+        {showCsvFormat ? 'Ocultar formato CSV' : 'Ver formato CSV esperado'}
+      </button>
+
+      {showCsvFormat && (
+        <Card className="bg-muted/50 space-y-3 p-4">
+          <div className="space-y-1">
+            <p className="text-xs font-medium">Nombre del archivo:</p>
+            <code className="bg-background block rounded px-2 py-1 text-xs">
+              Proveedor_NumProforma_YYYY-MM-DD.csv
+            </code>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-medium">
+              Columnas requeridas:{' '}
+              <span className="text-muted-foreground font-normal">
+                description, size, quantity, unit_price
+              </span>
+            </p>
+            <p className="text-xs font-medium">
+              Columnas opcionales:{' '}
+              <span className="text-muted-foreground font-normal">
+                total_price, unit_weight, item_number
+              </span>
+            </p>
+          </div>
+          <div className="space-y-1">
+            <p className="text-xs font-medium">Ejemplo:</p>
+            <pre className="bg-background overflow-x-auto rounded p-2 text-[10px] leading-relaxed">
+              {CSV_EXAMPLE}
+            </pre>
+          </div>
+          <p className="text-muted-foreground text-[10px]">
+            El campo &quot;description&quot; debe incluir tipo + serie + conexion (ej: ELBOW 90
+            S3000 SW) para el matching automático con artículos.
+          </p>
+        </Card>
+      )}
 
       {selectedFile && (
         <Card className="p-4">
