@@ -16,21 +16,21 @@ export class MatchingKeyNormalizer {
     // Remove trailing .0 from series numbers (e.g., "2000.0" -> "2000")
     normalized = normalized.replace(/\.0+$/, '');
 
-    // 90° Long Radius Elbows
+    // 90° Short Radius Elbows (check first — SR is always explicit, CODOS 90 defaults to SR)
     if (
-      /90D?\s*LR|90\s*LR|CODO\s*RADIO\s*LARGO\s*90|CODOS?\s*90°?\s*RADIO\s*LARGO|CODO\s*R\.L\.\s*90/i.test(
+      /90D?\s*SR|90\s*SR|CODO\s*RADIO\s*CORTO\s*90|CODOS?\s*90°?/i.test(normalized) &&
+      !/LARGO|LR|LONG|ELBOW/i.test(normalized)
+    ) {
+      return 'ELBOW_90_SR';
+    }
+
+    // 90° Long Radius Elbows (default for 90° when no SR specified)
+    if (
+      /90D?\s*LR|90\s*LR|CODO\s*RADIO\s*LARGO\s*90|CODOS?\s*90°?\s*RADIO\s*LARGO|CODO\s*R\.L\.\s*90|ELBOW\s*90/i.test(
         normalized
       )
     ) {
       return 'ELBOW_90_LR';
-    }
-
-    // 90° Short Radius Elbows
-    if (
-      /90D?\s*SR|90\s*SR|CODO\s*RADIO\s*CORTO\s*90|CODOS?\s*90°?/i.test(normalized) &&
-      !/LARGO|LR|LONG/i.test(normalized)
-    ) {
-      return 'ELBOW_90_SR';
     }
 
     // 45° Elbows
@@ -222,9 +222,10 @@ export class MatchingKeyNormalizer {
   static extractSeriesFromDescription(description: string): number | null {
     const desc = description.toUpperCase().trim();
 
-    // Match S-150, S-300, S-600, S.150, etc.
-    // Valid series are typically 150, 300, 600, 900, 1500, 2500
-    const validSeries = [150, 300, 600, 900, 1500, 2500];
+    // Match S-150, S-300, S-600, S.150, S2000, S3000, etc.
+    // Flanges: 150, 300, 600, 900, 1500, 2500
+    // Forged fittings: 2000, 3000, 6000
+    const validSeries = [150, 300, 600, 900, 1500, 2500, 2000, 3000, 6000];
 
     // Look for all S-XXX patterns
     const seriesMatches = desc.matchAll(/S[-.]?(\d+)/gi);
