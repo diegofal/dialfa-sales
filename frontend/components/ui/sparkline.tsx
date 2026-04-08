@@ -7,6 +7,7 @@ interface SparklineProps {
   color?: string;
   fillColor?: string;
   showDots?: boolean;
+  autoScale?: boolean;
   className?: string;
 }
 
@@ -21,6 +22,7 @@ export function Sparkline({
   color = 'rgb(59, 130, 246)', // blue-500
   fillColor = 'rgba(59, 130, 246, 0.1)',
   showDots = false,
+  autoScale = false,
   className = '',
 }: SparklineProps) {
   // Si no hay datos o todos son 0, mostrar línea plana
@@ -33,7 +35,7 @@ export function Sparkline({
   }
 
   const max = Math.max(...data, 1); // Evitar división por 0
-  const min = Math.min(...data, 0);
+  const min = autoScale ? Math.min(...data) : Math.min(...data, 0);
   const range = max - min || 1; // Evitar división por 0
 
   // Calcular puntos para el path
