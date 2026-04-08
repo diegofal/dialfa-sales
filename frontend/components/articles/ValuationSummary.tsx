@@ -1,7 +1,7 @@
 import { TrendingDown, Activity, PackageX } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Sparkline } from '@/components/ui/sparkline';
+import { SparklineWithTooltip } from '@/components/ui/sparkline';
 import { StockCategorySnapshotsByStatus } from '@/types/stockSnapshot';
 import { StockStatus, StockValuationSummary } from '@/types/stockValuation';
 
@@ -158,12 +158,15 @@ export function ValuationSummary({
               <CardContent className="space-y-2">
                 {categorySnapshots?.[status] && categorySnapshots[status].counts.length > 1 && (
                   <div className="pb-1">
-                    <Sparkline
+                    <SparklineWithTooltip
                       data={categorySnapshots[status].counts}
+                      labels={categorySnapshots[status].dates}
+                      formatValue={(v) => `${v} artículos`}
                       width={200}
                       height={36}
                       color={sparklineColors[status]?.stroke}
                       fillColor={sparklineColors[status]?.fill}
+                      autoScale
                     />
                   </div>
                 )}
