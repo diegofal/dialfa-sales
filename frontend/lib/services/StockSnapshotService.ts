@@ -109,13 +109,13 @@ export async function createCategorySnapshots(): Promise<void> {
       },
       update: {
         count: statusData.count,
-        total_value: new Prisma.Decimal(statusData.totalValue.toFixed(2)),
+        total_value: new Prisma.Decimal(statusData.totalValueAtListPrice.toFixed(2)),
       },
       create: {
         date: todayStart,
         status,
         count: statusData.count,
-        total_value: new Prisma.Decimal(statusData.totalValue.toFixed(2)),
+        total_value: new Prisma.Decimal(statusData.totalValueAtListPrice.toFixed(2)),
       },
     });
   }
