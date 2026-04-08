@@ -143,17 +143,39 @@ export class ArticleMatcher implements IArticleMatcher {
         }
         return null;
       },
-      // Strategy 3: Try without series if no series found
+      // Strategy 3: Try without series if series was extracted but no match
+      () => {
+        if (series) {
+          for (const t of [thickness, '', 'STD', 'XS']) {
+            const key = MatchingKeyNormalizer.createMatchingKey({
+              type,
+              thickness: t,
+              size: item.size,
+              description: item.description,
+            });
+            if (key && articleIndex.has(key)) {
+              return { key, article: articleIndex.get(key)! };
+            }
+          }
+        }
+        return null;
+      },
+      // Strategy 4: Try common forged series when no series in description
       () => {
         if (!series) {
-          const key = MatchingKeyNormalizer.createMatchingKey({
-            type,
-            thickness,
-            size: item.size,
-            description: item.description,
-          });
-          if (key && articleIndex.has(key)) {
-            return { key, article: articleIndex.get(key)! };
+          for (const s of [3000, 6000, 2000]) {
+            for (const t of [thickness, '', 'STD', 'XS']) {
+              const key = MatchingKeyNormalizer.createMatchingKey({
+                type,
+                thickness: t,
+                size: item.size,
+                series: s,
+                description: item.description,
+              });
+              if (key && articleIndex.has(key)) {
+                return { key, article: articleIndex.get(key)! };
+              }
+            }
           }
         }
         return null;
@@ -240,7 +262,8 @@ export class ArticleMatcher implements IArticleMatcher {
     // Don't extract thickness from these - leave it empty or detect from other keywords
     if (/S-150|S-300|S-600/i.test(desc)) {
       // Check if there are other thickness indicators
-      if (/XS|EXTRA|PESADO|HEAVY/i.test(desc)) {
+      // Note: "HEAVY" alone is not thickness (e.g., "Heavy Nuts") — need "HEAVY WALL" or "EXTRA HEAVY"
+      if (/\bXS\b|EXTRA\s*PESADO|E\.?P\.?(?!\w)/i.test(desc)) {
         return 'XS';
       }
       // Default to empty string for series - let the DB series field handle it
@@ -248,7 +271,8 @@ export class ArticleMatcher implements IArticleMatcher {
     }
 
     // Check for XS keywords
-    if (/XS|EXTRA|PESADO|HEAVY/i.test(desc)) {
+    // Note: "HEAVY" alone matches product names like "Heavy Nuts" — only match thickness-specific patterns
+    if (/\bXS\b|EXTRA\s*PESADO|E\.?P\.?(?!\w)|HEAVY\s*WALL/i.test(desc)) {
       return 'XS';
     }
 
