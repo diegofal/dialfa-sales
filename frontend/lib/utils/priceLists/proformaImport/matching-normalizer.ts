@@ -30,15 +30,35 @@ export class MatchingKeyNormalizer {
         normalized
       )
     ) {
+      // Forged 90° elbows: preserve connection type (SW, BSPT, NPT)
+      if (/S\.?W\.?/i.test(normalized) && !/BSPT|NPT/i.test(normalized)) {
+        return '90D LR THREADED SW ELBOW';
+      }
+      if (/BSPT/i.test(normalized)) {
+        return '90D LR THREADED BSPT ELBOW';
+      }
+      if (/NPT/i.test(normalized)) {
+        return '90D LR THREADED NPT ELBOW';
+      }
       return 'ELBOW_90_LR';
     }
 
-    // 45° Elbows
+    // 45° Elbows — forged fittings distinguish connection type
     if (
-      /45D?\s*LR|45\s*LR|45D?\s*ELBOW|CODO\s*45|CODOS?\s*45|CODO\s*RADIO\s*LARGO\s*45|CODO\s*RADIO\s*LARGO\s*A\s*45/i.test(
+      /45D?\s*LR|45\s*LR|45D?\s*(S\.?W\.?\s*)?ELBOW|ELBOW\s*45|CODO\s*45|CODOS?\s*45|CODO\s*RADIO\s*LARGO\s*45|CODO\s*RADIO\s*LARGO\s*A\s*45/i.test(
         normalized
       )
     ) {
+      // Forged 45° elbows: preserve connection type (SW, BSPT, NPT)
+      if (/S\.?W\.?/i.test(normalized) && !/BSPT|NPT/i.test(normalized)) {
+        return '45D S.W. ELBOW';
+      }
+      if (/BSPT/i.test(normalized)) {
+        return '45D LR THREADED BSPT ELBOW';
+      }
+      if (/NPT/i.test(normalized)) {
+        return '45D LR THREADED NPT ELBOW';
+      }
       return 'ELBOW_45';
     }
 
@@ -48,10 +68,21 @@ export class MatchingKeyNormalizer {
     }
 
     // Tees - need to distinguish between normal tees and reducing tees
-    if (/^(TEE?|TE|T)$/i.test(normalized)) {
+    // Also handle forged tees with connection type (TEE BSPT, TEE NPT, TEE S.W.)
+    if (/^TEE?\b|^TE\b|^T$/i.test(normalized)) {
       // Check description to see if it's a reducing tee
-      if (/RED|REDUCCION|REDUCER/i.test(desc)) {
+      if (/RED|REDUCCION|REDUCER/i.test(desc) || /RED|REDUCCION|REDUCER/i.test(normalized)) {
         return 'REDUCER_TEE';
+      }
+      // Forged tees: preserve connection type
+      if (/S\.?W\.?/i.test(normalized) && !/BSPT|NPT/i.test(normalized)) {
+        return 'TEE S.W.';
+      }
+      if (/BSPT/i.test(normalized)) {
+        return 'TEE BSPT';
+      }
+      if (/NPT/i.test(normalized)) {
+        return 'TEE NPT';
       }
       return 'TEE';
     }
@@ -91,6 +122,58 @@ export class MatchingKeyNormalizer {
       return 'NIPPLE';
     }
 
+    // Stud bolts — normalize "Stud bolt A193-B7 Blackened" to "Stud bolt, A193-B7"
+    if (/STUD\s*BOLT/i.test(normalized)) {
+      return 'Stud bolt, A193-B7';
+    }
+
+    // Heavy nuts — normalize "Heavy Nuts A194-2H Blackened" to "Heavy Nuts, A194-2H"
+    if (/HEAVY\s*NUT/i.test(normalized)) {
+      return 'Heavy Nuts, A194-2H';
+    }
+
+    // Unions — preserve connection type (UNION BSPT, UNION NPT, UNION SW)
+    if (/^UNION/i.test(normalized)) {
+      if (/S\.?W\.?/i.test(normalized) && !/BSPT|NPT/i.test(normalized)) {
+        return 'UNION SW';
+      }
+      if (/BSPT/i.test(normalized)) {
+        return 'UNION BSPT';
+      }
+      if (/NPT/i.test(normalized)) {
+        return 'UNION NPT';
+      }
+      return normalized;
+    }
+
+    // Couplings — preserve connection type
+    if (/^COUPLING/i.test(normalized)) {
+      if (/S\.?W\.?/i.test(normalized) && !/BSPT|NPT/i.test(normalized)) {
+        return 'COUPLING SW';
+      }
+      if (/BSPT/i.test(normalized)) {
+        return 'COUPLING BSPT';
+      }
+      if (/NPT/i.test(normalized)) {
+        return 'COUPLING NPT';
+      }
+      return normalized;
+    }
+
+    // Hex head plugs — preserve connection type
+    if (/HEX\s*HEAD\s*PLUG/i.test(normalized)) {
+      if (/BSPT/i.test(normalized)) return 'HEX HEAD PLUG BSPT';
+      if (/NPT/i.test(normalized)) return 'HEX HEAD PLUG NPT';
+      return normalized;
+    }
+
+    // Hex head bushings — preserve connection type
+    if (/HEX\s*HEAD\s*BUSHING/i.test(normalized)) {
+      if (/BSPT/i.test(normalized)) return 'HEX HEAD BUSHING BSPT';
+      if (/NPT/i.test(normalized)) return 'HEX HEAD BUSHING NPT';
+      return normalized;
+    }
+
     // Flanges - Keep specific types distinct
     // DO NOT normalize SORF and W.N.R.F. to the same value
     if (/W\.N\.R\.F|WELD\s*NECK|WNRF/i.test(normalized)) {
@@ -120,10 +203,16 @@ export class MatchingKeyNormalizer {
   static normalizeSize(size: string): string {
     let normalized = size.replace(/["']/g, '').trim();
 
+    // Remove leading non-numeric prefix (e.g., "E3/4X7-1/2" -> "3/4X7-1/2")
+    normalized = normalized.replace(/^[A-Za-z]+(?=\d)/, '');
+
     // Remove .0 suffix from float strings (e.g., "1.0" -> "1", "12.0" -> "12")
     if (/^\d+\.0$/.test(normalized)) {
       normalized = normalized.replace('.0', '');
     }
+
+    // Normalize hyphens between digits and fractions: "2-3/4" -> "2 3/4"
+    normalized = normalized.replace(/(\d)-(\d+\/\d+)/g, '$1 $2');
 
     // Normalize spaces in fractions: "1 1/2" should match "1.1/2" and "11/2"
     // First remove dots before digits that precede slashes
@@ -133,11 +222,13 @@ export class MatchingKeyNormalizer {
     // Standardize multiple spaces to single space
     normalized = normalized.replace(/\s+/g, ' ').trim();
 
-    // For reducer tees/reducers: normalize the dual size format
-    // Examples: "6 X 3" -> "6 X 3", "6x3" -> "6 X 3", "6*3" -> "6 X 3", "6 * 3" -> "6 X 3"
-    const dualSizeMatch = normalized.match(
-      /^(\d+(?:\s*\d+\/\d+)?)\s*[Xx\*×]\s*(\d+(?:\s*\d+\/\d+)?)/
-    );
+    // For reducer tees/reducers/bushings: normalize the dual size format
+    // Examples: "6 X 3" -> "6 X 3", "6x3" -> "6 X 3", "1X3/4" -> "1 X 3/4"
+    // Supports: whole numbers, fractions (3/4), mixed (1 1/2)
+    // Order matters: try mixed (2 3/4) first, then bare fraction (3/4), then whole (2)
+    const sizePattern = '(\\d+\\s+\\d+\\/\\d+|\\d+\\/\\d+|\\d+)';
+    const dualSizeRegex = new RegExp(`^${sizePattern}\\s*[Xx\\*×]\\s*${sizePattern}`);
+    const dualSizeMatch = normalized.match(dualSizeRegex);
     if (dualSizeMatch) {
       const size1 = dualSizeMatch[1].trim();
       const size2 = dualSizeMatch[2].trim();
