@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 
 interface SparklineProps {
   data: number[];
@@ -104,17 +105,16 @@ export function SparklineWithTooltip({
 }: SparklineWithTooltipProps) {
   const [hoveredIndex, setHoveredIndex] = React.useState<number | null>(null);
   const [tooltipPosition, setTooltipPosition] = React.useState({ x: 0, y: 0 });
+  const containerRef = React.useRef<HTMLDivElement>(null);
 
   if (!data || data.length === 0) {
     return <Sparkline data={data} {...sparklineProps} />;
   }
 
-  const width = sparklineProps.width || 100;
-
   const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX - rect.left;
-    const index = Math.round((x / width) * (data.length - 1));
+    const index = Math.round((x / rect.width) * (data.length - 1));
 
     if (index >= 0 && index < data.length) {
       setHoveredIndex(index);
@@ -127,7 +127,7 @@ export function SparklineWithTooltip({
   };
 
   return (
-    <div className="relative inline-block">
+    <div className="relative inline-block" ref={containerRef}>
       <div
         onMouseMove={handleMouseMove}
         onMouseLeave={handleMouseLeave}
@@ -136,20 +136,23 @@ export function SparklineWithTooltip({
         <Sparkline data={data} {...sparklineProps} />
       </div>
 
-      {hoveredIndex !== null && (
-        <div
-          className="bg-popover text-popover-foreground pointer-events-none fixed z-50 rounded-md px-3 py-2 text-sm shadow-md"
-          style={{
-            left: tooltipPosition.x + 10,
-            top: tooltipPosition.y - 10,
-          }}
-        >
-          <div className="font-medium">
-            {labels && labels[hoveredIndex] ? labels[hoveredIndex] : `Punto ${hoveredIndex + 1}`}
-          </div>
-          <div className="text-muted-foreground">{formatValue(data[hoveredIndex])}</div>
-        </div>
-      )}
+      {hoveredIndex !== null &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            className="bg-popover text-popover-foreground pointer-events-none fixed z-50 rounded-md px-3 py-2 text-sm shadow-md"
+            style={{
+              left: tooltipPosition.x + 10,
+              top: tooltipPosition.y - 10,
+            }}
+          >
+            <div className="font-medium">
+              {labels && labels[hoveredIndex] ? labels[hoveredIndex] : `Punto ${hoveredIndex + 1}`}
+            </div>
+            <div className="text-muted-foreground">{formatValue(data[hoveredIndex])}</div>
+          </div>,
+          document.body
+        )}
     </div>
   );
 }
