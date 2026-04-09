@@ -162,6 +162,7 @@ export function ValuationSummary({
                       data={categorySnapshots[status].counts}
                       labels={categorySnapshots[status].dates}
                       formatValue={(v) => `${v} artículos`}
+                      movements={categorySnapshots[status].movements}
                       width={200}
                       height={36}
                       color={sparklineColors[status]?.stroke}

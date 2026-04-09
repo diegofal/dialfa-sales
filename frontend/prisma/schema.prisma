@@ -643,6 +643,19 @@ model stock_category_snapshots {
   @@index([date])
 }
 
+model article_status_snapshots {
+  id           BigInt   @id @default(autoincrement())
+  date         DateTime @db.Timestamptz(6)
+  article_id   BigInt
+  article_code String   @db.VarChar(50)
+  status       String   @db.VarChar(20)
+  created_at   DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([date, article_id])
+  @@index([date, status])
+  @@index([date])
+}
+
 model sync_customers {
   id           String              @id @default(uuid()) @db.Uuid
   name         String              @db.VarChar(500)

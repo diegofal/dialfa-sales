@@ -14,10 +14,16 @@ export interface StockCategorySnapshot {
   totalValue: number;
 }
 
+export interface ArticleMovement {
+  entered: string[];
+  exited: string[];
+}
+
 export interface StockCategorySnapshotsByStatus {
   [status: string]: {
     dates: string[];
     counts: number[];
     values: number[];
+    movements?: ArticleMovement[];
   };
 }
