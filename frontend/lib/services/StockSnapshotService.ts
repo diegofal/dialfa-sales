@@ -1,8 +1,12 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
 import { calculateStockValuation } from '@/lib/utils/articles/stockValuation';
-import { StockSnapshot, StockCategorySnapshotsByStatus } from '@/types/stockSnapshot';
-import { StockStatus } from '@/types/stockValuation';
+import {
+  StockSnapshot,
+  StockCategorySnapshotsByStatus,
+  ArticleMovement,
+} from '@/types/stockSnapshot';
+import { StockStatus, StockValuationSummary } from '@/types/stockValuation';
 
 /**
  * Creates a daily stock value snapshot.
@@ -85,11 +89,13 @@ function formatSnapshot(snapshot: {
  * Creates daily stock category snapshots.
  * Idempotent: upserts one record per status per calendar day (UTC).
  */
-export async function createCategorySnapshots(): Promise<void> {
+export async function createCategorySnapshots(
+  precomputedValuation?: StockValuationSummary
+): Promise<void> {
   const todayStart = new Date();
   todayStart.setUTCHours(0, 0, 0, 0);
 
-  const valuation = await calculateStockValuation();
+  const valuation = precomputedValuation ?? (await calculateStockValuation());
 
   const statuses = [
     StockStatus.ACTIVE,
@@ -122,28 +128,125 @@ export async function createCategorySnapshots(): Promise<void> {
 }
 
 /**
+ * Creates daily per-article status snapshots.
+ * Idempotent: only creates records if today's snapshots don't exist yet.
+ */
+export async function createArticleStatusSnapshots(
+  precomputedValuation?: StockValuationSummary
+): Promise<void> {
+  const todayStart = new Date();
+  todayStart.setUTCHours(0, 0, 0, 0);
+
+  const existing = await prisma.article_status_snapshots.findFirst({
+    where: { date: todayStart },
+    select: { id: true },
+  });
+  if (existing) return;
+
+  const valuation = precomputedValuation ?? (await calculateStockValuation());
+
+  const statuses = [
+    StockStatus.ACTIVE,
+    StockStatus.SLOW_MOVING,
+    StockStatus.DEAD_STOCK,
+    StockStatus.NEVER_SOLD,
+  ];
+
+  const records: Array<{
+    date: Date;
+    article_id: bigint;
+    article_code: string;
+    status: string;
+  }> = [];
+
+  for (const status of statuses) {
+    for (const article of valuation.byStatus[status].articles) {
+      records.push({
+        date: todayStart,
+        article_id: BigInt(article.articleId),
+        article_code: article.articleCode,
+        status,
+      });
+    }
+  }
+
+  if (records.length === 0) return;
+
+  await prisma.article_status_snapshots.createMany({
+    data: records,
+    skipDuplicates: true,
+  });
+}
+
+/**
  * Retrieves stock category snapshots for the last N months, grouped by status.
+ * Also computes article movements (entered/exited) between consecutive days
+ * by comparing per-article status snapshots.
  */
 export async function getCategorySnapshots(months = 6): Promise<StockCategorySnapshotsByStatus> {
   const since = new Date();
   since.setMonth(since.getMonth() - months);
 
-  const snapshots = await prisma.stock_category_snapshots.findMany({
-    where: {
-      date: { gte: since },
-    },
-    orderBy: { date: 'asc' },
-  });
+  const [snapshots, articleSnapshots] = await Promise.all([
+    prisma.stock_category_snapshots.findMany({
+      where: { date: { gte: since } },
+      orderBy: { date: 'asc' },
+    }),
+    prisma.article_status_snapshots.findMany({
+      where: { date: { gte: since } },
+      orderBy: { date: 'asc' },
+      select: { date: true, article_code: true, status: true },
+    }),
+  ]);
+
+  // Build: dateStr -> status -> Set<article_code>
+  const articlesByDateStatus = new Map<string, Map<string, Set<string>>>();
+  for (const snap of articleSnapshots) {
+    const dateStr = snap.date.toISOString().split('T')[0];
+    let statusMap = articlesByDateStatus.get(dateStr);
+    if (!statusMap) {
+      statusMap = new Map();
+      articlesByDateStatus.set(dateStr, statusMap);
+    }
+    let codeSet = statusMap.get(snap.status);
+    if (!codeSet) {
+      codeSet = new Set();
+      statusMap.set(snap.status, codeSet);
+    }
+    codeSet.add(snap.article_code);
+  }
 
   const result: StockCategorySnapshotsByStatus = {};
 
   for (const snap of snapshots) {
     if (!result[snap.status]) {
-      result[snap.status] = { dates: [], counts: [], values: [] };
+      result[snap.status] = { dates: [], counts: [], values: [], movements: [] };
     }
-    result[snap.status].dates.push(snap.date.toISOString().split('T')[0]);
-    result[snap.status].counts.push(snap.count);
-    result[snap.status].values.push(Number(snap.total_value));
+    const dateStr = snap.date.toISOString().split('T')[0];
+    const statusEntry = result[snap.status];
+    statusEntry.dates.push(dateStr);
+    statusEntry.counts.push(snap.count);
+    statusEntry.values.push(Number(snap.total_value));
+
+    const currentSet = articlesByDateStatus.get(dateStr)?.get(snap.status) ?? new Set<string>();
+    let movement: ArticleMovement;
+
+    if (statusEntry.dates.length === 1) {
+      movement = { entered: [], exited: [] };
+    } else {
+      const prevDateStr = statusEntry.dates[statusEntry.dates.length - 2];
+      const prevSet = articlesByDateStatus.get(prevDateStr)?.get(snap.status) ?? new Set<string>();
+      const entered: string[] = [];
+      const exited: string[] = [];
+      for (const code of currentSet) {
+        if (!prevSet.has(code)) entered.push(code);
+      }
+      for (const code of prevSet) {
+        if (!currentSet.has(code)) exited.push(code);
+      }
+      movement = { entered, exited };
+    }
+    statusEntry.movements!.push(movement);
   }
 
   return result;

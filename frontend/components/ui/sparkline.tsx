@@ -1,5 +1,6 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
+import type { ArticleMovement } from '@/types/stockSnapshot';
 
 interface SparklineProps {
   data: number[];
@@ -92,6 +93,7 @@ export function Sparkline({
 interface SparklineWithTooltipProps extends SparklineProps {
   labels?: string[]; // Etiquetas para cada punto (ej: nombres de meses)
   formatValue?: (value: number) => string;
+  movements?: ArticleMovement[];
 }
 
 /**
@@ -101,6 +103,7 @@ export function SparklineWithTooltip({
   data,
   labels,
   formatValue = (v) => v.toString(),
+  movements,
   ...sparklineProps
 }: SparklineWithTooltipProps) {
   const [hoveredIndex, setHoveredIndex] = React.useState<number | null>(null);
@@ -140,7 +143,7 @@ export function SparklineWithTooltip({
         typeof document !== 'undefined' &&
         createPortal(
           <div
-            className="bg-popover text-popover-foreground pointer-events-none fixed z-50 rounded-md px-3 py-2 text-sm shadow-md"
+            className="bg-popover text-popover-foreground pointer-events-none fixed z-50 max-w-xs rounded-md px-3 py-2 text-sm shadow-md"
             style={{
               left: tooltipPosition.x + 10,
               top: tooltipPosition.y - 10,
@@ -150,6 +153,30 @@ export function SparklineWithTooltip({
               {labels && labels[hoveredIndex] ? labels[hoveredIndex] : `Punto ${hoveredIndex + 1}`}
             </div>
             <div className="text-muted-foreground">{formatValue(data[hoveredIndex])}</div>
+            {movements && movements[hoveredIndex] && (
+              <>
+                {movements[hoveredIndex].entered.length > 0 && (
+                  <div className="mt-1 text-xs text-green-600 dark:text-green-400">
+                    <span className="font-medium">
+                      + Entraron ({movements[hoveredIndex].entered.length}):
+                    </span>{' '}
+                    {movements[hoveredIndex].entered.slice(0, 5).join(', ')}
+                    {movements[hoveredIndex].entered.length > 5 &&
+                      ` y ${movements[hoveredIndex].entered.length - 5} más`}
+                  </div>
+                )}
+                {movements[hoveredIndex].exited.length > 0 && (
+                  <div className="mt-1 text-xs text-red-600 dark:text-red-400">
+                    <span className="font-medium">
+                      − Salieron ({movements[hoveredIndex].exited.length}):
+                    </span>{' '}
+                    {movements[hoveredIndex].exited.slice(0, 5).join(', ')}
+                    {movements[hoveredIndex].exited.length > 5 &&
+                      ` y ${movements[hoveredIndex].exited.length - 5} más`}
+                  </div>
+                )}
+              </>
+            )}
           </div>,
           document.body
         )}
