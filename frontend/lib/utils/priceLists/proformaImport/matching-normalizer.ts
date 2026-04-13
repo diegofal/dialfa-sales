@@ -17,9 +17,10 @@ export class MatchingKeyNormalizer {
     normalized = normalized.replace(/\.0+$/, '');
 
     // 90° Short Radius Elbows (check first — SR is always explicit, CODOS 90 defaults to SR)
+    // Exclude "ELBOW 90" (CSV format without SR) but allow "90D SR ELBOW" (DB format with SR)
     if (
       /90D?\s*SR|90\s*SR|CODO\s*RADIO\s*CORTO\s*90|CODOS?\s*90°?/i.test(normalized) &&
-      !/LARGO|LR|LONG|ELBOW/i.test(normalized)
+      !/LARGO|LR|LONG|ELBOW\s*90/i.test(normalized)
     ) {
       return 'ELBOW_90_SR';
     }
