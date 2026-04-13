@@ -124,21 +124,20 @@ export class ArticleMatcher implements IArticleMatcher {
         });
         return key && articleIndex.has(key) ? { key, article: articleIndex.get(key)! } : null;
       },
-      // Strategy 2: Try without thickness if it's empty
+      // Strategy 2: Try common thickness values (raw schedule numbers used in DB for flanges)
       () => {
-        if (!thickness) {
-          // Try with common thickness values
-          for (const t of ['', 'STD', 'XS']) {
-            const key = MatchingKeyNormalizer.createMatchingKey({
-              type,
-              thickness: t,
-              size: item.size,
-              series: series || undefined,
-              description: item.description,
-            });
-            if (key && articleIndex.has(key)) {
-              return { key, article: articleIndex.get(key)! };
-            }
+        const fallbacks = ['', 'STD', 'XS', '40', '80', '160'];
+        for (const t of fallbacks) {
+          if (t === thickness) continue; // Already tried in Strategy 1
+          const key = MatchingKeyNormalizer.createMatchingKey({
+            type,
+            thickness: t,
+            size: item.size,
+            series: series || undefined,
+            description: item.description,
+          });
+          if (key && articleIndex.has(key)) {
+            return { key, article: articleIndex.get(key)! };
           }
         }
         return null;
@@ -146,7 +145,7 @@ export class ArticleMatcher implements IArticleMatcher {
       // Strategy 3: Try without series if series was extracted but no match
       () => {
         if (series) {
-          for (const t of [thickness, '', 'STD', 'XS']) {
+          for (const t of [thickness, '', 'STD', 'XS', '40', '80', '160']) {
             const key = MatchingKeyNormalizer.createMatchingKey({
               type,
               thickness: t,
@@ -237,16 +236,18 @@ export class ArticleMatcher implements IArticleMatcher {
   private extractThicknessFromDescription(description: string): string {
     const desc = description.toUpperCase();
 
-    // For W.N.R.F. flanges, extract the actual schedule number (40, 80) NOT normalized
+    // For W.N.R.F. flanges, extract schedule as stored in DB (raw numbers: 40, 80, 160)
     if (/W\.N\.R\.F/i.test(desc)) {
-      // Check for S.40, S.80, SCH 40, SCH 80, SCH STD
-      if (/S\.40|SCH\s*40|SCH\s*STD/i.test(desc)) {
-        return '40';
+      if (/S\.160|SCH\s*160/i.test(desc)) {
+        return '160';
       }
       if (/S\.80|SCH\s*80|SCH\s*XS/i.test(desc)) {
         return '80';
       }
-      // If no explicit schedule, return empty string
+      if (/S\.40|SCH\s*40|SCH\s*STD/i.test(desc)) {
+        return '40';
+      }
+      // No explicit schedule — Strategy 2 will try common fallbacks (40, 80, STD, etc.)
       return '';
     }
 
