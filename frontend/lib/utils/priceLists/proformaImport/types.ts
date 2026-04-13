@@ -16,6 +16,7 @@ export interface ExtractedItem {
 
 export interface ProformaMetadata {
   supplier: string;
+  supplierId?: number;
   proformaNumber: string;
   date?: string;
   fileName: string;
