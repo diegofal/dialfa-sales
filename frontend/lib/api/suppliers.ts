@@ -16,7 +16,8 @@ export const suppliersApi = {
   async getById(id: number) {
     const response = await fetch(`${BASE_URL}/${id}`);
     if (!response.ok) throw new Error('Failed to fetch supplier');
-    return response.json();
+    const json = await response.json();
+    return json.data || json;
   },
 
   async create(supplier: SupplierFormData) {
@@ -29,7 +30,8 @@ export const suppliersApi = {
       const error = await response.json();
       throw new Error(error.error || 'Failed to create supplier');
     }
-    return response.json();
+    const json = await response.json();
+    return json.data || json;
   },
 
   async update(id: number, supplier: Partial<SupplierFormData>) {
@@ -42,7 +44,8 @@ export const suppliersApi = {
       const error = await response.json();
       throw new Error(error.error || 'Failed to update supplier');
     }
-    return response.json();
+    const json = await response.json();
+    return json.data || json;
   },
 
   async delete(id: number) {
