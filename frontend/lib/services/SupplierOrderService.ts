@@ -35,6 +35,7 @@ export interface SupplierOrderListParams {
 export interface CreateSupplierOrderData {
   supplierId?: number | null;
   proformaNumber?: string;
+  cifPercentage?: number;
   expectedDeliveryDate?: string;
   notes?: string;
   items: OrderItemInput[];
@@ -42,6 +43,7 @@ export interface CreateSupplierOrderData {
 
 export interface UpdateSupplierOrderData {
   supplierId?: number | null;
+  cifPercentage?: number;
   expectedDeliveryDate?: string;
   notes?: string;
   items?: OrderItemInput[];
@@ -55,6 +57,7 @@ function mapOrderToDTO(o: any) {
     id: Number(o.id),
     orderNumber: o.order_number,
     proformaNumber: o.proforma_number || null,
+    cifPercentage: o.cif_percentage ? Number(o.cif_percentage) : 50,
     supplierId: o.supplier_id,
     supplierName: o.supplier?.name || null,
     status: o.status,
@@ -178,6 +181,7 @@ export async function create(data: CreateSupplierOrderData, userId: number, requ
     data: {
       order_number: orderNumber,
       proforma_number: data.proformaNumber || null,
+      cif_percentage: data.cifPercentage ?? 50,
       supplier_id: data.supplierId || null,
       status: 'draft',
       expected_delivery_date: data.expectedDeliveryDate

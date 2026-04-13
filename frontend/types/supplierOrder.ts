@@ -21,6 +21,7 @@ export interface SupplierOrder {
   id: number;
   orderNumber: string;
   proformaNumber?: string | null;
+  cifPercentage?: number;
   supplierId?: number | null;
   supplierName?: string | null;
   status: SupplierOrderStatus;

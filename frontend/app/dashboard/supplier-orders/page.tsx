@@ -177,13 +177,15 @@ export default function SupplierOrdersPage() {
               {orders.map((order) => {
                 const handleRowClick = () => router.push(`${ROUTES.SUPPLIER_ORDERS}/${order.id}`);
 
-                // Calcular totales de valorización
+                // Calcular totales de valorización con CIF
+                const cifPct = order.cifPercentage ?? 50;
                 const totalProforma =
                   order.items?.reduce((sum, item) => sum + (item.proformaTotalPrice || 0), 0) || 0;
+                const totalCIF = totalProforma * (1 + cifPct / 100);
                 const totalDB =
                   order.items?.reduce((sum, item) => sum + (item.dbTotalPrice || 0), 0) || 0;
-                const totalMargin = totalDB - totalProforma;
-                const marginPercent = totalProforma > 0 ? (totalDB / totalProforma - 1) * 100 : 0;
+                const totalMargin = totalDB - totalCIF;
+                const marginPercent = totalCIF > 0 ? (totalMargin / totalCIF) * 100 : 0;
 
                 return (
                   <TableRow key={order.id} className="hover:bg-muted/50">
