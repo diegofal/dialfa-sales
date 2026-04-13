@@ -180,9 +180,9 @@ export async function remove(id: number, userId: number, request: NextRequest) {
     return null;
   }
 
-  // Check if supplier has associated orders
+  // Check if supplier has non-deleted associated orders
   const orderCount = await prisma.supplier_orders.count({
-    where: { supplier_id: id },
+    where: { supplier_id: id, deleted_at: null },
   });
 
   if (orderCount > 0) {
