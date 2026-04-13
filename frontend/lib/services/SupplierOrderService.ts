@@ -638,6 +638,21 @@ export async function importProforma(file: File, request: NextRequest) {
     return { error: 'No items found in the proforma file', status: 400 };
   }
 
+  // Try to match supplier by name
+  if (proformaData.metadata.supplier) {
+    const supplier = await prisma.suppliers.findFirst({
+      where: {
+        name: { contains: proformaData.metadata.supplier, mode: 'insensitive' },
+        is_active: true,
+        deleted_at: null,
+      },
+      select: { id: true },
+    });
+    if (supplier) {
+      proformaData.metadata.supplierId = supplier.id;
+    }
+  }
+
   const matcher = new ArticleMatcher(prisma);
   const matchedItems = await matcher.matchItems(proformaData.items);
   await matcher.cleanup();
