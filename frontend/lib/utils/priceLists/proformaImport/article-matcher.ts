@@ -251,10 +251,10 @@ export class ArticleMatcher implements IArticleMatcher {
     }
 
     // For other products (SORF, BLIND, THREADED), use normalized STD/XS
-    if (/SCH\s*STD|SCH\s*40|S\.40|S\.\s*40/i.test(desc)) {
+    if (/SCH\s*STD|SCH\s*40|S\.40|S\.\s*40|\bSTD\b/i.test(desc)) {
       return 'STD';
     }
-    if (/SCH\s*XS|SCH\s*80|S\.80|S\.\s*80/i.test(desc)) {
+    if (/SCH\s*XS|SCH\s*80|S\.80|S\.\s*80|\bXS\b/i.test(desc)) {
       return 'XS';
     }
 
