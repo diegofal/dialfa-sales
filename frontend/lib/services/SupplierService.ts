@@ -55,11 +55,12 @@ function mapSupplierToDTO(s: any) {
 // ─── Service ──────────────────────────────────────────────────────────────────
 
 export async function list(params: SupplierListParams) {
-  const where: Prisma.suppliersWhereInput = {};
+  const where: Prisma.suppliersWhereInput = {
+    deleted_at: null,
+  };
 
   if (params.activeOnly) {
     where.is_active = true;
-    where.deleted_at = null;
   }
 
   if (params.searchTerm) {
