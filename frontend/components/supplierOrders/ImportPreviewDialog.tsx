@@ -1,6 +1,6 @@
-import { CheckCircle2, AlertCircle, XCircle, Download, Pencil } from 'lucide-react';
+import { CheckCircle2, AlertCircle, XCircle, Download, Pencil, Check } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -44,13 +44,52 @@ export function ImportPreviewDialog({
   const createOrderMutation = useCreateSupplierOrder({ silent: true });
   const [isCreating, setIsCreating] = useState(false);
   const [supplierName, setSupplierName] = useState('');
+  const [supplierId, setSupplierId] = useState<number | undefined>();
   const [editingSupplier, setEditingSupplier] = useState(false);
+  const [supplierSuggestions, setSupplierSuggestions] = useState<{ id: number; name: string }[]>(
+    []
+  );
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const supplierInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (importResult?.proforma.supplier) {
       setSupplierName(importResult.proforma.supplier);
+      setSupplierId(importResult.proforma.supplierId);
     }
-  }, [importResult?.proforma.supplier]);
+  }, [importResult?.proforma.supplier, importResult?.proforma.supplierId]);
+
+  const searchSuppliers = useCallback(async (term: string) => {
+    if (!term.trim()) {
+      setSupplierSuggestions([]);
+      return;
+    }
+    try {
+      const res = await fetch(
+        `/api/suppliers?searchTerm=${encodeURIComponent(term)}&activeOnly=true`
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setSupplierSuggestions(data.data || []);
+        setShowSuggestions(true);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
+  const handleSupplierInputChange = (value: string) => {
+    setSupplierName(value);
+    setSupplierId(undefined);
+    searchSuppliers(value);
+  };
+
+  const handleSelectSupplier = (supplier: { id: number; name: string }) => {
+    setSupplierName(supplier.name);
+    setSupplierId(supplier.id);
+    setShowSuggestions(false);
+    setEditingSupplier(false);
+  };
 
   if (!importResult) {
     return null;
@@ -68,31 +107,48 @@ export function ImportPreviewDialog({
     setIsCreating(true);
 
     try {
-      // Resolve supplier: use existing ID or create new supplier
-      let supplierId = importResult.proforma.supplierId;
+      // Resolve supplier: use selected ID, search by name, or create new
+      let resolvedSupplierId = supplierId;
 
-      if (!supplierId && supplierName.trim()) {
-        const code = supplierName
-          .trim()
-          .toUpperCase()
-          .replace(/[^A-Z0-9]/g, '_')
-          .substring(0, 20);
+      if (!resolvedSupplierId && supplierName.trim()) {
+        // First try to find existing supplier by name
+        const searchRes = await fetch(
+          `/api/suppliers?searchTerm=${encodeURIComponent(supplierName.trim())}&activeOnly=true`
+        );
+        if (searchRes.ok) {
+          const searchData = await searchRes.json();
+          const exact = (searchData.data || []).find(
+            (s: { name: string }) => s.name.toLowerCase() === supplierName.trim().toLowerCase()
+          );
+          if (exact) {
+            resolvedSupplierId = exact.id;
+          }
+        }
 
-        const res = await fetch('/api/suppliers', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ code, name: supplierName.trim() }),
-        });
+        // If not found, create new supplier
+        if (!resolvedSupplierId) {
+          const code = supplierName
+            .trim()
+            .toUpperCase()
+            .replace(/[^A-Z0-9]/g, '_')
+            .substring(0, 20);
 
-        if (res.ok) {
-          const created = await res.json();
-          supplierId = created.data?.id || created.id;
+          const res = await fetch('/api/suppliers', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ code, name: supplierName.trim() }),
+          });
+
+          if (res.ok) {
+            const created = await res.json();
+            resolvedSupplierId = created.data?.id || created.id;
+          }
         }
       }
 
       // Create supplier order with matched items
       const orderData = {
-        supplierId,
+        supplierId: resolvedSupplierId,
         proformaNumber: importResult.proforma.proformaNumber,
         items: matchedItems.map((item) => {
           // Calculate sales metrics from article
@@ -251,21 +307,55 @@ export function ImportPreviewDialog({
               <DialogDescription className="flex items-center gap-2">
                 <span>Proforma: {importResult.proforma.proformaNumber} • Proveedor:</span>
                 {editingSupplier ? (
-                  <Input
-                    value={supplierName}
-                    onChange={(e) => setSupplierName(e.target.value)}
-                    onBlur={() => setEditingSupplier(false)}
-                    onKeyDown={(e) => e.key === 'Enter' && setEditingSupplier(false)}
-                    className="h-7 w-48 text-sm"
-                    autoFocus
-                  />
+                  <div className="relative">
+                    <Input
+                      ref={supplierInputRef}
+                      value={supplierName}
+                      onChange={(e) => handleSupplierInputChange(e.target.value)}
+                      onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                      onFocus={() => supplierName && searchSuppliers(supplierName)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          setEditingSupplier(false);
+                          setShowSuggestions(false);
+                        }
+                      }}
+                      placeholder="Buscar o crear proveedor..."
+                      className="h-7 w-56 text-sm"
+                      autoFocus
+                    />
+                    {showSuggestions && supplierSuggestions.length > 0 && (
+                      <div className="bg-popover border-border absolute top-8 z-50 w-56 rounded-md border shadow-md">
+                        {supplierSuggestions.map((s) => (
+                          <button
+                            key={s.id}
+                            type="button"
+                            className="hover:bg-accent flex w-full items-center gap-2 px-3 py-1.5 text-left text-sm"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => handleSelectSupplier(s)}
+                          >
+                            {s.name}
+                            {supplierId === s.id && <Check className="ml-auto h-3 w-3" />}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {supplierName && !supplierId && (
+                      <span className="text-muted-foreground mt-0.5 block text-[10px]">
+                        Se creará nuevo proveedor
+                      </span>
+                    )}
+                  </div>
                 ) : (
                   <button
                     type="button"
                     onClick={() => setEditingSupplier(true)}
                     className="hover:bg-accent inline-flex items-center gap-1 rounded px-1"
                   >
-                    <span className="font-medium">{supplierName || 'Sin asignar'}</span>
+                    <span className="font-medium">
+                      {supplierName || 'Sin asignar'}
+                      {supplierId && <Check className="ml-1 inline h-3 w-3 text-green-500" />}
+                    </span>
                     <Pencil className="h-3 w-3 opacity-50" />
                   </button>
                 )}
