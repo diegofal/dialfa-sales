@@ -70,6 +70,7 @@ function mapOrderToDTO(o: any) {
     estimatedSaleTimeMonths: o.estimated_sale_time_months
       ? Number(o.estimated_sale_time_months)
       : null,
+    useCategoryDiscounts: o.use_category_discounts ?? true,
     notes: o.notes,
     createdAt: o.created_at.toISOString(),
     updatedAt: o.updated_at.toISOString(),
@@ -99,6 +100,7 @@ function mapItemToDTO(item: any) {
     dbTotalPrice: item.db_total_price ? Number(item.db_total_price) : null,
     marginAbsolute: item.margin_absolute ? Number(item.margin_absolute) : null,
     marginPercent: item.margin_percent ? Number(item.margin_percent) : null,
+    discountPercent: item.discount_percent != null ? Number(item.discount_percent) : null,
   };
 }
 
@@ -618,6 +620,29 @@ export async function syncWeights(orderId: bigint, userId: number, request: Next
     data: { updatedCount, updates },
     status: 200,
   };
+}
+
+export async function updateDiscounts(
+  orderId: bigint,
+  useCategoryDiscounts: boolean,
+  items: { articleId: number; discountPercent: number }[]
+) {
+  await prisma.supplier_orders.update({
+    where: { id: orderId },
+    data: { use_category_discounts: useCategoryDiscounts },
+  });
+
+  for (const item of items) {
+    await prisma.supplier_order_items.updateMany({
+      where: {
+        supplier_order_id: orderId,
+        article_id: BigInt(item.articleId),
+      },
+      data: { discount_percent: item.discountPercent },
+    });
+  }
+
+  return { status: 200 };
 }
 
 export async function importProforma(file: File, request: NextRequest) {

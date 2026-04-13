@@ -166,7 +166,7 @@ export default function SupplierOrdersPage() {
                 <TableHead className="text-right">Artículos</TableHead>
                 <TableHead className="text-right">Cantidad Total</TableHead>
                 <TableHead className="text-right">Total Proforma</TableHead>
-                <TableHead className="text-right">Total DB</TableHead>
+                <TableHead className="text-right">Total DB (c/desc.)</TableHead>
                 <TableHead className="text-right">Margen Total</TableHead>
                 <TableHead className="text-right">Tiempo Est. Venta</TableHead>
                 <TableHead>Estado</TableHead>
@@ -177,13 +177,17 @@ export default function SupplierOrdersPage() {
               {orders.map((order) => {
                 const handleRowClick = () => router.push(`${ROUTES.SUPPLIER_ORDERS}/${order.id}`);
 
-                // Calcular totales de valorización con CIF
+                // Calcular totales de valorización con CIF y descuentos guardados
                 const cifPct = order.cifPercentage ?? 50;
                 const totalProforma =
                   order.items?.reduce((sum, item) => sum + (item.proformaTotalPrice || 0), 0) || 0;
                 const totalCIF = totalProforma * (1 + cifPct / 100);
                 const totalDB =
-                  order.items?.reduce((sum, item) => sum + (item.dbTotalPrice || 0), 0) || 0;
+                  order.items?.reduce((sum, item) => {
+                    const discount = item.discountPercent || 0;
+                    const discountedPrice = (item.dbUnitPrice || 0) * (1 - discount / 100);
+                    return sum + discountedPrice * item.quantity;
+                  }, 0) || 0;
                 const totalMargin = totalDB - totalCIF;
                 const marginPercent = totalCIF > 0 ? (totalMargin / totalCIF) * 100 : 0;
 
