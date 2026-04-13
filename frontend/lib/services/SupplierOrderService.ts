@@ -34,6 +34,7 @@ export interface SupplierOrderListParams {
 
 export interface CreateSupplierOrderData {
   supplierId?: number | null;
+  proformaNumber?: string;
   expectedDeliveryDate?: string;
   notes?: string;
   items: OrderItemInput[];
@@ -53,6 +54,7 @@ function mapOrderToDTO(o: any) {
   return {
     id: Number(o.id),
     orderNumber: o.order_number,
+    proformaNumber: o.proforma_number || null,
     supplierId: o.supplier_id,
     supplierName: o.supplier?.name || null,
     status: o.status,
@@ -175,6 +177,7 @@ export async function create(data: CreateSupplierOrderData, userId: number, requ
   const order = await prisma.supplier_orders.create({
     data: {
       order_number: orderNumber,
+      proforma_number: data.proformaNumber || null,
       supplier_id: data.supplierId || null,
       status: 'draft',
       expected_delivery_date: data.expectedDeliveryDate

@@ -159,6 +159,7 @@ export default function SupplierOrdersPage() {
           <Table>
             <TableHeader>
               <TableRow>
+                <TableHead>N° Proforma</TableHead>
                 <TableHead>N° Pedido</TableHead>
                 <TableHead>Proveedor</TableHead>
                 <TableHead>Fecha</TableHead>
@@ -186,6 +187,12 @@ export default function SupplierOrdersPage() {
 
                 return (
                   <TableRow key={order.id} className="hover:bg-muted/50">
+                    <TableCell
+                      className="cursor-pointer font-mono text-sm"
+                      onClick={handleRowClick}
+                    >
+                      {order.proformaNumber || '-'}
+                    </TableCell>
                     <TableCell
                       className="cursor-pointer font-mono font-medium"
                       onClick={handleRowClick}
