@@ -471,6 +471,11 @@ export async function syncData(
   }[] = [];
 
   for (const item of itemsToSync) {
+    const article = await prisma.articles.findUnique({
+      where: { id: item.article_id },
+      select: { last_purchase_price: true },
+    });
+
     const updateData: {
       weight_kg?: number;
       last_purchase_price?: number;
@@ -487,6 +492,7 @@ export async function syncData(
       newWeight?: number;
       newPurchasePrice?: number;
       newCifPercentage?: number;
+      skippedPrice?: boolean;
     } = { articleCode: item.article_code };
 
     if (item.unit_weight !== null && Number(item.unit_weight) > 0) {
@@ -497,8 +503,15 @@ export async function syncData(
 
     if (item.proforma_unit_price !== null && Number(item.proforma_unit_price) > 0) {
       const newPurchasePrice = Number(item.proforma_unit_price);
-      updateData.last_purchase_price = newPurchasePrice;
-      updateInfo.newPurchasePrice = newPurchasePrice;
+      const currentPrice = article?.last_purchase_price ? Number(article.last_purchase_price) : 0;
+
+      // Only update purchase price if the new price is higher than the existing one
+      if (newPurchasePrice > currentPrice) {
+        updateData.last_purchase_price = newPurchasePrice;
+        updateInfo.newPurchasePrice = newPurchasePrice;
+      } else {
+        updateInfo.skippedPrice = true;
+      }
     }
 
     if (cifPercentage !== null && cifPercentage > 0) {
