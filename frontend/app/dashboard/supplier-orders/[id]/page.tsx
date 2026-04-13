@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { DollarSign } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { use, useEffect, useState, useMemo } from 'react';
+import { use, useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -109,15 +109,37 @@ export default function SupplierOrderDetailPage({ params }: { params: Promise<{ 
   const { data: order, isLoading } = useSupplierOrder(parseInt(id));
   const updateStatus = useUpdateSupplierOrderStatus();
 
-  // Initialize CIF percentage from order data
+  // Track whether initial load from DB is done (to avoid saving back what we just loaded)
+  const initializedFromDb = useRef(false);
+
+  // Initialize CIF percentage and category discounts toggle from order data
   useEffect(() => {
     if (order?.cifPercentage !== undefined) {
       setCommercialConfig((prev) => ({
         ...prev,
         cifPercentage: order.cifPercentage ?? 50,
+        useCategoryDiscounts: order.useCategoryDiscounts ?? true,
       }));
     }
-  }, [order?.cifPercentage]);
+  }, [order?.cifPercentage, order?.useCategoryDiscounts]);
+
+  // Initialize discount overrides from persisted item data
+  useEffect(() => {
+    if (!order?.items || order.items.length === 0) return;
+
+    const persisted = new Map<number, number>();
+    let hasAny = false;
+    for (const item of order.items) {
+      if (item.discountPercent != null && item.discountPercent > 0) {
+        persisted.set(item.articleId, item.discountPercent);
+        hasAny = true;
+      }
+    }
+    if (hasAny) {
+      setDiscountOverrides(persisted);
+    }
+    initializedFromDb.current = true;
+  }, [order?.items]);
 
   // Load article data with trends when order is loaded
   useEffect(() => {
@@ -152,6 +174,35 @@ export default function SupplierOrderDetailPage({ params }: { params: Promise<{ 
 
     loadArticlesData();
   }, [order?.items, trendMonths]);
+
+  // Auto-save discounts when they change (debounced)
+  const saveDiscounts = useCallback(async () => {
+    if (!order?.items || !initializedFromDb.current) return;
+
+    const items = order.items.map((item: SupplierOrderItemDto) => ({
+      articleId: item.articleId,
+      discountPercent: discountOverrides.get(item.articleId) ?? 0,
+    }));
+
+    try {
+      await axios.put(`/api/supplier-orders/${order.id}/discounts`, {
+        useCategoryDiscounts: commercialConfig.useCategoryDiscounts,
+        items,
+      });
+    } catch {
+      // Silently fail — discount save is non-critical
+    }
+  }, [order?.id, order?.items, discountOverrides, commercialConfig.useCategoryDiscounts]);
+
+  useEffect(() => {
+    if (!initializedFromDb.current) return;
+
+    const timer = setTimeout(() => {
+      saveDiscounts();
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [saveDiscounts]);
 
   // Recalcular métricas dinámicamente basado en salesTrend actual
   const itemsWithRecalculatedMetrics = useMemo((): ItemWithCommercialMetrics[] => {

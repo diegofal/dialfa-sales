@@ -37,6 +37,7 @@ export interface SupplierOrder {
   deletedAt?: string | null;
   createdBy?: number | null;
   updatedBy?: number | null;
+  useCategoryDiscounts?: boolean;
   items?: SupplierOrderItemDto[];
 }
 
@@ -61,6 +62,7 @@ export interface SupplierOrderItemDto {
   dbTotalPrice?: number | null;
   marginAbsolute?: number | null;
   marginPercent?: number | null;
+  discountPercent?: number | null;
 }
 
 export interface SupplierOrderFormData {
