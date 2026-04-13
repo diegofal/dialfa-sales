@@ -179,19 +179,39 @@ export async function remove(id: number, userId: number, request: NextRequest) {
     return null;
   }
 
-  await prisma.suppliers.update({
-    where: { id },
-    data: { deleted_at: new Date(), is_active: false, updated_by: userId },
+  // Check if supplier has associated orders
+  const orderCount = await prisma.supplier_orders.count({
+    where: { supplier_id: id },
   });
 
-  await logActivity({
-    request,
-    operation: OPERATIONS.SUPPLIER_DELETE,
-    description: `Proveedor ${supplier.name} (${supplier.code}) eliminado`,
-    entityType: 'supplier',
-    entityId: supplier.id,
-    details: { code: supplier.code, name: supplier.name },
-  });
+  if (orderCount > 0) {
+    // Has orders: soft delete (set inactive)
+    await prisma.suppliers.update({
+      where: { id },
+      data: { is_active: false, updated_by: userId },
+    });
+
+    await logActivity({
+      request,
+      operation: OPERATIONS.SUPPLIER_DELETE,
+      description: `Proveedor ${supplier.name} (${supplier.code}) desactivado (tiene ${orderCount} pedidos asociados)`,
+      entityType: 'supplier',
+      entityId: supplier.id,
+      details: { code: supplier.code, name: supplier.name, orderCount, action: 'deactivated' },
+    });
+  } else {
+    // No orders: hard delete
+    await prisma.suppliers.delete({ where: { id } });
+
+    await logActivity({
+      request,
+      operation: OPERATIONS.SUPPLIER_DELETE,
+      description: `Proveedor ${supplier.name} (${supplier.code}) eliminado`,
+      entityType: 'supplier',
+      entityId: supplier.id,
+      details: { code: supplier.code, name: supplier.name, action: 'deleted' },
+    });
+  }
 
   return true;
 }
