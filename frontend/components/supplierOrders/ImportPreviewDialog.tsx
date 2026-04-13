@@ -1,6 +1,6 @@
-import { CheckCircle2, AlertCircle, XCircle, Download } from 'lucide-react';
+import { CheckCircle2, AlertCircle, XCircle, Download, Pencil } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -12,6 +12,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
 import {
   Table,
   TableBody,
@@ -42,6 +43,14 @@ export function ImportPreviewDialog({
   const router = useRouter();
   const createOrderMutation = useCreateSupplierOrder({ silent: true });
   const [isCreating, setIsCreating] = useState(false);
+  const [supplierName, setSupplierName] = useState('');
+  const [editingSupplier, setEditingSupplier] = useState(false);
+
+  useEffect(() => {
+    if (importResult?.proforma.supplier) {
+      setSupplierName(importResult.proforma.supplier);
+    }
+  }, [importResult?.proforma.supplier]);
 
   if (!importResult) {
     return null;
@@ -59,9 +68,31 @@ export function ImportPreviewDialog({
     setIsCreating(true);
 
     try {
+      // Resolve supplier: use existing ID or create new supplier
+      let supplierId = importResult.proforma.supplierId;
+
+      if (!supplierId && supplierName.trim()) {
+        const code = supplierName
+          .trim()
+          .toUpperCase()
+          .replace(/[^A-Z0-9]/g, '_')
+          .substring(0, 20);
+
+        const res = await fetch('/api/suppliers', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, name: supplierName.trim() }),
+        });
+
+        if (res.ok) {
+          const created = await res.json();
+          supplierId = created.data?.id || created.id;
+        }
+      }
+
       // Create supplier order with matched items
       const orderData = {
-        supplierId: importResult.proforma.supplierId,
+        supplierId,
         items: matchedItems.map((item) => {
           // Calculate sales metrics from article
           const avgMonthlySales = calculateWeightedAvgSales(item.article!.salesTrend || []);
@@ -216,9 +247,27 @@ export function ImportPreviewDialog({
           <div className="flex items-center justify-between">
             <div>
               <DialogTitle>Vista Previa de Importación</DialogTitle>
-              <DialogDescription>
-                Proforma: {importResult.proforma.proformaNumber} • Proveedor:{' '}
-                {importResult.proforma.supplier}
+              <DialogDescription className="flex items-center gap-2">
+                <span>Proforma: {importResult.proforma.proformaNumber} • Proveedor:</span>
+                {editingSupplier ? (
+                  <Input
+                    value={supplierName}
+                    onChange={(e) => setSupplierName(e.target.value)}
+                    onBlur={() => setEditingSupplier(false)}
+                    onKeyDown={(e) => e.key === 'Enter' && setEditingSupplier(false)}
+                    className="h-7 w-48 text-sm"
+                    autoFocus
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setEditingSupplier(true)}
+                    className="hover:bg-accent inline-flex items-center gap-1 rounded px-1"
+                  >
+                    <span className="font-medium">{supplierName || 'Sin asignar'}</span>
+                    <Pencil className="h-3 w-3 opacity-50" />
+                  </button>
+                )}
               </DialogDescription>
             </div>
             <Button onClick={handleExportToCSV} variant="outline" size="sm">
