@@ -20,6 +20,7 @@ export interface SupplierOrderItem {
 export interface SupplierOrder {
   id: number;
   orderNumber: string;
+  proformaNumber?: string | null;
   supplierId?: number | null;
   supplierName?: string | null;
   status: SupplierOrderStatus;
