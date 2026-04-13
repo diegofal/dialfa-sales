@@ -136,7 +136,8 @@ export function SuppliersTable({
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar proveedor?</AlertDialogTitle>
             <AlertDialogDescription>
-              Esta acción eliminará el proveedor. Los pedidos asociados no se eliminarán.
+              Si el proveedor tiene pedidos asociados, se marcará como inactivo. Si no tiene
+              pedidos, se eliminará permanentemente.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

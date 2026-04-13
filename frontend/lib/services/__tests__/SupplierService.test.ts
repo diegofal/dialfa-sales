@@ -7,6 +7,8 @@ const mockFindUnique = jest.fn();
 const mockFindFirst = jest.fn();
 const mockCreate = jest.fn();
 const mockUpdate = jest.fn();
+const mockDelete = jest.fn();
+const mockOrderCount = jest.fn();
 jest.mock('@/lib/db', () => ({
   prisma: {
     suppliers: {
@@ -24,6 +26,14 @@ jest.mock('@/lib/db', () => ({
       },
       get update() {
         return mockUpdate;
+      },
+      get delete() {
+        return mockDelete;
+      },
+    },
+    supplier_orders: {
+      get count() {
+        return mockOrderCount;
       },
     },
   },
@@ -213,25 +223,38 @@ describe('remove', () => {
     expect(result).toBeNull();
   });
 
-  it('soft-deletes by setting deleted_at and is_active=false', async () => {
+  it('soft-deletes (deactivates) when supplier has orders', async () => {
     mockFindUnique.mockResolvedValue(mockSupplier);
-    mockUpdate.mockResolvedValue({ ...mockSupplier, deleted_at: new Date() });
+    mockOrderCount.mockResolvedValue(3);
+    mockUpdate.mockResolvedValue({ ...mockSupplier, is_active: false });
 
     await remove(1, 1, createMockRequest());
 
     expect(mockUpdate).toHaveBeenCalledWith({
       where: { id: 1 },
       data: expect.objectContaining({
-        deleted_at: expect.any(Date),
         is_active: false,
         updated_by: 1,
       }),
     });
+    expect(mockDelete).not.toHaveBeenCalled();
+  });
+
+  it('hard-deletes when supplier has no orders', async () => {
+    mockFindUnique.mockResolvedValue(mockSupplier);
+    mockOrderCount.mockResolvedValue(0);
+    mockDelete.mockResolvedValue(mockSupplier);
+
+    await remove(1, 1, createMockRequest());
+
+    expect(mockDelete).toHaveBeenCalledWith({ where: { id: 1 } });
+    expect(mockUpdate).not.toHaveBeenCalled();
   });
 
   it('returns true on success', async () => {
     mockFindUnique.mockResolvedValue(mockSupplier);
-    mockUpdate.mockResolvedValue({ ...mockSupplier, deleted_at: new Date() });
+    mockOrderCount.mockResolvedValue(0);
+    mockDelete.mockResolvedValue(mockSupplier);
 
     const result = await remove(1, 1, createMockRequest());
     expect(result).toBe(true);
