@@ -1,7 +1,15 @@
 'use client';
 
 import axios from 'axios';
-import { ArrowLeft, Package, Download, RefreshCw } from 'lucide-react';
+import {
+  ArrowLeft,
+  Package,
+  Download,
+  RefreshCw,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+} from 'lucide-react';
 import { DollarSign } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { use, useEffect, useState, useMemo } from 'react';
@@ -95,9 +103,21 @@ export default function SupplierOrderDetailPage({ params }: { params: Promise<{ 
   const [discountOverrides, setDiscountOverrides] = useState<Map<number, number>>(new Map());
   const [globalDiscount, setGlobalDiscount] = useState<string>('');
   const [syncingWeights, setSyncingWeights] = useState(false);
+  const [sortColumn, setSortColumn] = useState<keyof ItemWithCommercialMetrics | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
 
   const { data: order, isLoading } = useSupplierOrder(parseInt(id));
   const updateStatus = useUpdateSupplierOrderStatus();
+
+  // Initialize CIF percentage from order data
+  useEffect(() => {
+    if (order?.cifPercentage !== undefined) {
+      setCommercialConfig((prev) => ({
+        ...prev,
+        cifPercentage: order.cifPercentage ?? 50,
+      }));
+    }
+  }, [order?.cifPercentage]);
 
   // Load article data with trends when order is loaded
   useEffect(() => {
@@ -200,6 +220,26 @@ export default function SupplierOrderDetailPage({ params }: { params: Promise<{ 
     return calculateWeightedAvgSaleTime(itemsForCalc);
   }, [itemsWithRecalculatedMetrics, order?.estimatedSaleTimeMonths]);
 
+  // Sorted items for table display and export
+  const sortedItems = useMemo((): ItemWithCommercialMetrics[] => {
+    if (!sortColumn) return itemsWithRecalculatedMetrics;
+
+    return [...itemsWithRecalculatedMetrics].sort((a, b) => {
+      const aVal = (a[sortColumn] as number) ?? 0;
+      const bVal = (b[sortColumn] as number) ?? 0;
+      return sortDirection === 'asc' ? aVal - bVal : bVal - aVal;
+    });
+  }, [itemsWithRecalculatedMetrics, sortColumn, sortDirection]);
+
+  const handleSort = (column: keyof ItemWithCommercialMetrics) => {
+    if (sortColumn === column) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortColumn(column);
+      setSortDirection('desc');
+    }
+  };
+
   const handleStatusChange = (newStatus: string) => {
     if (!order) return;
     updateStatus.mutate({ id: order.id, status: newStatus as SupplierOrderStatus });
@@ -284,14 +324,11 @@ export default function SupplierOrderDetailPage({ params }: { params: Promise<{ 
     const marginDB = totalDB - totalProforma;
     const marginDBPercent = totalProforma > 0 ? (totalDB / totalProforma - 1) * 100 : 0;
 
-    const totalCIF = itemsWithRecalculatedMetrics.reduce(
-      (sum: number, item: ItemWithCommercialMetrics) => {
-        const cifTotal = (item.cifUnitPrice || 0) * item.quantity;
-        return sum + cifTotal;
-      },
-      0
-    );
-    const totalDiscounted = itemsWithRecalculatedMetrics.reduce(
+    const totalCIF = sortedItems.reduce((sum: number, item: ItemWithCommercialMetrics) => {
+      const cifTotal = (item.cifUnitPrice || 0) * item.quantity;
+      return sum + cifTotal;
+    }, 0);
+    const totalDiscounted = sortedItems.reduce(
       (sum: number, item: ItemWithCommercialMetrics) => sum + (item.discountedTotalPrice || 0),
       0
     );
@@ -561,7 +598,7 @@ export default function SupplierOrderDetailPage({ params }: { params: Promise<{ 
         </tr>
       </thead>
       <tbody>
-        ${itemsWithRecalculatedMetrics
+        ${sortedItems
           .map((item: ItemWithCommercialMetrics) => {
             const article = articlesData.get(item.articleId);
             const totalCIFItem = (item.cifUnitPrice || 0) * item.quantity;
@@ -834,27 +871,24 @@ export default function SupplierOrderDetailPage({ params }: { params: Promise<{ 
                     <Label htmlFor="cif-percentage-detail" className="text-xs">
                       CIF sobre FOB (%)
                     </Label>
-                    <Select
-                      value={commercialConfig.cifPercentage.toString()}
-                      onValueChange={(v) =>
-                        setCommercialConfig({
-                          ...commercialConfig,
-                          cifPercentage: parseInt(v),
-                        })
-                      }
-                    >
-                      <SelectTrigger id="cif-percentage-detail" className="h-8">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="30">30%</SelectItem>
-                        <SelectItem value="40">40%</SelectItem>
-                        <SelectItem value="50">50%</SelectItem>
-                        <SelectItem value="60">60%</SelectItem>
-                        <SelectItem value="70">70%</SelectItem>
-                        <SelectItem value="80">80%</SelectItem>
-                      </SelectContent>
-                    </Select>
+                    <div className="flex items-center gap-1">
+                      <Input
+                        id="cif-percentage-detail"
+                        type="number"
+                        min="0"
+                        max="200"
+                        step="1"
+                        value={commercialConfig.cifPercentage}
+                        onChange={(e) =>
+                          setCommercialConfig({
+                            ...commercialConfig,
+                            cifPercentage: parseFloat(e.target.value) || 0,
+                          })
+                        }
+                        className="h-8 w-20"
+                      />
+                      <span className="text-muted-foreground text-sm">%</span>
+                    </div>
                   </div>
 
                   <div className="space-y-2">
@@ -1140,22 +1174,52 @@ export default function SupplierOrderDetailPage({ params }: { params: Promise<{ 
                           </TooltipContent>
                         </Tooltip>
                       </TableHead>
-                      <TableHead className="text-right">
+                      <TableHead
+                        className="cursor-pointer text-right select-none"
+                        onClick={() => handleSort('realMarginAbsolute')}
+                      >
                         <Tooltip>
-                          <TooltipTrigger className="cursor-help">Margen Real USD</TooltipTrigger>
+                          <TooltipTrigger className="inline-flex cursor-help items-center gap-1">
+                            Margen Real USD
+                            {sortColumn === 'realMarginAbsolute' ? (
+                              sortDirection === 'desc' ? (
+                                <ArrowDown className="h-3 w-3" />
+                              ) : (
+                                <ArrowUp className="h-3 w-3" />
+                              )
+                            ) : (
+                              <ArrowUpDown className="h-3 w-3 opacity-40" />
+                            )}
+                          </TooltipTrigger>
                           <TooltipContent>
-                            <p className="max-w-xs">Total c/Desc - Total CIF</p>
+                            <p className="max-w-xs">
+                              Total c/Desc - Total CIF (click para ordenar)
+                            </p>
                           </TooltipContent>
                         </Tooltip>
                       </TableHead>
-                      <TableHead className="text-right">
+                      <TableHead
+                        className="cursor-pointer text-right select-none"
+                        onClick={() => handleSort('realMarginPercent')}
+                      >
                         <Tooltip>
-                          <TooltipTrigger className="cursor-help">Margen Real %</TooltipTrigger>
+                          <TooltipTrigger className="inline-flex cursor-help items-center gap-1">
+                            Margen Real %
+                            {sortColumn === 'realMarginPercent' ? (
+                              sortDirection === 'desc' ? (
+                                <ArrowDown className="h-3 w-3" />
+                              ) : (
+                                <ArrowUp className="h-3 w-3" />
+                              )
+                            ) : (
+                              <ArrowUpDown className="h-3 w-3 opacity-40" />
+                            )}
+                          </TooltipTrigger>
                           <TooltipContent>
                             <p className="max-w-xs">
                               (Margen Real USD / Total CIF) × 100
                               <br />
-                              Markup sobre costo de importación
+                              Markup sobre costo de importación (click para ordenar)
                             </p>
                           </TooltipContent>
                         </Tooltip>
@@ -1175,7 +1239,7 @@ export default function SupplierOrderDetailPage({ params }: { params: Promise<{ 
                     </TableCell>
                   </TableRow>
                 ) : (
-                  itemsWithRecalculatedMetrics.map((item: ItemWithCommercialMetrics) => {
+                  sortedItems.map((item: ItemWithCommercialMetrics) => {
                     const article = articlesData.get(item.articleId);
 
                     return (

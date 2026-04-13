@@ -544,6 +544,7 @@ model supplier_orders {
   id                         BigInt                 @id @default(autoincrement())
   order_number               String                 @unique @db.VarChar(20)
   proforma_number            String?                @db.VarChar(100)
+  cif_percentage             Decimal?               @default(50) @db.Decimal(5, 2)
   supplier_id                Int?
   status                     String                 @default("draft") @db.VarChar(20)
   order_date                 DateTime               @default(now()) @db.Timestamptz(6)
