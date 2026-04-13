@@ -35,6 +35,7 @@ export interface SupplierOrderListParams {
 export interface CreateSupplierOrderData {
   supplierId?: number | null;
   proformaNumber?: string;
+  proformaDate?: string;
   cifPercentage?: number;
   expectedDeliveryDate?: string;
   notes?: string;
@@ -181,6 +182,7 @@ export async function create(data: CreateSupplierOrderData, userId: number, requ
     data: {
       order_number: orderNumber,
       proforma_number: data.proformaNumber || null,
+      order_date: data.proformaDate ? new Date(data.proformaDate) : new Date(),
       cif_percentage: data.cifPercentage ?? 50,
       supplier_id: data.supplierId || null,
       status: 'draft',
