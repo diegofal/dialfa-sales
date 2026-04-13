@@ -150,6 +150,7 @@ export function ImportPreviewDialog({
       const orderData = {
         supplierId: resolvedSupplierId,
         proformaNumber: importResult.proforma.proformaNumber,
+        proformaDate: importResult.proforma.date,
         items: matchedItems.map((item) => {
           // Calculate sales metrics from article
           const avgMonthlySales = calculateWeightedAvgSales(item.article!.salesTrend || []);
