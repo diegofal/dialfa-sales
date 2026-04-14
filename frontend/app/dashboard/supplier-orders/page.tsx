@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useMemo, useState } from 'react';
+import { toast } from 'sonner';
 import { ImportPreviewDialog } from '@/components/supplierOrders/ImportPreviewDialog';
 import { ProformaDropZone } from '@/components/supplierOrders/ProformaDropZone';
 import {
@@ -28,6 +29,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
@@ -78,6 +81,7 @@ type SortKey =
   | 'totalItems'
   | 'totalQuantity'
   | 'totalProforma'
+  | 'totalCIF'
   | 'totalDB'
   | 'totalMargin'
   | 'estimatedSaleTimeMonths';
@@ -85,6 +89,7 @@ type SortKey =
 interface ComputedOrder {
   order: SupplierOrder;
   totalProforma: number;
+  totalCIF: number;
   totalDB: number;
   totalMargin: number;
   marginPercent: number;
@@ -135,13 +140,17 @@ export default function SupplierOrdersPage() {
 
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [orderToDelete, setOrderToDelete] = useState<number | null>(null);
+  const [showDeleteAll, setShowDeleteAll] = useState(false);
   const [showImportZone, setShowImportZone] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
   const [sortColumn, setSortColumn] = useState<SortKey | null>('orderDate');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [syncing, setSyncing] = useState(false);
+  const [applyingDiscount, setApplyingDiscount] = useState(false);
+  const [deletingAll, setDeletingAll] = useState(false);
+  const [globalDiscount, setGlobalDiscount] = useState('');
 
-  const { data, isLoading } = useSupplierOrders({
+  const { data, isLoading, refetch } = useSupplierOrders({
     status: statusFilter !== 'all' ? (statusFilter as SupplierOrderStatus) : undefined,
   });
 
@@ -165,7 +174,7 @@ export default function SupplierOrdersPage() {
       const totalMargin = totalDB - totalCIF;
       const marginPercent = totalCIF > 0 ? (totalMargin / totalCIF) * 100 : 0;
 
-      return { order, totalProforma, totalDB, totalMargin, marginPercent, cifPct };
+      return { order, totalProforma, totalCIF, totalDB, totalMargin, marginPercent, cifPct };
     });
 
     if (!sortColumn) return computed;
@@ -203,6 +212,10 @@ export default function SupplierOrdersPage() {
           aVal = a.totalProforma;
           bVal = b.totalProforma;
           break;
+        case 'totalCIF':
+          aVal = a.totalCIF;
+          bVal = b.totalCIF;
+          break;
         case 'totalDB':
           aVal = a.totalDB;
           bVal = b.totalDB;
@@ -226,6 +239,21 @@ export default function SupplierOrdersPage() {
     });
   }, [orders, sortColumn, sortDirection]);
 
+  // Aggregate totals
+  const totals = useMemo(() => {
+    return sortedOrders.reduce(
+      (acc, { totalProforma, totalCIF, totalDB, totalMargin }) => ({
+        totalProforma: acc.totalProforma + totalProforma,
+        totalCIF: acc.totalCIF + totalCIF,
+        totalDB: acc.totalDB + totalDB,
+        totalMargin: acc.totalMargin + totalMargin,
+      }),
+      { totalProforma: 0, totalCIF: 0, totalDB: 0, totalMargin: 0 }
+    );
+  }, [sortedOrders]);
+
+  const totalMarginPercent = totals.totalCIF > 0 ? (totals.totalMargin / totals.totalCIF) * 100 : 0;
+
   const handleSort = (key: SortKey) => {
     if (sortColumn === key) {
       setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
@@ -244,6 +272,23 @@ export default function SupplierOrdersPage() {
       await deleteOrderMutation.mutateAsync(orderToDelete);
       setOrderToDelete(null);
     }
+  };
+
+  const handleDeleteAll = async () => {
+    setDeletingAll(true);
+    let count = 0;
+    for (const order of orders) {
+      try {
+        await deleteOrderMutation.mutateAsync(order.id);
+        count++;
+      } catch {
+        // continue
+      }
+    }
+    setDeletingAll(false);
+    setShowDeleteAll(false);
+    toast.success(`${count} pedidos eliminados`);
+    refetch();
   };
 
   const handleImportSuccess = (result: ImportResult) => {
@@ -281,9 +326,41 @@ export default function SupplierOrdersPage() {
     }
 
     setSyncing(false);
-    alert(
-      `Sincronización completada:\n${successCount} pedidos sincronizados${errorCount > 0 ? `\n${errorCount} errores` : ''}`
+    toast.success(
+      `${successCount} pedidos sincronizados${errorCount > 0 ? `, ${errorCount} errores` : ''}`
     );
+  };
+
+  const handleApplyGlobalDiscount = async () => {
+    const discount = parseFloat(globalDiscount);
+    if (isNaN(discount) || discount < 0 || discount > 100) return;
+
+    setApplyingDiscount(true);
+    let successCount = 0;
+
+    for (const order of orders) {
+      if (!order.items || order.items.length === 0) continue;
+
+      const items = order.items.map((item) => ({
+        articleId: item.articleId,
+        discountPercent: discount,
+      }));
+
+      try {
+        await axios.put(`/api/supplier-orders/${order.id}/discounts`, {
+          useCategoryDiscounts: false,
+          items,
+        });
+        successCount++;
+      } catch {
+        // continue
+      }
+    }
+
+    setApplyingDiscount(false);
+    setGlobalDiscount('');
+    toast.success(`Descuento ${discount}% aplicado a ${successCount} pedidos`);
+    refetch();
   };
 
   return (
@@ -318,6 +395,91 @@ export default function SupplierOrdersPage() {
 
       {/* Import Zone */}
       {canEdit && showImportZone && <ProformaDropZone onImportSuccess={handleImportSuccess} />}
+
+      {/* Commercial Analysis Panel */}
+      {orders.length > 0 && (
+        <Card className="space-y-4 p-4">
+          {/* Summary Cards */}
+          <div className="grid grid-cols-4 gap-4">
+            <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-900 dark:bg-blue-950">
+              <div className="text-xl font-bold text-blue-700 dark:text-blue-400">
+                ${totals.totalProforma.toFixed(2)}
+              </div>
+              <div className="text-xs text-blue-600 dark:text-blue-500">Total Proforma (FOB)</div>
+            </div>
+            <div className="rounded-lg border border-orange-200 bg-orange-50 p-3 dark:border-orange-900 dark:bg-orange-950">
+              <div className="text-xl font-bold text-orange-700 dark:text-orange-400">
+                ${totals.totalCIF.toFixed(2)}
+              </div>
+              <div className="text-xs text-orange-600 dark:text-orange-500">Total CIF (50%)</div>
+            </div>
+            <div className="rounded-lg border border-cyan-200 bg-cyan-50 p-3 dark:border-cyan-900 dark:bg-cyan-950">
+              <div className="text-xl font-bold text-cyan-700 dark:text-cyan-400">
+                ${totals.totalDB.toFixed(2)}
+              </div>
+              <div className="text-xs text-cyan-600 dark:text-cyan-500">Total DB (c/desc.)</div>
+            </div>
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900 dark:bg-emerald-950">
+              <div
+                className={`text-xl font-bold ${totalMarginPercent >= 100 ? 'text-emerald-700 dark:text-emerald-400' : totalMarginPercent >= 50 ? 'text-yellow-600' : 'text-red-600'}`}
+              >
+                ${totals.totalMargin.toFixed(2)} ({totalMarginPercent.toFixed(1)}%)
+              </div>
+              <div className="text-xs text-emerald-600 dark:text-emerald-500">Margen Real</div>
+            </div>
+          </div>
+
+          {/* Batch Discount + Delete All */}
+          {canEdit && (
+            <div className="flex items-end gap-4 border-t pt-3">
+              <div className="space-y-1">
+                <Label className="text-xs font-semibold text-orange-700 dark:text-orange-400">
+                  Aplicar descuento global a todos los pedidos
+                </Label>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min="0"
+                    max="100"
+                    step="1"
+                    placeholder="Ej: 25"
+                    value={globalDiscount}
+                    onChange={(e) => setGlobalDiscount(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') handleApplyGlobalDiscount();
+                    }}
+                    className="h-8 w-24 text-right"
+                  />
+                  <span className="text-muted-foreground text-sm">%</span>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={handleApplyGlobalDiscount}
+                    disabled={
+                      applyingDiscount || !globalDiscount || isNaN(parseFloat(globalDiscount))
+                    }
+                    className="h-8"
+                  >
+                    {applyingDiscount ? 'Aplicando...' : 'Aplicar a todos'}
+                  </Button>
+                </div>
+              </div>
+              <div className="ml-auto">
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  onClick={() => setShowDeleteAll(true)}
+                  disabled={orders.length === 0}
+                  className="h-8"
+                >
+                  <Trash2 className="mr-1 h-3 w-3" />
+                  Eliminar todos ({orders.length})
+                </Button>
+              </div>
+            </div>
+          )}
+        </Card>
+      )}
 
       {/* Filters */}
       <div className="flex gap-4">
@@ -393,7 +555,7 @@ export default function SupplierOrdersPage() {
                   className="text-right"
                 />
                 <SortableHead
-                  label="Cantidad Total"
+                  label="Cantidad"
                   sortKey="totalQuantity"
                   currentSort={sortColumn}
                   currentDirection={sortDirection}
@@ -401,7 +563,7 @@ export default function SupplierOrdersPage() {
                   className="text-right"
                 />
                 <SortableHead
-                  label="Total Proforma"
+                  label="FOB"
                   sortKey="totalProforma"
                   currentSort={sortColumn}
                   currentDirection={sortDirection}
@@ -409,7 +571,15 @@ export default function SupplierOrdersPage() {
                   className="text-right"
                 />
                 <SortableHead
-                  label="Total DB (c/desc.)"
+                  label="CIF"
+                  sortKey="totalCIF"
+                  currentSort={sortColumn}
+                  currentDirection={sortDirection}
+                  onSort={handleSort}
+                  className="text-right"
+                />
+                <SortableHead
+                  label="DB (c/desc.)"
                   sortKey="totalDB"
                   currentSort={sortColumn}
                   currentDirection={sortDirection}
@@ -417,7 +587,7 @@ export default function SupplierOrdersPage() {
                   className="text-right"
                 />
                 <SortableHead
-                  label="Margen Total"
+                  label="Margen"
                   sortKey="totalMargin"
                   currentSort={sortColumn}
                   currentDirection={sortDirection}
@@ -425,7 +595,7 @@ export default function SupplierOrdersPage() {
                   className="text-right"
                 />
                 <SortableHead
-                  label="Tiempo Est. Venta"
+                  label="T. Est. Venta"
                   sortKey="estimatedSaleTimeMonths"
                   currentSort={sortColumn}
                   currentDirection={sortDirection}
@@ -433,100 +603,108 @@ export default function SupplierOrdersPage() {
                   className="text-right"
                 />
                 <TableHead>Estado</TableHead>
-                {canEdit && <TableHead className="w-[100px]">Acciones</TableHead>}
+                {canEdit && <TableHead className="w-[50px]"></TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sortedOrders.map(({ order, totalProforma, totalDB, totalMargin, marginPercent }) => {
-                const handleRowClick = () => router.push(`${ROUTES.SUPPLIER_ORDERS}/${order.id}`);
+              {sortedOrders.map(
+                ({ order, totalProforma, totalCIF, totalDB, totalMargin, marginPercent }) => {
+                  const handleRowClick = () => router.push(`${ROUTES.SUPPLIER_ORDERS}/${order.id}`);
 
-                return (
-                  <TableRow key={order.id} className="hover:bg-muted/50">
-                    <TableCell
-                      className="cursor-pointer font-mono text-sm"
-                      onClick={handleRowClick}
-                    >
-                      {order.proformaNumber || '-'}
-                    </TableCell>
-                    <TableCell
-                      className="cursor-pointer font-mono font-medium"
-                      onClick={handleRowClick}
-                    >
-                      {order.orderNumber}
-                    </TableCell>
-                    <TableCell onClick={handleRowClick} className="cursor-pointer">
-                      {order.supplierName || 'Sin asignar'}
-                    </TableCell>
-                    <TableCell onClick={handleRowClick} className="cursor-pointer">
-                      {new Date(order.orderDate).toLocaleDateString('es-AR')}
-                    </TableCell>
-                    <TableCell className="cursor-pointer text-right" onClick={handleRowClick}>
-                      {order.totalItems}
-                    </TableCell>
-                    <TableCell className="cursor-pointer text-right" onClick={handleRowClick}>
-                      {order.totalQuantity}
-                    </TableCell>
-                    <TableCell
-                      className="cursor-pointer text-right font-medium"
-                      onClick={handleRowClick}
-                    >
-                      {totalProforma > 0 ? `$${totalProforma.toFixed(2)}` : '-'}
-                    </TableCell>
-                    <TableCell
-                      className="cursor-pointer text-right font-medium"
-                      onClick={handleRowClick}
-                    >
-                      {totalDB > 0 ? `$${totalDB.toFixed(2)}` : '-'}
-                    </TableCell>
-                    <TableCell
-                      className={`cursor-pointer text-right font-semibold ${
-                        totalMargin > 0 ? 'text-green-600' : totalMargin < 0 ? 'text-red-600' : ''
-                      }`}
-                      onClick={handleRowClick}
-                    >
-                      {totalProforma > 0 ? (
-                        <>
-                          ${totalMargin.toFixed(2)} ({marginPercent.toFixed(1)}%)
-                        </>
-                      ) : (
-                        '-'
-                      )}
-                    </TableCell>
-                    <TableCell className="cursor-pointer text-right" onClick={handleRowClick}>
-                      {order.estimatedSaleTimeMonths
-                        ? `~${order.estimatedSaleTimeMonths.toFixed(1)} meses`
-                        : '-'}
-                    </TableCell>
-                    <TableCell onClick={handleRowClick} className="cursor-pointer">
-                      <Badge variant={STATUS_VARIANTS[order.status as SupplierOrderStatus]}>
-                        {STATUS_LABELS[order.status as SupplierOrderStatus]}
-                      </Badge>
-                    </TableCell>
-                    {canEdit && (
-                      <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setOrderToDelete(order.id);
-                          }}
-                          className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8"
-                          aria-label="Eliminar pedido"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                  return (
+                    <TableRow key={order.id} className="hover:bg-muted/50">
+                      <TableCell
+                        className="cursor-pointer font-mono text-sm"
+                        onClick={handleRowClick}
+                      >
+                        {order.proformaNumber || '-'}
                       </TableCell>
-                    )}
-                  </TableRow>
-                );
-              })}
+                      <TableCell
+                        className="cursor-pointer font-mono font-medium"
+                        onClick={handleRowClick}
+                      >
+                        {order.orderNumber}
+                      </TableCell>
+                      <TableCell onClick={handleRowClick} className="cursor-pointer">
+                        {order.supplierName || 'Sin asignar'}
+                      </TableCell>
+                      <TableCell onClick={handleRowClick} className="cursor-pointer">
+                        {new Date(order.orderDate).toLocaleDateString('es-AR')}
+                      </TableCell>
+                      <TableCell className="cursor-pointer text-right" onClick={handleRowClick}>
+                        {order.totalItems}
+                      </TableCell>
+                      <TableCell className="cursor-pointer text-right" onClick={handleRowClick}>
+                        {order.totalQuantity}
+                      </TableCell>
+                      <TableCell
+                        className="cursor-pointer text-right font-medium"
+                        onClick={handleRowClick}
+                      >
+                        {totalProforma > 0 ? `$${totalProforma.toFixed(2)}` : '-'}
+                      </TableCell>
+                      <TableCell
+                        className="cursor-pointer text-right font-medium text-orange-600"
+                        onClick={handleRowClick}
+                      >
+                        {totalCIF > 0 ? `$${totalCIF.toFixed(2)}` : '-'}
+                      </TableCell>
+                      <TableCell
+                        className="cursor-pointer text-right font-medium text-cyan-600"
+                        onClick={handleRowClick}
+                      >
+                        {totalDB > 0 ? `$${totalDB.toFixed(2)}` : '-'}
+                      </TableCell>
+                      <TableCell
+                        className={`cursor-pointer text-right font-semibold ${
+                          totalMargin > 0 ? 'text-green-600' : totalMargin < 0 ? 'text-red-600' : ''
+                        }`}
+                        onClick={handleRowClick}
+                      >
+                        {totalProforma > 0 ? (
+                          <>
+                            ${totalMargin.toFixed(2)} ({marginPercent.toFixed(1)}%)
+                          </>
+                        ) : (
+                          '-'
+                        )}
+                      </TableCell>
+                      <TableCell className="cursor-pointer text-right" onClick={handleRowClick}>
+                        {order.estimatedSaleTimeMonths
+                          ? `~${order.estimatedSaleTimeMonths.toFixed(1)}m`
+                          : '-'}
+                      </TableCell>
+                      <TableCell onClick={handleRowClick} className="cursor-pointer">
+                        <Badge variant={STATUS_VARIANTS[order.status as SupplierOrderStatus]}>
+                          {STATUS_LABELS[order.status as SupplierOrderStatus]}
+                        </Badge>
+                      </TableCell>
+                      {canEdit && (
+                        <TableCell>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setOrderToDelete(order.id);
+                            }}
+                            className="text-destructive hover:text-destructive hover:bg-destructive/10 h-8 w-8"
+                            aria-label="Eliminar pedido"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      )}
+                    </TableRow>
+                  );
+                }
+              )}
             </TableBody>
           </Table>
         )}
       </Card>
 
-      {/* Delete Confirmation Dialog */}
+      {/* Delete Single Order Dialog */}
       <AlertDialog open={!!orderToDelete} onOpenChange={() => setOrderToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -543,6 +721,29 @@ export default function SupplierOrdersPage() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Delete All Orders Dialog */}
+      <AlertDialog open={showDeleteAll} onOpenChange={setShowDeleteAll}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar TODOS los pedidos?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminarán {orders.length} pedidos con todos sus items. Esta acción no se puede
+              deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deletingAll}>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteAll}
+              disabled={deletingAll}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deletingAll ? 'Eliminando...' : `Eliminar ${orders.length} pedidos`}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
