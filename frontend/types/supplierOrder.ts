@@ -38,6 +38,7 @@ export interface SupplierOrder {
   createdBy?: number | null;
   updatedBy?: number | null;
   useCategoryDiscounts?: boolean;
+  sourceFile?: string | null;
   items?: SupplierOrderItemDto[];
 }
 
@@ -69,6 +70,7 @@ export interface SupplierOrderFormData {
   supplierId?: number;
   expectedDeliveryDate?: string;
   notes?: string;
+  sourceFile?: string;
   items: {
     articleId: number;
     articleCode: string;

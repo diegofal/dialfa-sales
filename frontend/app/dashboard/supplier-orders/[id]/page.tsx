@@ -813,6 +813,12 @@ export default function SupplierOrderDetailPage({ params }: { params: Promise<{ 
                 <div>{new Date(order.actualDeliveryDate).toLocaleDateString('es-AR')}</div>
               </div>
             )}
+            {order.sourceFile && (
+              <div>
+                <div className="text-muted-foreground text-sm">Archivo Fuente</div>
+                <div className="font-mono text-sm">{order.sourceFile}</div>
+              </div>
+            )}
           </div>
         </Card>
 
