@@ -39,6 +39,7 @@ export interface CreateSupplierOrderData {
   cifPercentage?: number;
   expectedDeliveryDate?: string;
   notes?: string;
+  sourceFile?: string;
   items: OrderItemInput[];
 }
 
@@ -71,6 +72,7 @@ function mapOrderToDTO(o: any) {
       ? Number(o.estimated_sale_time_months)
       : null,
     useCategoryDiscounts: o.use_category_discounts ?? true,
+    sourceFile: o.source_file || null,
     notes: o.notes,
     createdAt: o.created_at.toISOString(),
     updatedAt: o.updated_at.toISOString(),
@@ -195,6 +197,7 @@ export async function create(data: CreateSupplierOrderData, userId: number, requ
       total_quantity: totalQuantity,
       estimated_sale_time_months: avgSaleTime,
       notes: data.notes || null,
+      source_file: data.sourceFile || null,
       created_by: userId,
       updated_by: userId,
       supplier_order_items: {

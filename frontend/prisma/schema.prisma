@@ -560,6 +560,7 @@ model supplier_orders {
   created_by                 Int?
   updated_by                 Int?
   use_category_discounts     Boolean                @default(true)
+  source_file                String?                @db.VarChar(500)
   supplier_order_items       supplier_order_items[]
   supplier                   suppliers?             @relation(fields: [supplier_id], references: [id], onUpdate: NoAction, map: "f_k_supplier_orders__suppliers_supplier_id")
 
