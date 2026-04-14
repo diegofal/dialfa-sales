@@ -139,7 +139,10 @@ async function importCsv(filePath: string, matcher: ArticleMatcher): Promise<Imp
       data: {
         order_number: orderNumber,
         proforma_number: metadata.proformaNumber || null,
-        order_date: metadata.date ? new Date(metadata.date) : new Date(),
+        order_date:
+          metadata.date && !isNaN(new Date(metadata.date).getTime())
+            ? new Date(metadata.date)
+            : new Date(),
         cif_percentage: 50,
         supplier_id: supplierId,
         status: 'draft',
