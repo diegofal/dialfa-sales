@@ -1,8 +1,18 @@
 'use client';
 
-import { Plus, Package, Trash2, Upload } from 'lucide-react';
+import axios from 'axios';
+import {
+  Plus,
+  Package,
+  Trash2,
+  Upload,
+  RefreshCw,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+} from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { ImportPreviewDialog } from '@/components/supplierOrders/ImportPreviewDialog';
 import { ProformaDropZone } from '@/components/supplierOrders/ProformaDropZone';
 import {
@@ -37,7 +47,7 @@ import { ROUTES } from '@/lib/constants/routes';
 import { useSupplierOrders, useDeleteSupplierOrder } from '@/lib/hooks/domain/useSupplierOrders';
 import { ImportResult } from '@/lib/utils/priceLists/proformaImport/types';
 import { useAuthStore } from '@/store/authStore';
-import { SupplierOrderStatus } from '@/types/supplierOrder';
+import { SupplierOrder, SupplierOrderStatus } from '@/types/supplierOrder';
 
 const STATUS_LABELS: Record<SupplierOrderStatus, string> = {
   draft: 'Borrador',
@@ -60,6 +70,64 @@ const STATUS_VARIANTS: Record<
   cancelled: 'destructive',
 };
 
+type SortKey =
+  | 'proformaNumber'
+  | 'orderNumber'
+  | 'supplierName'
+  | 'orderDate'
+  | 'totalItems'
+  | 'totalQuantity'
+  | 'totalProforma'
+  | 'totalDB'
+  | 'totalMargin'
+  | 'estimatedSaleTimeMonths';
+
+interface ComputedOrder {
+  order: SupplierOrder;
+  totalProforma: number;
+  totalDB: number;
+  totalMargin: number;
+  marginPercent: number;
+  cifPct: number;
+}
+
+function SortableHead({
+  label,
+  sortKey,
+  currentSort,
+  currentDirection,
+  onSort,
+  className,
+}: {
+  label: string;
+  sortKey: SortKey;
+  currentSort: SortKey | null;
+  currentDirection: 'asc' | 'desc';
+  onSort: (key: SortKey) => void;
+  className?: string;
+}) {
+  const isActive = currentSort === sortKey;
+  return (
+    <TableHead
+      className={`cursor-pointer select-none ${className || ''}`}
+      onClick={() => onSort(sortKey)}
+    >
+      <span className="inline-flex items-center gap-1">
+        {label}
+        {isActive ? (
+          currentDirection === 'desc' ? (
+            <ArrowDown className="h-3 w-3" />
+          ) : (
+            <ArrowUp className="h-3 w-3" />
+          )
+        ) : (
+          <ArrowUpDown className="h-3 w-3 opacity-30" />
+        )}
+      </span>
+    </TableHead>
+  );
+}
+
 export default function SupplierOrdersPage() {
   const router = useRouter();
   const { isAdmin } = useAuthStore();
@@ -69,6 +137,9 @@ export default function SupplierOrdersPage() {
   const [orderToDelete, setOrderToDelete] = useState<number | null>(null);
   const [showImportZone, setShowImportZone] = useState(false);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
+  const [sortColumn, setSortColumn] = useState<SortKey | null>('orderDate');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
+  const [syncing, setSyncing] = useState(false);
 
   const { data, isLoading } = useSupplierOrders({
     status: statusFilter !== 'all' ? (statusFilter as SupplierOrderStatus) : undefined,
@@ -77,6 +148,92 @@ export default function SupplierOrdersPage() {
   const deleteOrderMutation = useDeleteSupplierOrder();
 
   const orders = data?.data || [];
+
+  // Pre-compute derived values and sort
+  const sortedOrders = useMemo((): ComputedOrder[] => {
+    const computed = orders.map((order) => {
+      const cifPct = order.cifPercentage ?? 50;
+      const totalProforma =
+        order.items?.reduce((sum, item) => sum + (item.proformaTotalPrice || 0), 0) || 0;
+      const totalCIF = totalProforma * (1 + cifPct / 100);
+      const totalDB =
+        order.items?.reduce((sum, item) => {
+          const discount = item.discountPercent || 0;
+          const discountedPrice = (item.dbUnitPrice || 0) * (1 - discount / 100);
+          return sum + discountedPrice * item.quantity;
+        }, 0) || 0;
+      const totalMargin = totalDB - totalCIF;
+      const marginPercent = totalCIF > 0 ? (totalMargin / totalCIF) * 100 : 0;
+
+      return { order, totalProforma, totalDB, totalMargin, marginPercent, cifPct };
+    });
+
+    if (!sortColumn) return computed;
+
+    return [...computed].sort((a, b) => {
+      let aVal: number | string = 0;
+      let bVal: number | string = 0;
+
+      switch (sortColumn) {
+        case 'proformaNumber':
+          aVal = a.order.proformaNumber || '';
+          bVal = b.order.proformaNumber || '';
+          break;
+        case 'orderNumber':
+          aVal = a.order.orderNumber;
+          bVal = b.order.orderNumber;
+          break;
+        case 'supplierName':
+          aVal = a.order.supplierName || '';
+          bVal = b.order.supplierName || '';
+          break;
+        case 'orderDate':
+          aVal = new Date(a.order.orderDate).getTime();
+          bVal = new Date(b.order.orderDate).getTime();
+          break;
+        case 'totalItems':
+          aVal = a.order.totalItems;
+          bVal = b.order.totalItems;
+          break;
+        case 'totalQuantity':
+          aVal = a.order.totalQuantity;
+          bVal = b.order.totalQuantity;
+          break;
+        case 'totalProforma':
+          aVal = a.totalProforma;
+          bVal = b.totalProforma;
+          break;
+        case 'totalDB':
+          aVal = a.totalDB;
+          bVal = b.totalDB;
+          break;
+        case 'totalMargin':
+          aVal = a.totalMargin;
+          bVal = b.totalMargin;
+          break;
+        case 'estimatedSaleTimeMonths':
+          aVal = a.order.estimatedSaleTimeMonths || Infinity;
+          bVal = b.order.estimatedSaleTimeMonths || Infinity;
+          break;
+      }
+
+      if (typeof aVal === 'string' && typeof bVal === 'string') {
+        return sortDirection === 'asc' ? aVal.localeCompare(bVal) : bVal.localeCompare(aVal);
+      }
+      return sortDirection === 'asc'
+        ? (aVal as number) - (bVal as number)
+        : (bVal as number) - (aVal as number);
+    });
+  }, [orders, sortColumn, sortDirection]);
+
+  const handleSort = (key: SortKey) => {
+    if (sortColumn === key) {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+    } else {
+      setSortColumn(key);
+      setSortDirection('desc');
+    }
+  };
 
   const handleNewOrder = () => {
     router.push(`${ROUTES.ARTICLES}?tab=articles`);
@@ -98,6 +255,37 @@ export default function SupplierOrdersPage() {
     setImportResult(null);
   };
 
+  const handleSyncAll = async () => {
+    if (
+      !confirm(
+        `¿Sincronizar datos de ${orders.length} pedidos a los artículos?\n\nEsto actualizará peso (kg), último precio de compra y % CIF de cada artículo con los datos de sus proformas.`
+      )
+    ) {
+      return;
+    }
+
+    setSyncing(true);
+    let successCount = 0;
+    let errorCount = 0;
+
+    for (const order of orders) {
+      const cifPct = order.cifPercentage ?? 50;
+      try {
+        await axios.post(`/api/supplier-orders/${order.id}/sync-data`, {
+          cifPercentage: cifPct,
+        });
+        successCount++;
+      } catch {
+        errorCount++;
+      }
+    }
+
+    setSyncing(false);
+    alert(
+      `Sincronización completada:\n${successCount} pedidos sincronizados${errorCount > 0 ? `\n${errorCount} errores` : ''}`
+    );
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -107,6 +295,15 @@ export default function SupplierOrdersPage() {
         </div>
         {canEdit && (
           <div className="flex gap-2">
+            <Button
+              variant="outline"
+              onClick={handleSyncAll}
+              disabled={syncing || orders.length === 0}
+              className="gap-2"
+            >
+              <RefreshCw className={`h-4 w-4 ${syncing ? 'animate-spin' : ''}`} />
+              {syncing ? 'Sincronizando...' : 'Sincronizar Datos'}
+            </Button>
             <Button onClick={() => setShowImportZone(!showImportZone)} variant="outline">
               <Upload className="mr-2 h-4 w-4" />
               Importar Proforma
@@ -159,37 +356,89 @@ export default function SupplierOrdersPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>N° Proforma</TableHead>
-                <TableHead>N° Pedido</TableHead>
-                <TableHead>Proveedor</TableHead>
-                <TableHead>Fecha</TableHead>
-                <TableHead className="text-right">Artículos</TableHead>
-                <TableHead className="text-right">Cantidad Total</TableHead>
-                <TableHead className="text-right">Total Proforma</TableHead>
-                <TableHead className="text-right">Total DB (c/desc.)</TableHead>
-                <TableHead className="text-right">Margen Total</TableHead>
-                <TableHead className="text-right">Tiempo Est. Venta</TableHead>
+                <SortableHead
+                  label="N° Proforma"
+                  sortKey="proformaNumber"
+                  currentSort={sortColumn}
+                  currentDirection={sortDirection}
+                  onSort={handleSort}
+                />
+                <SortableHead
+                  label="N° Pedido"
+                  sortKey="orderNumber"
+                  currentSort={sortColumn}
+                  currentDirection={sortDirection}
+                  onSort={handleSort}
+                />
+                <SortableHead
+                  label="Proveedor"
+                  sortKey="supplierName"
+                  currentSort={sortColumn}
+                  currentDirection={sortDirection}
+                  onSort={handleSort}
+                />
+                <SortableHead
+                  label="Fecha"
+                  sortKey="orderDate"
+                  currentSort={sortColumn}
+                  currentDirection={sortDirection}
+                  onSort={handleSort}
+                />
+                <SortableHead
+                  label="Artículos"
+                  sortKey="totalItems"
+                  currentSort={sortColumn}
+                  currentDirection={sortDirection}
+                  onSort={handleSort}
+                  className="text-right"
+                />
+                <SortableHead
+                  label="Cantidad Total"
+                  sortKey="totalQuantity"
+                  currentSort={sortColumn}
+                  currentDirection={sortDirection}
+                  onSort={handleSort}
+                  className="text-right"
+                />
+                <SortableHead
+                  label="Total Proforma"
+                  sortKey="totalProforma"
+                  currentSort={sortColumn}
+                  currentDirection={sortDirection}
+                  onSort={handleSort}
+                  className="text-right"
+                />
+                <SortableHead
+                  label="Total DB (c/desc.)"
+                  sortKey="totalDB"
+                  currentSort={sortColumn}
+                  currentDirection={sortDirection}
+                  onSort={handleSort}
+                  className="text-right"
+                />
+                <SortableHead
+                  label="Margen Total"
+                  sortKey="totalMargin"
+                  currentSort={sortColumn}
+                  currentDirection={sortDirection}
+                  onSort={handleSort}
+                  className="text-right"
+                />
+                <SortableHead
+                  label="Tiempo Est. Venta"
+                  sortKey="estimatedSaleTimeMonths"
+                  currentSort={sortColumn}
+                  currentDirection={sortDirection}
+                  onSort={handleSort}
+                  className="text-right"
+                />
                 <TableHead>Estado</TableHead>
                 {canEdit && <TableHead className="w-[100px]">Acciones</TableHead>}
               </TableRow>
             </TableHeader>
             <TableBody>
-              {orders.map((order) => {
+              {sortedOrders.map(({ order, totalProforma, totalDB, totalMargin, marginPercent }) => {
                 const handleRowClick = () => router.push(`${ROUTES.SUPPLIER_ORDERS}/${order.id}`);
-
-                // Calcular totales de valorización con CIF y descuentos guardados
-                const cifPct = order.cifPercentage ?? 50;
-                const totalProforma =
-                  order.items?.reduce((sum, item) => sum + (item.proformaTotalPrice || 0), 0) || 0;
-                const totalCIF = totalProforma * (1 + cifPct / 100);
-                const totalDB =
-                  order.items?.reduce((sum, item) => {
-                    const discount = item.discountPercent || 0;
-                    const discountedPrice = (item.dbUnitPrice || 0) * (1 - discount / 100);
-                    return sum + discountedPrice * item.quantity;
-                  }, 0) || 0;
-                const totalMargin = totalDB - totalCIF;
-                const marginPercent = totalCIF > 0 ? (totalMargin / totalCIF) * 100 : 0;
 
                 return (
                   <TableRow key={order.id} className="hover:bg-muted/50">
