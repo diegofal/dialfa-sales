@@ -171,7 +171,10 @@ describe('create', () => {
   it('defaults isActive to true when not provided', async () => {
     mockCreate.mockResolvedValue(mockCategory);
 
-    await create({ code: 'NEW', name: 'New Cat' }, createMockRequest());
+    await create(
+      { code: 'NEW', name: 'New Cat', defaultDiscountPercent: 0, isActive: true },
+      createMockRequest()
+    );
 
     expect(mockCreate).toHaveBeenCalledWith({
       data: expect.objectContaining({ is_active: true }),
@@ -185,14 +188,14 @@ describe('update', () => {
   it('returns null when category not found', async () => {
     mockFindUnique.mockResolvedValue(null);
 
-    const result = await update(999n, { name: 'Updated' }, createMockRequest());
+    const result = await update(999n, { code: 'UPD', name: 'Updated' }, createMockRequest());
     expect(result).toBeNull();
   });
 
   it('returns null when category is soft-deleted', async () => {
     mockFindUnique.mockResolvedValue({ ...mockCategory, deleted_at: new Date() });
 
-    const result = await update(5n, { name: 'Updated' }, createMockRequest());
+    const result = await update(5n, { code: 'UPD', name: 'Updated' }, createMockRequest());
     expect(result).toBeNull();
   });
 
@@ -200,7 +203,7 @@ describe('update', () => {
     mockFindUnique.mockResolvedValue(mockCategory);
     mockUpdate.mockResolvedValue({ ...mockCategory, name: 'Updated Bridas' });
 
-    const result = await update(5n, { name: 'Updated Bridas' }, createMockRequest());
+    const result = await update(5n, { code: 'BRI', name: 'Updated Bridas' }, createMockRequest());
 
     expect(mockUpdate).toHaveBeenCalledWith({
       where: { id: 5n },

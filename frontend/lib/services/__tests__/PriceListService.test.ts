@@ -11,8 +11,6 @@ import {
 // Mock dependencies
 const mockFindMany = jest.fn();
 const mockFindUnique = jest.fn();
-const mockCount = jest.fn();
-const mockCreate = jest.fn();
 const mockUpdate = jest.fn();
 const mockPriceHistoryFindMany = jest.fn();
 const mockPriceHistoryFindUnique = jest.fn();

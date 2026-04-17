@@ -13,7 +13,7 @@
  */
 
 import { Article } from '@/types/article';
-import { QuickCartItem } from '../useQuickCartTabs';
+import { QuickCartItem, QuickCartTab } from '../useQuickCartTabs';
 
 // ============================================================================
 // Test Setup - Mock localStorage and window events
@@ -677,7 +677,7 @@ describe('Feature: Tab Management', () => {
 
   describe('Scenario: Order tab creation and management', () => {
     it('Given no existing order tab, When creating order tab, Then new tab should be created with order metadata', () => {
-      const initialState = {
+      const initialState: { tabs: QuickCartTab[]; activeTabId: string } = {
         tabs: [{ id: 'tab-1', name: 'Pedido 1', items: [], createdAt: 1000 }],
         activeTabId: 'tab-1',
       };
@@ -687,7 +687,7 @@ describe('Feature: Tab Management', () => {
       const clientId = 42;
       const clientName = 'Acme Corp';
 
-      const newTab = {
+      const newTab: QuickCartTab = {
         id: `order-${orderId}-${Date.now()}`,
         name: `#${orderNumber} - ${clientName}`,
         clientId,

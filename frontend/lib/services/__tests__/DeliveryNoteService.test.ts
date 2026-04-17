@@ -1,5 +1,5 @@
 import { NextRequest } from 'next/server';
-import { getById, list, remove, create } from '../DeliveryNoteService';
+import { getById, list, remove } from '../DeliveryNoteService';
 
 // Mock dependencies
 const mockFindMany = jest.fn();
@@ -249,7 +249,7 @@ describe('create', () => {
 
     // Override the mock for this specific test
     const dbMock = require('@/lib/db');
-    const origSO = Object.getOwnPropertyDescriptor(dbMock.prisma.sales_orders, 'findUnique');
+    Object.getOwnPropertyDescriptor(dbMock.prisma.sales_orders, 'findUnique');
     Object.defineProperty(dbMock.prisma, 'sales_orders', {
       value: { findUnique: jest.fn().mockResolvedValue(null) },
       writable: true,

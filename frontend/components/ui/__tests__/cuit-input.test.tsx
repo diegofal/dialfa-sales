@@ -1,4 +1,5 @@
 import { render, screen, fireEvent } from '@testing-library/react';
+import '@testing-library/jest-dom';
 import { CUITInput } from '../cuit-input';
 
 describe('CUITInput', () => {

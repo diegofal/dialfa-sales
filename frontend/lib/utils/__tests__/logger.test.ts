@@ -26,12 +26,12 @@ describe('Logger', () => {
     consoleErrorSpy.mockRestore();
 
     // Restore NODE_ENV
-    process.env.NODE_ENV = originalEnv;
+    (process.env as Record<string, string | undefined>).NODE_ENV = originalEnv;
   });
 
   describe('in test environment', () => {
     it('should suppress all logs in test environment', () => {
-      process.env.NODE_ENV = 'test';
+      (process.env as Record<string, string>).NODE_ENV = 'test';
 
       logger.debug('debug message');
       logger.info('info message');
@@ -47,7 +47,7 @@ describe('Logger', () => {
 
   describe('in development environment', () => {
     beforeEach(() => {
-      process.env.NODE_ENV = 'development';
+      (process.env as Record<string, string>).NODE_ENV = 'development';
     });
 
     it('should log debug messages', () => {
@@ -116,7 +116,7 @@ describe('Logger', () => {
 
   describe('in production environment', () => {
     beforeEach(() => {
-      process.env.NODE_ENV = 'production';
+      (process.env as Record<string, string>).NODE_ENV = 'production';
     });
 
     it('should suppress debug messages in production', () => {
@@ -152,7 +152,7 @@ describe('Logger', () => {
 
   describe('HTTP logging', () => {
     beforeEach(() => {
-      process.env.NODE_ENV = 'development';
+      (process.env as Record<string, string>).NODE_ENV = 'development';
     });
 
     it('should log successful HTTP requests as debug', () => {
@@ -183,7 +183,7 @@ describe('Logger', () => {
 
   describe('Query logging', () => {
     beforeEach(() => {
-      process.env.NODE_ENV = 'development';
+      (process.env as Record<string, string>).NODE_ENV = 'development';
     });
 
     it('should log database queries as debug', () => {
