@@ -19,6 +19,7 @@ export const ROUTES = {
   SETTINGS: '/dashboard/settings',
   FEEDBACK: '/dashboard/feedback',
   FEEDBACK_ADMIN: '/dashboard/feedback/admin',
+  FINANCIAL_ANALYSIS: '/dashboard/financial-analysis',
 } as const;
 
 export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES];
