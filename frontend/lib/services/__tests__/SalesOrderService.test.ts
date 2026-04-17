@@ -93,9 +93,11 @@ jest.mock('@/lib/utils/mapper', () => ({
 jest.mock('@/types/permissions', () => ({
   calculateSalesOrderPermissions: jest.fn((status) => ({
     canEdit: !status.invoicePrinted,
+    canSave: !status.invoicePrinted,
+    canCreateInvoice: !status.hasInvoice,
+    canCancel: true,
     canDelete: true,
-    canGenerateInvoice: !status.hasInvoice,
-    canGenerateDeliveryNote: !status.hasDeliveryNote,
+    canCreateDeliveryNote: !status.hasDeliveryNote,
   })),
 }));
 
@@ -183,6 +185,8 @@ describe('create', () => {
     const result = await create(
       {
         clientId: 10n,
+        status: 'PENDING',
+        paymentTermId: 1,
         items: [{ articleId: 5n, quantity: 10, unitPrice: 500, discountPercent: 0 }],
         specialDiscountPercent: 0,
       },
@@ -200,6 +204,8 @@ describe('create', () => {
       create(
         {
           clientId: 10n,
+          status: 'PENDING',
+          paymentTermId: 1,
           items: [{ articleId: 5n, quantity: 10, unitPrice: 500, discountPercent: 0 }],
           specialDiscountPercent: 0,
         },
@@ -276,7 +282,7 @@ describe('getPermissions', () => {
 
     expect(result).not.toBeNull();
     expect(result!.status.hasInvoice).toBe(false);
-    expect(result!.permissions.canGenerateInvoice).toBe(true);
+    expect(result!.permissions.canCreateInvoice).toBe(true);
   });
 
   it('returns permissions for order with printed invoice', async () => {

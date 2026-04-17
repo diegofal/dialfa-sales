@@ -172,7 +172,7 @@ export function ValuationSummary({
                   </div>
                 )}
                 <div>
-                  <p className="text-muted-foreground text-xs">Valor Total</p>
+                  <p className="text-muted-foreground text-xs">Costo Total</p>
                   <p className="text-lg font-bold">{formatCurrency(data.totalValue)}</p>
                   <p className="text-muted-foreground text-xs">{percentage}% del total</p>
                 </div>

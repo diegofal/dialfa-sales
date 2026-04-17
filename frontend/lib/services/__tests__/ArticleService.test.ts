@@ -154,6 +154,8 @@ describe('create', () => {
         costPrice: 100,
         stock: 10,
         minimumStock: 2,
+        isDiscontinued: false,
+        isActive: true,
       },
       createMockRequest()
     );
@@ -179,6 +181,10 @@ describe('create', () => {
         description: 'No Stock',
         categoryId: 5n,
         unitPrice: 50,
+        stock: 0,
+        minimumStock: 0,
+        isDiscontinued: false,
+        isActive: true,
       },
       createMockRequest()
     );

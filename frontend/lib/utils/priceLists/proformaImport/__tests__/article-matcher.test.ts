@@ -21,12 +21,15 @@ function createMatcher() {
 
 function createExtractedItem(overrides: Partial<ExtractedItem> = {}): ExtractedItem {
   return {
+    rowNumber: 1,
+    itemNumber: '',
     description: 'FLANGE SORF A-105 150# 4"',
     size: '4"',
     quantity: 10,
     unitPrice: 50,
     totalPrice: 500,
     unitWeight: 5.2,
+    rawData: {},
     ...overrides,
   };
 }
