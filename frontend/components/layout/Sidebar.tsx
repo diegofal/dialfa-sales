@@ -14,6 +14,7 @@ import {
   ShoppingCart,
   DollarSign,
   CalendarClock,
+  TrendingUp,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -193,6 +194,18 @@ export default function Sidebar() {
             >
               <MessagesSquare className="h-5 w-5" />
               Gestión Feedback
+            </Link>
+            <Link
+              href={ROUTES.FINANCIAL_ANALYSIS}
+              className={cn(
+                'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
+                pathname.startsWith(ROUTES.FINANCIAL_ANALYSIS)
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
+              )}
+            >
+              <TrendingUp className="h-5 w-5" />
+              Análisis Financiero
             </Link>
           </div>
         )}
