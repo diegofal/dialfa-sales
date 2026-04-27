@@ -26,6 +26,7 @@ export interface Article {
   weightKg?: number | null;
   lastPurchasePrice?: number | null;
   cifPercentage?: number | null;
+  costPrice?: number | null;
 }
 
 export interface ArticleFormData {
