@@ -24,8 +24,10 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
 import { isDeadStock } from '@/lib/utils/articles/deadStockHelper';
 import {
-  calculateMarginPercent,
   formatMarginPercent,
+  getArticleCifCost,
+  getArticleDiscountedSellPrice,
+  getArticleMarginPercent,
   getMarginColorClass,
 } from '@/lib/utils/articles/marginCalculations';
 import {
@@ -198,8 +200,8 @@ export function ArticlesTable({
                 </TooltipTrigger>
                 <TooltipContent>
                   <p className="max-w-xs">
-                    Margen = (Precio - Última compra) / Última compra × 100. Muestra cuánto se puede
-                    bajar el precio.
+                    Margen sobre costo CIF, igual que en pedidos a proveedores: (Precio con
+                    descuento de categoría − FOB × (1+CIF%)) / Costo CIF × 100.
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -439,13 +441,14 @@ export function ArticlesTable({
                   {/* Margen */}
                   <TableCell className="text-right">
                     {(() => {
-                      const cost = article.lastPurchasePrice;
-                      const margin = calculateMarginPercent(article.unitPrice, cost);
+                      const cost = getArticleCifCost(article);
+                      const sell = getArticleDiscountedSellPrice(article);
+                      const margin = getArticleMarginPercent(article);
                       const text = formatMarginPercent(margin);
                       const colorClass = getMarginColorClass(margin);
                       const tooltipContent =
-                        cost && cost > 0
-                          ? `Última compra: ${formatPrice(cost)} · Precio: ${formatPrice(article.unitPrice)}`
+                        cost && cost > 0 && article.lastPurchasePrice
+                          ? `FOB: ${formatPrice(article.lastPurchasePrice)} · CIF ${article.cifPercentage ?? 0}% → Costo: ${formatPrice(cost)}\nPrecio lista: ${formatPrice(article.unitPrice)} · Desc. categoría: ${article.categoryDefaultDiscount ?? 0}% → Venta: ${sell !== null ? formatPrice(sell) : '—'}`
                           : 'Sin precio de compra cargado';
                       return (
                         <TooltipProvider>
@@ -456,7 +459,7 @@ export function ArticlesTable({
                               </span>
                             </TooltipTrigger>
                             <TooltipContent>
-                              <p className="text-xs">{tooltipContent}</p>
+                              <p className="text-xs whitespace-pre-line">{tooltipContent}</p>
                             </TooltipContent>
                           </Tooltip>
                         </TooltipProvider>

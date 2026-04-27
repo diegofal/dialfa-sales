@@ -10,8 +10,8 @@ import { useArticles } from '@/lib/hooks/domain/useArticles';
 import { useQuickCartTabs } from '@/lib/hooks/domain/useQuickCartTabs';
 import { isDeadStock } from '@/lib/utils/articles/deadStockHelper';
 import {
-  calculateMarginPercent,
   formatMarginPercent,
+  getArticleMarginPercent,
   getMarginColorClass,
 } from '@/lib/utils/articles/marginCalculations';
 import type { Article } from '@/types/article';
@@ -203,7 +203,7 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
           <Card className="absolute z-[60] mt-1 max-h-[320px] w-[420px] overflow-auto shadow-xl">
             <div className="p-1">
               {articles.map((article, index) => {
-                const margin = calculateMarginPercent(article.unitPrice, article.lastPurchasePrice);
+                const margin = getArticleMarginPercent(article);
                 const isSelected = index === selectedIndex;
                 const dead = isDeadStock(article);
                 return (

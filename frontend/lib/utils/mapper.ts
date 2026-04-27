@@ -19,6 +19,7 @@ export interface ArticleDTO {
   description: string;
   categoryId: number;
   categoryName: string;
+  categoryDefaultDiscount: number;
   unitPrice: number;
   stock: number;
   minimumStock: number;
@@ -194,7 +195,9 @@ export interface DeliveryNoteDTO {
  */
 export function mapArticleToDTO(article: unknown): ArticleDTO {
   const a = article as Record<string, unknown>;
-  const categories = a.categories as { name?: string } | undefined;
+  const categories = a.categories as
+    | { name?: string; default_discount_percent?: unknown }
+    | undefined;
 
   return {
     id: toInt(a.id as bigint | number),
@@ -202,6 +205,9 @@ export function mapArticleToDTO(article: unknown): ArticleDTO {
     description: a.description as string,
     categoryId: toInt(a.category_id as bigint | number),
     categoryName: categories?.name || '',
+    categoryDefaultDiscount: categories?.default_discount_percent
+      ? toFloat(categories.default_discount_percent)
+      : 0,
     unitPrice: toFloat(a.unit_price),
     stock: toFloat(a.stock),
     minimumStock: toFloat(a.minimum_stock),
