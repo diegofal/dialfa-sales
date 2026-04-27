@@ -89,7 +89,7 @@ export const PERMISSIONS: Record<Resource, Partial<Record<Action, PermissionRule
       roles: [ROLES.ADMIN, ROLES.VENDEDOR],
       description: 'Update clients',
     },
-    [ACTIONS.DELETE]: { roles: [ROLES.ADMIN], description: 'Delete clients' },
+    [ACTIONS.DELETE]: { roles: [ROLES.ADMIN, ROLES.VENDEDOR], description: 'Delete clients' },
     [ACTIONS.CLASSIFICATION]: {
       roles: [ROLES.ADMIN],
       description: 'Update client classification',

@@ -22,6 +22,12 @@ import { SparklineWithTooltip } from '@/components/ui/sparkline';
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
+import { isDeadStock } from '@/lib/utils/articles/deadStockHelper';
+import {
+  calculateMarginPercent,
+  formatMarginPercent,
+  getMarginColorClass,
+} from '@/lib/utils/articles/marginCalculations';
 import {
   calculateWeightedAvgSales,
   calculateEstimatedSaleTime,
@@ -186,6 +192,19 @@ export function ArticlesTable({
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
+                  <SortableTableHead align="right" className="cursor-help">
+                    Margen
+                  </SortableTableHead>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">
+                    Margen sobre costo: (Precio - Costo) / Costo × 100. Muestra cuánto se puede
+                    bajar el precio.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
                   <SortableTableHead
                     sortKey="WMA"
                     currentSortBy={currentSortBy}
@@ -277,7 +296,7 @@ export function ArticlesTable({
           {articles.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={selectionMode ? 15 : 14}
+                colSpan={selectionMode ? 16 : 15}
                 className="text-muted-foreground text-center"
               >
                 No hay artículos para mostrar
@@ -324,7 +343,14 @@ export function ArticlesTable({
                   <TableCell className="font-medium">{article.code}</TableCell>
                   <TableCell>
                     <div className="max-w-md">
-                      <p className="truncate">{article.description}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="truncate">{article.description}</p>
+                        {isDeadStock(article) && (
+                          <Badge variant="destructive" className="shrink-0 text-[10px]">
+                            Stock muerto
+                          </Badge>
+                        )}
+                      </div>
                       {article.location && (
                         <p className="text-muted-foreground text-xs">📍 {article.location}</p>
                       )}
@@ -408,6 +434,33 @@ export function ArticlesTable({
                   {/* Precio Unit. */}
                   <TableCell className="text-right font-medium">
                     {formatPrice(article.unitPrice)}
+                  </TableCell>
+
+                  {/* Margen */}
+                  <TableCell className="text-right">
+                    {(() => {
+                      const margin = calculateMarginPercent(article.unitPrice, article.costPrice);
+                      const text = formatMarginPercent(margin);
+                      const colorClass = getMarginColorClass(margin);
+                      const tooltipContent =
+                        article.costPrice && article.costPrice > 0
+                          ? `Costo: ${formatPrice(article.costPrice)} · Precio: ${formatPrice(article.unitPrice)}`
+                          : 'Sin costo cargado';
+                      return (
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className={`cursor-help text-sm font-medium ${colorClass}`}>
+                                {text}
+                              </span>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p className="text-xs">{tooltipContent}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      );
+                    })()}
                   </TableCell>
 
                   {/* Prom Ponderado (WMA) */}

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { requireRoles, requireAdmin, ROLES } from '@/lib/auth/roles';
+import { RESOURCES, ACTIONS } from '@/lib/auth/permissions';
+import { requireRoles, requirePermission, ROLES } from '@/lib/auth/roles';
 import { handleError } from '@/lib/errors';
 import * as ClientService from '@/lib/services/ClientService';
 import { updateClientSchema } from '@/lib/validations/schemas';
@@ -46,7 +47,7 @@ export async function DELETE(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = requireAdmin(request);
+    const auth = requirePermission(request, RESOURCES.CLIENTS, ACTIONS.DELETE);
     if (!auth.authorized) {
       return auth.error;
     }

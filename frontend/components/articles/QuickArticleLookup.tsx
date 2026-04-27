@@ -3,10 +3,17 @@
 import { Search } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
+import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useArticles } from '@/lib/hooks/domain/useArticles';
 import { useQuickCartTabs } from '@/lib/hooks/domain/useQuickCartTabs';
+import { isDeadStock } from '@/lib/utils/articles/deadStockHelper';
+import {
+  calculateMarginPercent,
+  formatMarginPercent,
+  getMarginColorClass,
+} from '@/lib/utils/articles/marginCalculations';
 import type { Article } from '@/types/article';
 
 interface QuickArticleLookupProps {
@@ -195,41 +202,60 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
         {showCodeResults && articleCode && articles.length > 0 && (
           <Card className="absolute z-[60] mt-1 max-h-[320px] w-[420px] overflow-auto shadow-xl">
             <div className="p-1">
-              {articles.map((article, index) => (
-                <button
-                  key={article.id}
-                  ref={index === selectedIndex ? selectedItemRef : null}
-                  onClick={() => handleSelectArticle(article, index)}
-                  className={`w-full rounded p-2.5 text-left transition-colors ${
-                    index === selectedIndex
-                      ? 'bg-primary text-primary-foreground'
-                      : 'hover:bg-accent hover:text-accent-foreground'
-                  }`}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="font-mono text-sm font-semibold">{article.code}</div>
-                      <div
-                        className={`mt-0.5 truncate text-xs ${index === selectedIndex ? 'text-primary-foreground/90' : 'text-muted-foreground'}`}
-                      >
-                        {article.description}
+              {articles.map((article, index) => {
+                const margin = calculateMarginPercent(article.unitPrice, article.costPrice);
+                const isSelected = index === selectedIndex;
+                const dead = isDeadStock(article);
+                return (
+                  <button
+                    key={article.id}
+                    ref={isSelected ? selectedItemRef : null}
+                    onClick={() => handleSelectArticle(article, index)}
+                    className={`w-full rounded p-2.5 text-left transition-colors ${
+                      isSelected
+                        ? 'bg-primary text-primary-foreground'
+                        : 'hover:bg-accent hover:text-accent-foreground'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-sm font-semibold">{article.code}</span>
+                          {dead && (
+                            <Badge variant="destructive" className="shrink-0 text-[10px]">
+                              Stock muerto
+                            </Badge>
+                          )}
+                        </div>
+                        <div
+                          className={`mt-0.5 truncate text-xs ${isSelected ? 'text-primary-foreground/90' : 'text-muted-foreground'}`}
+                        >
+                          {article.description}
+                        </div>
+                      </div>
+                      <div className="flex-shrink-0 text-right">
+                        <div className="text-sm font-bold">{formatCurrency(article.unitPrice)}</div>
+                        <div
+                          className={`mt-0.5 text-[11px] font-medium ${
+                            isSelected ? 'text-primary-foreground/90' : getMarginColorClass(margin)
+                          }`}
+                        >
+                          Margen: {formatMarginPercent(margin)}
+                        </div>
+                        <div
+                          className={`mt-0.5 text-xs font-medium ${
+                            isSelected
+                              ? 'text-primary-foreground'
+                              : getStockStatusClass(article.stock)
+                          }`}
+                        >
+                          Stock: {article.stock}
+                        </div>
                       </div>
                     </div>
-                    <div className="flex-shrink-0 text-right">
-                      <div className="text-sm font-bold">{formatCurrency(article.unitPrice)}</div>
-                      <div
-                        className={`mt-0.5 text-xs font-medium ${
-                          index === selectedIndex
-                            ? 'text-primary-foreground'
-                            : getStockStatusClass(article.stock)
-                        }`}
-                      >
-                        Stock: {article.stock}
-                      </div>
-                    </div>
-                  </div>
-                </button>
-              ))}
+                  </button>
+                );
+              })}
             </div>
             <div className="bg-muted/50 text-muted-foreground border-t px-3 py-2 text-xs">
               ↑↓ Navegar | Enter/Tab Seleccionar
