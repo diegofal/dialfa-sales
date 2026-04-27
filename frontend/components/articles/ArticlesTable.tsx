@@ -198,7 +198,7 @@ export function ArticlesTable({
                 </TooltipTrigger>
                 <TooltipContent>
                   <p className="max-w-xs">
-                    Margen sobre costo: (Precio - Costo) / Costo × 100. Muestra cuánto se puede
+                    Margen = (Precio - Última compra) / Última compra × 100. Muestra cuánto se puede
                     bajar el precio.
                   </p>
                 </TooltipContent>
@@ -439,13 +439,14 @@ export function ArticlesTable({
                   {/* Margen */}
                   <TableCell className="text-right">
                     {(() => {
-                      const margin = calculateMarginPercent(article.unitPrice, article.costPrice);
+                      const cost = article.lastPurchasePrice;
+                      const margin = calculateMarginPercent(article.unitPrice, cost);
                       const text = formatMarginPercent(margin);
                       const colorClass = getMarginColorClass(margin);
                       const tooltipContent =
-                        article.costPrice && article.costPrice > 0
-                          ? `Costo: ${formatPrice(article.costPrice)} · Precio: ${formatPrice(article.unitPrice)}`
-                          : 'Sin costo cargado';
+                        cost && cost > 0
+                          ? `Última compra: ${formatPrice(cost)} · Precio: ${formatPrice(article.unitPrice)}`
+                          : 'Sin precio de compra cargado';
                       return (
                         <TooltipProvider>
                           <Tooltip>
