@@ -9,6 +9,7 @@ import {
   CategoryValuationData,
   PaymentTermValuation,
 } from '@/types/stockValuation';
+import { getArticleCifCost } from './marginCalculations';
 import { calculateSalesTrends, calculateLastSaleDates } from './salesTrends';
 
 // Cache en memoria
@@ -113,6 +114,7 @@ export async function calculateStockValuation(
         cost_price: true,
         unit_price: true,
         last_purchase_price: true,
+        cif_percentage: true,
         category_id: true,
         categories: {
           select: {
@@ -139,14 +141,22 @@ export async function calculateStockValuation(
       const lastSaleDate = lastSaleDates.get(articleId) || null;
 
       const currentStock = Number(article.stock);
-      // Usar last_purchase_price como costo, con cost_price como fallback
-      // Usar ?? (nullish coalescing) en lugar de || para permitir valor 0
-      const costPrice =
+      // Costo CIF unificado con la lista de artículos: FOB × (1 + CIF%).
+      // Fallback a cost_price si no hay last_purchase_price.
+      const lastPurchase =
         article.last_purchase_price !== null && article.last_purchase_price !== undefined
           ? Number(article.last_purchase_price)
-          : article.cost_price !== null && article.cost_price !== undefined
-            ? Number(article.cost_price)
-            : 0;
+          : null;
+      const cifPct =
+        article.cif_percentage !== null && article.cif_percentage !== undefined
+          ? Number(article.cif_percentage)
+          : null;
+      const cifCost = getArticleCifCost({ lastPurchasePrice: lastPurchase, cifPercentage: cifPct });
+      const fallbackCost =
+        article.cost_price !== null && article.cost_price !== undefined
+          ? Number(article.cost_price)
+          : 0;
+      const costPrice = cifCost ?? fallbackCost;
       const unitPrice = Number(article.unit_price || 0);
 
       // Calcular días desde última venta
@@ -224,6 +234,8 @@ export async function calculateStockValuation(
         totalSalesInPeriod,
         currentStock,
         unitCost: costPrice,
+        unitCostFob: lastPurchase ?? 0,
+        cifPercentage: cifPct ?? 0,
         unitPrice,
         stockValue,
         stockValueAtListPrice,

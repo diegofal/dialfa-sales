@@ -8,6 +8,7 @@ import {
   refreshABCClassification,
   getABCCacheInfo,
 } from '@/lib/utils/articles/abcClassification';
+import { getArticleActiveRating } from '@/lib/utils/articles/articleRating';
 import {
   calculateSalesTrends,
   calculateLastSaleDates,
@@ -18,15 +19,17 @@ import {
   calculateStockValuation,
   getStockValuationCacheInfo,
 } from '@/lib/utils/articles/stockValuation';
+import { classifyStockStatus } from '@/lib/utils/articles/stockValuation';
 import { ChangeTracker } from '@/lib/utils/changeTracker';
 import { logger } from '@/lib/utils/logger';
 import { mapArticleToDTO } from '@/lib/utils/mapper';
 import {
   calculateWeightedAvgSales,
   calculateEstimatedSaleTime,
+  calculateTrendDirection,
 } from '@/lib/utils/salesCalculations';
 import { CreateArticleInput, UpdateArticleInput } from '@/lib/validations/schemas';
-import { StockStatus } from '@/types/stockValuation';
+import { StockStatus, StockClassificationConfig } from '@/types/stockValuation';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -52,6 +55,18 @@ type EnrichedArticleDTO = ReturnType<typeof mapArticleToDTO> & {
   activeStockTrendLabels?: string[];
   activeStockMonths?: number;
   lastSaleDate?: string | null;
+  stockStatus?: StockStatus | null;
+  avgMonthlySales?: number;
+  trendDirection?: 'increasing' | 'stable' | 'decreasing' | 'none';
+};
+
+const DEFAULT_STATUS_CONFIG: StockClassificationConfig = {
+  activeThresholdDays: 90,
+  slowMovingThresholdDays: 180,
+  deadStockThresholdDays: 365,
+  minSalesForActive: 5,
+  trendMonths: 6,
+  includeZeroStock: false,
 };
 
 export interface ArticleListParams {
@@ -74,21 +89,15 @@ export interface ArticleListParams {
   includeTrends?: boolean;
 }
 
-// Rating helper for calculated sorting
+// Rating helper for calculated sorting (delegates to shared util)
 function getArticleRating(
   article: EnrichedArticleDTO,
   _trendMonths: number
 ): 'GREAT' | 'GOOD' | 'OK' | 'SLOW' | 'NO DATA' {
-  const trend = article.activeStockTrend;
-  if (!trend || trend.length === 0) return 'NO DATA';
-  const wma = calculateWeightedAvgSales(trend, trend.length);
-  if (wma <= 0) return 'NO DATA';
-  const est = calculateEstimatedSaleTime(article.stock, wma);
-  if (!isFinite(est)) return 'NO DATA';
-  if (est <= 12) return 'GREAT';
-  if (est <= 24) return 'GOOD';
-  if (est <= 60) return 'OK';
-  return 'SLOW';
+  return getArticleActiveRating({
+    stock: article.stock,
+    activeStockTrend: article.activeStockTrend,
+  });
 }
 
 // Sort key mapping: UI sort keys → Prisma column names
@@ -182,6 +191,29 @@ function enrichArticle(
   if (lastSaleDates) {
     const lastSale = lastSaleDates.get(article.id.toString());
     dto.lastSaleDate = lastSale ? lastSale.toISOString() : null;
+  }
+
+  // Compute stockStatus / avgMonthlySales / trendDirection when trends are available.
+  // Uses the same canonical classifyStockStatus that powers /articles/valuation.
+  if (trendsData && lastSaleDates) {
+    const trend = dto.salesTrend ?? [];
+    const avgMonthlySales = trend.length > 0 ? trend.reduce((a, b) => a + b, 0) / trend.length : 0;
+    const trendDirection = calculateTrendDirection(trend);
+    const lastSale = lastSaleDates.get(article.id.toString()) ?? null;
+    const daysSinceLastSale = lastSale
+      ? Math.floor((Date.now() - lastSale.getTime()) / (1000 * 60 * 60 * 24))
+      : null;
+
+    dto.avgMonthlySales = avgMonthlySales;
+    dto.trendDirection = trendDirection;
+    dto.stockStatus = classifyStockStatus(
+      lastSale,
+      daysSinceLastSale,
+      avgMonthlySales,
+      trendDirection,
+      dto.stock,
+      DEFAULT_STATUS_CONFIG
+    );
   }
 
   return dto;
