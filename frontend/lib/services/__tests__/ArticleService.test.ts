@@ -168,7 +168,11 @@ describe('create', () => {
         unit_price: 200,
         cost_price: 100,
       }),
-      include: { categories: true },
+      include: {
+        categories: {
+          include: { category_payment_discounts: { include: { payment_terms: true } } },
+        },
+      },
     });
   });
 
@@ -194,7 +198,11 @@ describe('create', () => {
         stock: 0,
         minimum_stock: 0,
       }),
-      include: { categories: true },
+      include: {
+        categories: {
+          include: { category_payment_discounts: { include: { payment_terms: true } } },
+        },
+      },
     });
   });
 });
