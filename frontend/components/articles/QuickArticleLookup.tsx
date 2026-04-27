@@ -203,7 +203,7 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
           <Card className="absolute z-[60] mt-1 max-h-[320px] w-[420px] overflow-auto shadow-xl">
             <div className="p-1">
               {articles.map((article, index) => {
-                const margin = calculateMarginPercent(article.unitPrice, article.costPrice);
+                const margin = calculateMarginPercent(article.unitPrice, article.lastPurchasePrice);
                 const isSelected = index === selectedIndex;
                 const dead = isDeadStock(article);
                 return (

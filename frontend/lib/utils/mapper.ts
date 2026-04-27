@@ -26,6 +26,8 @@ export interface ArticleDTO {
   isDiscontinued: boolean;
   notes: string | null;
   costPrice: number | null;
+  lastPurchasePrice: number | null;
+  cifPercentage: number | null;
   displayOrder: number | null;
   historicalPrice1: number | null;
   series: string | null;
@@ -207,6 +209,8 @@ export function mapArticleToDTO(article: unknown): ArticleDTO {
     isDiscontinued: a.is_discontinued as boolean,
     notes: a.notes as string | null,
     costPrice: toFloatOrNull(a.cost_price),
+    lastPurchasePrice: toFloatOrNull(a.last_purchase_price),
+    cifPercentage: toFloatOrNull(a.cif_percentage),
     displayOrder: a.display_order as number | null,
     historicalPrice1: toFloatOrNull(a.historical_price1),
     series: a.series as string | null,
