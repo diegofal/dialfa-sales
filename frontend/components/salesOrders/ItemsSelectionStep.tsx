@@ -2,6 +2,7 @@
 
 import { Plus, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { StockStatusBadge } from '@/components/articles/StockStatusBadge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -29,7 +30,10 @@ interface ItemsSelectionStepProps {
 }
 
 export function ItemsSelectionStep({ formData, setFormData }: ItemsSelectionStepProps) {
-  const { data: articlesResult, isLoading } = useArticles({ activeOnly: true });
+  const { data: articlesResult, isLoading } = useArticles({
+    activeOnly: true,
+    includeTrends: true,
+  });
   const articles = articlesResult?.data || [];
   const [newItem, setNewItem] = useState<Partial<SalesOrderItemFormData>>({
     quantity: 1,
@@ -118,7 +122,16 @@ export function ItemsSelectionStep({ formData, setFormData }: ItemsSelectionStep
               <SelectContent>
                 {articles.map((article) => (
                   <SelectItem key={article.id} value={article.id.toString()}>
-                    {article.code} - {article.description}
+                    <div className="flex items-center gap-2">
+                      <span className="font-mono font-medium">{article.code}</span>
+                      <StockStatusBadge status={article.stockStatus} className="shrink-0" />
+                      <span className="truncate">{article.description}</span>
+                      {article.categoryName && (
+                        <span className="text-muted-foreground text-xs">
+                          · {article.categoryName}
+                        </span>
+                      )}
+                    </div>
                   </SelectItem>
                 ))}
               </SelectContent>
