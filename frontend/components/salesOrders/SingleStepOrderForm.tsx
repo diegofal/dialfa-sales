@@ -17,6 +17,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
 import { toast } from 'sonner';
 import { ClientLookup } from '@/components/articles/ClientLookup';
+import { StockStatusBadge } from '@/components/articles/StockStatusBadge';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import {
   AlertDialog,
@@ -68,6 +69,12 @@ import {
 import { useFormValidation, validators } from '@/lib/hooks/generic/useFormValidation';
 import { validateSalesOrder } from '@/lib/permissions/salesOrders';
 import { formatCuit } from '@/lib/utils';
+import {
+  formatMarginPercent,
+  getArticleMarginPercent,
+  getMarginColorClass,
+} from '@/lib/utils/articles/marginCalculations';
+import { getStockLevelColorClass } from '@/lib/utils/articles/stockLevelColor';
 import type { Article } from '@/types/article';
 
 interface SingleStepOrderFormProps {
@@ -186,11 +193,12 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     deliveryNote: boolean;
   } | null>(null);
 
-  // Search articles for adding
+  // Search articles for adding (includeTrends:true so backend returns stockStatus)
   const { data: articlesResult } = useArticles({
     searchTerm: articleCode,
     activeOnly: false, // Include discontinued articles
     pageSize: 5,
+    includeTrends: true,
   });
   const articles = articlesResult?.data || [];
 
@@ -199,6 +207,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     searchTerm: editCode,
     activeOnly: false, // Include discontinued articles
     pageSize: 5,
+    includeTrends: true,
   });
   const editArticles = editArticlesResult?.data || [];
 
@@ -403,12 +412,6 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       currency: 'ARS',
       minimumFractionDigits: 2,
     }).format(amount);
-  };
-
-  const getStockStatusClass = (stock: number) => {
-    if (stock === 0) return 'text-red-600 font-semibold';
-    if (stock < 10) return 'text-orange-600 font-semibold';
-    return 'text-green-600';
   };
 
   // Stock validation helper
@@ -1042,39 +1045,70 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                 {showCodeResults && articleCode && articles.length > 0 && (
                   <Card className="absolute z-[60] mt-1 max-h-[300px] w-full overflow-auto shadow-xl">
                     <div className="p-1">
-                      {articles.map((article, index) => (
-                        <button
-                          key={article.id}
-                          ref={index === selectedIndex ? selectedItemRef : null}
-                          onClick={() => handleSelectArticle(article, index)}
-                          className={`w-full rounded p-2 text-left transition-colors ${
-                            index === selectedIndex
-                              ? 'bg-primary text-primary-foreground'
-                              : 'hover:bg-accent hover:text-accent-foreground'
-                          }`}
-                        >
-                          <div className="flex items-start justify-between gap-3">
-                            <div className="min-w-0 flex-1">
-                              <div className="font-mono text-sm font-semibold">{article.code}</div>
-                              <div
-                                className={`truncate text-xs ${index === selectedIndex ? 'text-primary-foreground/90' : 'text-muted-foreground'}`}
-                              >
-                                {article.description}
+                      {articles.map((article, index) => {
+                        const isSelected = index === selectedIndex;
+                        const margin = getArticleMarginPercent(article);
+                        return (
+                          <button
+                            key={article.id}
+                            ref={isSelected ? selectedItemRef : null}
+                            onClick={() => handleSelectArticle(article, index)}
+                            className={`w-full rounded p-2 text-left transition-colors ${
+                              isSelected
+                                ? 'bg-primary text-primary-foreground'
+                                : 'hover:bg-accent hover:text-accent-foreground'
+                            }`}
+                          >
+                            <div className="flex items-start justify-between gap-3">
+                              <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                  <span className="font-mono text-sm font-semibold">
+                                    {article.code}
+                                  </span>
+                                  <StockStatusBadge
+                                    status={article.stockStatus}
+                                    className="shrink-0"
+                                  />
+                                </div>
+                                <div
+                                  className={`truncate text-xs ${isSelected ? 'text-primary-foreground/90' : 'text-muted-foreground'}`}
+                                >
+                                  {article.description}
+                                </div>
+                                {article.categoryName && (
+                                  <div
+                                    className={`mt-0.5 truncate text-[11px] ${isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}
+                                  >
+                                    {article.categoryName}
+                                  </div>
+                                )}
+                              </div>
+                              <div className="text-right">
+                                <div className="text-sm font-bold">
+                                  {formatCurrency(article.unitPrice)}
+                                </div>
+                                {article.lastPurchasePrice && article.lastPurchasePrice > 0 && (
+                                  <div
+                                    className={`mt-0.5 text-[11px] ${isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}
+                                  >
+                                    FOB: USD {article.lastPurchasePrice.toFixed(2)}
+                                  </div>
+                                )}
+                                <div
+                                  className={`mt-0.5 text-[11px] font-medium ${isSelected ? 'text-primary-foreground/90' : getMarginColorClass(margin)}`}
+                                >
+                                  Margen: {formatMarginPercent(margin)}
+                                </div>
+                                <div
+                                  className={`text-xs ${isSelected ? 'text-primary-foreground' : getStockLevelColorClass(article.stock)}`}
+                                >
+                                  Stock: {article.stock}
+                                </div>
                               </div>
                             </div>
-                            <div className="text-right">
-                              <div className="text-sm font-bold">
-                                {formatCurrency(article.unitPrice)}
-                              </div>
-                              <div
-                                className={`text-xs ${index === selectedIndex ? 'text-primary-foreground' : getStockStatusClass(article.stock)}`}
-                              >
-                                Stock: {article.stock}
-                              </div>
-                            </div>
-                          </div>
-                        </button>
-                      ))}
+                          </button>
+                        );
+                      })}
                     </div>
                   </Card>
                 )}
@@ -1149,24 +1183,42 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                                   autoFocus
                                 />
                                 {showEditResults && editCode && editArticles.length > 0 && (
-                                  <Card className="absolute z-[70] mt-1 w-[300px] shadow-xl">
+                                  <Card className="absolute z-[70] mt-1 w-[340px] shadow-xl">
                                     <div className="p-1">
-                                      {editArticles.map((article, index) => (
-                                        <button
-                                          key={article.id}
-                                          onClick={() => handleSelectEditArticle(article)}
-                                          className={`w-full rounded p-2 text-left text-xs ${
-                                            index === selectedEditIndex
-                                              ? 'bg-primary text-primary-foreground'
-                                              : 'hover:bg-accent'
-                                          }`}
-                                        >
-                                          <div className="font-mono font-bold">{article.code}</div>
-                                          <div className="truncate opacity-80">
-                                            {article.description}
-                                          </div>
-                                        </button>
-                                      ))}
+                                      {editArticles.map((article, index) => {
+                                        const isSel = index === selectedEditIndex;
+                                        return (
+                                          <button
+                                            key={article.id}
+                                            onClick={() => handleSelectEditArticle(article)}
+                                            className={`w-full rounded p-2 text-left text-xs ${
+                                              isSel
+                                                ? 'bg-primary text-primary-foreground'
+                                                : 'hover:bg-accent'
+                                            }`}
+                                          >
+                                            <div className="flex items-center gap-2">
+                                              <span className="font-mono font-bold">
+                                                {article.code}
+                                              </span>
+                                              <StockStatusBadge
+                                                status={article.stockStatus}
+                                                className="shrink-0"
+                                              />
+                                            </div>
+                                            <div className="truncate opacity-80">
+                                              {article.description}
+                                            </div>
+                                            {article.categoryName && (
+                                              <div
+                                                className={`mt-0.5 truncate text-[10px] ${isSel ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}
+                                              >
+                                                {article.categoryName}
+                                              </div>
+                                            )}
+                                          </button>
+                                        );
+                                      })}
                                     </div>
                                   </Card>
                                 )}
@@ -1191,7 +1243,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                             <div className="text-muted-foreground flex items-center gap-1 text-[10px]">
                               <span>
                                 Stock:{' '}
-                                <span className={getStockStatusClass(item.article.stock)}>
+                                <span className={getStockLevelColorClass(item.article.stock)}>
                                   {item.article.stock}
                                 </span>
                               </span>

@@ -252,6 +252,8 @@ npm run lint                   # Verificar ESLint
 - Listas de precios por condición de pago
 - Valorización de stock
 
+> **🔗 Patrones unificados de artículos:** antes de modificar cualquier vista que muestre artículos (lista, dropdown, valorización, supplier-orders), leé `docs/article-display-patterns.md`. Define helpers canónicos para margen/costo CIF/status y el componente `<StockStatusBadge>`. **No dupliques cálculos**: si necesitás el margen, el costo o el status, usá los helpers ya existentes.
+
 ### Clientes
 
 - CRUD de clientes

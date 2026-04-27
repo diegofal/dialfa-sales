@@ -12,6 +12,7 @@ import {
   getArticleMarginPercent,
   getMarginColorClass,
 } from '@/lib/utils/articles/marginCalculations';
+import { getStockLevelColorClass } from '@/lib/utils/articles/stockLevelColor';
 import type { Article } from '@/types/article';
 import { StockStatusBadge } from './StockStatusBadge';
 
@@ -171,12 +172,6 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
     }).format(amount);
   };
 
-  const getStockStatusClass = (stock: number) => {
-    if (stock === 0) return 'text-red-600 font-semibold';
-    if (stock < 10) return 'text-orange-600 font-semibold';
-    return 'text-green-600';
-  };
-
   return (
     <div className="flex w-full items-start gap-2">
       {/* Article Code Input */}
@@ -256,7 +251,7 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
                           className={`mt-0.5 text-xs font-medium ${
                             isSelected
                               ? 'text-primary-foreground'
-                              : getStockStatusClass(article.stock)
+                              : getStockLevelColorClass(article.stock)
                           }`}
                         >
                           Stock: {article.stock}

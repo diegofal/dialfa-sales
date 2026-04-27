@@ -10,9 +10,16 @@ import { CART_CONSTANTS } from '@/lib/constants/cart';
 import { ROUTES } from '@/lib/constants/routes';
 import { useArticles } from '@/lib/hooks/domain/useArticles';
 import { useQuickCartTabs } from '@/lib/hooks/domain/useQuickCartTabs';
+import {
+  formatMarginPercent,
+  getArticleMarginPercent,
+  getMarginColorClass,
+} from '@/lib/utils/articles/marginCalculations';
+import { getStockLevelColorClass } from '@/lib/utils/articles/stockLevelColor';
 import type { Article } from '@/types/article';
 import { ClientLookup } from './ClientLookup';
 import { QuickArticleLookup } from './QuickArticleLookup';
+import { StockStatusBadge } from './StockStatusBadge';
 
 interface QuickCartPopupProps {
   isOpen: boolean;
@@ -96,11 +103,13 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
   // Use items from the active draft tab only (not from saved orders)
   const items = activeDraftTab.items;
 
-  // Search articles for editing
+  // Search articles for editing.
+  // includeTrends:true so the API returns stockStatus for the StockStatusBadge.
   const { data: editArticlesResult } = useArticles({
     searchTerm: editCode,
     activeOnly: true,
     pageSize: 5,
+    includeTrends: true,
   });
 
   const editArticles = editArticlesResult?.data || [];
@@ -389,12 +398,6 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
       currency: 'ARS',
       minimumFractionDigits: 2,
     }).format(amount);
-  };
-
-  const getStockStatusClass = (stock: number) => {
-    if (stock === 0) return 'text-red-600 font-semibold';
-    if (stock < 10) return 'text-orange-600 font-semibold';
-    return 'text-green-600';
   };
 
   const handleCreateOrder = () => {
@@ -712,7 +715,7 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
                         </div>
                         <div className="text-muted-foreground text-xs">
                           (Stock:{' '}
-                          <span className={getStockStatusClass(item.article.stock)}>
+                          <span className={getStockLevelColorClass(item.article.stock)}>
                             {item.article.stock}
                           </span>
                           )
@@ -911,49 +914,75 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
           }}
         >
           <div className="p-1">
-            {editArticles.map((article, index) => (
-              <button
-                key={article.id}
-                ref={index === selectedEditIndex ? selectedEditItemRef : null}
-                onClick={() => handleSelectEditArticle(article)}
-                className={`w-full rounded p-2 text-left transition-colors ${
-                  index === selectedEditIndex
-                    ? 'bg-primary text-primary-foreground'
-                    : 'hover:bg-accent'
-                }`}
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0 flex-1">
-                    <div
-                      className={`font-mono text-sm font-semibold ${index === selectedEditIndex ? 'text-primary-foreground' : ''}`}
-                    >
-                      {article.code}
+            {editArticles.map((article, index) => {
+              const isSelected = index === selectedEditIndex;
+              const margin = getArticleMarginPercent(article);
+              return (
+                <button
+                  key={article.id}
+                  ref={isSelected ? selectedEditItemRef : null}
+                  onClick={() => handleSelectEditArticle(article)}
+                  className={`w-full rounded p-2 text-left transition-colors ${
+                    isSelected ? 'bg-primary text-primary-foreground' : 'hover:bg-accent'
+                  }`}
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`font-mono text-sm font-semibold ${isSelected ? 'text-primary-foreground' : ''}`}
+                        >
+                          {article.code}
+                        </span>
+                        <StockStatusBadge status={article.stockStatus} className="shrink-0" />
+                      </div>
+                      <div
+                        className={`mt-0.5 truncate text-xs ${isSelected ? 'text-primary-foreground/90' : 'text-muted-foreground'}`}
+                      >
+                        {article.description}
+                      </div>
+                      {article.categoryName && (
+                        <div
+                          className={`mt-0.5 truncate text-[11px] ${isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}
+                        >
+                          {article.categoryName}
+                        </div>
+                      )}
                     </div>
-                    <div
-                      className={`mt-0.5 truncate text-xs ${index === selectedEditIndex ? 'text-primary-foreground/90' : 'text-muted-foreground'}`}
-                    >
-                      {article.description}
+                    <div className="flex-shrink-0 text-right">
+                      <div
+                        className={`text-xs font-bold ${isSelected ? 'text-primary-foreground' : 'text-foreground'}`}
+                      >
+                        {formatCurrency(article.unitPrice)}
+                      </div>
+                      {article.lastPurchasePrice && article.lastPurchasePrice > 0 && (
+                        <div
+                          className={`mt-0.5 text-[11px] ${isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}
+                        >
+                          FOB: USD {article.lastPurchasePrice.toFixed(2)}
+                        </div>
+                      )}
+                      <div
+                        className={`mt-0.5 text-[11px] font-medium ${
+                          isSelected ? 'text-primary-foreground/90' : getMarginColorClass(margin)
+                        }`}
+                      >
+                        Margen: {formatMarginPercent(margin)}
+                      </div>
+                      <div
+                        className={`mt-0.5 text-xs font-medium ${
+                          isSelected
+                            ? 'text-primary-foreground'
+                            : getStockLevelColorClass(article.stock)
+                        }`}
+                      >
+                        Stock: {article.stock}
+                      </div>
                     </div>
                   </div>
-                  <div className="flex-shrink-0 text-right">
-                    <div
-                      className={`text-xs font-bold ${index === selectedEditIndex ? 'text-primary-foreground' : 'text-foreground'}`}
-                    >
-                      {formatCurrency(article.unitPrice)}
-                    </div>
-                    <div
-                      className={`mt-0.5 text-xs font-medium ${
-                        index === selectedEditIndex
-                          ? 'text-primary-foreground'
-                          : getStockStatusClass(article.stock)
-                      }`}
-                    >
-                      Stock: {article.stock}
-                    </div>
-                  </div>
-                </div>
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
           <div className="bg-muted/50 text-muted-foreground border-t px-2 py-1.5 text-xs">
             ↑↓ Navegar | Enter Seleccionar
