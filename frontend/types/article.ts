@@ -5,6 +5,13 @@ export interface Article {
   categoryId: number;
   categoryName: string;
   categoryDefaultDiscount: number;
+  categoryMaxPaymentDiscount?: number;
+  categoryPaymentDiscounts?: {
+    paymentTermCode: string;
+    paymentTermName: string;
+    days: number;
+    discountPercent: number;
+  }[];
   unitPrice: number;
   stock: number;
   minimumStock: number;

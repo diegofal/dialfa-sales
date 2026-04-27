@@ -20,6 +20,13 @@ export interface ArticleDTO {
   categoryId: number;
   categoryName: string;
   categoryDefaultDiscount: number;
+  categoryMaxPaymentDiscount: number;
+  categoryPaymentDiscounts: {
+    paymentTermCode: string;
+    paymentTermName: string;
+    days: number;
+    discountPercent: number;
+  }[];
   unitPrice: number;
   stock: number;
   minimumStock: number;
@@ -196,8 +203,26 @@ export interface DeliveryNoteDTO {
 export function mapArticleToDTO(article: unknown): ArticleDTO {
   const a = article as Record<string, unknown>;
   const categories = a.categories as
-    | { name?: string; default_discount_percent?: unknown }
+    | {
+        name?: string;
+        default_discount_percent?: unknown;
+        category_payment_discounts?: Array<{
+          discount_percent: unknown;
+          payment_terms?: { code?: string; name?: string; days?: number };
+        }>;
+      }
     | undefined;
+
+  const paymentDiscounts = (categories?.category_payment_discounts ?? []).map((cpd) => ({
+    paymentTermCode: cpd.payment_terms?.code ?? '',
+    paymentTermName: cpd.payment_terms?.name ?? '',
+    days: cpd.payment_terms?.days ?? 0,
+    discountPercent: toFloat(cpd.discount_percent),
+  }));
+  const maxPaymentDiscount = paymentDiscounts.reduce(
+    (max, d) => (d.discountPercent > max ? d.discountPercent : max),
+    0
+  );
 
   return {
     id: toInt(a.id as bigint | number),
@@ -208,6 +233,8 @@ export function mapArticleToDTO(article: unknown): ArticleDTO {
     categoryDefaultDiscount: categories?.default_discount_percent
       ? toFloat(categories.default_discount_percent)
       : 0,
+    categoryMaxPaymentDiscount: maxPaymentDiscount,
+    categoryPaymentDiscounts: paymentDiscounts,
     unitPrice: toFloat(a.unit_price),
     stock: toFloat(a.stock),
     minimumStock: toFloat(a.minimum_stock),
