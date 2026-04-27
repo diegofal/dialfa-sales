@@ -28,27 +28,44 @@ export function getArticleCifCost(article: {
 }
 
 /**
- * Discounted sell price = unitPrice * (1 - categoryDefaultDiscount/100).
- * Mirrors the formula in supplier-orders/[id]/page.tsx:235.
+ * Effective category discount for margin = the largest payment-term discount
+ * configured for the category. Falls back to categoryDefaultDiscount when
+ * no payment-term discounts exist (legacy data).
+ */
+export function getEffectiveCategoryDiscount(article: {
+  categoryMaxPaymentDiscount?: number | null;
+  categoryDefaultDiscount?: number | null;
+}): number {
+  const max = article.categoryMaxPaymentDiscount ?? 0;
+  if (max > 0) return max;
+  return article.categoryDefaultDiscount ?? 0;
+}
+
+/**
+ * Discounted sell price = unitPrice * (1 - effectiveDiscount/100).
+ * Mirrors supplier-orders/[id]/page.tsx:235 but using the largest payment-term
+ * discount instead of the (often-empty) default category discount.
  */
 export function getArticleDiscountedSellPrice(article: {
   unitPrice?: number | null;
+  categoryMaxPaymentDiscount?: number | null;
   categoryDefaultDiscount?: number | null;
 }): number | null {
   const unit = article.unitPrice;
   if (unit === null || unit === undefined) return null;
-  const discount = article.categoryDefaultDiscount ?? 0;
+  const discount = getEffectiveCategoryDiscount(article);
   return unit * (1 - discount / 100);
 }
 
 /**
  * Article margin = (discountedSellPrice - cifCost) / cifCost * 100.
- * Same formula used in supplier-orders/[id]/page.tsx:240.
+ * Mirrors supplier-orders/[id]/page.tsx:240.
  */
 export function getArticleMarginPercent(article: {
   unitPrice?: number | null;
   lastPurchasePrice?: number | null;
   cifPercentage?: number | null;
+  categoryMaxPaymentDiscount?: number | null;
   categoryDefaultDiscount?: number | null;
 }): number | null {
   const cifCost = getArticleCifCost(article);

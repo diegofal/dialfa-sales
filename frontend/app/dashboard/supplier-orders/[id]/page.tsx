@@ -41,6 +41,7 @@ import {
   useSupplierOrder,
   useUpdateSupplierOrderStatus,
 } from '@/lib/hooks/domain/useSupplierOrders';
+import { getEffectiveCategoryDiscount } from '@/lib/utils/articles/marginCalculations';
 import {
   formatSaleTime,
   calculateWeightedAvgSales,
@@ -222,13 +223,14 @@ export default function SupplierOrderDetailPage({ params }: { params: Promise<{ 
       // Calcular valores comerciales
       const fobUnitPrice = item.proformaUnitPrice || 0;
 
-      // Usar descuento sobreescrito si existe, sino usar el de categoría
+      // Usar descuento sobreescrito si existe, sino usar el mayor descuento por
+      // término de pago de la categoría (con fallback a categoryDefaultDiscount).
       const overriddenDiscount = discountOverrides.get(item.articleId);
       const categoryDiscount =
         overriddenDiscount !== undefined
           ? overriddenDiscount
           : commercialConfig.useCategoryDiscounts
-            ? article.categoryDefaultDiscount || 0
+            ? getEffectiveCategoryDiscount(article)
             : 0;
 
       const cifUnitPrice = fobUnitPrice * (1 + commercialConfig.cifPercentage / 100);

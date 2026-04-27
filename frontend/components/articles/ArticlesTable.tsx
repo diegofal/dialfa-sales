@@ -28,6 +28,7 @@ import {
   getArticleCifCost,
   getArticleDiscountedSellPrice,
   getArticleMarginPercent,
+  getEffectiveCategoryDiscount,
   getMarginColorClass,
 } from '@/lib/utils/articles/marginCalculations';
 import {
@@ -200,8 +201,8 @@ export function ArticlesTable({
                 </TooltipTrigger>
                 <TooltipContent>
                   <p className="max-w-xs">
-                    Margen sobre costo CIF, igual que en pedidos a proveedores: (Precio con
-                    descuento de categoría − FOB × (1+CIF%)) / Costo CIF × 100.
+                    Margen sobre costo CIF (caso peor — mayor descuento por término de pago):
+                    (Precio − Desc. máximo) − (FOB × (1+CIF%)), todo dividido por el Costo CIF.
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -446,9 +447,14 @@ export function ArticlesTable({
                       const margin = getArticleMarginPercent(article);
                       const text = formatMarginPercent(margin);
                       const colorClass = getMarginColorClass(margin);
+                      const effDiscount = getEffectiveCategoryDiscount(article);
+                      const breakdownLines = (article.categoryPaymentDiscounts ?? [])
+                        .map((d) => `  ${d.paymentTermName} (${d.days}d): ${d.discountPercent}%`)
+                        .join('\n');
                       const tooltipContent =
                         cost && cost > 0 && article.lastPurchasePrice
-                          ? `FOB: ${formatPrice(article.lastPurchasePrice)} · CIF ${article.cifPercentage ?? 0}% → Costo: ${formatPrice(cost)}\nPrecio lista: ${formatPrice(article.unitPrice)} · Desc. categoría: ${article.categoryDefaultDiscount ?? 0}% → Venta: ${sell !== null ? formatPrice(sell) : '—'}`
+                          ? `FOB: ${formatPrice(article.lastPurchasePrice)} · CIF ${article.cifPercentage ?? 0}% → Costo: ${formatPrice(cost)}
+Precio lista: ${formatPrice(article.unitPrice)} · Desc. aplicado: ${effDiscount}% → Venta: ${sell !== null ? formatPrice(sell) : '—'}${breakdownLines ? `\nDescuentos por término de pago:\n${breakdownLines}` : ''}`
                           : 'Sin precio de compra cargado';
                       return (
                         <TooltipProvider>

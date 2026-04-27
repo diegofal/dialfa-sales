@@ -283,7 +283,11 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
   if (needsFullDataset) {
     const allArticles = (await prisma.articles.findMany({
       where,
-      include: { categories: true },
+      include: {
+        categories: {
+          include: { category_payment_discounts: { include: { payment_terms: true } } },
+        },
+      },
     })) as ArticleWithCategory[];
 
     let filtered = allArticles;
@@ -390,7 +394,11 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
     const [articles, total] = await Promise.all([
       prisma.articles.findMany({
         where,
-        include: { categories: true },
+        include: {
+          categories: {
+            include: { category_payment_discounts: { include: { payment_terms: true } } },
+          },
+        },
         orderBy,
         skip: shouldPaginate ? skip : undefined,
         take: shouldPaginate ? limit : undefined,
@@ -408,7 +416,11 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
   if (search && !needsFullDataset) {
     const exactMatch = await prisma.articles.findFirst({
       where: { ...where, code: { equals: search, mode: 'insensitive' } },
-      include: { categories: true },
+      include: {
+        categories: {
+          include: { category_payment_discounts: { include: { payment_terms: true } } },
+        },
+      },
     });
 
     if (exactMatch) {
@@ -463,7 +475,9 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
 export async function getById(id: bigint) {
   const article = await prisma.articles.findUnique({
     where: { id },
-    include: { categories: true },
+    include: {
+      categories: { include: { category_payment_discounts: { include: { payment_terms: true } } } },
+    },
   });
 
   if (!article || article.deleted_at) {
@@ -500,7 +514,9 @@ export async function create(data: CreateArticleInput, request: NextRequest) {
       created_at: new Date(),
       updated_at: new Date(),
     },
-    include: { categories: true },
+    include: {
+      categories: { include: { category_payment_discounts: { include: { payment_terms: true } } } },
+    },
   });
 
   const tracker = new ChangeTracker();
@@ -558,7 +574,9 @@ export async function update(id: bigint, data: UpdateArticleInput, request: Next
       notes: data.notes,
       updated_at: new Date(),
     },
-    include: { categories: true },
+    include: {
+      categories: { include: { category_payment_discounts: { include: { payment_terms: true } } } },
+    },
   });
 
   await tracker.trackAfter('article', id);
