@@ -3,18 +3,17 @@
 import { Search } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
-import { Badge } from '@/components/ui/badge';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useArticles } from '@/lib/hooks/domain/useArticles';
 import { useQuickCartTabs } from '@/lib/hooks/domain/useQuickCartTabs';
-import { isDeadStock } from '@/lib/utils/articles/deadStockHelper';
 import {
   formatMarginPercent,
   getArticleMarginPercent,
   getMarginColorClass,
 } from '@/lib/utils/articles/marginCalculations';
 import type { Article } from '@/types/article';
+import { StockStatusBadge } from './StockStatusBadge';
 
 interface QuickArticleLookupProps {
   autoFocus?: boolean;
@@ -33,11 +32,13 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
   const selectedItemRef = useRef<HTMLButtonElement>(null);
   const { addItem } = useQuickCartTabs();
 
-  // Search articles as user types code
+  // Search articles as user types code.
+  // includeTrends=true so the API returns stockStatus + trends used by StockStatusBadge.
   const { data: articlesResult } = useArticles({
     searchTerm: articleCode,
     activeOnly: true,
     pageSize: 5,
+    includeTrends: true,
   });
 
   const articles = articlesResult?.data || [];
@@ -205,7 +206,6 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
               {articles.map((article, index) => {
                 const margin = getArticleMarginPercent(article);
                 const isSelected = index === selectedIndex;
-                const dead = isDeadStock(article);
                 return (
                   <button
                     key={article.id}
@@ -221,20 +221,30 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           <span className="font-mono text-sm font-semibold">{article.code}</span>
-                          {dead && (
-                            <Badge variant="destructive" className="shrink-0 text-[10px]">
-                              Stock muerto
-                            </Badge>
-                          )}
+                          <StockStatusBadge status={article.stockStatus} className="shrink-0" />
                         </div>
                         <div
                           className={`mt-0.5 truncate text-xs ${isSelected ? 'text-primary-foreground/90' : 'text-muted-foreground'}`}
                         >
                           {article.description}
                         </div>
+                        {article.categoryName && (
+                          <div
+                            className={`mt-0.5 truncate text-[11px] ${isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}
+                          >
+                            {article.categoryName}
+                          </div>
+                        )}
                       </div>
                       <div className="flex-shrink-0 text-right">
                         <div className="text-sm font-bold">{formatCurrency(article.unitPrice)}</div>
+                        {article.lastPurchasePrice && article.lastPurchasePrice > 0 && (
+                          <div
+                            className={`mt-0.5 text-[11px] ${isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}
+                          >
+                            FOB: USD {article.lastPurchasePrice.toFixed(2)}
+                          </div>
+                        )}
                         <div
                           className={`mt-0.5 text-[11px] font-medium ${
                             isSelected ? 'text-primary-foreground/90' : getMarginColorClass(margin)
