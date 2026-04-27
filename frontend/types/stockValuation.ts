@@ -47,9 +47,11 @@ export interface StockValuationMetrics {
 
   // Métricas de stock
   currentStock: number;
-  unitCost: number; // Costo unitario (last_purchase_price o cost_price)
+  unitCost: number; // Costo unitario CIF = FOB × (1 + CIF%)
+  unitCostFob: number; // FOB raw (last_purchase_price)
+  cifPercentage: number; // % CIF aplicado
   unitPrice: number; // Precio unitario de venta
-  stockValue: number; // stock * cost_price
+  stockValue: number; // stock * unitCost (CIF)
   stockValueAtListPrice: number; // stock * unit_price (sin descuento)
   potentialProfitAtListPrice: number; // Ganancia sin descuento
 

@@ -22,7 +22,7 @@ import { SparklineWithTooltip } from '@/components/ui/sparkline';
 import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { ACTION_BUTTON_CONFIG } from '@/lib/constants/tableActions';
-import { isDeadStock } from '@/lib/utils/articles/deadStockHelper';
+import { getArticleActiveRating, RATING_CONFIG } from '@/lib/utils/articles/articleRating';
 import {
   formatMarginPercent,
   getArticleCifCost,
@@ -39,57 +39,7 @@ import {
 import { useAuthStore } from '@/store/authStore';
 import { Article } from '@/types/article';
 import StockAdjustDialog from './StockAdjustDialog';
-
-type ActiveRating = 'GREAT' | 'GOOD' | 'OK' | 'SLOW' | 'NO DATA';
-
-const RATING_CONFIG: Record<
-  ActiveRating,
-  { label: string; color: string; bg: string; border: string }
-> = {
-  GREAT: {
-    label: 'Excelente',
-    color: 'text-emerald-700 dark:text-emerald-400',
-    bg: 'bg-emerald-500/10',
-    border: 'border-emerald-500/30',
-  },
-  GOOD: {
-    label: 'Bueno',
-    color: 'text-blue-700 dark:text-blue-400',
-    bg: 'bg-blue-500/10',
-    border: 'border-blue-500/30',
-  },
-  OK: {
-    label: 'Regular',
-    color: 'text-amber-700 dark:text-amber-400',
-    bg: 'bg-amber-500/10',
-    border: 'border-amber-500/30',
-  },
-  SLOW: {
-    label: 'Lento',
-    color: 'text-red-700 dark:text-red-400',
-    bg: 'bg-red-500/10',
-    border: 'border-red-500/30',
-  },
-  'NO DATA': {
-    label: 'Sin datos',
-    color: 'text-gray-500 dark:text-gray-400',
-    bg: 'bg-gray-500/10',
-    border: 'border-gray-500/30',
-  },
-};
-
-function getArticleActiveRating(article: Article): ActiveRating {
-  const trend = article.activeStockTrend;
-  if (!trend || trend.length === 0) return 'NO DATA';
-  const wma = calculateWeightedAvgSales(trend, trend.length);
-  if (wma <= 0) return 'NO DATA';
-  const est = calculateEstimatedSaleTime(article.stock, wma);
-  if (!isFinite(est)) return 'NO DATA';
-  if (est <= 12) return 'GREAT';
-  if (est <= 24) return 'GOOD';
-  if (est <= 60) return 'OK';
-  return 'SLOW';
-}
+import { StockStatusBadge } from './StockStatusBadge';
 
 interface ArticlesTableProps {
   articles: Article[];
@@ -196,6 +146,19 @@ export function ArticlesTable({
               <Tooltip>
                 <TooltipTrigger asChild>
                   <SortableTableHead align="right" className="cursor-help">
+                    FOB (USD)
+                  </SortableTableHead>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">
+                    Precio de última compra (FOB) en USD. El costo CIF utilizado para el margen es
+                    FOB × (1 + CIF%).
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <SortableTableHead align="right" className="cursor-help">
                     Margen
                   </SortableTableHead>
                 </TooltipTrigger>
@@ -299,7 +262,7 @@ export function ArticlesTable({
           {articles.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={selectionMode ? 16 : 15}
+                colSpan={selectionMode ? 17 : 16}
                 className="text-muted-foreground text-center"
               >
                 No hay artículos para mostrar
@@ -348,11 +311,7 @@ export function ArticlesTable({
                     <div className="max-w-md">
                       <div className="flex items-center gap-2">
                         <p className="truncate">{article.description}</p>
-                        {isDeadStock(article) && (
-                          <Badge variant="destructive" className="shrink-0 text-[10px]">
-                            Stock muerto
-                          </Badge>
-                        )}
+                        <StockStatusBadge status={article.stockStatus} className="shrink-0" />
                       </div>
                       {article.location && (
                         <p className="text-muted-foreground text-xs">📍 {article.location}</p>
@@ -437,6 +396,13 @@ export function ArticlesTable({
                   {/* Precio Unit. */}
                   <TableCell className="text-right font-medium">
                     {formatPrice(article.unitPrice)}
+                  </TableCell>
+
+                  {/* FOB (USD) */}
+                  <TableCell className="text-muted-foreground text-right text-sm">
+                    {article.lastPurchasePrice && article.lastPurchasePrice > 0
+                      ? `USD ${article.lastPurchasePrice.toFixed(2)}`
+                      : '—'}
                   </TableCell>
 
                   {/* Margen */}

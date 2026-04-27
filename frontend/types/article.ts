@@ -1,3 +1,5 @@
+import type { StockStatus } from './stockValuation';
+
 export interface Article {
   id: number;
   code: string;
@@ -22,7 +24,9 @@ export interface Article {
   createdAt: string;
   updatedAt: string;
   isLowStock: boolean;
-  stockStatus: string;
+  stockStatus?: StockStatus | null;
+  avgMonthlySales?: number;
+  trendDirection?: 'increasing' | 'stable' | 'decreasing' | 'none';
   abcClass?: 'A' | 'B' | 'C' | null;
   salesTrend?: number[];
   salesTrendLabels?: string[];
