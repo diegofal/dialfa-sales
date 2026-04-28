@@ -9,7 +9,10 @@ import {
   getABCCacheInfo,
 } from '@/lib/utils/articles/abcClassification';
 import { getArticleActiveRating } from '@/lib/utils/articles/articleRating';
-import { getArticleMarginPercent } from '@/lib/utils/articles/marginCalculations';
+import {
+  getArticleCifCost,
+  getArticleMarginPercent,
+} from '@/lib/utils/articles/marginCalculations';
 import {
   calculateSalesTrends,
   calculateLastSaleDates,
@@ -120,6 +123,7 @@ const CALCULATED_SORT_KEYS = [
   'Rating',
   'LastSaleDate',
   'Margin',
+  'CifCost',
 ];
 
 export interface ArticleListResult {
@@ -419,6 +423,17 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
             if (bMargin === null) return -1;
             aVal = aMargin;
             bVal = bMargin;
+            break;
+          }
+          case 'CifCost': {
+            const aCif = getArticleCifCost(a);
+            const bCif = getArticleCifCost(b);
+            // Articles without FOB go to the bottom regardless of direction.
+            if (aCif === null && bCif === null) return 0;
+            if (aCif === null) return 1;
+            if (bCif === null) return -1;
+            aVal = aCif;
+            bVal = bCif;
             break;
           }
         }

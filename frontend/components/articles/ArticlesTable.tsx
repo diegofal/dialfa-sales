@@ -133,33 +133,45 @@ export function ArticlesTable({
             </SortableTableHead>
             <SortableTableHead>Tendencia ({trendMonths} meses)</SortableTableHead>
             <SortableTableHead>Tend. Activa</SortableTableHead>
-            <SortableTableHead
-              sortKey="UnitPrice"
-              currentSortBy={currentSortBy}
-              currentSortDescending={currentSortDescending}
-              onSort={onSort}
-              align="right"
-            >
-              Precio Unit.
-            </SortableTableHead>
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <SortableTableHead
-                    sortKey="LastPurchasePrice"
+                    sortKey="UnitPrice"
                     currentSortBy={currentSortBy}
                     currentSortDescending={currentSortDescending}
                     onSort={onSort}
                     align="right"
                     className="cursor-help"
                   >
-                    FOB (USD)
+                    Precio
                   </SortableTableHead>
                 </TooltipTrigger>
                 <TooltipContent>
                   <p className="max-w-xs">
-                    Precio de última compra (FOB) en USD. El costo CIF utilizado para el margen es
-                    FOB × (1 + CIF%).
+                    Línea 1: precio de lista. Línea 2: precio con el mayor descuento por término de
+                    pago aplicado (lo que paga el cliente al elegir el mejor descuento). Sort por
+                    precio de lista.
+                  </p>
+                </TooltipContent>
+              </Tooltip>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <SortableTableHead
+                    sortKey="CifCost"
+                    currentSortBy={currentSortBy}
+                    currentSortDescending={currentSortDescending}
+                    onSort={onSort}
+                    align="right"
+                    className="cursor-help"
+                  >
+                    Costo
+                  </SortableTableHead>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="max-w-xs">
+                    Línea 1: costo CIF en USD = FOB × (1 + CIF%). Línea 2: FOB raw (última compra)
+                    en USD. Sort por costo CIF.
                   </p>
                 </TooltipContent>
               </Tooltip>
@@ -407,16 +419,44 @@ export function ArticlesTable({
                     )}
                   </TableCell>
 
-                  {/* Precio Unit. */}
-                  <TableCell className="text-right font-medium">
-                    {formatPrice(article.unitPrice)}
+                  {/* Precio (lista / c-desc) */}
+                  <TableCell className="text-right">
+                    {(() => {
+                      const sell = getArticleDiscountedSellPrice(article);
+                      const margin = getArticleMarginPercent(article);
+                      const sellColor = getMarginColorClass(margin);
+                      return (
+                        <>
+                          <div className="font-medium">{formatPrice(article.unitPrice)}</div>
+                          {sell !== null && sell !== article.unitPrice ? (
+                            <div className={`text-[11px] font-medium ${sellColor}`}>
+                              → {formatPrice(sell)}
+                            </div>
+                          ) : (
+                            <div className="text-muted-foreground text-[11px]">→ s/desc.</div>
+                          )}
+                        </>
+                      );
+                    })()}
                   </TableCell>
 
-                  {/* FOB (USD) */}
-                  <TableCell className="text-muted-foreground text-right text-sm">
-                    {article.lastPurchasePrice && article.lastPurchasePrice > 0
-                      ? `USD ${article.lastPurchasePrice.toFixed(2)}`
-                      : '—'}
+                  {/* Costo (CIF / FOB) */}
+                  <TableCell className="text-right">
+                    {(() => {
+                      const cifCost = getArticleCifCost(article);
+                      if (!cifCost) return <span className="text-muted-foreground text-sm">—</span>;
+                      return (
+                        <>
+                          <div className="text-sm font-medium">USD {cifCost.toFixed(2)}</div>
+                          {article.lastPurchasePrice && article.lastPurchasePrice > 0 && (
+                            <div className="text-muted-foreground text-[11px]">
+                              FOB {article.lastPurchasePrice.toFixed(2)}
+                              {article.cifPercentage ? ` · CIF ${article.cifPercentage}%` : ''}
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
                   </TableCell>
 
                   {/* Margen */}
