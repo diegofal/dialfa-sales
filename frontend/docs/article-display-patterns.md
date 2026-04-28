@@ -29,12 +29,15 @@
 
 ## Cuándo cada cosa
 
-| Querés mostrar...                      | Hacelo así                                                                                               |
-| -------------------------------------- | -------------------------------------------------------------------------------------------------------- |
-| "¿Está activo o muerto este artículo?" | `<StockStatusBadge status={article.stockStatus} />` (requiere `includeTrends:true`)                      |
-| "¿Cuánto stock hay?" coloreado         | `<span className={getStockLevelColorClass(article.stock)}>Stock: {article.stock}</span>`                 |
-| "¿Cuál es el margen real?"             | `formatMarginPercent(getArticleMarginPercent(article))`                                                  |
-| Tooltip con FOB → CIF → Venta          | `getArticleCifCost(article)` + `getArticleDiscountedSellPrice(article)` (ver ArticlesTable como ejemplo) |
+| Querés mostrar...                      | Hacelo así                                                                               |
+| -------------------------------------- | ---------------------------------------------------------------------------------------- |
+| "¿Está activo o muerto este artículo?" | `<StockStatusBadge status={article.stockStatus} />` (requiere `includeTrends:true`)      |
+| "¿Cuánto stock hay?" coloreado         | `<span className={getStockLevelColorClass(article.stock)}>Stock: {article.stock}</span>` |
+| Costo real importado (CIF)             | `getArticleCifCost(article)` — devuelve `FOB × (1 + CIF%)` o `null` si falta FOB         |
+| Precio que paga el cliente (con desc.) | `getArticleDiscountedSellPrice(article)` — `unitPrice × (1 - max payment discount/100)`  |
+| Margen final (sobre CIF, c/desc)       | `formatMarginPercent(getArticleMarginPercent(article))`                                  |
+
+**Regla de presentación**: el patrón canónico muestra los 4 valores juntos (lista, c/desc, CIF, FOB) cuando entran. FOB se muestra como detalle secundario al lado de CIF (el costo real). En espacios muy chicos (Select del wizard, edit compacto), priorizá precio lista + precio c/desc; FOB/CIF se omiten.
 
 ## Patrón canónico — dropdown de búsqueda de artículo
 
@@ -44,6 +47,8 @@ Para que cualquier nuevo dropdown de búsqueda quede consistente con `QuickArtic
 import { StockStatusBadge } from '@/components/articles/StockStatusBadge';
 import {
   formatMarginPercent,
+  getArticleCifCost,
+  getArticleDiscountedSellPrice,
   getArticleMarginPercent,
   getMarginColorClass,
 } from '@/lib/utils/articles/marginCalculations';
@@ -58,11 +63,13 @@ const { data } = useArticles({
   includeTrends: true,
 });
 
-// 2. Layout por fila
+// 2. Layout por fila — 5 líneas a la derecha (precio, c/desc, costo CIF+FOB, margen, stock)
 {
   articles.map((article, index) => {
     const isSelected = index === selectedIndex;
     const margin = getArticleMarginPercent(article);
+    const sell = getArticleDiscountedSellPrice(article);
+    const cifCost = getArticleCifCost(article);
     return (
       <button
         onClick={() => onSelect(article)}
@@ -82,12 +89,18 @@ const { data } = useArticles({
               </div>
             )}
           </div>
-          {/* Derecha: precio, FOB, margen, stock */}
+          {/* Derecha: precio lista, precio c/desc, costo CIF (FOB), margen, stock */}
           <div className="flex-shrink-0 text-right">
             <div className="text-sm font-bold">{formatCurrency(article.unitPrice)}</div>
-            {article.lastPurchasePrice && article.lastPurchasePrice > 0 && (
+            {sell !== null && sell !== article.unitPrice && (
+              <div className={`text-[11px] font-medium ${getMarginColorClass(margin)}`}>
+                → {formatCurrency(sell)}
+              </div>
+            )}
+            {cifCost !== null && (
               <div className="text-muted-foreground text-[11px]">
-                FOB: USD {article.lastPurchasePrice.toFixed(2)}
+                Costo: USD {cifCost.toFixed(2)}
+                {article.lastPurchasePrice ? ` (FOB ${article.lastPurchasePrice.toFixed(2)})` : ''}
               </div>
             )}
             <div className={`text-[11px] font-medium ${getMarginColorClass(margin)}`}>
@@ -103,6 +116,11 @@ const { data } = useArticles({
   });
 }
 ```
+
+### Variantes comprimidas (espacio chico)
+
+- **Edit compacto (340px)** — `SingleStepOrderForm` lápiz inline: agregar al final de la tarjeta una línea con `formatCurrency(unitPrice)` + `→ formatCurrency(sell)` + margen, y otra con `Costo: USD X (FOB Y)` debajo. No 5 líneas.
+- **Select del wizard** — `ItemsSelectionStep`: una sola línea horizontal `code · badge · descripción · categoría · $lista → $c-desc (margen)`. FOB/CIF se omiten.
 
 ## Componentes que ya siguen el patrón (referencia)
 
