@@ -9,6 +9,7 @@ import {
   getABCCacheInfo,
 } from '@/lib/utils/articles/abcClassification';
 import { getArticleActiveRating } from '@/lib/utils/articles/articleRating';
+import { getArticleMarginPercent } from '@/lib/utils/articles/marginCalculations';
 import {
   calculateSalesTrends,
   calculateLastSaleDates,
@@ -107,11 +108,19 @@ const DB_SORT_KEY_MAP: Record<string, string> = {
   Stock: 'stock',
   MinimumStock: 'minimum_stock',
   UnitPrice: 'unit_price',
+  LastPurchasePrice: 'last_purchase_price',
   Category: 'category_id',
 };
 
 // Sort keys that require full dataset (calculated columns)
-const CALCULATED_SORT_KEYS = ['WMA', 'EstSaleTime', 'ActiveEstSaleTime', 'Rating', 'LastSaleDate'];
+const CALCULATED_SORT_KEYS = [
+  'WMA',
+  'EstSaleTime',
+  'ActiveEstSaleTime',
+  'Rating',
+  'LastSaleDate',
+  'Margin',
+];
 
 export interface ArticleListResult {
   data: EnrichedArticleDTO[];
@@ -399,6 +408,17 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
             const bDate = b.lastSaleDate ? new Date(b.lastSaleDate).getTime() : 0;
             aVal = aDate;
             bVal = bDate;
+            break;
+          }
+          case 'Margin': {
+            const aMargin = getArticleMarginPercent(a);
+            const bMargin = getArticleMarginPercent(b);
+            // Articles without margin (no FOB) go to the bottom regardless of direction.
+            if (aMargin === null && bMargin === null) return 0;
+            if (aMargin === null) return 1;
+            if (bMargin === null) return -1;
+            aVal = aMargin;
+            bVal = bMargin;
             break;
           }
         }

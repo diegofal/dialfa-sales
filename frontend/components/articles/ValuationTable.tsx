@@ -1,22 +1,19 @@
+'use client';
+
 import { TrendingDown, TrendingUp, Minus, ExternalLink } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import { useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
+import { SortableTableHead } from '@/components/ui/sortable-table-head';
 import { SparklineWithTooltip } from '@/components/ui/sparkline';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
+import { Table, TableBody, TableCell, TableHeader, TableRow } from '@/components/ui/table';
 import { ROUTES } from '@/lib/constants/routes';
 import {
   calculateMarginPercent,
   formatMarginPercent,
   getMarginColorClass,
 } from '@/lib/utils/articles/marginCalculations';
-import { StockValuationMetrics } from '@/types/stockValuation';
+import { StockStatus, StockValuationMetrics } from '@/types/stockValuation';
 import { StockStatusBadge } from './StockStatusBadge';
 
 interface ValuationTableProps {
@@ -31,8 +28,81 @@ const trendConfig = {
   none: { icon: Minus, color: 'text-gray-600 dark:text-gray-400' },
 };
 
+const STATUS_ORDER: Record<StockStatus, number> = {
+  [StockStatus.ACTIVE]: 1,
+  [StockStatus.SLOW_MOVING]: 2,
+  [StockStatus.DEAD_STOCK]: 3,
+  [StockStatus.NEVER_SOLD]: 4,
+};
+
+function getMargin(article: StockValuationMetrics): number | null {
+  return calculateMarginPercent(article.unitPrice, article.unitCost);
+}
+
+/** Returns the comparable value for a given sort key, or null when missing. */
+function getSortValue(article: StockValuationMetrics, key: string): number | string | null {
+  switch (key) {
+    case 'code':
+      return article.articleCode;
+    case 'description':
+      return article.articleDescription;
+    case 'category':
+      return article.categoryName;
+    case 'status':
+      return STATUS_ORDER[article.status] ?? 99;
+    case 'stock':
+      return article.currentStock;
+    case 'lastSale':
+      return article.daysSinceLastSale ?? null;
+    case 'trend':
+      return article.avgMonthlySales;
+    case 'fob':
+      return article.unitCostFob > 0 ? article.unitCostFob : null;
+    case 'cifCost':
+      return article.unitCost > 0 ? article.unitCost : null;
+    case 'stockValue':
+      return article.stockValue;
+    case 'listPrice':
+      return article.stockValueAtListPrice;
+    case 'margin':
+      return getMargin(article);
+    default:
+      return null;
+  }
+}
+
+function compareValues(
+  a: number | string | null,
+  b: number | string | null,
+  descending: boolean
+): number {
+  // Nulls always go to the bottom regardless of direction.
+  if (a === null && b === null) return 0;
+  if (a === null) return 1;
+  if (b === null) return -1;
+  const dir = descending ? -1 : 1;
+  if (typeof a === 'string' && typeof b === 'string') {
+    return a.localeCompare(b, 'es') * dir;
+  }
+  return ((a as number) - (b as number)) * dir;
+}
+
 export function ValuationTable({ articles }: ValuationTableProps) {
   const router = useRouter();
+  const [sortBy, setSortBy] = useState<string>('');
+  const [sortDescending, setSortDescending] = useState(false);
+
+  const handleSort = (key: string, descending: boolean) => {
+    setSortBy(key);
+    setSortDescending(descending);
+  };
+
+  const sortedArticles = useMemo(() => {
+    if (!sortBy) return articles;
+    return [...articles].sort((a, b) =>
+      compareValues(getSortValue(a, sortBy), getSortValue(b, sortBy), sortDescending)
+    );
+  }, [articles, sortBy, sortDescending]);
 
   const formatCurrency = (value: number) => {
     if (isNaN(value) || value === null || value === undefined) {
@@ -70,30 +140,70 @@ export function ValuationTable({ articles }: ValuationTableProps) {
     router.push(`${ROUTES.ARTICLES}?search=${code}`);
   };
 
+  const sortProps = {
+    currentSortBy: sortBy,
+    currentSortDescending: sortDescending,
+    onSort: handleSort,
+  };
+
   return (
     <div className="rounded-lg border">
       <Table>
         <TableHeader>
           <TableRow>
-            <TableHead className="w-[120px]">Código</TableHead>
-            <TableHead>Descripción</TableHead>
-            <TableHead className="w-[120px]">Categoría</TableHead>
-            <TableHead className="w-[130px]">Estado</TableHead>
-            <TableHead className="w-[80px] text-right">Stock</TableHead>
-            <TableHead className="w-[110px]">Última Venta</TableHead>
-            <TableHead className="w-[140px]">Tendencia</TableHead>
-            <TableHead className="w-[90px] text-right">FOB</TableHead>
-            <TableHead className="w-[100px] text-right">Costo CIF</TableHead>
-            <TableHead className="w-[110px] text-right">Valor Costo</TableHead>
-            <TableHead className="w-[110px] text-right">Precio Lista</TableHead>
-            <TableHead className="w-[90px] text-right">Margen</TableHead>
-            <TableHead className="w-[80px]"></TableHead>
+            <SortableTableHead sortKey="code" {...sortProps} className="w-[120px]">
+              Código
+            </SortableTableHead>
+            <SortableTableHead sortKey="description" {...sortProps}>
+              Descripción
+            </SortableTableHead>
+            <SortableTableHead sortKey="category" {...sortProps} className="w-[120px]">
+              Categoría
+            </SortableTableHead>
+            <SortableTableHead sortKey="status" {...sortProps} className="w-[130px]">
+              Estado
+            </SortableTableHead>
+            <SortableTableHead sortKey="stock" {...sortProps} align="right" className="w-[80px]">
+              Stock
+            </SortableTableHead>
+            <SortableTableHead sortKey="lastSale" {...sortProps} className="w-[110px]">
+              Última Venta
+            </SortableTableHead>
+            <SortableTableHead sortKey="trend" {...sortProps} className="w-[140px]">
+              Tendencia
+            </SortableTableHead>
+            <SortableTableHead sortKey="fob" {...sortProps} align="right" className="w-[90px]">
+              FOB
+            </SortableTableHead>
+            <SortableTableHead sortKey="cifCost" {...sortProps} align="right" className="w-[100px]">
+              Costo CIF
+            </SortableTableHead>
+            <SortableTableHead
+              sortKey="stockValue"
+              {...sortProps}
+              align="right"
+              className="w-[110px]"
+            >
+              Valor Costo
+            </SortableTableHead>
+            <SortableTableHead
+              sortKey="listPrice"
+              {...sortProps}
+              align="right"
+              className="w-[110px]"
+            >
+              Precio Lista
+            </SortableTableHead>
+            <SortableTableHead sortKey="margin" {...sortProps} align="right" className="w-[90px]">
+              Margen
+            </SortableTableHead>
+            <SortableTableHead className="w-[80px]">{''}</SortableTableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
-          {articles.map((article) => {
+          {sortedArticles.map((article) => {
             const TrendIcon = trendConfig[article.salesTrendDirection].icon;
-            const margin = calculateMarginPercent(article.unitPrice, article.unitCost);
+            const margin = getMargin(article);
 
             return (
               <TableRow key={article.articleId}>
