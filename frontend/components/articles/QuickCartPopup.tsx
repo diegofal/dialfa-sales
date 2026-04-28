@@ -12,6 +12,8 @@ import { useArticles } from '@/lib/hooks/domain/useArticles';
 import { useQuickCartTabs } from '@/lib/hooks/domain/useQuickCartTabs';
 import {
   formatMarginPercent,
+  getArticleCifCost,
+  getArticleDiscountedSellPrice,
   getArticleMarginPercent,
   getMarginColorClass,
 } from '@/lib/utils/articles/marginCalculations';
@@ -917,6 +919,8 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
             {editArticles.map((article, index) => {
               const isSelected = index === selectedEditIndex;
               const margin = getArticleMarginPercent(article);
+              const sell = getArticleDiscountedSellPrice(article);
+              const cifCost = getArticleCifCost(article);
               return (
                 <button
                   key={article.id}
@@ -955,11 +959,23 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
                       >
                         {formatCurrency(article.unitPrice)}
                       </div>
-                      {article.lastPurchasePrice && article.lastPurchasePrice > 0 && (
+                      {sell !== null && sell !== article.unitPrice && (
+                        <div
+                          className={`mt-0.5 text-[11px] font-medium ${
+                            isSelected ? 'text-primary-foreground/90' : getMarginColorClass(margin)
+                          }`}
+                        >
+                          → {formatCurrency(sell)}
+                        </div>
+                      )}
+                      {cifCost !== null && (
                         <div
                           className={`mt-0.5 text-[11px] ${isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}
                         >
-                          FOB: USD {article.lastPurchasePrice.toFixed(2)}
+                          Costo: USD {cifCost.toFixed(2)}
+                          {article.lastPurchasePrice
+                            ? ` (FOB ${article.lastPurchasePrice.toFixed(2)})`
+                            : ''}
                         </div>
                       )}
                       <div
