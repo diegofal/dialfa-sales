@@ -44,6 +44,8 @@ export interface ArticleDTO {
   thickness: string | null;
   type: string | null;
   weightKg: number | null;
+  lastPurchaseProformaNumber: string | null;
+  lastPurchaseProformaDate: string | null;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -252,6 +254,11 @@ export function mapArticleToDTO(article: unknown): ArticleDTO {
     thickness: a.thickness as string | null,
     type: a.type as string | null,
     weightKg: toFloatOrNull(a.weight_kg),
+    lastPurchaseProformaNumber: (a.last_purchase_proforma_number as string | null) ?? null,
+    lastPurchaseProformaDate:
+      a.last_purchase_proforma_date instanceof Date
+        ? (a.last_purchase_proforma_date as Date).toISOString().slice(0, 10)
+        : ((a.last_purchase_proforma_date as string | null) ?? null),
     isActive: a.is_active as boolean,
     createdAt: a.created_at as Date,
     updatedAt: a.updated_at as Date,

@@ -33,6 +33,8 @@ export const createArticleSchema = z.object({
     .min(0, 'El precio de última compra no puede ser negativo')
     .optional()
     .nullable(),
+  lastPurchaseProformaNumber: z.string().max(100).optional().nullable(),
+  lastPurchaseProformaDate: z.coerce.date().optional().nullable(),
   cifPercentage: z.coerce
     .number()
     .min(0)
