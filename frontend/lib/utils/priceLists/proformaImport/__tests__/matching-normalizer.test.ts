@@ -214,8 +214,14 @@ describe('MatchingKeyNormalizer.normalizeSize', () => {
     expect(MatchingKeyNormalizer.normalizeSize('12.0')).toBe('12');
   });
 
-  it('preserves actual decimal values', () => {
-    expect(MatchingKeyNormalizer.normalizeSize('1.5')).toBe('1.5');
+  it('converts common decimal sizes to canonical fractions', () => {
+    // SPISA DB stores sizes as fractions (e.g. "1 1/2"), so proforma
+    // inputs like "1.5" or "2.5" must normalize to that form to match.
+    expect(MatchingKeyNormalizer.normalizeSize('0.5')).toBe('1/2');
+    expect(MatchingKeyNormalizer.normalizeSize('1.5')).toBe('1 1/2');
+    expect(MatchingKeyNormalizer.normalizeSize('2.5')).toBe('2 1/2');
+    expect(MatchingKeyNormalizer.normalizeSize('0.75')).toBe('3/4');
+    expect(MatchingKeyNormalizer.normalizeSize('0.25')).toBe('1/4');
   });
 
   it('normalizes dot-separated fractions to space-separated', () => {
