@@ -248,6 +248,28 @@ export function ArticleDialog({ open, onOpenChange, article }: ArticleDialogProp
             </div>
           </div>
 
+          {/* Last Purchase info (read-only) */}
+          {isEditing && (article?.lastPurchasePrice || article?.lastPurchaseProformaNumber) && (
+            <div className="bg-muted/30 rounded-md border px-3 py-2 text-sm">
+              <div className="text-muted-foreground text-xs tracking-wide uppercase">
+                Última compra
+              </div>
+              <div className="mt-1 flex flex-wrap items-baseline gap-x-3">
+                {article.lastPurchasePrice != null && (
+                  <span className="font-medium">USD {article.lastPurchasePrice.toFixed(2)}</span>
+                )}
+                {article.lastPurchaseProformaNumber && (
+                  <span className="text-muted-foreground text-xs">
+                    {article.lastPurchaseProformaNumber}
+                    {article.lastPurchaseProformaDate
+                      ? ` · ${article.lastPurchaseProformaDate.slice(0, 10)}`
+                      : ''}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
+
           {/* Location */}
           <div className="space-y-2">
             <Label htmlFor="location">Ubicación</Label>

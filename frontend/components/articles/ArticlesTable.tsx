@@ -270,6 +270,7 @@ export function ArticlesTable({
             >
               Última Venta
             </SortableTableHead>
+            <SortableTableHead align="right">Última Compra</SortableTableHead>
             <SortableTableHead align="right">Acciones</SortableTableHead>
           </TableRow>
         </TableHeader>
@@ -277,7 +278,7 @@ export function ArticlesTable({
           {articles.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={selectionMode ? 15 : 14}
+                colSpan={selectionMode ? 16 : 15}
                 className="text-muted-foreground text-center"
               >
                 No hay artículos para mostrar
@@ -471,6 +472,25 @@ export function ArticlesTable({
                       </span>
                     ) : (
                       <span className="text-muted-foreground text-xs">Nunca vendido</span>
+                    )}
+                  </TableCell>
+
+                  {/* Última Compra */}
+                  <TableCell className="text-right">
+                    {article.lastPurchasePrice != null ? (
+                      <div className="flex flex-col items-end">
+                        <span className="text-sm">USD {article.lastPurchasePrice.toFixed(2)}</span>
+                        {article.lastPurchaseProformaNumber && (
+                          <span className="text-muted-foreground text-[10px]">
+                            {article.lastPurchaseProformaNumber}
+                            {article.lastPurchaseProformaDate
+                              ? ` · ${article.lastPurchaseProformaDate.slice(0, 10)}`
+                              : ''}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">-</span>
                     )}
                   </TableCell>
 

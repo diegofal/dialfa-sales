@@ -1179,6 +1179,17 @@ export default function SupplierOrderDetailPage({ params }: { params: Promise<{ 
                       </TooltipContent>
                     </Tooltip>
                   </TableHead>
+                  <TableHead className="text-right">
+                    <Tooltip>
+                      <TooltipTrigger className="cursor-help">Última Compra (DB)</TooltipTrigger>
+                      <TooltipContent>
+                        <p className="max-w-xs">
+                          Precio de última compra registrado en la ficha del artículo y la proforma
+                          de origen.
+                        </p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TableHead>
                   {showCommercial && (
                     <>
                       <TableHead>Categoría</TableHead>
@@ -1412,6 +1423,27 @@ export default function SupplierOrderDetailPage({ params }: { params: Promise<{ 
                             </span>
                           ) : (
                             <span className="text-muted-foreground text-xs">Nunca</span>
+                          )}
+                        </TableCell>
+
+                        {/* Última Compra (DB) */}
+                        <TableCell className="text-right">
+                          {article?.lastPurchasePrice != null ? (
+                            <div className="flex flex-col items-end">
+                              <span className="text-sm">
+                                {formatPrice(article.lastPurchasePrice)}
+                              </span>
+                              {article.lastPurchaseProformaNumber && (
+                                <span className="text-muted-foreground text-[10px]">
+                                  {article.lastPurchaseProformaNumber}
+                                  {article.lastPurchaseProformaDate
+                                    ? ` · ${article.lastPurchaseProformaDate.slice(0, 10)}`
+                                    : ''}
+                                </span>
+                              )}
+                            </div>
+                          ) : (
+                            <span className="text-muted-foreground text-xs">-</span>
                           )}
                         </TableCell>
 
