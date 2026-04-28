@@ -7,7 +7,7 @@ export class MatchingKeyNormalizer {
   /**
    * Normalize product type to canonical form
    */
-  static normalizeProductType(type: string, description: string = ''): string {
+  static normalizeProductType(type: string, description: string = '', size: string = ''): string {
     let normalized = type.toUpperCase().trim();
     const desc = description.toUpperCase();
 
@@ -27,7 +27,7 @@ export class MatchingKeyNormalizer {
 
     // 90° Long Radius Elbows (default for 90° when no SR specified)
     if (
-      /90D?\s*LR|90\s*LR|CODO\s*RADIO\s*LARGO\s*90|CODOS?\s*90°?\s*RADIO\s*LARGO|CODO\s*R\.L\.\s*90|ELBOW\s*90/i.test(
+      /90D?\s*LR|90\s*LR|CODO\s*RADIO\s*LARGO\s*90|CODOS?\s*90°?\s*RADIO\s*LARGO|CODO\s*R\.L\.\s*90|ELBOW\s*90|ELBOW\s+LR\s*90?/i.test(
         normalized
       )
     ) {
@@ -75,6 +75,15 @@ export class MatchingKeyNormalizer {
       if (/RED|REDUCCION|REDUCER/i.test(desc) || /RED|REDUCCION|REDUCER/i.test(normalized)) {
         return 'REDUCER_TEE';
       }
+      // Dual-size in size string (e.g., 5"X3", 6 X 4) implies a reducing tee
+      if (
+        size &&
+        /^\s*(?:\d+\s+\d+\/\d+|\d+\/\d+|\d+)["']?\s*[Xx*×]\s*(?:\d+\s+\d+\/\d+|\d+\/\d+|\d+)/.test(
+          size
+        )
+      ) {
+        return 'REDUCER_TEE';
+      }
       // Forged tees: preserve connection type
       if (/S\.?W\.?/i.test(normalized) && !/BSPT|NPT/i.test(normalized)) {
         return 'TEE S.W.';
@@ -94,14 +103,18 @@ export class MatchingKeyNormalizer {
     }
 
     // Reducers
-    if (/RED\.|REDUCER|REDUCCION|CON\.\s*RED|EXC\.\s*RED|RED\.\s*TEE|TE\s*RED/i.test(normalized)) {
+    if (
+      /RED\.|REDUCER|REDUCCION|CON\.\s*RED|EXC\.\s*RED|EXEN\.?\s*RED|RED\.\s*TEE|TE\s*RED/i.test(
+        normalized
+      )
+    ) {
       if (/TEE|TE\s*RED/i.test(normalized)) {
         return 'REDUCER_TEE';
       }
       if (/CON|CONCENTRIC|CONCENTRICA/i.test(normalized)) {
         return 'REDUCER_CONCENTRIC';
       }
-      if (/EXC|ECCENTRIC|EXCENTRICA/i.test(normalized)) {
+      if (/EXC|ECCENTRIC|EXCENTRICA|EXEN/i.test(normalized)) {
         return 'REDUCER_ECCENTRIC';
       }
       return 'REDUCER';
@@ -202,7 +215,8 @@ export class MatchingKeyNormalizer {
    * Normalize size string
    */
   static normalizeSize(size: string): string {
-    let normalized = size.replace(/["']/g, '').trim();
+    // Strip straight and curly Unicode quotes (proformas sometimes paste 14“ / 14”)
+    let normalized = size.replace(/["'“”‟„‘’‚‛«»]/g, '').trim();
 
     // Remove leading non-numeric prefix (e.g., "E3/4X7-1/2" -> "3/4X7-1/2")
     normalized = normalized.replace(/^[A-Za-z]+(?=\d)/, '');
@@ -210,6 +224,25 @@ export class MatchingKeyNormalizer {
     // Remove .0 suffix from float strings (e.g., "1.0" -> "1", "12.0" -> "12")
     if (/^\d+\.0$/.test(normalized)) {
       normalized = normalized.replace('.0', '');
+    }
+
+    // Convert decimal sizes to fractions (e.g., "2.5" -> "2 1/2", "0.5" -> "1/2")
+    const decimalMatch = normalized.match(/^(\d+)\.(\d+)$/);
+    if (decimalMatch) {
+      const whole = parseInt(decimalMatch[1], 10);
+      const fractionByDecimal: Record<string, string> = {
+        '5': '1/2',
+        '25': '1/4',
+        '75': '3/4',
+        '125': '1/8',
+        '375': '3/8',
+        '625': '5/8',
+        '875': '7/8',
+      };
+      const frac = fractionByDecimal[decimalMatch[2]];
+      if (frac) {
+        normalized = whole === 0 ? frac : `${whole} ${frac}`;
+      }
     }
 
     // Normalize hyphens between digits and fractions: "2-3/4" -> "2 3/4"
@@ -265,7 +298,7 @@ export class MatchingKeyNormalizer {
     series?: number;
     description?: string;
   }): string | null {
-    const type = this.normalizeProductType(data.type, data.description || '');
+    const type = this.normalizeProductType(data.type, data.description || '', data.size);
     const thickness = this.normalizeThickness(data.thickness);
     const size = this.normalizeSize(data.size);
     const series = data.series?.toString() || '';
