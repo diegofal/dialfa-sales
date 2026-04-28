@@ -493,6 +493,8 @@ export async function syncData(
     const updateData: {
       weight_kg?: number;
       last_purchase_price?: number;
+      last_purchase_proforma_number?: string | null;
+      last_purchase_proforma_date?: Date | null;
       cif_percentage?: number;
       updated_at: Date;
       updated_by?: number;
@@ -522,6 +524,9 @@ export async function syncData(
       // Only update purchase price if the new price is higher than the existing one
       if (newPurchasePrice > currentPrice) {
         updateData.last_purchase_price = newPurchasePrice;
+        // Track which proforma this price came from
+        updateData.last_purchase_proforma_number = order.proforma_number ?? null;
+        updateData.last_purchase_proforma_date = order.order_date ?? null;
         updateInfo.newPurchasePrice = newPurchasePrice;
       } else {
         updateInfo.skippedPrice = true;

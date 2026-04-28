@@ -25,6 +25,8 @@ export interface Article {
   lastSaleDate?: string | null; // ISO date string
   weightKg?: number | null;
   lastPurchasePrice?: number | null;
+  lastPurchaseProformaNumber?: string | null;
+  lastPurchaseProformaDate?: string | null; // ISO date
   cifPercentage?: number | null;
 }
 
