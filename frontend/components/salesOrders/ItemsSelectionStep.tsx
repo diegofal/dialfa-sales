@@ -22,6 +22,12 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useArticles } from '@/lib/hooks/domain/useArticles';
+import {
+  formatMarginPercent,
+  getArticleDiscountedSellPrice,
+  getArticleMarginPercent,
+  getMarginColorClass,
+} from '@/lib/utils/articles/marginCalculations';
 import type { SalesOrderFormData, SalesOrderItemFormData } from '@/types/salesOrder';
 
 interface ItemsSelectionStepProps {
@@ -120,20 +126,38 @@ export function ItemsSelectionStep({ formData, setFormData }: ItemsSelectionStep
                 <SelectValue placeholder={isLoading ? 'Cargando...' : 'Selecciona un artículo'} />
               </SelectTrigger>
               <SelectContent>
-                {articles.map((article) => (
-                  <SelectItem key={article.id} value={article.id.toString()}>
-                    <div className="flex items-center gap-2">
-                      <span className="font-mono font-medium">{article.code}</span>
-                      <StockStatusBadge status={article.stockStatus} className="shrink-0" />
-                      <span className="truncate">{article.description}</span>
-                      {article.categoryName && (
-                        <span className="text-muted-foreground text-xs">
-                          · {article.categoryName}
+                {articles.map((article) => {
+                  const margin = getArticleMarginPercent(article);
+                  const sell = getArticleDiscountedSellPrice(article);
+                  return (
+                    <SelectItem key={article.id} value={article.id.toString()}>
+                      <div className="flex items-center gap-2">
+                        <span className="font-mono font-medium">{article.code}</span>
+                        <StockStatusBadge status={article.stockStatus} className="shrink-0" />
+                        <span className="truncate">{article.description}</span>
+                        {article.categoryName && (
+                          <span className="text-muted-foreground text-xs">
+                            · {article.categoryName}
+                          </span>
+                        )}
+                        <span className="text-muted-foreground ml-auto pl-2 text-xs">
+                          {formatCurrency(article.unitPrice)}
+                          {sell !== null && sell !== article.unitPrice && (
+                            <span className={getMarginColorClass(margin)}>
+                              {' '}
+                              → {formatCurrency(sell)}
+                            </span>
+                          )}
+                          {margin !== null && (
+                            <span className={`ml-1 ${getMarginColorClass(margin)}`}>
+                              ({formatMarginPercent(margin)})
+                            </span>
+                          )}
                         </span>
-                      )}
-                    </div>
-                  </SelectItem>
-                ))}
+                      </div>
+                    </SelectItem>
+                  );
+                })}
               </SelectContent>
             </Select>
             {selectedArticle && (

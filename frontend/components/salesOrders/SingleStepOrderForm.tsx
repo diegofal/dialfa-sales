@@ -71,6 +71,8 @@ import { validateSalesOrder } from '@/lib/permissions/salesOrders';
 import { formatCuit } from '@/lib/utils';
 import {
   formatMarginPercent,
+  getArticleCifCost,
+  getArticleDiscountedSellPrice,
   getArticleMarginPercent,
   getMarginColorClass,
 } from '@/lib/utils/articles/marginCalculations';
@@ -1048,6 +1050,8 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                       {articles.map((article, index) => {
                         const isSelected = index === selectedIndex;
                         const margin = getArticleMarginPercent(article);
+                        const sell = getArticleDiscountedSellPrice(article);
+                        const cifCost = getArticleCifCost(article);
                         return (
                           <button
                             key={article.id}
@@ -1087,11 +1091,21 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                                 <div className="text-sm font-bold">
                                   {formatCurrency(article.unitPrice)}
                                 </div>
-                                {article.lastPurchasePrice && article.lastPurchasePrice > 0 && (
+                                {sell !== null && sell !== article.unitPrice && (
+                                  <div
+                                    className={`mt-0.5 text-[11px] font-medium ${isSelected ? 'text-primary-foreground/90' : getMarginColorClass(margin)}`}
+                                  >
+                                    → {formatCurrency(sell)}
+                                  </div>
+                                )}
+                                {cifCost !== null && (
                                   <div
                                     className={`mt-0.5 text-[11px] ${isSelected ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}
                                   >
-                                    FOB: USD {article.lastPurchasePrice.toFixed(2)}
+                                    Costo: USD {cifCost.toFixed(2)}
+                                    {article.lastPurchasePrice
+                                      ? ` (FOB ${article.lastPurchasePrice.toFixed(2)})`
+                                      : ''}
                                   </div>
                                 )}
                                 <div
@@ -1187,6 +1201,9 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                                     <div className="p-1">
                                       {editArticles.map((article, index) => {
                                         const isSel = index === selectedEditIndex;
+                                        const editMargin = getArticleMarginPercent(article);
+                                        const editSell = getArticleDiscountedSellPrice(article);
+                                        const editCif = getArticleCifCost(article);
                                         return (
                                           <button
                                             key={article.id}
@@ -1214,6 +1231,41 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                                                 className={`mt-0.5 truncate text-[10px] ${isSel ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}
                                               >
                                                 {article.categoryName}
+                                              </div>
+                                            )}
+                                            <div
+                                              className={`mt-1 flex items-center justify-between gap-2 text-[10px] ${isSel ? 'text-primary-foreground/90' : ''}`}
+                                            >
+                                              <span className="font-medium">
+                                                {formatCurrency(article.unitPrice)}
+                                                {editSell !== null &&
+                                                editSell !== article.unitPrice ? (
+                                                  <span
+                                                    className={
+                                                      isSel ? '' : getMarginColorClass(editMargin)
+                                                    }
+                                                  >
+                                                    {' '}
+                                                    → {formatCurrency(editSell)}
+                                                  </span>
+                                                ) : null}
+                                              </span>
+                                              <span
+                                                className={
+                                                  isSel ? '' : getMarginColorClass(editMargin)
+                                                }
+                                              >
+                                                {formatMarginPercent(editMargin)}
+                                              </span>
+                                            </div>
+                                            {editCif !== null && (
+                                              <div
+                                                className={`text-[10px] ${isSel ? 'text-primary-foreground/70' : 'text-muted-foreground'}`}
+                                              >
+                                                Costo: USD {editCif.toFixed(2)}
+                                                {article.lastPurchasePrice
+                                                  ? ` (FOB ${article.lastPurchasePrice.toFixed(2)})`
+                                                  : ''}
                                               </div>
                                             )}
                                           </button>

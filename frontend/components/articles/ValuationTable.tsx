@@ -39,6 +39,20 @@ function getMargin(article: StockValuationMetrics): number | null {
   return calculateMarginPercent(article.unitPrice, article.unitCost);
 }
 
+/** Largest payment-term discount available for the article. Defaults to 0 if none. */
+function getMaxPaymentDiscount(article: StockValuationMetrics): number {
+  return article.paymentTermsValuation.reduce(
+    (max, p) => (p.discountPercent > max ? p.discountPercent : max),
+    0
+  );
+}
+
+/** Sell price with the largest payment-term discount applied. */
+function getDiscountedSellPrice(article: StockValuationMetrics): number {
+  const maxDiscount = getMaxPaymentDiscount(article);
+  return article.unitPrice * (1 - maxDiscount / 100);
+}
+
 /** Returns the comparable value for a given sort key, or null when missing. */
 function getSortValue(article: StockValuationMetrics, key: string): number | string | null {
   switch (key) {
@@ -64,6 +78,8 @@ function getSortValue(article: StockValuationMetrics, key: string): number | str
       return article.stockValue;
     case 'listPrice':
       return article.stockValueAtListPrice;
+    case 'discountedSell':
+      return getDiscountedSellPrice(article);
     case 'margin':
       return getMargin(article);
     default:
@@ -194,6 +210,14 @@ export function ValuationTable({ articles }: ValuationTableProps) {
             >
               Precio Lista
             </SortableTableHead>
+            <SortableTableHead
+              sortKey="discountedSell"
+              {...sortProps}
+              align="right"
+              className="w-[120px]"
+            >
+              Venta c/desc
+            </SortableTableHead>
             <SortableTableHead sortKey="margin" {...sortProps} align="right" className="w-[90px]">
               Margen
             </SortableTableHead>
@@ -277,6 +301,18 @@ export function ValuationTable({ articles }: ValuationTableProps) {
                 </TableCell>
                 <TableCell className="text-right text-sm">
                   {formatCurrency(article.stockValueAtListPrice)}
+                </TableCell>
+                <TableCell
+                  className={`text-right text-sm font-medium ${getMarginColorClass(margin)}`}
+                >
+                  {(() => {
+                    const maxDisc = getMaxPaymentDiscount(article);
+                    if (maxDisc <= 0) {
+                      return <span className="text-muted-foreground">—</span>;
+                    }
+                    const stockSold = article.currentStock * getDiscountedSellPrice(article);
+                    return formatCurrency(stockSold);
+                  })()}
                 </TableCell>
                 <TableCell
                   className={`text-right text-sm font-medium ${getMarginColorClass(margin)}`}
