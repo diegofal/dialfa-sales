@@ -145,7 +145,14 @@ export function ArticlesTable({
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SortableTableHead align="right" className="cursor-help">
+                  <SortableTableHead
+                    sortKey="LastPurchasePrice"
+                    currentSortBy={currentSortBy}
+                    currentSortDescending={currentSortDescending}
+                    onSort={onSort}
+                    align="right"
+                    className="cursor-help"
+                  >
                     FOB (USD)
                   </SortableTableHead>
                 </TooltipTrigger>
@@ -158,7 +165,14 @@ export function ArticlesTable({
               </Tooltip>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <SortableTableHead align="right" className="cursor-help">
+                  <SortableTableHead
+                    sortKey="Margin"
+                    currentSortBy={currentSortBy}
+                    currentSortDescending={currentSortDescending}
+                    onSort={onSort}
+                    align="right"
+                    className="cursor-help"
+                  >
                     Margen
                   </SortableTableHead>
                 </TooltipTrigger>
