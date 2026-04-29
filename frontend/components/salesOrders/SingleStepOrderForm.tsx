@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   Truck,
   Eye,
+  Save,
 } from 'lucide-react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useState, useEffect, useRef } from 'react';
@@ -69,6 +70,7 @@ import {
 import { useFormValidation, validators } from '@/lib/hooks/generic/useFormValidation';
 import { validateSalesOrder } from '@/lib/permissions/salesOrders';
 import { formatCuit } from '@/lib/utils';
+import { getArticleDiscountForPaymentTerm } from '@/lib/utils/articles/discountCalculations';
 import {
   calculateMarginPercent,
   calculateOrderMargin,
@@ -144,6 +146,12 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
 
   // Store custom prices separately as they don't exist in QuickCart
   const [prices, setPrices] = useState<Record<number, number>>({});
+
+  // Per-line discount overrides. Falls back to auto-derived (payment term ×
+  // category) via getItemDiscount when no override is set.
+  const [discounts, setDiscounts] = useState<Record<number, number>>({});
+  const [editingDiscountId, setEditingDiscountId] = useState<number | null>(null);
+  const [editedDiscountValue, setEditedDiscountValue] = useState('');
 
   // Local state for edit mode (saved orders should NOT use Quick Cart Tabs)
   const [localItems, setLocalItems] = useState<QuickCartItem[]>([]);
@@ -278,8 +286,9 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
       const orderItems: QuickCartItem[] = [];
       if (existingOrder.items && existingOrder.items.length > 0) {
         existingOrder.items.forEach((item) => {
-          // Set prices
+          // Set prices and discount overrides from saved data
           setPrices((prev) => ({ ...prev, [item.articleId]: item.unitPrice }));
+          setDiscounts((prev) => ({ ...prev, [item.articleId]: item.discountPercent }));
 
           // Add to items array with real stock and cost data from backend
           orderItems.push({
@@ -293,6 +302,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
               cifPercentage: item.cifPercentage ?? null,
               categoryMaxPaymentDiscount: item.categoryMaxPaymentDiscount ?? null,
               categoryDefaultDiscount: item.categoryDefaultDiscount ?? 0,
+              categoryPaymentDiscounts: item.categoryPaymentDiscounts ?? [],
             } as Article,
             quantity: item.quantity,
           });
@@ -481,6 +491,11 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     setPaymentTermId(newPaymentTermId);
     clearError('paymentTermId');
 
+    // Clear all manual discount overrides so each line re-derives from
+    // the new payment term × article category. Mirrors the invoice behavior
+    // when payment term is changed (InvoiceService.updatePaymentTerm).
+    setDiscounts({});
+
     // Update client payment term if we have a selected client
     if (clientId) {
       try {
@@ -653,6 +668,31 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     setShowEditResults(false);
   };
 
+  // Discount edit handlers (mirrors the invoice page pattern)
+  const handleStartEditDiscount = (articleId: number) => {
+    setEditingDiscountId(articleId);
+    setEditedDiscountValue(getItemDiscount(articleId).toString());
+  };
+
+  const handleSaveDiscount = (articleId: number) => {
+    const value = parseFloat(editedDiscountValue);
+    if (isNaN(value) || value < 0 || value > 100) {
+      toast.error('El descuento debe estar entre 0 y 100', {
+        duration: 2000,
+        position: 'top-center',
+      });
+      return;
+    }
+    setDiscounts((prev) => ({ ...prev, [articleId]: value }));
+    setEditingDiscountId(null);
+    setEditedDiscountValue('');
+  };
+
+  const handleCancelEditDiscount = () => {
+    setEditingDiscountId(null);
+    setEditedDiscountValue('');
+  };
+
   const handleEditKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'ArrowDown') {
       e.preventDefault();
@@ -702,12 +742,28 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
     }
   };
 
+  // Resolves the effective discount % for a line: explicit user override
+  // wins, otherwise auto-derive from the current payment term × the article's
+  // category_payment_discounts (matches InvoiceService canonical logic).
+  const getItemDiscount = (articleId: number): number => {
+    if (discounts[articleId] !== undefined) return discounts[articleId];
+    const item = items.find((it) => it.article.id === articleId);
+    if (!item) return 0;
+    return getArticleDiscountForPaymentTerm(
+      {
+        categoryPaymentDiscounts: item.article.categoryPaymentDiscounts,
+        categoryDefaultDiscount: item.article.categoryDefaultDiscount,
+      },
+      paymentTermId ?? null
+    );
+  };
+
   const calculateLineTotal = (item: QuickCartItem) => {
     const articleId = item.article.id;
     const quantity = item.quantity;
     const unitPrice = prices[articleId] ?? item.article.unitPrice;
-
-    return quantity * unitPrice;
+    const discount = getItemDiscount(articleId);
+    return quantity * unitPrice * (1 - discount / 100);
   };
 
   const calculateTotal = () => {
@@ -776,7 +832,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
           articleId: item.article.id,
           quantity: item.quantity,
           unitPrice: prices[item.article.id] ?? item.article.unitPrice,
-          discountPercent: 0, // Los pedidos no manejan descuentos
+          discountPercent: getItemDiscount(item.article.id),
         })),
       };
 
@@ -1178,6 +1234,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                     <TableHead>Descripción</TableHead>
                     <TableHead className="w-[100px] text-right">Cantidad</TableHead>
                     <TableHead className="w-[140px] text-right">Precio Unit.</TableHead>
+                    <TableHead className="w-[140px] text-right">Descuento</TableHead>
                     <TableHead className="w-[160px] text-right">Margen</TableHead>
                     <TableHead className="w-[140px] text-right">Total</TableHead>
                     {!isReadOnly && <TableHead className="w-[50px]"></TableHead>}
@@ -1339,8 +1396,62 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                           </span>
                         </TableCell>
                         <TableCell className="text-right">
+                          {editingDiscountId === item.article.id ? (
+                            <div className="flex items-center justify-end gap-1">
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                max="100"
+                                value={editedDiscountValue}
+                                onChange={(e) => setEditedDiscountValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleSaveDiscount(item.article.id);
+                                  if (e.key === 'Escape') handleCancelEditDiscount();
+                                }}
+                                className="h-7 w-20 text-right"
+                                autoFocus
+                              />
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6"
+                                onClick={() => handleSaveDiscount(item.article.id)}
+                              >
+                                <Save className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6"
+                                onClick={handleCancelEditDiscount}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-end gap-1">
+                              <span>{getItemDiscount(item.article.id).toFixed(2)}%</span>
+                              {!isReadOnly && (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6"
+                                  onClick={() => handleStartEditDiscount(item.article.id)}
+                                  title="Editar descuento"
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </div>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
                           {(() => {
-                            const unitPrice = prices[item.article.id] ?? item.article.unitPrice;
+                            const grossUnitPrice =
+                              prices[item.article.id] ?? item.article.unitPrice;
+                            const discount = getItemDiscount(item.article.id);
+                            const unitPrice = grossUnitPrice * (1 - discount / 100);
                             const cifCost = getArticleCifCost(item.article);
                             const margin = calculateMarginPercent(unitPrice, cifCost);
                             const lineProfit =
@@ -1397,11 +1508,15 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
               </div>
               {(() => {
                 const orderMargin = calculateOrderMargin(
-                  items.map((item) => ({
-                    quantity: item.quantity,
-                    unitPrice: prices[item.article.id] ?? item.article.unitPrice,
-                    cifCost: getArticleCifCost(item.article),
-                  }))
+                  items.map((item) => {
+                    const grossUnitPrice = prices[item.article.id] ?? item.article.unitPrice;
+                    const discount = getItemDiscount(item.article.id);
+                    return {
+                      quantity: item.quantity,
+                      unitPrice: grossUnitPrice * (1 - discount / 100),
+                      cifCost: getArticleCifCost(item.article),
+                    };
+                  })
                 );
                 return (
                   <div className="flex justify-between text-sm">

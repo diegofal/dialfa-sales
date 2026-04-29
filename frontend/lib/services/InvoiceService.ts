@@ -156,13 +156,11 @@ export async function create(data: CreateInvoiceInput, request: NextRequest) {
   const invoiceItemsData = salesOrder.sales_order_items.map((item) => {
     const unitPriceUsd = parseFloat(item.unit_price.toString());
     const unitPriceArs = unitPriceUsd * usdExchangeRate;
-    let discountPercent = 0;
-    if (paymentTermId && item.articles.categories) {
-      const catDiscount = item.articles.categories.category_payment_discounts.find(
-        (d) => d.payment_term_id === paymentTermId
-      );
-      discountPercent = catDiscount ? parseFloat(catDiscount.discount_percent.toString()) : 0;
-    }
+    // Use discount_percent stored on the sales order item. The pedido form
+    // auto-derives this from category × paymentTerm and lets the user override
+    // per line; we honor that here so user edits in the pedido propagate to
+    // the generated invoice.
+    const discountPercent = parseFloat(item.discount_percent.toString());
     const quantity = item.quantity;
     const subtotal = unitPriceArs * quantity;
     const lineTotal = subtotal - subtotal * (discountPercent / 100);
