@@ -6,12 +6,53 @@ export enum StockStatus {
 }
 
 export interface StockClassificationConfig {
+  /** Recencia máxima (días) para que un artículo califique como ACTIVE. */
   activeThresholdDays: number; // Default: 90
-  slowMovingThresholdDays: number; // Default: 180
-  deadStockThresholdDays: number; // Default: 365
-  minSalesForActive: number; // Default: 5 unidades/mes
+
+  /**
+   * @deprecated No se usa en la regla de clasificación nueva. Se mantiene en el
+   * tipo para retrocompatibilidad de la UI/API. La frontera entre slow y dead
+   * la define ahora `minMonthsForLeavingDead` sobre la ventana
+   * `deadStockNoActivityWindowMonths`.
+   */
+  slowMovingThresholdDays: number;
+
+  /**
+   * @deprecated Reemplazado por `deadStockNoActivityWindowMonths` (en meses).
+   * Se mantiene en el tipo para retrocompatibilidad de la UI/API.
+   */
+  deadStockThresholdDays: number;
+
+  /**
+   * @deprecated Eliminado en favor de la regla de frecuencia
+   * (`minMonthsForActive`). Se mantiene en el tipo para retrocompatibilidad
+   * de la UI/API.
+   */
+  minSalesForActive: number;
+
+  /** Meses de tendencia mostrados en gráficos / sparklines. */
   trendMonths: number; // Default: 6
-  includeZeroStock: boolean; // Default: false - Incluir artículos sin stock
+  /** Incluir artículos con stock = 0 en la valorización. */
+  includeZeroStock: boolean; // Default: false
+
+  /** Mínimo de meses con ventas en los últimos 3 para calificar como ACTIVE. */
+  minMonthsForActive?: number; // Default: 2
+  /** Mínimo de meses con ventas en `deadStockNoActivityWindowMonths` para no estar en DEAD. */
+  minMonthsForLeavingDead?: number; // Default: 2
+  /** Ventana (meses) sobre la que se mide actividad para distinguir dead de no-dead. */
+  deadStockNoActivityWindowMonths?: number; // Default: 12
+  /**
+   * Días consecutivos en `article_status_snapshots` requeridos para confirmar
+   * un upgrade (ej: dead→slow, slow→active).
+   */
+  upgradeConfirmDays?: number; // Default: 7
+  /** Días consecutivos requeridos para confirmar un downgrade (ej: active→slow). */
+  downgradeConfirmDays?: number; // Default: 14
+  /**
+   * Si `monthsWithSalesInLast6 >= este valor`, los upgrades saltan la
+   * confirmación por historia (escape hatch para reactivaciones claras).
+   */
+  fastUpgradeMonthsThreshold?: number; // Default: 4
 }
 
 export interface PaymentTermValuation {

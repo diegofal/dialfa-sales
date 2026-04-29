@@ -10,7 +10,7 @@ import {
   PaymentTermValuation,
 } from '@/types/stockValuation';
 import { getArticleCifCost } from './marginCalculations';
-import { calculateSalesTrends, calculateLastSaleDates } from './salesTrends';
+import { calculateSalesTrends, calculateLastSaleDates, countMonthsWithSales } from './salesTrends';
 
 // Cache en memoria
 const stockValuationCache: {
@@ -26,10 +26,21 @@ const stockValuationCache: {
 const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 horas
 
 /**
- * Genera una clave única para la configuración
+ * Genera una clave única para la configuración (sólo campos que afectan la
+ * clasificación o el dataset valorizado).
  */
 function getConfigKey(config: StockClassificationConfig): string {
-  return `${config.activeThresholdDays}-${config.slowMovingThresholdDays}-${config.deadStockThresholdDays}-${config.minSalesForActive}-${config.trendMonths}-${config.includeZeroStock}`;
+  return [
+    config.activeThresholdDays,
+    config.trendMonths,
+    config.includeZeroStock,
+    config.minMonthsForActive,
+    config.minMonthsForLeavingDead,
+    config.deadStockNoActivityWindowMonths,
+    config.upgradeConfirmDays,
+    config.downgradeConfirmDays,
+    config.fastUpgradeMonthsThreshold,
+  ].join('-');
 }
 
 /**
@@ -46,6 +57,12 @@ export async function calculateStockValuation(
     minSalesForActive: config.minSalesForActive ?? 5,
     trendMonths: config.trendMonths ?? 6,
     includeZeroStock: config.includeZeroStock ?? false,
+    minMonthsForActive: config.minMonthsForActive ?? 2,
+    minMonthsForLeavingDead: config.minMonthsForLeavingDead ?? 2,
+    deadStockNoActivityWindowMonths: config.deadStockNoActivityWindowMonths ?? 12,
+    upgradeConfirmDays: config.upgradeConfirmDays ?? 7,
+    downgradeConfirmDays: config.downgradeConfirmDays ?? 14,
+    fastUpgradeMonthsThreshold: config.fastUpgradeMonthsThreshold ?? 4,
   };
 
   const configKey = getConfigKey(fullConfig);
@@ -126,10 +143,27 @@ export async function calculateStockValuation(
       },
     });
 
-    // 2. Obtener datos de ventas
-    const [trendsData, lastSaleDates] = await Promise.all([
+    // 2. Obtener datos de ventas + historia para histéresis
+    // - `trendsData` (display): respeta `trendMonths` para el sparkline.
+    // - `classificationTrends`: ventana fija que cubra
+    //   `deadStockNoActivityWindowMonths` (12 por default), necesaria para los
+    //   conteos de meses con ventas que usa la regla nueva.
+    const classificationMonths = Math.max(
+      fullConfig.deadStockNoActivityWindowMonths ?? 12,
+      fullConfig.trendMonths
+    );
+    const [trendsData, classificationTrends, lastSaleDates, recentStatuses] = await Promise.all([
       calculateSalesTrends(fullConfig.trendMonths),
+      classificationMonths === fullConfig.trendMonths
+        ? Promise.resolve(null)
+        : calculateSalesTrends(classificationMonths),
       calculateLastSaleDates(),
+      // El cron persiste un snapshot por artículo por día. Pedimos lo
+      // suficiente para cubrir la mayor de las ventanas de confirmación más un
+      // pequeño margen para tolerar huecos del cron.
+      getRecentArticleStatuses(
+        Math.max(fullConfig.upgradeConfirmDays ?? 7, fullConfig.downgradeConfirmDays ?? 14) + 3
+      ),
     ]);
 
     // 3. Calcular métricas para cada artículo
@@ -181,13 +215,20 @@ export async function calculateStockValuation(
       // Meses de inventario
       const monthsOfInventory = avgMonthlySales > 0 ? currentStock / avgMonthlySales : 999;
 
-      // Clasificar status
+      // Clasificar status (capa 1 + histéresis sobre snapshots recientes)
+      const classificationTrend = (classificationTrends ?? trendsData).data.get(articleId) || [];
+      const articleHistory = recentStatuses.get(articleId) ?? [];
+      const previousStatus =
+        articleHistory.length > 0 ? articleHistory[articleHistory.length - 1].status : null;
       const status = classifyStockStatus(
-        lastSaleDate,
-        daysSinceLastSale,
-        avgMonthlySales,
-        trendDirection,
-        currentStock,
+        {
+          lastSaleDate,
+          daysSinceLastSale,
+          salesTrend: classificationTrend,
+          currentStock,
+        },
+        previousStatus,
+        articleHistory,
         fullConfig
       );
 
@@ -431,54 +472,183 @@ export async function calculateStockValuation(
 }
 
 /**
- * Clasifica el status del stock según los criterios configurados
- * IMPORTANTE: Esta función asume que currentStock > 0
+ * Señales puntuales que necesita la regla de clasificación de un artículo.
+ * El orden cronológico de `salesTrend` es ascendente: el último elemento es el
+ * mes más reciente.
+ */
+export interface ClassificationSignals {
+  lastSaleDate: Date | null;
+  daysSinceLastSale: number | null;
+  salesTrend: number[];
+  currentStock: number;
+}
+
+/**
+ * Snapshots diarios recientes del estado de un artículo, ordenados
+ * cronológicamente (oldest first).
+ */
+export type RecentSnapshotStatuses = { date: Date; status: StockStatus }[];
+
+/** Defaults aplicados cuando un campo opcional no viene en el config. */
+const CLASSIFIER_DEFAULTS = {
+  activeThresholdDays: 90,
+  minMonthsForActive: 2,
+  minMonthsForLeavingDead: 2,
+  deadStockNoActivityWindowMonths: 12,
+  upgradeConfirmDays: 7,
+  downgradeConfirmDays: 14,
+  fastUpgradeMonthsThreshold: 4,
+} as const;
+
+/**
+ * Clasifica un artículo en uno de los 4 `StockStatus` aplicando dos capas:
+ *
+ * 1. {@link computeCandidate} — regla pura sobre las señales del momento, basada
+ *    en frecuencia mensual de ventas (no velocidad).
+ * 2. Histéresis — confirma transiciones contra `recentSnapshotStatuses` para
+ *    evitar que una venta única (incluso histórica) saque a un artículo de su
+ *    estado anterior.
+ *
+ * La regla nueva ignora los campos deprecados del config
+ * (`slowMovingThresholdDays`, `deadStockThresholdDays`, `minSalesForActive`).
  */
 export function classifyStockStatus(
-  lastSaleDate: Date | null,
-  daysSinceLastSale: number | null,
-  avgMonthlySales: number,
-  trendDirection: 'increasing' | 'stable' | 'decreasing' | 'none',
-  currentStock: number,
+  signals: ClassificationSignals,
+  previousStatus: StockStatus | null,
+  recentSnapshotStatuses: RecentSnapshotStatuses,
   config: StockClassificationConfig
 ): StockStatus {
-  if (currentStock <= 0) {
-    return StockStatus.NEVER_SOLD;
+  const candidate = computeCandidate(signals, config);
+
+  // Primera ejecución (sin historia): aceptar el candidato directo. La capa 1
+  // ya hizo el trabajo grueso; la histéresis sólo ayuda en casos límite.
+  if (previousStatus === null) return candidate;
+  if (candidate === previousStatus) return candidate;
+
+  const fastThreshold =
+    config.fastUpgradeMonthsThreshold ?? CLASSIFIER_DEFAULTS.fastUpgradeMonthsThreshold;
+  const upConfirm = config.upgradeConfirmDays ?? CLASSIFIER_DEFAULTS.upgradeConfirmDays;
+  const downConfirm = config.downgradeConfirmDays ?? CLASSIFIER_DEFAULTS.downgradeConfirmDays;
+
+  // Escape hatch: reactivación claramente sostenida → upgrade inmediato.
+  if (
+    isUpgrade(previousStatus, candidate) &&
+    countMonthsWithSales(signals.salesTrend, 6) >= fastThreshold
+  ) {
+    return candidate;
   }
 
-  // Nunca se vendió (y tiene stock)
-  if (!lastSaleDate || daysSinceLastSale === null) {
-    return StockStatus.NEVER_SOLD;
+  if (isUpgrade(previousStatus, candidate)) {
+    return confirmedFor(candidate, recentSnapshotStatuses, upConfirm) ? candidate : previousStatus;
   }
 
-  // DEAD STOCK: No se vendió en el período máximo
-  if (daysSinceLastSale > config.deadStockThresholdDays) {
+  if (isDowngrade(previousStatus, candidate)) {
+    return confirmedFor(candidate, recentSnapshotStatuses, downConfirm)
+      ? candidate
+      : previousStatus;
+  }
+
+  return candidate;
+}
+
+/**
+ * Capa 1 — regla pura. Devuelve el estado que correspondería al artículo
+ * mirando sólo sus señales del momento (sin historia de snapshots).
+ */
+export function computeCandidate(
+  signals: ClassificationSignals,
+  config: StockClassificationConfig
+): StockStatus {
+  const { lastSaleDate, daysSinceLastSale, salesTrend, currentStock } = signals;
+
+  if (currentStock <= 0) return StockStatus.NEVER_SOLD;
+  if (!lastSaleDate || daysSinceLastSale === null) return StockStatus.NEVER_SOLD;
+
+  const deadWindow =
+    config.deadStockNoActivityWindowMonths ?? CLASSIFIER_DEFAULTS.deadStockNoActivityWindowMonths;
+  const minMonthsLeaveDead =
+    config.minMonthsForLeavingDead ?? CLASSIFIER_DEFAULTS.minMonthsForLeavingDead;
+  const minMonthsActive = config.minMonthsForActive ?? CLASSIFIER_DEFAULTS.minMonthsForActive;
+  const recencyDays = config.activeThresholdDays ?? CLASSIFIER_DEFAULTS.activeThresholdDays;
+
+  const monthsInDeadWindow = countMonthsWithSales(salesTrend, deadWindow);
+  if (monthsInDeadWindow < minMonthsLeaveDead) {
     return StockStatus.DEAD_STOCK;
   }
 
-  // ACTIVE: Ventas recientes y buenas
-  if (
-    daysSinceLastSale <= config.activeThresholdDays &&
-    avgMonthlySales >= config.minSalesForActive
-  ) {
+  const monthsLast3 = countMonthsWithSales(salesTrend, 3);
+  if (daysSinceLastSale <= recencyDays && monthsLast3 >= minMonthsActive) {
     return StockStatus.ACTIVE;
   }
 
-  // SLOW MOVING: Ventas bajas o tendencia decreciente
-  if (
-    daysSinceLastSale > config.slowMovingThresholdDays ||
-    (avgMonthlySales < config.minSalesForActive && trendDirection === 'decreasing')
-  ) {
-    return StockStatus.SLOW_MOVING;
-  }
+  return StockStatus.SLOW_MOVING;
+}
 
-  // Si tiene ventas pero no entra en active
-  if (avgMonthlySales > 0) {
-    return StockStatus.SLOW_MOVING;
-  }
+const STATUS_SEVERITY: Record<StockStatus, number> = {
+  [StockStatus.NEVER_SOLD]: 0,
+  [StockStatus.DEAD_STOCK]: 1,
+  [StockStatus.SLOW_MOVING]: 2,
+  [StockStatus.ACTIVE]: 3,
+};
 
-  // Por defecto
-  return StockStatus.DEAD_STOCK;
+export function isUpgrade(prev: StockStatus, next: StockStatus): boolean {
+  return STATUS_SEVERITY[next] > STATUS_SEVERITY[prev];
+}
+
+export function isDowngrade(prev: StockStatus, next: StockStatus): boolean {
+  return STATUS_SEVERITY[next] < STATUS_SEVERITY[prev];
+}
+
+/**
+ * Confirma si los `requiredDays` snapshots más recientes coinciden con
+ * `target`. Cuenta días con snapshot, no días calendario, así que tolera
+ * huecos del cron. Si la historia disponible es menor que `requiredDays`,
+ * devuelve false (no hay evidencia suficiente).
+ */
+export function confirmedFor(
+  target: StockStatus,
+  recentSnapshotStatuses: RecentSnapshotStatuses,
+  requiredDays: number
+): boolean {
+  if (requiredDays <= 0) return true;
+  if (recentSnapshotStatuses.length < requiredDays) return false;
+  const tail = recentSnapshotStatuses.slice(-requiredDays);
+  return tail.every((s) => s.status === target);
+}
+
+/**
+ * Lee los snapshots diarios del estado por artículo en los últimos `daysBack`
+ * días desde `article_status_snapshots`. Devuelve un Map articleId → snapshots
+ * ordenados cronológicamente (oldest first).
+ *
+ * Vive acá (en lugar de StockSnapshotService) para evitar dependencia
+ * circular: StockSnapshotService ya importa de este archivo. El servicio lo
+ * re-exporta para callers externos.
+ */
+export async function getRecentArticleStatuses(
+  daysBack: number
+): Promise<Map<string, RecentSnapshotStatuses>> {
+  const since = new Date();
+  since.setUTCDate(since.getUTCDate() - daysBack);
+  since.setUTCHours(0, 0, 0, 0);
+
+  const rows = await prisma.article_status_snapshots.findMany({
+    where: { date: { gte: since } },
+    orderBy: { date: 'asc' },
+    select: { article_id: true, date: true, status: true },
+  });
+
+  const result = new Map<string, RecentSnapshotStatuses>();
+  for (const row of rows) {
+    const key = row.article_id.toString();
+    let list = result.get(key);
+    if (!list) {
+      list = [];
+      result.set(key, list);
+    }
+    list.push({ date: row.date, status: row.status as StockStatus });
+  }
+  return result;
 }
 
 /**
