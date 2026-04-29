@@ -72,8 +72,6 @@ function getSortValue(article: StockValuationMetrics, key: string): number | str
       return article.avgMonthlySales;
     case 'fob':
       return article.unitCostFob > 0 ? article.unitCostFob : null;
-    case 'lastProforma':
-      return article.lastPurchaseProformaDate ?? article.lastPurchaseProformaNumber ?? null;
     case 'cifCost':
       return article.unitCost > 0 ? article.unitCost : null;
     case 'stockValue':
@@ -190,11 +188,8 @@ export function ValuationTable({ articles }: ValuationTableProps) {
             <SortableTableHead sortKey="trend" {...sortProps} className="w-[140px]">
               Tendencia
             </SortableTableHead>
-            <SortableTableHead sortKey="fob" {...sortProps} align="right" className="w-[90px]">
+            <SortableTableHead sortKey="fob" {...sortProps} align="right" className="w-[140px]">
               FOB
-            </SortableTableHead>
-            <SortableTableHead sortKey="lastProforma" {...sortProps} className="w-[140px]">
-              Última Proforma
             </SortableTableHead>
             <SortableTableHead sortKey="cifCost" {...sortProps} align="right" className="w-[100px]">
               Costo CIF
@@ -296,14 +291,16 @@ export function ValuationTable({ articles }: ValuationTableProps) {
                   )}
                 </TableCell>
                 <TableCell className="text-muted-foreground text-right text-sm">
-                  {article.unitCostFob > 0 ? formatCurrency(article.unitCostFob) : '—'}
-                </TableCell>
-                <TableCell className="text-muted-foreground text-xs">
-                  {article.lastPurchaseProformaNumber ? (
-                    <div className="flex flex-col">
-                      <span>{article.lastPurchaseProformaNumber}</span>
-                      {article.lastPurchaseProformaDate && (
-                        <span className="text-[10px]">{article.lastPurchaseProformaDate}</span>
+                  {article.unitCostFob > 0 ? (
+                    <div className="flex flex-col items-end">
+                      <span>{formatCurrency(article.unitCostFob)}</span>
+                      {article.lastPurchaseProformaNumber && (
+                        <span className="text-[10px]">
+                          {article.lastPurchaseProformaNumber}
+                          {article.lastPurchaseProformaDate
+                            ? ` · ${article.lastPurchaseProformaDate}`
+                            : ''}
+                        </span>
                       )}
                     </div>
                   ) : (
