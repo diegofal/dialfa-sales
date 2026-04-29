@@ -743,18 +743,22 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   };
 
   // Resolves the effective discount % for a line: explicit user override
-  // wins, otherwise auto-derive from the current payment term × the article's
+  // wins, otherwise auto-derive from the form's payment term × the article's
   // category_payment_discounts (matches InvoiceService canonical logic).
+  // If the form hasn't selected a payment term yet, fall back to the client's
+  // default payment term so the line shows a sensible discount immediately.
   const getItemDiscount = (articleId: number): number => {
     if (discounts[articleId] !== undefined) return discounts[articleId];
     const item = items.find((it) => it.article.id === articleId);
     if (!item) return 0;
+    const effectivePaymentTermId =
+      paymentTermId ?? (clientData?.paymentTermId ? clientData.paymentTermId : null);
     return getArticleDiscountForPaymentTerm(
       {
         categoryPaymentDiscounts: item.article.categoryPaymentDiscounts,
         categoryDefaultDiscount: item.article.categoryDefaultDiscount,
       },
-      paymentTermId ?? null
+      effectivePaymentTermId
     );
   };
 
