@@ -22,6 +22,8 @@ import {
 import {
   calculateStockValuation,
   getStockValuationCacheInfo,
+  getRecentArticleStatuses,
+  type RecentSnapshotStatuses,
 } from '@/lib/utils/articles/stockValuation';
 import { classifyStockStatus } from '@/lib/utils/articles/stockValuation';
 import { ChangeTracker } from '@/lib/utils/changeTracker';
@@ -66,11 +68,18 @@ type EnrichedArticleDTO = ReturnType<typeof mapArticleToDTO> & {
 
 const DEFAULT_STATUS_CONFIG: StockClassificationConfig = {
   activeThresholdDays: 90,
+  // Deprecated, sin efecto en la regla nueva — se mantienen para retrocompat.
   slowMovingThresholdDays: 180,
   deadStockThresholdDays: 365,
   minSalesForActive: 5,
   trendMonths: 6,
   includeZeroStock: false,
+  minMonthsForActive: 2,
+  minMonthsForLeavingDead: 2,
+  deadStockNoActivityWindowMonths: 12,
+  upgradeConfirmDays: 7,
+  downgradeConfirmDays: 14,
+  fastUpgradeMonthsThreshold: 4,
 };
 
 export interface ArticleListParams {
@@ -179,7 +188,9 @@ function enrichArticle(
   abcMap: Map<string, 'A' | 'B' | 'C'> | null,
   trendsData: { data: Map<string, number[]>; labels: string[] } | null,
   lastSaleDates: Map<string, Date | null> | null,
-  activeTrends: ActiveStockTrendResult | null = null
+  activeTrends: ActiveStockTrendResult | null = null,
+  classificationTrendsData: { data: Map<string, number[]>; labels: string[] } | null = null,
+  recentStatuses: Map<string, RecentSnapshotStatuses> | null = null
 ): EnrichedArticleDTO {
   const dto = mapArticleToDTO(article) as EnrichedArticleDTO;
 
@@ -219,12 +230,22 @@ function enrichArticle(
 
     dto.avgMonthlySales = avgMonthlySales;
     dto.trendDirection = trendDirection;
+
+    const classificationTrend =
+      (classificationTrendsData ?? trendsData).data.get(article.id.toString()) || trend;
+    const articleHistory = recentStatuses?.get(article.id.toString()) ?? [];
+    const previousStatus =
+      articleHistory.length > 0 ? articleHistory[articleHistory.length - 1].status : null;
+
     dto.stockStatus = classifyStockStatus(
-      lastSale,
-      daysSinceLastSale,
-      avgMonthlySales,
-      trendDirection,
-      dto.stock,
+      {
+        lastSaleDate: lastSale,
+        daysSinceLastSale,
+        salesTrend: classificationTrend,
+        currentStock: dto.stock,
+      },
+      previousStatus,
+      articleHistory,
       DEFAULT_STATUS_CONFIG
     );
   }
@@ -293,8 +314,10 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
   // Get ABC classification and trends if requested
   let abcMap: Map<string, 'A' | 'B' | 'C'> | null = null;
   let trendsData: { data: Map<string, number[]>; labels: string[] } | null = null;
+  let classificationTrendsData: { data: Map<string, number[]>; labels: string[] } | null = null;
   let activeTrends: ActiveStockTrendResult | null = null;
   let lastSaleDates: Map<string, Date | null> | null = null;
+  let recentStatuses: Map<string, RecentSnapshotStatuses> | null = null;
 
   try {
     lastSaleDates = await calculateLastSaleDates();
@@ -317,6 +340,30 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
       }
     } catch (error) {
       logger.error('Error getting ABC/Trends classification', {}, error as Error);
+    }
+  }
+
+  // For classification we need a 12-month trend (for monthsWithSalesInLast12) +
+  // recent snapshot history (for hysteresis confirmation). Only fetch when the
+  // caller actually needs stockStatus.
+  if (includeTrends) {
+    try {
+      const classificationMonths = Math.max(
+        DEFAULT_STATUS_CONFIG.deadStockNoActivityWindowMonths ?? 12,
+        trendMonths
+      );
+      classificationTrendsData =
+        classificationMonths === trendMonths
+          ? trendsData
+          : await calculateSalesTrends(classificationMonths);
+      const historyDays =
+        Math.max(
+          DEFAULT_STATUS_CONFIG.upgradeConfirmDays ?? 7,
+          DEFAULT_STATUS_CONFIG.downgradeConfirmDays ?? 14
+        ) + 3;
+      recentStatuses = await getRecentArticleStatuses(historyDays);
+    } catch (error) {
+      logger.error('Error getting classification context', {}, error as Error);
     }
   }
 
@@ -350,7 +397,15 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
     }
 
     const mappedArticles = filtered.map((a) =>
-      enrichArticle(a, abcMap, trendsData, lastSaleDates, activeTrends)
+      enrichArticle(
+        a,
+        abcMap,
+        trendsData,
+        lastSaleDates,
+        activeTrends,
+        classificationTrendsData,
+        recentStatuses
+      )
     );
 
     if (salesSort && trendsData) {
@@ -474,7 +529,15 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
     ]);
 
     finalArticles = (articles as ArticleWithCategory[]).map((a) =>
-      enrichArticle(a, abcMap, trendsData, lastSaleDates, activeTrends)
+      enrichArticle(
+        a,
+        abcMap,
+        trendsData,
+        lastSaleDates,
+        activeTrends,
+        classificationTrendsData,
+        recentStatuses
+      )
     );
     totalCount = total;
   }
@@ -496,7 +559,9 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
         abcMap,
         trendsData,
         lastSaleDates,
-        activeTrends
+        activeTrends,
+        classificationTrendsData,
+        recentStatuses
       );
       finalArticles = finalArticles.filter((a) => a.id !== exactMatchDTO.id);
       finalArticles.unshift(exactMatchDTO);
