@@ -11,7 +11,10 @@ import { ROUTES } from '@/lib/constants/routes';
 import { useArticles } from '@/lib/hooks/domain/useArticles';
 import { useQuickCartTabs } from '@/lib/hooks/domain/useQuickCartTabs';
 import {
+  calculateMarginPercent,
+  calculateOrderMargin,
   formatMarginPercent,
+  formatMarginWithProfit,
   getArticleCifCost,
   getArticleDiscountedSellPrice,
   getArticleMarginPercent,
@@ -742,9 +745,26 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
                         onFocus={(e) => e.target.select()}
                       />
 
-                      {/* Column 4: Price */}
-                      <div className="text-right text-sm font-medium">
-                        {formatCurrency(item.article.unitPrice)}
+                      {/* Column 4: Price + Margen */}
+                      <div className="text-right">
+                        <div className="text-sm font-medium">
+                          {formatCurrency(item.article.unitPrice)}
+                        </div>
+                        {(() => {
+                          const cifCost = getArticleCifCost(item.article);
+                          const margin = calculateMarginPercent(item.article.unitPrice, cifCost);
+                          const lineProfit =
+                            cifCost !== null
+                              ? item.quantity * (item.article.unitPrice - cifCost)
+                              : 0;
+                          return (
+                            <div
+                              className={`text-[10px] font-medium ${getMarginColorClass(margin)}`}
+                            >
+                              {formatMarginWithProfit(margin, lineProfit, formatCurrency)}
+                            </div>
+                          );
+                        })()}
                       </div>
 
                       {/* Delete Button */}
@@ -770,6 +790,29 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
                 <span className="text-muted-foreground text-sm">Total Estimado</span>
                 <span className="text-xl font-bold">{formatCurrency(getTotalValue())}</span>
               </div>
+              {(() => {
+                const orderMargin = calculateOrderMargin(
+                  items.map((it) => ({
+                    quantity: it.quantity,
+                    unitPrice: it.article.unitPrice,
+                    cifCost: getArticleCifCost(it.article),
+                  }))
+                );
+                return (
+                  <div className="flex items-center justify-between rounded px-2 py-1">
+                    <span className="text-muted-foreground text-xs">Margen</span>
+                    <span
+                      className={`text-sm font-medium ${getMarginColorClass(orderMargin.marginPercent)}`}
+                    >
+                      {formatMarginWithProfit(
+                        orderMargin.marginPercent,
+                        orderMargin.profit,
+                        formatCurrency
+                      )}
+                    </span>
+                  </div>
+                );
+              })()}
 
               <div className="grid grid-cols-2 gap-2">
                 <Button

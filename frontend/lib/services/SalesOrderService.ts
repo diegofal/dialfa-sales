@@ -60,7 +60,11 @@ export async function list(params: SalesOrderListParams) {
         clients: true,
         payment_terms: true,
         sales_order_items: {
-          include: { articles: true },
+          include: {
+            articles: {
+              include: { categories: { include: { category_payment_discounts: true } } },
+            },
+          },
         },
         invoices: {
           select: { id: true, invoice_number: true, is_printed: true, is_cancelled: true },
@@ -94,7 +98,9 @@ export async function getById(id: bigint) {
       clients: true,
       payment_terms: true,
       sales_order_items: {
-        include: { articles: true },
+        include: {
+          articles: { include: { categories: { include: { category_payment_discounts: true } } } },
+        },
         orderBy: { id: 'asc' },
       },
       invoices: {
@@ -179,7 +185,13 @@ export async function create(data: CreateSalesOrderInput, request: NextRequest) 
       include: {
         clients: true,
         payment_terms: true,
-        sales_order_items: { include: { articles: true } },
+        sales_order_items: {
+          include: {
+            articles: {
+              include: { categories: { include: { category_payment_discounts: true } } },
+            },
+          },
+        },
       },
     });
   });
@@ -292,7 +304,9 @@ export async function update(id: bigint, data: UpdateSalesOrderInput, request: N
 
       const createdItems = await tx.sales_order_items.findMany({
         where: { sales_order_id: id },
-        include: { articles: { include: { categories: true } } },
+        include: {
+          articles: { include: { categories: { include: { category_payment_discounts: true } } } },
+        },
       });
 
       // Update unprinted invoices
@@ -381,7 +395,16 @@ export async function update(id: bigint, data: UpdateSalesOrderInput, request: N
 
       return await tx.sales_orders.findUnique({
         where: { id: salesOrder.id },
-        include: { clients: true, sales_order_items: { include: { articles: true } } },
+        include: {
+          clients: true,
+          sales_order_items: {
+            include: {
+              articles: {
+                include: { categories: { include: { category_payment_discounts: true } } },
+              },
+            },
+          },
+        },
       });
     });
 
@@ -431,7 +454,16 @@ export async function update(id: bigint, data: UpdateSalesOrderInput, request: N
         notes: data.notes,
         updated_at: now,
       },
-      include: { clients: true, sales_order_items: { include: { articles: true } } },
+      include: {
+        clients: true,
+        sales_order_items: {
+          include: {
+            articles: {
+              include: { categories: { include: { category_payment_discounts: true } } },
+            },
+          },
+        },
+      },
     });
 
     await tracker.trackAfter('sales_order', id);
@@ -459,7 +491,11 @@ export async function remove(id: bigint, request: NextRequest): Promise<DeleteRe
     include: {
       invoices: { where: { deleted_at: null }, orderBy: { created_at: 'desc' } },
       delivery_notes: { where: { deleted_at: null } },
-      sales_order_items: { include: { articles: true } },
+      sales_order_items: {
+        include: {
+          articles: { include: { categories: { include: { category_payment_discounts: true } } } },
+        },
+      },
     },
   });
 
@@ -747,7 +783,11 @@ export async function generateDeliveryNote(
     include: {
       clients: true,
       delivery_notes: { where: { deleted_at: null } },
-      sales_order_items: { include: { articles: true } },
+      sales_order_items: {
+        include: {
+          articles: { include: { categories: { include: { category_payment_discounts: true } } } },
+        },
+      },
     },
   });
 

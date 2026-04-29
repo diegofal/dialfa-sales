@@ -100,6 +100,11 @@ export interface SalesOrderItemDTO {
   discountPercent: number;
   lineTotal: number;
   stock?: number;
+  // Current article cost fields for margin calculation (live, not snapshot)
+  lastPurchasePrice: number | null;
+  cifPercentage: number | null;
+  categoryMaxPaymentDiscount: number | null;
+  categoryDefaultDiscount: number | null;
 }
 
 export interface SalesOrderDTO {
@@ -139,6 +144,11 @@ export interface InvoiceItemDTO {
   discountPercent: number;
   lineTotal: number;
   createdAt: string;
+  // Current article cost fields for margin calculation (live, not snapshot)
+  lastPurchasePrice: number | null;
+  cifPercentage: number | null;
+  categoryMaxPaymentDiscount: number | null;
+  categoryDefaultDiscount: number | null;
 }
 
 export interface InvoiceDTO {
@@ -363,8 +373,20 @@ export function mapSalesOrderToDTO(order: unknown): SalesOrderDTO {
             code?: string;
             description?: string;
             stock?: number;
+            last_purchase_price?: unknown;
+            cif_percentage?: unknown;
+            categories?: {
+              default_discount_percent?: unknown;
+              category_payment_discounts?: Array<{ discount_percent: unknown }>;
+            };
           }
         | undefined;
+
+      const paymentDiscounts = articles?.categories?.category_payment_discounts ?? [];
+      const maxPaymentDiscount = paymentDiscounts.reduce((max, d) => {
+        const dp = toFloat(d.discount_percent);
+        return dp > max ? dp : max;
+      }, 0);
 
       return {
         id: toInt(item.id as bigint | number),
@@ -376,6 +398,12 @@ export function mapSalesOrderToDTO(order: unknown): SalesOrderDTO {
         discountPercent: toFloat(item.discount_percent),
         lineTotal: toFloat(item.line_total),
         stock: articles?.stock !== undefined ? toFloat(articles.stock) : undefined,
+        lastPurchasePrice: toFloatOrNull(articles?.last_purchase_price),
+        cifPercentage: toFloatOrNull(articles?.cif_percentage),
+        categoryMaxPaymentDiscount: paymentDiscounts.length > 0 ? maxPaymentDiscount : null,
+        categoryDefaultDiscount: articles?.categories?.default_discount_percent
+          ? toFloat(articles.categories.default_discount_percent)
+          : null,
       };
     }),
     // Related documents for permission calculations
@@ -450,6 +478,23 @@ export function mapInvoiceToDTO(invoice: unknown): InvoiceDTO {
     createdAt: i.created_at as Date,
     updatedAt: i.updated_at as Date,
     items: invoiceItems.map((item) => {
+      const articles = item.articles as
+        | {
+            last_purchase_price?: unknown;
+            cif_percentage?: unknown;
+            categories?: {
+              default_discount_percent?: unknown;
+              category_payment_discounts?: Array<{ discount_percent: unknown }>;
+            };
+          }
+        | undefined;
+
+      const paymentDiscounts = articles?.categories?.category_payment_discounts ?? [];
+      const maxPaymentDiscount = paymentDiscounts.reduce((max, d) => {
+        const dp = toFloat(d.discount_percent);
+        return dp > max ? dp : max;
+      }, 0);
+
       return {
         id: toInt(item.id as bigint | number),
         salesOrderItemId: item.sales_order_item_id
@@ -464,6 +509,12 @@ export function mapInvoiceToDTO(invoice: unknown): InvoiceDTO {
         discountPercent: toFloat(item.discount_percent),
         lineTotal: toFloat(item.line_total),
         createdAt: (item.created_at as Date).toISOString(),
+        lastPurchasePrice: toFloatOrNull(articles?.last_purchase_price),
+        cifPercentage: toFloatOrNull(articles?.cif_percentage),
+        categoryMaxPaymentDiscount: paymentDiscounts.length > 0 ? maxPaymentDiscount : null,
+        categoryDefaultDiscount: articles?.categories?.default_discount_percent
+          ? toFloat(articles.categories.default_discount_percent)
+          : null,
       };
     }),
   };

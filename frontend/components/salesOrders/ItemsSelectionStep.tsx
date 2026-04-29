@@ -23,7 +23,10 @@ import {
 } from '@/components/ui/table';
 import { useArticles } from '@/lib/hooks/domain/useArticles';
 import {
+  calculateMarginPercent,
   formatMarginPercent,
+  formatMarginWithProfit,
+  getArticleCifCost,
   getArticleDiscountedSellPrice,
   getArticleMarginPercent,
   getMarginColorClass,
@@ -226,30 +229,42 @@ export function ItemsSelectionStep({ formData, setFormData }: ItemsSelectionStep
                 <TableHead className="text-right">Cant.</TableHead>
                 <TableHead className="text-right">Precio Unit.</TableHead>
                 <TableHead className="text-right">Desc. %</TableHead>
+                <TableHead className="text-right">Margen</TableHead>
                 <TableHead className="text-right">Total</TableHead>
                 <TableHead className="text-right">Acciones</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {formData.items.map((item, index) => (
-                <TableRow key={index}>
-                  <TableCell className="font-medium">{item.articleCode}</TableCell>
-                  <TableCell>{item.articleDescription}</TableCell>
-                  <TableCell className="text-right">{item.quantity}</TableCell>
-                  <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
-                  <TableCell className="text-right">{item.discountPercent}%</TableCell>
-                  <TableCell className="text-right font-medium">
-                    {formatCurrency(calculateLineTotal(item))}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(index)}>
-                      <Trash2 className="h-4 w-4 text-red-600" />
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
+              {formData.items.map((item, index) => {
+                const article = articles.find((a) => a.id === item.articleId);
+                const cifCost = article ? getArticleCifCost(article) : null;
+                const effectiveUnitPrice = item.unitPrice * (1 - item.discountPercent / 100);
+                const margin = calculateMarginPercent(effectiveUnitPrice, cifCost);
+                const lineProfit =
+                  cifCost !== null ? item.quantity * (effectiveUnitPrice - cifCost) : 0;
+                return (
+                  <TableRow key={index}>
+                    <TableCell className="font-medium">{item.articleCode}</TableCell>
+                    <TableCell>{item.articleDescription}</TableCell>
+                    <TableCell className="text-right">{item.quantity}</TableCell>
+                    <TableCell className="text-right">{formatCurrency(item.unitPrice)}</TableCell>
+                    <TableCell className="text-right">{item.discountPercent}%</TableCell>
+                    <TableCell className={`text-right ${getMarginColorClass(margin)}`}>
+                      {formatMarginWithProfit(margin, lineProfit, formatCurrency)}
+                    </TableCell>
+                    <TableCell className="text-right font-medium">
+                      {formatCurrency(calculateLineTotal(item))}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button variant="ghost" size="icon" onClick={() => handleRemoveItem(index)}>
+                        <Trash2 className="h-4 w-4 text-red-600" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
               <TableRow>
-                <TableCell colSpan={5} className="text-right font-bold">
+                <TableCell colSpan={6} className="text-right font-bold">
                   Total:
                 </TableCell>
                 <TableCell className="text-right text-lg font-bold">

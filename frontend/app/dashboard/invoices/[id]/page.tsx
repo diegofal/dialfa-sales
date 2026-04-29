@@ -46,6 +46,13 @@ import {
 } from '@/lib/hooks/domain/useInvoices';
 import { usePaymentTerms } from '@/lib/hooks/domain/usePaymentTerms';
 import { useQuickInvoiceTabs } from '@/lib/hooks/domain/useQuickInvoiceTabs';
+import {
+  calculateMarginPercent,
+  calculateOrderMargin,
+  formatMarginWithProfit,
+  getArticleCifCost,
+  getMarginColorClass,
+} from '@/lib/utils/articles/marginCalculations';
 
 export default function InvoiceDetailPage() {
   const params = useParams();
@@ -477,6 +484,7 @@ export default function InvoiceDetailPage() {
                 <TableHead className="text-right">Cantidad</TableHead>
                 <TableHead className="text-right">Precio Unit.</TableHead>
                 <TableHead className="text-right">Descuento</TableHead>
+                <TableHead className="text-right">Margen</TableHead>
                 <TableHead className="text-right">Total</TableHead>
               </TableRow>
             </TableHeader>
@@ -546,6 +554,23 @@ export default function InvoiceDetailPage() {
                       </div>
                     )}
                   </TableCell>
+                  <TableCell className="text-right">
+                    {(() => {
+                      const cifCostUsd = getArticleCifCost(item);
+                      const sellUsd = item.unitPriceUsd * (1 - item.discountPercent / 100);
+                      const margin = calculateMarginPercent(sellUsd, cifCostUsd);
+                      const exchangeRate = invoice.usdExchangeRate ?? 0;
+                      const lineProfitArs =
+                        cifCostUsd !== null && exchangeRate > 0
+                          ? item.quantity * (sellUsd - cifCostUsd) * exchangeRate
+                          : 0;
+                      return (
+                        <span className={`font-medium ${getMarginColorClass(margin)}`}>
+                          {formatMarginWithProfit(margin, lineProfitArs, formatCurrency)}
+                        </span>
+                      );
+                    })()}
+                  </TableCell>
                   <TableCell className="text-right font-medium">
                     {formatCurrency(item.lineTotal)}
                   </TableCell>
@@ -571,6 +596,25 @@ export default function InvoiceDetailPage() {
               <span className="text-muted-foreground">IVA</span>
               <span className="font-medium">{formatCurrency(invoice.taxAmount)}</span>
             </div>
+            {(() => {
+              const orderMargin = calculateOrderMargin(
+                invoice.items.map((it) => ({
+                  quantity: it.quantity,
+                  unitPrice: it.unitPriceUsd * (1 - it.discountPercent / 100),
+                  cifCost: getArticleCifCost(it),
+                }))
+              );
+              const exchangeRate = invoice.usdExchangeRate ?? 0;
+              const profitArs = orderMargin.profit * exchangeRate;
+              return (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Margen</span>
+                  <span className={`font-medium ${getMarginColorClass(orderMargin.marginPercent)}`}>
+                    {formatMarginWithProfit(orderMargin.marginPercent, profitArs, formatCurrency)}
+                  </span>
+                </div>
+              );
+            })()}
             <div className="flex justify-between border-t pt-2 text-lg font-bold">
               <span>Total</span>
               <span>{formatCurrency(invoice.totalAmount)}</span>

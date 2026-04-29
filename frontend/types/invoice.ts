@@ -40,6 +40,11 @@ export interface InvoiceItem {
   discountPercent: number;
   lineTotal: number;
   createdAt: string;
+  // Current article cost fields for margin calculation (live, not snapshot at invoice time)
+  lastPurchasePrice?: number | null;
+  cifPercentage?: number | null;
+  categoryMaxPaymentDiscount?: number | null;
+  categoryDefaultDiscount?: number | null;
 }
 
 export interface InvoiceListDto {
