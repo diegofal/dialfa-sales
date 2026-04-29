@@ -447,3 +447,18 @@ export async function calculateLastSaleDates(
 export async function refreshLastSaleDates(): Promise<void> {
   await calculateLastSaleDates(true);
 }
+
+/**
+ * Cuenta cuántos meses de la ventana más reciente del array `trend` tuvieron
+ * ventas (cantidad > 0). Usado por la regla de clasificación basada en
+ * frecuencia de actividad mensual, no en velocidad.
+ *
+ * El array `trend` se asume ordenado cronológicamente con el mes más reciente
+ * al final (formato emitido por `calculateSalesTrends`). Si `windowMonths`
+ * supera el largo disponible, se cuenta sobre lo disponible.
+ */
+export function countMonthsWithSales(trend: number[], windowMonths: number): number {
+  if (windowMonths <= 0 || trend.length === 0) return 0;
+  const slice = windowMonths >= trend.length ? trend : trend.slice(-windowMonths);
+  return slice.filter((qty) => qty > 0).length;
+}

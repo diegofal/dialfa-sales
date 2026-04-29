@@ -178,6 +178,12 @@ export async function createArticleStatusSnapshots(
   });
 }
 
+// `getRecentArticleStatuses` is defined in `lib/utils/articles/stockValuation.ts`
+// because it's consumed by the classifier (defining it here would create a
+// circular dependency: StockSnapshotService already imports from
+// stockValuation). It's re-exported below for external callers that look here.
+export { getRecentArticleStatuses } from '@/lib/utils/articles/stockValuation';
+
 /**
  * Retrieves stock category snapshots for the last N months, grouped by status.
  * Also computes article movements (entered/exited) between consecutive days

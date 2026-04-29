@@ -146,26 +146,62 @@ const { data } = useArticles({
 
 ## Cómo se calcula `stockStatus` (backend)
 
-`lib/services/ArticleService.ts:enrichArticle` aplica `classifyStockStatus` con esta config (idéntica a `calculateStockValuation`):
+La clasificación tiene **dos capas** (ver `lib/utils/articles/stockValuation.ts`):
+
+### Capa 1 — `computeCandidate` (regla pura por frecuencia, no velocidad)
+
+Las señales que mira son: `currentStock`, `lastSaleDate`, `daysSinceLastSale`, y un `salesTrend: number[]` ordenado cronológicamente con el mes más reciente al final. La cantidad de unidades vendidas por mes ya no influye — sólo si hubo o no hubo ventas en cada mes.
+
+```
+candidate(signals, config):
+  if currentStock <= 0 OR no lastSaleDate                                 → NEVER_SOLD
+  if monthsWithSalesInLast(deadStockNoActivityWindowMonths) < minMonthsForLeavingDead
+                                                                            → DEAD_STOCK
+  if daysSinceLastSale <= activeThresholdDays
+     AND monthsWithSalesInLast(3) >= minMonthsForActive                    → ACTIVE
+  else                                                                     → SLOW_MOVING
+```
+
+Defaults (`DEFAULT_STATUS_CONFIG` en `ArticleService.ts`):
 
 ```ts
 {
-  activeThresholdDays: 90,
-  slowMovingThresholdDays: 180,
-  deadStockThresholdDays: 365,
-  minSalesForActive: 5,        // ventas/mes mínimas para ACTIVE
-  trendMonths: 6,
+  activeThresholdDays: 90,                  // recencia para ACTIVE
+  minMonthsForActive: 2,                    // de los últimos 3
+  minMonthsForLeavingDead: 2,               // de los últimos 12
+  deadStockNoActivityWindowMonths: 12,
+  trendMonths: 6,                           // sólo afecta el sparkline / display
   includeZeroStock: false,
+  // Capa 2 (histéresis)
+  upgradeConfirmDays: 7,
+  downgradeConfirmDays: 14,
+  fastUpgradeMonthsThreshold: 4,
 }
 ```
 
-Lógica resumida (ver código):
+**Por qué frecuencia y no velocidad:** Dialfa es distribuidor B2B industrial. Muchos SKUs son lento-pero-recurrente (un cliente los pide una vez al año para mantenimiento). El threshold antiguo `minSalesForActive: 5` (≥5 unidades/mes) penalizaba injustamente esos productos. Frecuencia mensual los reconoce sin inflar las métricas con compras puntuales grandes.
 
-- Stock ≤ 0 o nunca vendido → `NEVER_SOLD`.
-- `daysSinceLastSale > 365` → `DEAD_STOCK`.
-- `daysSinceLastSale ≤ 90` y `avgMonthlySales ≥ 5` → `ACTIVE`.
-- Si no, generalmente `SLOW_MOVING`.
+### Capa 2 — Histéresis con confirmación por snapshots
+
+`classifyStockStatus` toma el `candidate` y, si difiere del `previousStatus` (leído del último `article_status_snapshots`), exige que el candidato esté sostenido durante N días en la historia reciente (`getRecentArticleStatuses`):
+
+- **Upgrade** (dead → slow, slow → active, NEVER_SOLD → cualquier estado con stock): requiere `upgradeConfirmDays = 7` snapshots consecutivos del candidato.
+- **Downgrade** (active → slow, slow → dead): requiere `downgradeConfirmDays = 14` snapshots.
+- **Escape hatch**: si `monthsWithSalesInLast(6) >= fastUpgradeMonthsThreshold (4)`, los upgrades saltan la confirmación. Evita encerrar reactivaciones claramente sostenidas.
+- **Primera ejecución** (sin historia o historia más corta que el `confirmDays`): se acepta el candidato directo.
+
+`confirmedFor` cuenta **días con snapshot que coinciden con el target**, no días calendario, así que tolera huecos en el cron.
+
+### Campos deprecados del config
+
+Los siguientes campos de `StockClassificationConfig` se mantienen por retrocompatibilidad (la API y la UI de filtros aún los aceptan) pero **no afectan la clasificación**:
+
+- `slowMovingThresholdDays` — sin efecto.
+- `deadStockThresholdDays` (en días) — reemplazado por `deadStockNoActivityWindowMonths` (en meses).
+- `minSalesForActive` — eliminado en favor de la regla de frecuencia.
+
+Sin embargo `activeThresholdDays` (90 días por default) **sigue activo**: define la ventana de recencia que la candidatura a ACTIVE exige (`daysSinceLastSale ≤ activeThresholdDays`).
 
 ## Si tenés que cambiar los umbrales globalmente
 
-Editá `DEFAULT_STATUS_CONFIG` en `lib/services/ArticleService.ts` y `calculateStockValuation` (que recibe config como param). Verificá que `classifyStockStatus` tests sigan en verde. Documentá el cambio acá.
+Editá `DEFAULT_STATUS_CONFIG` en `lib/services/ArticleService.ts`. La misma config se usa en `enrichArticle` y `calculateStockValuation` — modificarla en un solo lugar es suficiente. Verificá que `classifyStockStatus` tests sigan en verde. Documentá el cambio acá.
