@@ -15,11 +15,16 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const config = {
       activeThresholdDays: parseInt(searchParams.get('activeThreshold') || '90'),
+      // Deprecated — aceptados por retrocompat, sin efecto en la regla nueva.
       slowMovingThresholdDays: parseInt(searchParams.get('slowThreshold') || '180'),
       deadStockThresholdDays: parseInt(searchParams.get('deadThreshold') || '365'),
       minSalesForActive: parseInt(searchParams.get('minSales') || '5'),
       trendMonths: parseInt(searchParams.get('trendMonths') || '6'),
       includeZeroStock: searchParams.get('includeZeroStock') === 'true',
+      // Capa 1 (regla por frecuencia mensual)
+      minMonthsForActive: parseInt(searchParams.get('minMonthsActive') || '2'),
+      minMonthsForLeavingDead: parseInt(searchParams.get('minMonthsLeavingDead') || '2'),
+      deadStockNoActivityWindowMonths: parseInt(searchParams.get('deadWindow') || '12'),
     };
 
     const forceRefresh = searchParams.get('refresh') === 'true';
