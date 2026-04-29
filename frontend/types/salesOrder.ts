@@ -54,6 +54,12 @@ export interface SalesOrderItem {
   cifPercentage?: number | null;
   categoryMaxPaymentDiscount?: number | null;
   categoryDefaultDiscount?: number | null;
+  // Per-payment-term discounts so the form can re-derive discount when
+  // payment term changes or when adding items in edit mode.
+  categoryPaymentDiscounts?: Array<{
+    paymentTermId: number | null;
+    discountPercent: number;
+  }>;
 }
 
 export interface SalesOrderListDto {

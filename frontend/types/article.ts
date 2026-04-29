@@ -9,6 +9,7 @@ export interface Article {
   categoryDefaultDiscount: number;
   categoryMaxPaymentDiscount?: number;
   categoryPaymentDiscounts?: {
+    paymentTermId: number | null;
     paymentTermCode: string;
     paymentTermName: string;
     days: number;

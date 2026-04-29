@@ -22,6 +22,7 @@ export interface ArticleDTO {
   categoryDefaultDiscount: number;
   categoryMaxPaymentDiscount: number;
   categoryPaymentDiscounts: {
+    paymentTermId: number | null;
     paymentTermCode: string;
     paymentTermName: string;
     days: number;
@@ -105,6 +106,12 @@ export interface SalesOrderItemDTO {
   cifPercentage: number | null;
   categoryMaxPaymentDiscount: number | null;
   categoryDefaultDiscount: number | null;
+  // Per-payment-term discounts so the form can re-derive discount when the
+  // user switches paymentTerm or adds an item without a search hit.
+  categoryPaymentDiscounts: Array<{
+    paymentTermId: number | null;
+    discountPercent: number;
+  }>;
 }
 
 export interface SalesOrderDTO {
@@ -220,12 +227,19 @@ export function mapArticleToDTO(article: unknown): ArticleDTO {
         default_discount_percent?: unknown;
         category_payment_discounts?: Array<{
           discount_percent: unknown;
-          payment_terms?: { code?: string; name?: string; days?: number };
+          payment_term_id?: unknown;
+          payment_terms?: { id?: unknown; code?: string; name?: string; days?: number };
         }>;
       }
     | undefined;
 
   const paymentDiscounts = (categories?.category_payment_discounts ?? []).map((cpd) => ({
+    paymentTermId:
+      cpd.payment_term_id !== undefined && cpd.payment_term_id !== null
+        ? toInt(cpd.payment_term_id as bigint | number)
+        : cpd.payment_terms?.id !== undefined && cpd.payment_terms?.id !== null
+          ? toInt(cpd.payment_terms.id as bigint | number)
+          : null,
     paymentTermCode: cpd.payment_terms?.code ?? '',
     paymentTermName: cpd.payment_terms?.name ?? '',
     days: cpd.payment_terms?.days ?? 0,
@@ -377,7 +391,10 @@ export function mapSalesOrderToDTO(order: unknown): SalesOrderDTO {
             cif_percentage?: unknown;
             categories?: {
               default_discount_percent?: unknown;
-              category_payment_discounts?: Array<{ discount_percent: unknown }>;
+              category_payment_discounts?: Array<{
+                discount_percent: unknown;
+                payment_term_id?: unknown;
+              }>;
             };
           }
         | undefined;
@@ -404,6 +421,13 @@ export function mapSalesOrderToDTO(order: unknown): SalesOrderDTO {
         categoryDefaultDiscount: articles?.categories?.default_discount_percent
           ? toFloat(articles.categories.default_discount_percent)
           : null,
+        categoryPaymentDiscounts: paymentDiscounts.map((cpd) => ({
+          paymentTermId:
+            cpd.payment_term_id !== undefined && cpd.payment_term_id !== null
+              ? toInt(cpd.payment_term_id as bigint | number)
+              : null,
+          discountPercent: toFloat(cpd.discount_percent),
+        })),
       };
     }),
     // Related documents for permission calculations
