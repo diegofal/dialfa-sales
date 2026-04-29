@@ -26,11 +26,16 @@ export default function ValuationPage() {
 
   const [config, setConfig] = useState<StockClassificationConfig>({
     activeThresholdDays: 90,
+    // Deprecated, sin efecto en la regla actual — se mantienen para retrocompat.
     slowMovingThresholdDays: 180,
     deadStockThresholdDays: 365,
     minSalesForActive: 5,
     trendMonths: 6,
     includeZeroStock: false,
+    // Capa 1 (regla por frecuencia mensual)
+    minMonthsForActive: 2,
+    minMonthsForLeavingDead: 2,
+    deadStockNoActivityWindowMonths: 12,
   });
 
   const [selectedStatus, setSelectedStatus] = useState<StockStatus | 'all'>('all');

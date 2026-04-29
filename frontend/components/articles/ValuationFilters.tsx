@@ -132,11 +132,11 @@ export function ValuationFilters({
             Configuración de Clasificación
           </p>
         </div>
-        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-5">
-          {/* Active Threshold */}
+        <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {/* Active Recency */}
           <div className="space-y-2">
             <Label htmlFor="activeThreshold" className="flex items-center gap-1 text-xs">
-              Activo (días)
+              Recencia Activo (días)
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -144,7 +144,7 @@ export function ValuationFilters({
                   </TooltipTrigger>
                   <TooltipContent>
                     <p className="max-w-xs text-xs">
-                      Artículos con venta reciente dentro de este período
+                      Recencia máxima de la última venta para que un artículo sea Activo.
                     </p>
                   </TooltipContent>
                 </Tooltip>
@@ -166,73 +166,10 @@ export function ValuationFilters({
             </Select>
           </div>
 
-          {/* Slow Moving Threshold */}
+          {/* Min Months for Active (frequency-based) */}
           <div className="space-y-2">
-            <Label htmlFor="slowThreshold" className="flex items-center gap-1 text-xs">
-              Lento (días)
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="text-muted-foreground h-3 w-3 cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="max-w-xs text-xs">Artículos con ventas esporádicas o bajas</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </Label>
-            <Select
-              value={config.slowMovingThresholdDays.toString()}
-              onValueChange={(v) => handleThresholdChange('slowMovingThresholdDays', v)}
-            >
-              <SelectTrigger id="slowThreshold">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="90">90 días</SelectItem>
-                <SelectItem value="120">120 días</SelectItem>
-                <SelectItem value="180">180 días</SelectItem>
-                <SelectItem value="240">240 días</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Dead Stock Threshold */}
-          <div className="space-y-2">
-            <Label htmlFor="deadThreshold" className="flex items-center gap-1 text-xs">
-              Muerto (días)
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Info className="text-muted-foreground h-3 w-3 cursor-help" />
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p className="max-w-xs text-xs">Artículos sin ventas por período prolongado</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-            </Label>
-            <Select
-              value={config.deadStockThresholdDays.toString()}
-              onValueChange={(v) => handleThresholdChange('deadStockThresholdDays', v)}
-            >
-              <SelectTrigger id="deadThreshold">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="180">180 días</SelectItem>
-                <SelectItem value="270">270 días</SelectItem>
-                <SelectItem value="365">365 días</SelectItem>
-                <SelectItem value="540">540 días</SelectItem>
-                <SelectItem value="730">730 días (2 años)</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {/* Min Sales for Active */}
-          <div className="space-y-2">
-            <Label htmlFor="minSales" className="flex items-center gap-1 text-xs">
-              Ventas Mín/Mes
+            <Label htmlFor="minMonthsActive" className="flex items-center gap-1 text-xs">
+              Meses Activos (de últ. 3)
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -240,33 +177,32 @@ export function ValuationFilters({
                   </TooltipTrigger>
                   <TooltipContent>
                     <p className="max-w-xs text-xs">
-                      Mínimo de unidades vendidas por mes para considerarse activo
+                      Mínimo de meses con ventas (de los últimos 3) para calificar como Activo.
+                      Frecuencia, no cantidad: 1 venta cuenta igual que 100.
                     </p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </Label>
             <Select
-              value={config.minSalesForActive.toString()}
-              onValueChange={(v) => handleThresholdChange('minSalesForActive', v)}
+              value={(config.minMonthsForActive ?? 2).toString()}
+              onValueChange={(v) => handleThresholdChange('minMonthsForActive', v)}
             >
-              <SelectTrigger id="minSales">
+              <SelectTrigger id="minMonthsActive">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="1">1 unidad</SelectItem>
-                <SelectItem value="3">3 unidades</SelectItem>
-                <SelectItem value="5">5 unidades</SelectItem>
-                <SelectItem value="10">10 unidades</SelectItem>
-                <SelectItem value="20">20 unidades</SelectItem>
+                <SelectItem value="1">1 mes</SelectItem>
+                <SelectItem value="2">2 meses</SelectItem>
+                <SelectItem value="3">3 meses (estricto)</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
-          {/* Trend Months for Classification */}
+          {/* Min Months for Leaving Dead */}
           <div className="space-y-2">
-            <Label htmlFor="trendMonths" className="flex items-center gap-1 text-xs">
-              Período Clasificación
+            <Label htmlFor="minMonthsLeavingDead" className="flex items-center gap-1 text-xs">
+              Meses para salir de Muerto
               <TooltipProvider>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -274,22 +210,57 @@ export function ValuationFilters({
                   </TooltipTrigger>
                   <TooltipContent>
                     <p className="max-w-xs text-xs">
-                      Meses para calcular promedios de ventas y clasificación
+                      Mínimo de meses con ventas (en la ventana de inactividad) para que un artículo
+                      deje de ser Muerto. Una sola venta no alcanza.
                     </p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </Label>
             <Select
-              value={config.trendMonths.toString()}
-              onValueChange={(v) => handleThresholdChange('trendMonths', v)}
+              value={(config.minMonthsForLeavingDead ?? 2).toString()}
+              onValueChange={(v) => handleThresholdChange('minMonthsForLeavingDead', v)}
             >
-              <SelectTrigger id="trendMonths">
+              <SelectTrigger id="minMonthsLeavingDead">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
+                <SelectItem value="1">1 mes (permisivo)</SelectItem>
+                <SelectItem value="2">2 meses</SelectItem>
                 <SelectItem value="3">3 meses</SelectItem>
+                <SelectItem value="4">4 meses (estricto)</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Dead Stock Inactivity Window */}
+          <div className="space-y-2">
+            <Label htmlFor="deadWindow" className="flex items-center gap-1 text-xs">
+              Ventana de inactividad
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Info className="text-muted-foreground h-3 w-3 cursor-help" />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p className="max-w-xs text-xs">
+                      Cantidad de meses pasados en los que se busca evidencia de actividad. La regla
+                      &quot;Meses para salir de Muerto&quot; se aplica sobre esta ventana.
+                    </p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </Label>
+            <Select
+              value={(config.deadStockNoActivityWindowMonths ?? 12).toString()}
+              onValueChange={(v) => handleThresholdChange('deadStockNoActivityWindowMonths', v)}
+            >
+              <SelectTrigger id="deadWindow">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
                 <SelectItem value="6">6 meses</SelectItem>
+                <SelectItem value="9">9 meses</SelectItem>
                 <SelectItem value="12">12 meses</SelectItem>
                 <SelectItem value="18">18 meses</SelectItem>
                 <SelectItem value="24">24 meses</SelectItem>
