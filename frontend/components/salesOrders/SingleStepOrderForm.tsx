@@ -1106,6 +1106,9 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                                     {article.lastPurchasePrice
                                       ? ` (FOB ${article.lastPurchasePrice.toFixed(2)})`
                                       : ''}
+                                    {article.lastPurchaseProformaNumber
+                                      ? ` · ${article.lastPurchaseProformaNumber}`
+                                      : ''}
                                   </div>
                                 )}
                                 <div
@@ -1265,6 +1268,9 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                                                 Costo: USD {editCif.toFixed(2)}
                                                 {article.lastPurchasePrice
                                                   ? ` (FOB ${article.lastPurchasePrice.toFixed(2)})`
+                                                  : ''}
+                                                {article.lastPurchaseProformaNumber
+                                                  ? ` · ${article.lastPurchaseProformaNumber}`
                                                   : ''}
                                               </div>
                                             )}

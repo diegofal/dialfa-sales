@@ -256,6 +256,9 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
                             {article.lastPurchasePrice
                               ? ` (FOB ${article.lastPurchasePrice.toFixed(2)})`
                               : ''}
+                            {article.lastPurchaseProformaNumber
+                              ? ` · ${article.lastPurchaseProformaNumber}`
+                              : ''}
                           </div>
                         )}
                         <div
