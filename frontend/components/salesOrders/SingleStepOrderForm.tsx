@@ -70,7 +70,10 @@ import { useFormValidation, validators } from '@/lib/hooks/generic/useFormValida
 import { validateSalesOrder } from '@/lib/permissions/salesOrders';
 import { formatCuit } from '@/lib/utils';
 import {
+  calculateMarginPercent,
+  calculateOrderMargin,
   formatMarginPercent,
+  formatMarginWithProfit,
   getArticleCifCost,
   getArticleDiscountedSellPrice,
   getArticleMarginPercent,
@@ -278,7 +281,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
           // Set prices
           setPrices((prev) => ({ ...prev, [item.articleId]: item.unitPrice }));
 
-          // Add to items array with real stock from backend
+          // Add to items array with real stock and cost data from backend
           orderItems.push({
             article: {
               id: item.articleId,
@@ -286,7 +289,10 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
               description: item.articleDescription,
               unitPrice: item.unitPrice,
               stock: item.stock || 0,
-              categoryDefaultDiscount: 0, // No usado en pedidos
+              lastPurchasePrice: item.lastPurchasePrice ?? null,
+              cifPercentage: item.cifPercentage ?? null,
+              categoryMaxPaymentDiscount: item.categoryMaxPaymentDiscount ?? null,
+              categoryDefaultDiscount: item.categoryDefaultDiscount ?? 0,
             } as Article,
             quantity: item.quantity,
           });
@@ -1172,6 +1178,7 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                     <TableHead>Descripción</TableHead>
                     <TableHead className="w-[100px] text-right">Cantidad</TableHead>
                     <TableHead className="w-[140px] text-right">Precio Unit.</TableHead>
+                    <TableHead className="w-[160px] text-right">Margen</TableHead>
                     <TableHead className="w-[140px] text-right">Total</TableHead>
                     {!isReadOnly && <TableHead className="w-[50px]"></TableHead>}
                   </TableRow>
@@ -1331,6 +1338,22 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                             {formatCurrency(prices[item.article.id] ?? item.article.unitPrice)}
                           </span>
                         </TableCell>
+                        <TableCell className="text-right">
+                          {(() => {
+                            const unitPrice = prices[item.article.id] ?? item.article.unitPrice;
+                            const cifCost = getArticleCifCost(item.article);
+                            const margin = calculateMarginPercent(unitPrice, cifCost);
+                            const lineProfit =
+                              cifCost !== null ? item.quantity * (unitPrice - cifCost) : 0;
+                            return (
+                              <span
+                                className={`text-sm font-medium ${getMarginColorClass(margin)}`}
+                              >
+                                {formatMarginWithProfit(margin, lineProfit, formatCurrency)}
+                              </span>
+                            );
+                          })()}
+                        </TableCell>
                         <TableCell className="text-right font-bold">
                           {formatCurrency(calculateLineTotal(item))}
                         </TableCell>
@@ -1372,6 +1395,29 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                 <span className="text-muted-foreground">IVA (Estimado)</span>
                 <span>{formatCurrency(calculateTotal() * 0.21)}</span>
               </div>
+              {(() => {
+                const orderMargin = calculateOrderMargin(
+                  items.map((item) => ({
+                    quantity: item.quantity,
+                    unitPrice: prices[item.article.id] ?? item.article.unitPrice,
+                    cifCost: getArticleCifCost(item.article),
+                  }))
+                );
+                return (
+                  <div className="flex justify-between text-sm">
+                    <span className="text-muted-foreground">Margen</span>
+                    <span
+                      className={`font-medium ${getMarginColorClass(orderMargin.marginPercent)}`}
+                    >
+                      {formatMarginWithProfit(
+                        orderMargin.marginPercent,
+                        orderMargin.profit,
+                        formatCurrency
+                      )}
+                    </span>
+                  </div>
+                );
+              })()}
               <div className="mt-2 flex items-center justify-between border-t pt-2">
                 <span className="font-bold">Total Final</span>
                 <span className="text-primary text-2xl font-bold">

@@ -49,6 +49,11 @@ export interface SalesOrderItem {
   discountPercent: number;
   lineTotal: number;
   stock?: number; // Current stock of the article
+  // Current article cost fields for margin calculation (live, not snapshot)
+  lastPurchasePrice?: number | null;
+  cifPercentage?: number | null;
+  categoryMaxPaymentDiscount?: number | null;
+  categoryDefaultDiscount?: number | null;
 }
 
 export interface SalesOrderListDto {

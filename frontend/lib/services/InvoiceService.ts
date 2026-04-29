@@ -71,7 +71,13 @@ export async function getById(id: bigint) {
     where: { id },
     include: {
       payment_terms: true,
-      invoice_items: { include: { articles: true } },
+      invoice_items: {
+        include: {
+          articles: {
+            include: { categories: { include: { category_payment_discounts: true } } },
+          },
+        },
+      },
       sales_orders: {
         include: {
           clients: { include: { tax_conditions: true } },
@@ -212,7 +218,13 @@ export async function create(data: CreateInvoiceInput, request: NextRequest) {
     return await tx.invoices.findUnique({
       where: { id: invoice.id },
       include: {
-        invoice_items: true,
+        invoice_items: {
+          include: {
+            articles: {
+              include: { categories: { include: { category_payment_discounts: true } } },
+            },
+          },
+        },
         sales_orders: { include: { clients: true } },
         payment_terms: true,
       },
@@ -681,7 +693,13 @@ export async function updateItems(
         updated_at: now,
       },
       include: {
-        invoice_items: true,
+        invoice_items: {
+          include: {
+            articles: {
+              include: { categories: { include: { category_payment_discounts: true } } },
+            },
+          },
+        },
         sales_orders: { include: { clients: { include: { tax_conditions: true } } } },
       },
     });
