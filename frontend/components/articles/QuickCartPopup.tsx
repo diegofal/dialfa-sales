@@ -976,6 +976,16 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
                           {article.lastPurchasePrice
                             ? ` (FOB ${article.lastPurchasePrice.toFixed(2)})`
                             : ''}
+                          {article.lastPurchaseProformaNumber && (
+                            <span
+                              className={`ml-1 ${isSelected ? 'text-primary-foreground/70' : 'text-muted-foreground/80'}`}
+                            >
+                              · {article.lastPurchaseProformaNumber}
+                              {article.lastPurchaseProformaDate
+                                ? ` ${article.lastPurchaseProformaDate.slice(0, 10)}`
+                                : ''}
+                            </span>
+                          )}
                         </div>
                       )}
                       <div
