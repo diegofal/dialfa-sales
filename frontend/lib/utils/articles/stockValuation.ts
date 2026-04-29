@@ -114,6 +114,8 @@ export async function calculateStockValuation(
         cost_price: true,
         unit_price: true,
         last_purchase_price: true,
+        last_purchase_proforma_number: true,
+        last_purchase_proforma_date: true,
         cif_percentage: true,
         category_id: true,
         categories: {
@@ -235,6 +237,10 @@ export async function calculateStockValuation(
         currentStock,
         unitCost: costPrice,
         unitCostFob: lastPurchase ?? 0,
+        lastPurchaseProformaNumber: article.last_purchase_proforma_number ?? null,
+        lastPurchaseProformaDate: article.last_purchase_proforma_date
+          ? article.last_purchase_proforma_date.toISOString().slice(0, 10)
+          : null,
         cifPercentage: cifPct ?? 0,
         unitPrice,
         stockValue,

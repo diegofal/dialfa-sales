@@ -49,6 +49,8 @@ export interface StockValuationMetrics {
   currentStock: number;
   unitCost: number; // Costo unitario CIF = FOB × (1 + CIF%)
   unitCostFob: number; // FOB raw (last_purchase_price)
+  lastPurchaseProformaNumber: string | null; // Proforma source of unitCostFob
+  lastPurchaseProformaDate: string | null; // ISO date (YYYY-MM-DD)
   cifPercentage: number; // % CIF aplicado
   unitPrice: number; // Precio unitario de venta
   stockValue: number; // stock * unitCost (CIF)

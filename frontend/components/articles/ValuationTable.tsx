@@ -72,6 +72,8 @@ function getSortValue(article: StockValuationMetrics, key: string): number | str
       return article.avgMonthlySales;
     case 'fob':
       return article.unitCostFob > 0 ? article.unitCostFob : null;
+    case 'lastProforma':
+      return article.lastPurchaseProformaDate ?? article.lastPurchaseProformaNumber ?? null;
     case 'cifCost':
       return article.unitCost > 0 ? article.unitCost : null;
     case 'stockValue':
@@ -191,6 +193,9 @@ export function ValuationTable({ articles }: ValuationTableProps) {
             <SortableTableHead sortKey="fob" {...sortProps} align="right" className="w-[90px]">
               FOB
             </SortableTableHead>
+            <SortableTableHead sortKey="lastProforma" {...sortProps} className="w-[140px]">
+              Última Proforma
+            </SortableTableHead>
             <SortableTableHead sortKey="cifCost" {...sortProps} align="right" className="w-[100px]">
               Costo CIF
             </SortableTableHead>
@@ -292,6 +297,18 @@ export function ValuationTable({ articles }: ValuationTableProps) {
                 </TableCell>
                 <TableCell className="text-muted-foreground text-right text-sm">
                   {article.unitCostFob > 0 ? formatCurrency(article.unitCostFob) : '—'}
+                </TableCell>
+                <TableCell className="text-muted-foreground text-xs">
+                  {article.lastPurchaseProformaNumber ? (
+                    <div className="flex flex-col">
+                      <span>{article.lastPurchaseProformaNumber}</span>
+                      {article.lastPurchaseProformaDate && (
+                        <span className="text-[10px]">{article.lastPurchaseProformaDate}</span>
+                      )}
+                    </div>
+                  ) : (
+                    '—'
+                  )}
                 </TableCell>
                 <TableCell className="text-muted-foreground text-right text-sm">
                   {formatCurrency(article.unitCost)}
