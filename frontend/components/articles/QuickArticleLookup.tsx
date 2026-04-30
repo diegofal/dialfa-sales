@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { useArticles } from '@/lib/hooks/domain/useArticles';
+import { useClient } from '@/lib/hooks/domain/useClients';
 import { useQuickCartTabs } from '@/lib/hooks/domain/useQuickCartTabs';
 import {
   formatMarginPercent,
@@ -33,7 +34,14 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
   const codeInputRef = useRef<HTMLInputElement>(null);
   const quantityInputRef = useRef<HTMLInputElement>(null);
   const selectedItemRef = useRef<HTMLButtonElement>(null);
-  const { addItem } = useQuickCartTabs();
+  const { addItem, activeTab } = useQuickCartTabs();
+
+  // Resolve the active client's payment term so the dropdown can show
+  // discount/margin contextual to that client. When no client is selected
+  // (or it has no default payment term) we pass null and the helpers fall
+  // back to the largest payment-term discount available for the category.
+  const { data: activeClient } = useClient(activeTab?.clientId || 0);
+  const contextPaymentTermId = activeClient?.paymentTermId ? activeClient.paymentTermId : null;
 
   // Search articles as user types code.
   // includeTrends=true so the API returns stockStatus + trends used by StockStatusBadge.
@@ -201,9 +209,9 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
           <Card className="absolute z-[60] mt-1 max-h-[320px] w-[420px] overflow-auto shadow-xl">
             <div className="p-1">
               {articles.map((article, index) => {
-                const margin = getArticleMarginPercent(article);
+                const margin = getArticleMarginPercent(article, contextPaymentTermId);
                 const isSelected = index === selectedIndex;
-                const sell = getArticleDiscountedSellPrice(article);
+                const sell = getArticleDiscountedSellPrice(article, contextPaymentTermId);
                 const cifCost = getArticleCifCost(article);
                 return (
                   <button

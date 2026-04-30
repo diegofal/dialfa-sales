@@ -42,34 +42,87 @@ export function getEffectiveCategoryDiscount(article: {
 }
 
 /**
- * Discounted sell price = unitPrice * (1 - effectiveDiscount/100).
- * Mirrors supplier-orders/[id]/page.tsx:235 but using the largest payment-term
- * discount instead of the (often-empty) default category discount.
+ * Returns the discount % for the article in a given context.
+ *
+ * - When `paymentTermId` is provided (e.g. a client is selected): use the
+ *   `category_payment_discounts` row matching that paymentTermId, falling back
+ *   to `categoryDefaultDiscount` if no row matches. This is what the pedido
+ *   form does when computing per-line discounts.
+ *
+ * - When `paymentTermId` is null/undefined (catalog views with no client
+ *   context, or before a client is picked): use the largest available
+ *   payment-term discount (`categoryMaxPaymentDiscount`), falling back to
+ *   `categoryDefaultDiscount`. Matches the existing
+ *   `getEffectiveCategoryDiscount` behavior.
  */
-export function getArticleDiscountedSellPrice(article: {
-  unitPrice?: number | null;
-  categoryMaxPaymentDiscount?: number | null;
-  categoryDefaultDiscount?: number | null;
-}): number | null {
+export function getArticleEffectiveDiscount(
+  article: {
+    categoryPaymentDiscounts?: Array<{
+      paymentTermId?: number | null;
+      discountPercent: number;
+    }>;
+    categoryMaxPaymentDiscount?: number | null;
+    categoryDefaultDiscount?: number | null;
+  },
+  paymentTermId?: number | null
+): number {
+  if (paymentTermId) {
+    const match = article.categoryPaymentDiscounts?.find((d) => d.paymentTermId === paymentTermId);
+    if (match) return match.discountPercent;
+    return article.categoryDefaultDiscount ?? 0;
+  }
+  return getEffectiveCategoryDiscount(article);
+}
+
+/**
+ * Discounted sell price = unitPrice * (1 - effectiveDiscount/100).
+ * Mirrors supplier-orders/[id]/page.tsx:235.
+ *
+ * Pass a `paymentTermId` to use that specific payment term's discount (e.g.
+ * when a client is in context). Without one, defaults to the largest
+ * payment-term discount available (catalog/no-client behavior).
+ */
+export function getArticleDiscountedSellPrice(
+  article: {
+    unitPrice?: number | null;
+    categoryPaymentDiscounts?: Array<{
+      paymentTermId?: number | null;
+      discountPercent: number;
+    }>;
+    categoryMaxPaymentDiscount?: number | null;
+    categoryDefaultDiscount?: number | null;
+  },
+  paymentTermId?: number | null
+): number | null {
   const unit = article.unitPrice;
   if (unit === null || unit === undefined) return null;
-  const discount = getEffectiveCategoryDiscount(article);
+  const discount = getArticleEffectiveDiscount(article, paymentTermId);
   return unit * (1 - discount / 100);
 }
 
 /**
  * Article margin = (discountedSellPrice - cifCost) / cifCost * 100.
  * Mirrors supplier-orders/[id]/page.tsx:240.
+ *
+ * Pass a `paymentTermId` to compute margin against that client's specific
+ * payment-term discount; without it, uses the largest discount.
  */
-export function getArticleMarginPercent(article: {
-  unitPrice?: number | null;
-  lastPurchasePrice?: number | null;
-  cifPercentage?: number | null;
-  categoryMaxPaymentDiscount?: number | null;
-  categoryDefaultDiscount?: number | null;
-}): number | null {
+export function getArticleMarginPercent(
+  article: {
+    unitPrice?: number | null;
+    lastPurchasePrice?: number | null;
+    cifPercentage?: number | null;
+    categoryPaymentDiscounts?: Array<{
+      paymentTermId?: number | null;
+      discountPercent: number;
+    }>;
+    categoryMaxPaymentDiscount?: number | null;
+    categoryDefaultDiscount?: number | null;
+  },
+  paymentTermId?: number | null
+): number | null {
   const cifCost = getArticleCifCost(article);
-  const sell = getArticleDiscountedSellPrice(article);
+  const sell = getArticleDiscountedSellPrice(article, paymentTermId);
   return calculateMarginPercent(sell, cifCost);
 }
 
