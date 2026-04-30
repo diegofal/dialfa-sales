@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator';
 import { CART_CONSTANTS } from '@/lib/constants/cart';
 import { ROUTES } from '@/lib/constants/routes';
 import { useArticles } from '@/lib/hooks/domain/useArticles';
+import { useClient } from '@/lib/hooks/domain/useClients';
 import { useQuickCartTabs } from '@/lib/hooks/domain/useQuickCartTabs';
 import {
   calculateMarginPercent,
@@ -93,7 +94,6 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
     removeItem,
     replaceItem,
     clearCart,
-    getTotalValue,
   } = useQuickCartTabs();
 
   // Filter out saved orders (only show drafts without orderId in the popup)
@@ -107,6 +107,13 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
 
   // Use items from the active draft tab only (not from saved orders)
   const items = activeDraftTab.items;
+
+  // Resolve the active client's payment term so prices/margin reflect the
+  // actual discount that will apply once the cart is converted to a pedido.
+  // When no client (or no default payment term), pass null and helpers fall
+  // back to the largest available payment-term discount.
+  const { data: activeClient } = useClient(activeDraftTab.clientId || 0);
+  const contextPaymentTermId = activeClient?.paymentTermId ? activeClient.paymentTermId : null;
 
   // Search articles for editing.
   // includeTrends:true so the API returns stockStatus for the StockStatusBadge.
@@ -745,24 +752,37 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
                         onFocus={(e) => e.target.select()}
                       />
 
-                      {/* Column 4: Price + Margen */}
+                      {/* Column 4: Price + Margen (shows list price → discounted
+                          when a client / payment term is in context) */}
                       <div className="text-right">
                         <div className="text-sm font-medium">
                           {formatCurrency(item.article.unitPrice)}
                         </div>
                         {(() => {
+                          const sell = getArticleDiscountedSellPrice(
+                            item.article,
+                            contextPaymentTermId
+                          );
+                          const effectiveUnitPrice = sell ?? item.article.unitPrice;
                           const cifCost = getArticleCifCost(item.article);
-                          const margin = calculateMarginPercent(item.article.unitPrice, cifCost);
+                          const margin = calculateMarginPercent(effectiveUnitPrice, cifCost);
                           const lineProfit =
-                            cifCost !== null
-                              ? item.quantity * (item.article.unitPrice - cifCost)
-                              : 0;
+                            cifCost !== null ? item.quantity * (effectiveUnitPrice - cifCost) : 0;
                           return (
-                            <div
-                              className={`text-[10px] font-medium ${getMarginColorClass(margin)}`}
-                            >
-                              {formatMarginWithProfit(margin, lineProfit, formatCurrency)}
-                            </div>
+                            <>
+                              {sell !== null && sell !== item.article.unitPrice && (
+                                <div
+                                  className={`text-[11px] font-medium ${getMarginColorClass(margin)}`}
+                                >
+                                  → {formatCurrency(sell)}
+                                </div>
+                              )}
+                              <div
+                                className={`text-[10px] font-medium ${getMarginColorClass(margin)}`}
+                              >
+                                {formatMarginWithProfit(margin, lineProfit, formatCurrency)}
+                              </div>
+                            </>
                           );
                         })()}
                       </div>
@@ -786,31 +806,48 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
 
             {/* Footer */}
             <div className="space-y-2 p-2">
-              <div className="bg-muted/50 flex items-center justify-between rounded p-2">
-                <span className="text-muted-foreground text-sm">Total Estimado</span>
-                <span className="text-xl font-bold">{formatCurrency(getTotalValue())}</span>
-              </div>
               {(() => {
-                const orderMargin = calculateOrderMargin(
-                  items.map((it) => ({
+                // Compute effective (post-discount) unit prices once for
+                // both the Total Estimado and the Margen so they stay in
+                // sync with the per-line price shown above.
+                const effectiveLines = items.map((it) => {
+                  const sell = getArticleDiscountedSellPrice(it.article, contextPaymentTermId);
+                  return {
                     quantity: it.quantity,
-                    unitPrice: it.article.unitPrice,
+                    effectiveUnitPrice: sell ?? it.article.unitPrice,
                     cifCost: getArticleCifCost(it.article),
+                  };
+                });
+                const netTotal = effectiveLines.reduce(
+                  (sum, l) => sum + l.quantity * l.effectiveUnitPrice,
+                  0
+                );
+                const orderMargin = calculateOrderMargin(
+                  effectiveLines.map((l) => ({
+                    quantity: l.quantity,
+                    unitPrice: l.effectiveUnitPrice,
+                    cifCost: l.cifCost,
                   }))
                 );
                 return (
-                  <div className="flex items-center justify-between rounded px-2 py-1">
-                    <span className="text-muted-foreground text-xs">Margen</span>
-                    <span
-                      className={`text-sm font-medium ${getMarginColorClass(orderMargin.marginPercent)}`}
-                    >
-                      {formatMarginWithProfit(
-                        orderMargin.marginPercent,
-                        orderMargin.profit,
-                        formatCurrency
-                      )}
-                    </span>
-                  </div>
+                  <>
+                    <div className="bg-muted/50 flex items-center justify-between rounded p-2">
+                      <span className="text-muted-foreground text-sm">Total Estimado</span>
+                      <span className="text-xl font-bold">{formatCurrency(netTotal)}</span>
+                    </div>
+                    <div className="flex items-center justify-between rounded px-2 py-1">
+                      <span className="text-muted-foreground text-xs">Margen</span>
+                      <span
+                        className={`text-sm font-medium ${getMarginColorClass(orderMargin.marginPercent)}`}
+                      >
+                        {formatMarginWithProfit(
+                          orderMargin.marginPercent,
+                          orderMargin.profit,
+                          formatCurrency
+                        )}
+                      </span>
+                    </div>
+                  </>
                 );
               })()}
 
@@ -961,8 +998,8 @@ export function QuickCartPopup({ isOpen, onClose, positions }: QuickCartPopupPro
           <div className="p-1">
             {editArticles.map((article, index) => {
               const isSelected = index === selectedEditIndex;
-              const margin = getArticleMarginPercent(article);
-              const sell = getArticleDiscountedSellPrice(article);
+              const margin = getArticleMarginPercent(article, contextPaymentTermId);
+              const sell = getArticleDiscountedSellPrice(article, contextPaymentTermId);
               const cifCost = getArticleCifCost(article);
               return (
                 <button

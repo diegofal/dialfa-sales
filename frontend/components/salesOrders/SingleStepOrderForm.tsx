@@ -234,6 +234,13 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   // Load client data to fetch payment term (use clientId which works in both modes)
   const { data: clientData } = useClient(clientId || 0);
 
+  // Effective payment term for catalog/dropdown discount previews. Prefers the
+  // form's selected paymentTermId; falls back to the client's default payment
+  // term so the dropdowns reflect the right discount even before the user
+  // explicitly picks a condición de pago.
+  const contextPaymentTermId =
+    paymentTermId ?? (clientData?.paymentTermId ? clientData.paymentTermId : null);
+
   // Track changes for unsaved changes detection
   useEffect(() => {
     if (isEditMode && existingOrder && loadedOrderId === existingOrder.id) {
@@ -1115,8 +1122,8 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                     <div className="p-1">
                       {articles.map((article, index) => {
                         const isSelected = index === selectedIndex;
-                        const margin = getArticleMarginPercent(article);
-                        const sell = getArticleDiscountedSellPrice(article);
+                        const margin = getArticleMarginPercent(article, contextPaymentTermId);
+                        const sell = getArticleDiscountedSellPrice(article, contextPaymentTermId);
                         const cifCost = getArticleCifCost(article);
                         return (
                           <button
@@ -1272,8 +1279,14 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                                     <div className="p-1">
                                       {editArticles.map((article, index) => {
                                         const isSel = index === selectedEditIndex;
-                                        const editMargin = getArticleMarginPercent(article);
-                                        const editSell = getArticleDiscountedSellPrice(article);
+                                        const editMargin = getArticleMarginPercent(
+                                          article,
+                                          contextPaymentTermId
+                                        );
+                                        const editSell = getArticleDiscountedSellPrice(
+                                          article,
+                                          contextPaymentTermId
+                                        );
                                         const editCif = getArticleCifCost(article);
                                         return (
                                           <button

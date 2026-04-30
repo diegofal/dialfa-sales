@@ -22,6 +22,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { useArticles } from '@/lib/hooks/domain/useArticles';
+import { useClient } from '@/lib/hooks/domain/useClients';
 import {
   calculateMarginPercent,
   formatMarginPercent,
@@ -44,6 +45,13 @@ export function ItemsSelectionStep({ formData, setFormData }: ItemsSelectionStep
     includeTrends: true,
   });
   const articles = articlesResult?.data || [];
+
+  // Resolve payment term context for dropdown discount/margin previews:
+  // form's selected paymentTermId → client's default → null (use largest).
+  const { data: clientData } = useClient(formData.clientId || 0);
+  const contextPaymentTermId =
+    formData.paymentTermId ?? (clientData?.paymentTermId ? clientData.paymentTermId : null);
+
   const [newItem, setNewItem] = useState<Partial<SalesOrderItemFormData>>({
     quantity: 1,
     discountPercent: 0,
@@ -130,8 +138,8 @@ export function ItemsSelectionStep({ formData, setFormData }: ItemsSelectionStep
               </SelectTrigger>
               <SelectContent>
                 {articles.map((article) => {
-                  const margin = getArticleMarginPercent(article);
-                  const sell = getArticleDiscountedSellPrice(article);
+                  const margin = getArticleMarginPercent(article, contextPaymentTermId);
+                  const sell = getArticleDiscountedSellPrice(article, contextPaymentTermId);
                   return (
                     <SelectItem key={article.id} value={article.id.toString()}>
                       <div className="flex items-center gap-2">
