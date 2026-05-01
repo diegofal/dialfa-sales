@@ -614,7 +614,7 @@ export async function syncWeights(orderId: bigint, userId: number, request: Next
 
   await logActivity({
     request,
-    operation: OPERATIONS.ARTICLE_UPDATE,
+    operation: OPERATIONS.SUPPLIER_ORDER_SYNC_WEIGHTS,
     description: `Pesos unitarios sincronizados desde pedido ${order.order_number}: ${updatedCount} artículos actualizados`,
     entityType: 'supplier_order',
     entityId: orderId,
@@ -633,9 +633,10 @@ export async function syncWeights(orderId: bigint, userId: number, request: Next
 export async function updateDiscounts(
   orderId: bigint,
   useCategoryDiscounts: boolean,
-  items: { articleId: number; discountPercent: number }[]
+  items: { articleId: number; discountPercent: number }[],
+  request: NextRequest
 ) {
-  await prisma.supplier_orders.update({
+  const order = await prisma.supplier_orders.update({
     where: { id: orderId },
     data: { use_category_discounts: useCategoryDiscounts },
   });
@@ -649,6 +650,19 @@ export async function updateDiscounts(
       data: { discount_percent: item.discountPercent },
     });
   }
+
+  await logActivity({
+    request,
+    operation: OPERATIONS.SUPPLIER_ORDER_UPDATE,
+    description: `Descuentos actualizados en pedido a proveedor ${order.order_number}`,
+    entityType: 'supplier_order',
+    entityId: orderId,
+    details: {
+      useCategoryDiscounts,
+      itemCount: items.length,
+      discountsApplied: items,
+    },
+  });
 
   return { status: 200 };
 }

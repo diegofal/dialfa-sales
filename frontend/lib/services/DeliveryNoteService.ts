@@ -228,7 +228,10 @@ export async function create(body: unknown, request: NextRequest) {
 
   const mappedDeliveryNote = mapDeliveryNoteToDTO(deliveryNote);
 
-  await logActivity({
+  const tracker = new ChangeTracker();
+  tracker.trackCreate('delivery_note', deliveryNote.id, deliveryNote);
+
+  const activityLogId = await logActivity({
     request,
     operation: OPERATIONS.DELIVERY_CREATE,
     description: `Remito ${deliveryNote.delivery_number} creado para pedido ${deliveryNote.sales_orders.order_number}`,
@@ -239,6 +242,10 @@ export async function create(body: unknown, request: NextRequest) {
       orderNumber: deliveryNote.sales_orders.order_number,
     },
   });
+
+  if (activityLogId) {
+    await tracker.saveChanges(activityLogId);
+  }
 
   return { data: mappedDeliveryNote, status: 201 };
 }

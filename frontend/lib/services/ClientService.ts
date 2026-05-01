@@ -233,12 +233,15 @@ export async function create(data: CreateClientInput, request: NextRequest) {
   return mapClientToDTO(client);
 }
 
-export async function update(id: bigint, data: UpdateClientInput) {
+export async function update(id: bigint, data: UpdateClientInput, request: NextRequest) {
   const existingClient = await prisma.clients.findUnique({ where: { id } });
 
   if (!existingClient || existingClient.deleted_at) {
     return null;
   }
+
+  const tracker = new ChangeTracker();
+  await tracker.trackBefore('client', id);
 
   const client = await prisma.clients.update({
     where: { id },
@@ -269,15 +272,33 @@ export async function update(id: bigint, data: UpdateClientInput) {
     },
   });
 
+  await tracker.trackAfter('client', id);
+
+  const activityLogId = await logActivity({
+    request,
+    operation: OPERATIONS.CLIENT_UPDATE,
+    description: `Cliente ${client.business_name} (${client.code}) actualizado`,
+    entityType: 'client',
+    entityId: id,
+    details: { code: client.code, businessName: client.business_name },
+  });
+
+  if (activityLogId) {
+    await tracker.saveChanges(activityLogId);
+  }
+
   return mapClientToDTO(client);
 }
 
-export async function remove(id: bigint) {
+export async function remove(id: bigint, request: NextRequest) {
   const existingClient = await prisma.clients.findUnique({ where: { id } });
 
   if (!existingClient || existingClient.deleted_at) {
     return null;
   }
+
+  const tracker = new ChangeTracker();
+  tracker.trackDelete('client', id, existingClient as unknown as Record<string, unknown>);
 
   await prisma.clients.update({
     where: { id },
@@ -286,6 +307,19 @@ export async function remove(id: bigint) {
       updated_at: new Date(),
     },
   });
+
+  const activityLogId = await logActivity({
+    request,
+    operation: OPERATIONS.CLIENT_DELETE,
+    description: `Cliente ${existingClient.business_name} (${existingClient.code}) eliminado`,
+    entityType: 'client',
+    entityId: id,
+    details: { code: existingClient.code, businessName: existingClient.business_name },
+  });
+
+  if (activityLogId) {
+    await tracker.saveChanges(activityLogId);
+  }
 
   return true;
 }

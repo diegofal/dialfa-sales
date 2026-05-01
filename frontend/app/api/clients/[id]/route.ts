@@ -30,7 +30,7 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const { id } = await params;
     const body = await request.json();
     const validatedData = updateClientSchema.parse(body);
-    const client = await ClientService.update(BigInt(id), validatedData);
+    const client = await ClientService.update(BigInt(id), validatedData, request);
 
     if (!client) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });
@@ -53,7 +53,7 @@ export async function DELETE(
     }
 
     const { id } = await params;
-    const result = await ClientService.remove(BigInt(id));
+    const result = await ClientService.remove(BigInt(id), request);
 
     if (!result) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 });

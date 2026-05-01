@@ -28,15 +28,41 @@ export async function login(
   const user = await prisma.users.findUnique({ where: { username } });
 
   if (!user) {
+    await logActivity({
+      request,
+      operation: OPERATIONS.LOGIN_FAILED,
+      description: `Intento de login fallido para usuario ${username}: usuario inexistente`,
+      entityType: 'login_attempt',
+      username,
+      details: { reason: 'user_not_found', attemptedUsername: username },
+    });
     return { error: 'Invalid credentials', status: 401 };
   }
 
   if (!user.is_active) {
+    await logActivity({
+      request,
+      operation: OPERATIONS.LOGIN_FAILED,
+      description: `Intento de login fallido para usuario ${user.username}: cuenta inactiva`,
+      entityType: 'login_attempt',
+      entityId: user.id,
+      username: user.username,
+      details: { reason: 'account_inactive' },
+    });
     return { error: 'Account is inactive', status: 401 };
   }
 
   const isValidPassword = await bcrypt.compare(password, user.password_hash);
   if (!isValidPassword) {
+    await logActivity({
+      request,
+      operation: OPERATIONS.LOGIN_FAILED,
+      description: `Intento de login fallido para usuario ${user.username}: contraseña inválida`,
+      entityType: 'login_attempt',
+      entityId: user.id,
+      username: user.username,
+      details: { reason: 'invalid_password' },
+    });
     return { error: 'Invalid credentials', status: 401 };
   }
 

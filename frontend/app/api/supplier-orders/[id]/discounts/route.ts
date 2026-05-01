@@ -19,7 +19,8 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
     const result = await SupplierOrderService.updateDiscounts(
       BigInt(id),
       useCategoryDiscounts,
-      items
+      items,
+      request
     );
 
     return NextResponse.json({ success: true }, { status: result.status });
