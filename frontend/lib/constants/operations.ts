@@ -53,7 +53,9 @@ export const OPERATIONS = {
   // Sistema
   SETTINGS_UPDATE: 'SETTINGS_UPDATE',
   LOGIN: 'LOGIN',
+  LOGIN_FAILED: 'LOGIN_FAILED',
   LOGOUT: 'LOGOUT',
+  CUSTOMER_SYNC: 'CUSTOMER_SYNC',
 
   // Precios
   PRICE_UPDATE: 'PRICE_UPDATE',
@@ -71,6 +73,7 @@ export const OPERATIONS = {
   SUPPLIER_ORDER_DELETE: 'SUPPLIER_ORDER_DELETE',
   SUPPLIER_ORDER_STATUS_CHANGE: 'SUPPLIER_ORDER_STATUS_CHANGE',
   SUPPLIER_ORDER_IMPORT: 'SUPPLIER_ORDER_IMPORT',
+  SUPPLIER_ORDER_SYNC_WEIGHTS: 'SUPPLIER_ORDER_SYNC_WEIGHTS',
 
   // Facturas - Tipo de cambio
   INVOICE_EXCHANGE_RATE_UPDATE: 'INVOICE_EXCHANGE_RATE_UPDATE',
@@ -118,7 +121,9 @@ export const OPERATION_LABELS: Record<string, string> = {
   USER_DEACTIVATE: 'Desactivar Usuario',
   SETTINGS_UPDATE: 'Configuración',
   LOGIN: 'Inicio de Sesión',
+  LOGIN_FAILED: 'Intento de Login Fallido',
   LOGOUT: 'Cierre de Sesión',
+  CUSTOMER_SYNC: 'Sincronización de Clientes',
   PRICE_UPDATE: 'Actualizar Precio',
   PRICE_BULK_UPDATE: 'Actualización Masiva de Precios',
   PRICE_REVERT: 'Revertir Precio',
@@ -130,6 +135,7 @@ export const OPERATION_LABELS: Record<string, string> = {
   SUPPLIER_ORDER_DELETE: 'Eliminar Pedido a Proveedor',
   SUPPLIER_ORDER_STATUS_CHANGE: 'Cambiar Estado Pedido a Proveedor',
   SUPPLIER_ORDER_IMPORT: 'Importar Proforma',
+  SUPPLIER_ORDER_SYNC_WEIGHTS: 'Sincronizar Pesos desde Pedido a Proveedor',
   INVOICE_EXCHANGE_RATE_UPDATE: 'Actualizar Tipo de Cambio en Factura',
   FEEDBACK_CREATE: 'Crear Feedback',
   FEEDBACK_UPDATE: 'Modificar Feedback',

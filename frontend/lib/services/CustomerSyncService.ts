@@ -1,6 +1,9 @@
+import { NextRequest } from 'next/server';
+import { OPERATIONS } from '@/lib/constants/operations';
 import { prisma } from '@/lib/db';
 import * as GoogleDriveService from '@/lib/services/GoogleDriveService';
 import { parseWorkbook } from '@/lib/services/SyncExcelParser';
+import { logActivity } from '@/lib/utils/activityLogger';
 import { SyncRunResult } from '@/types/sync';
 
 const PAST_DUE_DAYS = 30;
@@ -9,7 +12,7 @@ const PAST_DUE_DAYS = 30;
  * Run the full customer/transaction sync from Google Drive Excel files.
  * Ports SyncPocService: FilesProcessor.Process() + Customer.RefreshBalance() + RunService.Run()
  */
-export async function runSync(): Promise<SyncRunResult> {
+export async function runSync(request: NextRequest): Promise<SyncRunResult> {
   const startTime = new Date();
   let hasError = false;
   let customersProcessed = 0;
@@ -117,6 +120,22 @@ export async function runSync(): Promise<SyncRunResult> {
       end_date: endTime,
       duration_ms: endTime.getTime() - startTime.getTime(),
       has_error: hasError,
+    },
+  });
+
+  await logActivity({
+    request,
+    operation: OPERATIONS.CUSTOMER_SYNC,
+    description: `Sincronización de clientes ejecutada — ${customersProcessed} clientes, ${transactionsProcessed} transacciones${hasError ? `, ${errorsCount} errores` : ''}`,
+    entityType: 'sync_run',
+    username: 'system-cron',
+    details: {
+      runId: run.id,
+      customersProcessed,
+      transactionsProcessed,
+      errorsCount,
+      hasError,
+      durationMs: run.duration_ms,
     },
   });
 
