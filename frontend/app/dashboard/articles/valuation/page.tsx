@@ -3,12 +3,14 @@
 import { AlertCircle, Download, Loader2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { StockTransitionsPanel } from '@/components/articles/StockTransitionsPanel';
 import { ValuationByCategory } from '@/components/articles/ValuationByCategory';
 import { ValuationFilters } from '@/components/articles/ValuationFilters';
 import { ValuationSummary } from '@/components/articles/ValuationSummary';
 import { ValuationTable } from '@/components/articles/ValuationTable';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import {
   useStockValuation,
   useRefreshStockValuation,
@@ -184,134 +186,149 @@ export default function ValuationPage() {
         </p>
       </div>
 
-      {/* Filters */}
-      <ValuationFilters
-        config={config}
-        onConfigChange={setConfig}
-        selectedStatus={selectedStatus}
-        onStatusChange={setSelectedStatus}
-        onRefresh={isAdmin() ? handleRefresh : undefined}
-        isRefreshing={refreshMutation.isPending}
-        cacheAge={valuation?.cacheInfo?.ageHours || null}
-        trendMonths={trendMonths}
-        onTrendMonthsChange={setTrendMonths}
-      />
+      <Tabs defaultValue="current" className="space-y-6">
+        <TabsList>
+          <TabsTrigger value="current">Estado actual</TabsTrigger>
+          <TabsTrigger value="transitions">Movimientos</TabsTrigger>
+        </TabsList>
 
-      {/* Loading State */}
-      {isLoading && (
-        <div className="flex flex-col items-center justify-center space-y-4 py-12">
-          <Loader2 className="text-primary h-8 w-8 animate-spin" />
-          <p className="text-muted-foreground">Calculando valorización...</p>
-        </div>
-      )}
-
-      {/* Error State */}
-      {error && (
-        <Alert variant="destructive">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>
-            No se pudo cargar la valorización de inventario. Por favor, intenta nuevamente.
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Content */}
-      {valuation && !isLoading && (
-        <>
-          {/* Summary Cards */}
-          <ValuationSummary
-            valuation={valuation}
-            categorySnapshots={categorySnapshots}
-            onStatusClick={handleStatusClick}
+        <TabsContent value="current" className="space-y-6">
+          {/* Filters */}
+          <ValuationFilters
+            config={config}
+            onConfigChange={setConfig}
+            selectedStatus={selectedStatus}
+            onStatusChange={setSelectedStatus}
+            onRefresh={isAdmin() ? handleRefresh : undefined}
+            isRefreshing={refreshMutation.isPending}
+            cacheAge={valuation?.cacheInfo?.ageHours || null}
+            trendMonths={trendMonths}
+            onTrendMonthsChange={setTrendMonths}
           />
 
-          {/* Category Breakdown */}
-          {valuation.byCategory && valuation.byCategory.length > 0 && (
-            <ValuationByCategory
-              categories={valuation.byCategory}
-              totalStockValue={valuation.totals.totalValueAtListPrice}
-              onStatusClick={handleCategoryStatusClick}
-              onCategoryTotalClick={handleCategoryTotalClick}
-              selectedCategoryId={selectedCategoryId}
-              selectedStatus={selectedStatus !== 'all' ? selectedStatus : null}
-            />
+          {/* Loading State */}
+          {isLoading && (
+            <div className="flex flex-col items-center justify-center space-y-4 py-12">
+              <Loader2 className="text-primary h-8 w-8 animate-spin" />
+              <p className="text-muted-foreground">Calculando valorización...</p>
+            </div>
           )}
 
-          {/* Articles Table */}
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-semibold">
-                  {selectedStatus === 'all'
-                    ? 'Todos los Artículos'
-                    : `Artículos: ${
-                        selectedStatus === StockStatus.ACTIVE
-                          ? 'Activos'
-                          : selectedStatus === StockStatus.SLOW_MOVING
-                            ? 'Movimiento Lento'
-                            : selectedStatus === StockStatus.DEAD_STOCK
-                              ? 'Stock Muerto'
-                              : 'Nunca Vendidos'
-                      }`}
-                </h2>
-                {selectedCategoryId !== null && (
-                  <span className="text-muted-foreground text-sm">
-                    en{' '}
-                    {
-                      valuation.byCategory?.find((c) => c.categoryId === selectedCategoryId)
-                        ?.categoryName
-                    }
-                  </span>
-                )}
-                {(selectedStatus !== 'all' || selectedCategoryId !== null) && (
-                  <button
-                    onClick={() => {
-                      setSelectedStatus('all');
-                      setSelectedCategoryId(null);
-                    }}
-                    className="text-primary ml-2 text-xs hover:underline"
-                  >
-                    Limpiar filtro
-                  </button>
+          {/* Error State */}
+          {error && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertTitle>Error</AlertTitle>
+              <AlertDescription>
+                No se pudo cargar la valorización de inventario. Por favor, intenta nuevamente.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {/* Content */}
+          {valuation && !isLoading && (
+            <>
+              {/* Summary Cards */}
+              <ValuationSummary
+                valuation={valuation}
+                categorySnapshots={categorySnapshots}
+                onStatusClick={handleStatusClick}
+              />
+
+              {/* Category Breakdown */}
+              {valuation.byCategory && valuation.byCategory.length > 0 && (
+                <ValuationByCategory
+                  categories={valuation.byCategory}
+                  totalStockValue={valuation.totals.totalValueAtListPrice}
+                  onStatusClick={handleCategoryStatusClick}
+                  onCategoryTotalClick={handleCategoryTotalClick}
+                  selectedCategoryId={selectedCategoryId}
+                  selectedStatus={selectedStatus !== 'all' ? selectedStatus : null}
+                />
+              )}
+
+              {/* Articles Table */}
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-semibold">
+                      {selectedStatus === 'all'
+                        ? 'Todos los Artículos'
+                        : `Artículos: ${
+                            selectedStatus === StockStatus.ACTIVE
+                              ? 'Activos'
+                              : selectedStatus === StockStatus.SLOW_MOVING
+                                ? 'Movimiento Lento'
+                                : selectedStatus === StockStatus.DEAD_STOCK
+                                  ? 'Stock Muerto'
+                                  : 'Nunca Vendidos'
+                          }`}
+                    </h2>
+                    {selectedCategoryId !== null && (
+                      <span className="text-muted-foreground text-sm">
+                        en{' '}
+                        {
+                          valuation.byCategory?.find((c) => c.categoryId === selectedCategoryId)
+                            ?.categoryName
+                        }
+                      </span>
+                    )}
+                    {(selectedStatus !== 'all' || selectedCategoryId !== null) && (
+                      <button
+                        onClick={() => {
+                          setSelectedStatus('all');
+                          setSelectedCategoryId(null);
+                        }}
+                        className="text-primary ml-2 text-xs hover:underline"
+                      >
+                        Limpiar filtro
+                      </button>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <p className="text-muted-foreground text-sm">
+                      {sortedArticles.length} artículo{sortedArticles.length !== 1 ? 's' : ''}
+                    </p>
+                    {sortedArticles.length > 0 && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleExportCSV(sortedArticles)}
+                      >
+                        <Download className="mr-1 h-3 w-3" />
+                        Exportar CSV
+                      </Button>
+                    )}
+                  </div>
+                </div>
+
+                {sortedArticles.length > 0 ? (
+                  <ValuationTable articles={sortedArticles} trendMonths={trendMonths} />
+                ) : (
+                  <div className="text-muted-foreground rounded-lg border py-12 text-center">
+                    No hay artículos en esta categoría
+                  </div>
                 )}
               </div>
-              <div className="flex items-center gap-3">
-                <p className="text-muted-foreground text-sm">
-                  {sortedArticles.length} artículo{sortedArticles.length !== 1 ? 's' : ''}
+
+              {/* Footer Info */}
+              <div className="text-muted-foreground border-t py-4 text-center text-xs">
+                <p>
+                  Última actualización: {new Date(valuation.calculatedAt).toLocaleString('es-AR')}
                 </p>
-                {sortedArticles.length > 0 && (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleExportCSV(sortedArticles)}
-                  >
-                    <Download className="mr-1 h-3 w-3" />
-                    Exportar CSV
-                  </Button>
-                )}
+                <p className="mt-1">
+                  Los datos se actualizan automáticamente cada 24 horas
+                  {isAdmin() && ' o puedes forzar el recálculo usando el botón arriba'}
+                </p>
               </div>
-            </div>
+            </>
+          )}
+        </TabsContent>
 
-            {sortedArticles.length > 0 ? (
-              <ValuationTable articles={sortedArticles} trendMonths={trendMonths} />
-            ) : (
-              <div className="text-muted-foreground rounded-lg border py-12 text-center">
-                No hay artículos en esta categoría
-              </div>
-            )}
-          </div>
-
-          {/* Footer Info */}
-          <div className="text-muted-foreground border-t py-4 text-center text-xs">
-            <p>Última actualización: {new Date(valuation.calculatedAt).toLocaleString('es-AR')}</p>
-            <p className="mt-1">
-              Los datos se actualizan automáticamente cada 24 horas
-              {isAdmin() && ' o puedes forzar el recálculo usando el botón arriba'}
-            </p>
-          </div>
-        </>
-      )}
+        <TabsContent value="transitions">
+          <StockTransitionsPanel />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
