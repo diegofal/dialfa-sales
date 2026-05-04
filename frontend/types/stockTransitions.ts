@@ -17,6 +17,12 @@ export interface ArticleTransition {
   currentStock: number;
   unitValue: number;
   stockValue: number;
+  /** Units that left stock during the analysis window (sales / DEBIT). */
+  unitsOut: number;
+  /** Units that entered stock during the analysis window (returns or adjustments / CREDIT). */
+  unitsIn: number;
+  /** Total number of stock_movements rows recorded for this article in the window. */
+  movementCount: number;
 }
 
 export interface StockTransitionsResult {
