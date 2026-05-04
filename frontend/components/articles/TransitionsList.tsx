@@ -55,7 +55,9 @@ export function TransitionsList({ transitions, emptyMessage }: TransitionsListPr
             <TableHead>Descripción</TableHead>
             <TableHead>Cambio</TableHead>
             <TableHead>Fecha</TableHead>
-            <TableHead className="text-right">Stock</TableHead>
+            <TableHead className="text-right">Vendido (período)</TableHead>
+            <TableHead className="text-right">Movs.</TableHead>
+            <TableHead className="text-right">Stock actual</TableHead>
             <TableHead className="text-right">Costo unit.</TableHead>
             <TableHead className="text-right">Valor stock</TableHead>
           </TableRow>
@@ -76,6 +78,22 @@ export function TransitionsList({ transitions, emptyMessage }: TransitionsListPr
               </TableCell>
               <TableCell className="text-muted-foreground text-xs">
                 {formatDate(t.transitionDate)}
+              </TableCell>
+              <TableCell
+                className="text-right font-medium tabular-nums"
+                title={t.unitsIn > 0 ? `+${numberFormatter.format(t.unitsIn)} entradas` : undefined}
+              >
+                <span className={t.unitsOut > 0 ? '' : 'text-muted-foreground'}>
+                  {numberFormatter.format(t.unitsOut)}
+                </span>
+                {t.unitsIn > 0 && (
+                  <span className="text-muted-foreground ml-1 text-xs">
+                    (+{numberFormatter.format(t.unitsIn)})
+                  </span>
+                )}
+              </TableCell>
+              <TableCell className="text-muted-foreground text-right tabular-nums">
+                {t.movementCount}
               </TableCell>
               <TableCell className="text-right tabular-nums">
                 {numberFormatter.format(t.currentStock)}

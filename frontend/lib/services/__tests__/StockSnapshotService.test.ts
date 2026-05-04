@@ -23,6 +23,9 @@ function makeTransitionRow(overrides: Partial<Record<string, unknown>> = {}) {
     stock: '100',
     unit_value: '10',
     stock_value: '1000',
+    units_out: 25,
+    units_in: 0,
+    movement_count: 3,
     ...overrides,
   };
 }
@@ -163,6 +166,45 @@ describe('getTransitions', () => {
     expect(result.actualFromDate).toBeNull();
     expect(result.actualToDate).toBeNull();
     expect(result.totalsByDirection).toEqual({ upgrades: 0, downgrades: 0, sideways: 0 });
+  });
+
+  it('exposes unitsOut, unitsIn and movementCount from the underlying query', async () => {
+    mockQueryRaw
+      .mockResolvedValueOnce([
+        makeTransitionRow({
+          article_id: '42',
+          article_code: 'CRL908',
+          units_out: 150,
+          units_in: 5,
+          movement_count: 7,
+        }),
+      ])
+      .mockResolvedValueOnce([{ d_start: D_START, d_end: D_END }]);
+
+    const result = await getTransitions(D_START, D_END);
+
+    expect(result.transitions[0]).toMatchObject({
+      articleCode: 'CRL908',
+      unitsOut: 150,
+      unitsIn: 5,
+      movementCount: 7,
+    });
+  });
+
+  it('defaults movement counts to 0 when the column is null', async () => {
+    mockQueryRaw
+      .mockResolvedValueOnce([
+        makeTransitionRow({ units_out: null, units_in: null, movement_count: null }),
+      ])
+      .mockResolvedValueOnce([{ d_start: D_START, d_end: D_END }]);
+
+    const result = await getTransitions(D_START, D_END);
+
+    expect(result.transitions[0]).toMatchObject({
+      unitsOut: 0,
+      unitsIn: 0,
+      movementCount: 0,
+    });
   });
 
   it('preserves requestedFromDate and requestedToDate even when bounds shift', async () => {

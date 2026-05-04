@@ -284,6 +284,9 @@ interface TransitionRow {
   stock: string | null;
   unit_value: string | null;
   stock_value: string | null;
+  units_out: number | null;
+  units_in: number | null;
+  movement_count: number | null;
 }
 
 /**
@@ -332,6 +335,19 @@ export async function getTransitions(
         ON c.article_id = a.article_id AND c.status_to = a.status
       WHERE a.date BETWEEN (SELECT d_start FROM bounds) AND (SELECT d_end FROM bounds)
       GROUP BY a.article_id
+    ),
+    movements_in_window AS (
+      SELECT
+        sm.article_id,
+        SUM(CASE WHEN sm.movement_type = 2 THEN sm.quantity ELSE 0 END)::int AS units_out,
+        SUM(CASE WHEN sm.movement_type = 1 THEN sm.quantity ELSE 0 END)::int AS units_in,
+        COUNT(*)::int AS movement_count
+      FROM stock_movements sm
+      INNER JOIN changed c ON c.article_id = sm.article_id
+      WHERE sm.movement_date >= (SELECT d_start FROM bounds)
+        AND sm.movement_date < (SELECT d_end FROM bounds) + INTERVAL '1 day'
+        AND sm.deleted_at IS NULL
+      GROUP BY sm.article_id
     )
     SELECT
       c.article_id::text AS article_id,
@@ -342,10 +358,14 @@ export async function getTransitions(
       td.reached_at::date::text AS transition_date,
       ar.stock::text AS stock,
       COALESCE(ar.last_purchase_price, ar.cost_price, ar.unit_price, 0)::text AS unit_value,
-      (ar.stock * COALESCE(ar.last_purchase_price, ar.cost_price, ar.unit_price, 0))::text AS stock_value
+      (ar.stock * COALESCE(ar.last_purchase_price, ar.cost_price, ar.unit_price, 0))::text AS stock_value,
+      COALESCE(mw.units_out, 0)::int AS units_out,
+      COALESCE(mw.units_in, 0)::int AS units_in,
+      COALESCE(mw.movement_count, 0)::int AS movement_count
     FROM changed c
     LEFT JOIN articles ar ON ar.id = c.article_id
     LEFT JOIN transition_dates td ON td.article_id = c.article_id
+    LEFT JOIN movements_in_window mw ON mw.article_id = c.article_id
     ORDER BY (ar.stock * COALESCE(ar.last_purchase_price, ar.cost_price, ar.unit_price, 0)) DESC NULLS LAST
   `;
 
@@ -371,6 +391,9 @@ export async function getTransitions(
     currentStock: r.stock ? Number(r.stock) : 0,
     unitValue: r.unit_value ? Number(r.unit_value) : 0,
     stockValue: r.stock_value ? Number(r.stock_value) : 0,
+    unitsOut: r.units_out ?? 0,
+    unitsIn: r.units_in ?? 0,
+    movementCount: r.movement_count ?? 0,
   }));
 
   const matrixMap = new Map<string, TransitionMatrixCell>();
