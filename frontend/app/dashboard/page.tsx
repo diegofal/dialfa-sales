@@ -1,9 +1,18 @@
 'use client';
 
 import { Keyboard, TrendingUp } from 'lucide-react';
+import { AlertsPanel } from '@/components/dashboard/AlertsPanel';
 import { DashboardMetrics } from '@/components/dashboard/DashboardMetrics';
+import { OperationalMetrics } from '@/components/dashboard/OperationalMetrics';
 import { RecentSalesOrders } from '@/components/dashboard/RecentSalesOrders';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { SalesTrendChart } from '@/components/dashboard/SalesTrendChart';
+import { TopCustomersPanel } from '@/components/dashboard/TopCustomersPanel';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from '@/components/ui/accordion';
 import { useAuthStore } from '@/store/authStore';
 
 export default function DashboardPage() {
@@ -27,64 +36,59 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* BI Metrics Cards */}
+      {/* Fila 1 — Pulso comercial */}
       <DashboardMetrics />
 
-      {/* Recent Sales Orders */}
-      <RecentSalesOrders limit={5} />
+      {/* Fila 2 — Pulso operativo */}
+      <OperationalMetrics />
 
-      <Card>
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Keyboard className="text-primary h-5 w-5" />
-            <CardTitle>Atajos de Teclado</CardTitle>
-          </div>
-          <CardDescription>Utiliza estos atajos para trabajar más rápido</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-3 md:grid-cols-2">
-            <div className="bg-muted/30 flex items-center justify-between rounded-lg border p-3">
-              <div>
-                <p className="text-sm font-medium">Abrir/Cerrar Carrito</p>
-                <p className="text-muted-foreground mt-1 text-xs">Toggle del carrito de pedidos</p>
-              </div>
-              <kbd className="bg-background border-border rounded border px-3 py-1.5 text-sm font-semibold shadow-sm">
-                SPACE
-              </kbd>
-            </div>
+      {/* Fila 3 — Tendencias */}
+      <div className="grid gap-6 xl:grid-cols-2">
+        <SalesTrendChart />
+        <TopCustomersPanel />
+      </div>
 
-            <div className="bg-muted/30 flex items-center justify-between rounded-lg border p-3">
-              <div>
-                <p className="text-sm font-medium">Cerrar Carrito</p>
-                <p className="text-muted-foreground mt-1 text-xs">Cierra el carrito de pedidos</p>
-              </div>
-              <kbd className="bg-background border-border rounded border px-3 py-1.5 text-sm font-semibold shadow-sm">
-                ESC
-              </kbd>
-            </div>
+      {/* Fila 4 — Listas operativas */}
+      <div className="grid gap-6 xl:grid-cols-2">
+        <RecentSalesOrders limit={5} />
+        <AlertsPanel />
+      </div>
 
-            <div className="bg-muted/30 flex items-center justify-between rounded-lg border p-3 opacity-60">
-              <div>
-                <p className="text-sm font-medium">Buscar Artículos</p>
-                <p className="text-muted-foreground mt-1 text-xs">Próximamente</p>
-              </div>
-              <kbd className="bg-background border-border rounded border px-3 py-1.5 text-sm font-semibold shadow-sm">
-                Ctrl + K
-              </kbd>
+      {/* Atajos de teclado (collapsed) */}
+      <Accordion type="single" collapsible>
+        <AccordionItem value="shortcuts" className="rounded-lg border px-4">
+          <AccordionTrigger className="hover:no-underline">
+            <div className="flex items-center gap-2">
+              <Keyboard className="text-primary h-4 w-4" />
+              <span className="text-sm font-medium">Atajos de Teclado</span>
             </div>
-
-            <div className="bg-muted/30 flex items-center justify-between rounded-lg border p-3 opacity-60">
-              <div>
-                <p className="text-sm font-medium">Nuevo Pedido</p>
-                <p className="text-muted-foreground mt-1 text-xs">Próximamente</p>
+          </AccordionTrigger>
+          <AccordionContent>
+            <div className="grid gap-3 pt-2 md:grid-cols-2">
+              <div className="bg-muted/30 flex items-center justify-between rounded-lg border p-3">
+                <div>
+                  <p className="text-sm font-medium">Abrir/Cerrar Carrito</p>
+                  <p className="text-muted-foreground mt-1 text-xs">
+                    Toggle del carrito de pedidos
+                  </p>
+                </div>
+                <kbd className="bg-background border-border rounded border px-3 py-1.5 text-sm font-semibold shadow-sm">
+                  SPACE
+                </kbd>
               </div>
-              <kbd className="bg-background border-border rounded border px-3 py-1.5 text-sm font-semibold shadow-sm">
-                Ctrl + N
-              </kbd>
+              <div className="bg-muted/30 flex items-center justify-between rounded-lg border p-3">
+                <div>
+                  <p className="text-sm font-medium">Cerrar Carrito</p>
+                  <p className="text-muted-foreground mt-1 text-xs">Cierra el carrito de pedidos</p>
+                </div>
+                <kbd className="bg-background border-border rounded border px-3 py-1.5 text-sm font-semibold shadow-sm">
+                  ESC
+                </kbd>
+              </div>
             </div>
-          </div>
-        </CardContent>
-      </Card>
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </div>
   );
 }
