@@ -54,12 +54,42 @@ export const XERP_BILLED_MONTHLY = `
  * ARS currency (includes 21% IVA)
  */
 export const XERP_BILLED_TODAY = `
-  SELECT 
+  SELECT
     COALESCE(SUM(dt.ov_amount * 1.21), 0) as BilledToday
   FROM [0_debtor_trans] dt
   INNER JOIN [0_sales_orders] so ON so.ID = dt.order_
   WHERE dt.Type = 10
   AND CAST(so.ord_date AS DATE) = CAST(DATEADD(HOUR, -3, GETDATE()) AS DATE)
+`;
+
+/**
+ * Get billed amount for previous calendar month
+ * ARS currency (includes 21% IVA)
+ */
+export const XERP_BILLED_PREV_MONTH = `
+  SELECT
+    COALESCE(SUM(dt.ov_amount * 1.21), 0) as BilledPrevMonth
+  FROM [0_debtor_trans] dt
+  INNER JOIN [0_sales_orders] so ON so.ID = dt.order_
+  WHERE dt.Type = 10
+  AND MONTH(so.ord_date) = MONTH(DATEADD(MONTH, -1, DATEADD(HOUR, -3, GETDATE())))
+  AND YEAR(so.ord_date) = YEAR(DATEADD(MONTH, -1, DATEADD(HOUR, -3, GETDATE())))
+  AND so.ord_date > '2020-01-01'
+`;
+
+/**
+ * Get billed amount for the same calendar month, previous year
+ * ARS currency (includes 21% IVA)
+ */
+export const XERP_BILLED_SAME_MONTH_PREV_YEAR = `
+  SELECT
+    COALESCE(SUM(dt.ov_amount * 1.21), 0) as BilledSameMonthPrevYear
+  FROM [0_debtor_trans] dt
+  INNER JOIN [0_sales_orders] so ON so.ID = dt.order_
+  WHERE dt.Type = 10
+  AND MONTH(so.ord_date) = MONTH(DATEADD(HOUR, -3, GETDATE()))
+  AND YEAR(so.ord_date) = YEAR(DATEADD(HOUR, -3, GETDATE())) - 1
+  AND so.ord_date > '2020-01-01'
 `;
 
 /**
@@ -152,6 +182,13 @@ export interface DashboardMetrics {
   totalOverdue: number;
   billedMonthly: number;
   billedToday: number;
+  billedPrevMonth: number;
+  billedSameMonthPrevYear: number;
+  dailyAverageThisMonth: number;
+  daysElapsedThisMonth: number;
+  grossMarginPercent: number | null;
+  grossMarginAmountArs: number | null;
+  grossMarginPrevPercent: number | null;
 }
 
 export interface TopCustomer {

@@ -7,31 +7,55 @@ import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import axios from 'axios';
 
 /**
- * Dashboard Metrics Response
+ * Dashboard Metrics Response (commercial pulse)
  */
 export interface DashboardMetrics {
   totalOutstanding: number;
   totalOverdue: number;
   billedMonthly: number;
   billedToday: number;
-  collectedMonthly: {
-    total: number;
-    cash: number;
-    electronic: number;
-    transactionCount: number;
-    cashCount: number;
-    electronicCount: number;
-  };
+  billedPrevMonth: number;
+  billedSameMonthPrevYear: number;
+  dailyAverageThisMonth: number;
+  daysElapsedThisMonth: number;
+  grossMarginPercent: number | null;
+  grossMarginAmountArs: number | null;
+  grossMarginPrevPercent: number | null;
 }
 
 /**
- * Top Customer
+ * Operational Metrics Response (stock + backlog)
+ */
+export interface OperationalMetrics {
+  stockValueCostUsd: number;
+  stockValueCostArs: number;
+  stockValueRetailArs: number;
+  deadStockValueArs: number;
+  deadStockArticleCount: number;
+  stockoutsCriticalCount: number;
+  pendingToInvoiceCount: number;
+  pendingToInvoiceArs: number;
+  usdExchangeRate: number;
+}
+
+/**
+ * Top Customer (by AR balance, from xERP)
  */
 export interface TopCustomer {
   Name: string;
   OutstandingBalance: number;
   OverdueAmount: number;
   OverduePercentage: number;
+}
+
+/**
+ * Top Customer by current-month revenue (from SPISA invoices)
+ */
+export interface TopCustomerByRevenue {
+  clientId: number;
+  businessName: string;
+  revenueArs: number;
+  invoiceCount: number;
 }
 
 /**
@@ -64,7 +88,16 @@ export interface CashFlowData {
 export interface DashboardCharts {
   topCustomers: TopCustomer[];
   salesTrend: MonthlySalesTrend[];
-  cashFlow: CashFlowData[];
+  topCustomersByRevenue: TopCustomerByRevenue[];
+}
+
+/**
+ * Dashboard Alerts Response
+ */
+export interface DashboardAlerts {
+  stockoutsCount: number;
+  lateProformasCount: number;
+  pendingQuotesCount: number;
 }
 
 /**
@@ -72,7 +105,7 @@ export interface DashboardCharts {
  */
 async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
   const response = await axios.get('/api/dashboard/metrics');
-  return response.data.data;
+  return response.data;
 }
 
 /**
@@ -80,7 +113,17 @@ async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
  */
 async function fetchDashboardCharts(months: number = 12): Promise<DashboardCharts> {
   const response = await axios.get(`/api/dashboard/charts?months=${months}`);
-  return response.data.data;
+  return response.data;
+}
+
+async function fetchOperationalMetrics(): Promise<OperationalMetrics> {
+  const response = await axios.get('/api/dashboard/operational');
+  return response.data;
+}
+
+async function fetchDashboardAlerts(): Promise<DashboardAlerts> {
+  const response = await axios.get('/api/dashboard/alerts');
+  return response.data;
 }
 
 /**
@@ -108,6 +151,24 @@ export function useDashboardCharts(months: number = 12): UseQueryResult<Dashboar
   });
 }
 
+export function useOperationalMetrics(): UseQueryResult<OperationalMetrics, Error> {
+  return useQuery({
+    queryKey: ['dashboard', 'operational'],
+    queryFn: fetchOperationalMetrics,
+    staleTime: 1000 * 60 * 10,
+    refetchOnWindowFocus: true,
+  });
+}
+
+export function useDashboardAlerts(): UseQueryResult<DashboardAlerts, Error> {
+  return useQuery({
+    queryKey: ['dashboard', 'alerts'],
+    queryFn: fetchDashboardAlerts,
+    staleTime: 1000 * 60 * 10,
+    refetchOnWindowFocus: true,
+  });
+}
+
 /**
  * Currency formatter for ARS
  */
@@ -131,4 +192,13 @@ export function formatNumber(value: number): string {
     return `${(value / 1000).toFixed(1)}K`;
   }
   return value.toFixed(0);
+}
+
+/**
+ * Compute % delta between current and previous values.
+ * Returns null when previous is 0 (delta undefined).
+ */
+export function computeDelta(current: number, previous: number): number | null {
+  if (previous === 0) return null;
+  return ((current - previous) / previous) * 100;
 }
