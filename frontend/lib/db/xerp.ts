@@ -37,7 +37,10 @@ export async function getXerpConnection(): Promise<sql.ConnectionPool> {
       console.log('✅ Connected to xERP SQL Server');
     } catch (error) {
       console.error('❌ Failed to connect to xERP:', error);
-      throw new Error('xERP database connection failed');
+      // Propagate the underlying message (auth/firewall/timeout/etc.) instead of a
+      // generic wrapper so the dashboard banner can show the actual reason.
+      const reason = error instanceof Error && error.message ? error.message : String(error);
+      throw new Error(`xERP database connection failed: ${reason}`);
     }
   }
   return xerpPool;
