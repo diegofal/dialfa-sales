@@ -1,19 +1,25 @@
 /**
  * Commercial Pulse Row (Fila 1)
  * 4 KPI cards with comparison deltas: facturado mes, facturado hoy, a cobrar, margen bruto.
+ * Degrades gracefully when xERP or SPISA is unreachable — affected cards show "—" and the
+ * page shows a single banner with the underlying error.
  */
 
 'use client';
 
-import { AlertTriangle, Calendar, FileText, Percent, Wallet } from 'lucide-react';
+import { AlertTriangle, Calendar, FileText, Percent, Wallet, WifiOff } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { computeDelta, formatCurrency, useDashboardMetrics } from '@/lib/hooks/domain/useDashboard';
 import { DeltaChip } from './DeltaChip';
 import { MetricCard } from './MetricCard';
 
+const formatOrDash = (value: number | null): string =>
+  value === null ? '—' : formatCurrency(value);
+
 export function DashboardMetrics() {
   const { data: metrics, isLoading, isError, error } = useDashboardMetrics();
 
+  // Hard error (request itself failed — auth, network to our own backend, etc.)
   if (isError) {
     return (
       <Alert variant="destructive">
@@ -28,92 +34,142 @@ export function DashboardMetrics() {
   const currentMonth = new Intl.DateTimeFormat('es-AR', { month: 'long' }).format(new Date());
   const monthCapitalized = currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1);
 
-  const billedMonthly = metrics?.billedMonthly ?? 0;
-  const billedToday = metrics?.billedToday ?? 0;
-  const dailyAverage = metrics?.dailyAverageThisMonth ?? 0;
-  const totalOutstanding = metrics?.totalOutstanding ?? 0;
-  const totalOverdue = metrics?.totalOverdue ?? 0;
-  const overduePercent = totalOutstanding > 0 ? (totalOverdue / totalOutstanding) * 100 : 0;
+  const xerpError = metrics?.errors?.xerp ?? null;
+  const spisaError = metrics?.errors?.spisa ?? null;
 
-  const deltaVsPrevMonth = metrics ? computeDelta(billedMonthly, metrics.billedPrevMonth) : null;
-  const deltaVsSameMonthPrevYear = metrics
-    ? computeDelta(billedMonthly, metrics.billedSameMonthPrevYear)
-    : null;
-  const todayVsAvg = dailyAverage > 0 ? computeDelta(billedToday, dailyAverage) : null;
+  const billedMonthly = metrics?.billedMonthly ?? null;
+  const billedToday = metrics?.billedToday ?? null;
+  const dailyAverage = metrics?.dailyAverageThisMonth ?? null;
+  const totalOutstanding = metrics?.totalOutstanding ?? null;
+  const totalOverdue = metrics?.totalOverdue ?? null;
+  const overduePercent =
+    totalOutstanding && totalOutstanding > 0 && totalOverdue !== null
+      ? (totalOverdue / totalOutstanding) * 100
+      : null;
+
+  const deltaVsPrevMonth = computeDelta(billedMonthly, metrics?.billedPrevMonth ?? null);
+  const deltaVsSameMonthPrevYear = computeDelta(
+    billedMonthly,
+    metrics?.billedSameMonthPrevYear ?? null
+  );
+  const todayVsAvg = computeDelta(billedToday, dailyAverage);
   const marginDelta =
     metrics?.grossMarginPercent != null && metrics.grossMarginPrevPercent != null
       ? metrics.grossMarginPercent - metrics.grossMarginPrevPercent
       : null;
 
   return (
-    <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-      <MetricCard
-        title={`Facturado ${monthCapitalized}`}
-        value={formatCurrency(billedMonthly)}
-        icon={FileText}
-        gradient="bg-gradient-to-br from-emerald-500 to-emerald-700"
-        loading={isLoading}
-      >
-        <div className="mt-1 space-y-1">
-          <DeltaChip delta={deltaVsPrevMonth} label="vs mes ant." />
-          <div>
-            <DeltaChip delta={deltaVsSameMonthPrevYear} label="vs año ant." />
-          </div>
-        </div>
-      </MetricCard>
+    <div className="space-y-3">
+      {(xerpError || spisaError) && (
+        <Alert variant="default" className="border-amber-500/40 bg-amber-500/10">
+          <WifiOff className="h-4 w-4 text-amber-500" />
+          <AlertDescription className="text-sm">
+            {xerpError && (
+              <div>
+                <strong>xERP no disponible:</strong> {xerpError}. Las métricas de facturación y
+                cobranzas no se pudieron cargar.
+              </div>
+            )}
+            {spisaError && (
+              <div>
+                <strong>SPISA no disponible:</strong> {spisaError}. El margen bruto no se pudo
+                calcular.
+              </div>
+            )}
+          </AlertDescription>
+        </Alert>
+      )}
 
-      <MetricCard
-        title="Facturado Hoy"
-        value={formatCurrency(billedToday)}
-        subtitle={`Promedio diario: ${formatCurrency(dailyAverage)}`}
-        icon={Calendar}
-        gradient="bg-gradient-to-br from-teal-500 to-teal-700"
-        loading={isLoading}
-      >
-        {todayVsAvg !== null && (
-          <div className="mt-1">
-            <DeltaChip delta={todayVsAvg} label="vs prom." />
-          </div>
-        )}
-      </MetricCard>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <MetricCard
+          title={`Facturado ${monthCapitalized}`}
+          value={formatOrDash(billedMonthly)}
+          subtitle={billedMonthly === null ? 'xERP no disponible' : undefined}
+          icon={FileText}
+          gradient="bg-gradient-to-br from-emerald-500 to-emerald-700"
+          loading={isLoading}
+        >
+          {billedMonthly !== null && (
+            <div className="mt-1 space-y-1">
+              <DeltaChip delta={deltaVsPrevMonth} label="vs mes ant." />
+              <div>
+                <DeltaChip delta={deltaVsSameMonthPrevYear} label="vs año ant." />
+              </div>
+            </div>
+          )}
+        </MetricCard>
 
-      <MetricCard
-        title="A Cobrar"
-        value={formatCurrency(totalOutstanding)}
-        subtitle={`En mora: ${formatCurrency(totalOverdue)}`}
-        icon={Wallet}
-        gradient={
-          overduePercent > 25
-            ? 'bg-gradient-to-br from-red-500 to-red-700'
-            : 'bg-gradient-to-br from-amber-500 to-amber-700'
-        }
-        loading={isLoading}
-      >
-        <div className="mt-1 text-xs opacity-90">
-          {overduePercent.toFixed(1)}% del total vencido
-        </div>
-      </MetricCard>
+        <MetricCard
+          title="Facturado Hoy"
+          value={formatOrDash(billedToday)}
+          subtitle={
+            billedToday === null
+              ? 'xERP no disponible'
+              : dailyAverage !== null
+                ? `Promedio diario: ${formatCurrency(dailyAverage)}`
+                : undefined
+          }
+          icon={Calendar}
+          gradient="bg-gradient-to-br from-teal-500 to-teal-700"
+          loading={isLoading}
+        >
+          {todayVsAvg !== null && (
+            <div className="mt-1">
+              <DeltaChip delta={todayVsAvg} label="vs prom." />
+            </div>
+          )}
+        </MetricCard>
 
-      <MetricCard
-        title="Margen Bruto del Mes"
-        value={
-          metrics?.grossMarginPercent != null ? `${metrics.grossMarginPercent.toFixed(1)}%` : 's/d'
-        }
-        subtitle={
-          metrics?.grossMarginAmountArs != null
-            ? formatCurrency(metrics.grossMarginAmountArs)
-            : 'Sin facturas SPISA en el mes'
-        }
-        icon={Percent}
-        gradient="bg-gradient-to-br from-violet-500 to-violet-700"
-        loading={isLoading}
-      >
-        {marginDelta !== null && (
-          <div className="mt-1">
-            <DeltaChip delta={marginDelta} label="pp vs mes ant." />
-          </div>
-        )}
-      </MetricCard>
+        <MetricCard
+          title="A Cobrar"
+          value={formatOrDash(totalOutstanding)}
+          subtitle={
+            totalOutstanding === null
+              ? 'xERP no disponible'
+              : totalOverdue !== null
+                ? `En mora: ${formatCurrency(totalOverdue)}`
+                : undefined
+          }
+          icon={Wallet}
+          gradient={
+            totalOutstanding === null
+              ? 'bg-gradient-to-br from-slate-500 to-slate-700'
+              : overduePercent !== null && overduePercent > 25
+                ? 'bg-gradient-to-br from-red-500 to-red-700'
+                : 'bg-gradient-to-br from-amber-500 to-amber-700'
+          }
+          loading={isLoading}
+        >
+          {overduePercent !== null && (
+            <div className="mt-1 text-xs opacity-90">
+              {overduePercent.toFixed(1)}% del total vencido
+            </div>
+          )}
+        </MetricCard>
+
+        <MetricCard
+          title="Margen Bruto del Mes"
+          value={
+            metrics?.grossMarginPercent != null ? `${metrics.grossMarginPercent.toFixed(1)}%` : '—'
+          }
+          subtitle={
+            spisaError
+              ? 'SPISA no disponible'
+              : metrics?.grossMarginAmountArs != null
+                ? formatCurrency(metrics.grossMarginAmountArs)
+                : 'Sin facturas SPISA en el mes'
+          }
+          icon={Percent}
+          gradient="bg-gradient-to-br from-violet-500 to-violet-700"
+          loading={isLoading}
+        >
+          {marginDelta !== null && (
+            <div className="mt-1">
+              <DeltaChip delta={marginDelta} label="pp vs mes ant." />
+            </div>
+          )}
+        </MetricCard>
+      </div>
     </div>
   );
 }

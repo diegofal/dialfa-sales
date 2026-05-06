@@ -126,12 +126,21 @@ async function computeGrossMarginAmountArs(
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
-export async function getMetrics(): Promise<DashboardMetrics> {
-  const now = new Date();
-  const monthRange = getCurrentMonthRange();
-  const prevMonthRange = getPrevMonthRange();
-  const daysElapsed = now.getDate();
+function describeError(e: unknown): string {
+  if (e instanceof Error && e.message) return e.message;
+  return 'Error desconocido';
+}
 
+interface XerpScalars {
+  totalOutstanding: number | null;
+  totalOverdue: number | null;
+  billedMonthly: number | null;
+  billedToday: number | null;
+  billedPrevMonth: number | null;
+  billedSameMonthPrevYear: number | null;
+}
+
+async function fetchXerpScalars(): Promise<XerpScalars> {
   const [
     totalOutstanding,
     totalOverdue,
@@ -139,7 +148,6 @@ export async function getMetrics(): Promise<DashboardMetrics> {
     billedToday,
     billedPrevMonth,
     billedSameMonthPrevYear,
-    usdRate,
   ] = await Promise.all([
     executeXerpScalar<number>(XERP_TOTAL_OUTSTANDING),
     executeXerpScalar<number>(XERP_TOTAL_OVERDUE),
@@ -147,84 +155,154 @@ export async function getMetrics(): Promise<DashboardMetrics> {
     executeXerpScalar<number>(XERP_BILLED_TODAY),
     executeXerpScalar<number>(XERP_BILLED_PREV_MONTH),
     executeXerpScalar<number>(XERP_BILLED_SAME_MONTH_PREV_YEAR),
-    getUsdExchangeRate(),
   ]);
+  return {
+    totalOutstanding: totalOutstanding ?? 0,
+    totalOverdue: totalOverdue ?? 0,
+    billedMonthly: billedMonthly ?? 0,
+    billedToday: billedToday ?? 0,
+    billedPrevMonth: billedPrevMonth ?? 0,
+    billedSameMonthPrevYear: billedSameMonthPrevYear ?? 0,
+  };
+}
 
+interface MarginBlock {
+  grossMarginPercent: number | null;
+  grossMarginAmountArs: number | null;
+  grossMarginPrevPercent: number | null;
+}
+
+async function fetchMarginBlock(usdRate: number): Promise<MarginBlock> {
+  const monthRange = getCurrentMonthRange();
+  const prevMonthRange = getPrevMonthRange();
   const [grossMarginPercent, grossMarginAmountArs, grossMarginPrevPercent] = await Promise.all([
     computeGrossMargin(monthRange.start, monthRange.end),
     computeGrossMarginAmountArs(monthRange.start, monthRange.end, usdRate),
     computeGrossMargin(prevMonthRange.start, prevMonthRange.end),
   ]);
+  return { grossMarginPercent, grossMarginAmountArs, grossMarginPrevPercent };
+}
 
-  const billed = billedMonthly || 0;
-  const dailyAverage = daysElapsed > 0 ? billed / daysElapsed : 0;
+export async function getMetrics(): Promise<DashboardMetrics> {
+  const now = new Date();
+  const daysElapsed = now.getDate();
+
+  const errors = { xerp: null as string | null, spisa: null as string | null };
+
+  // xERP block: degrade gracefully if the legacy SQL Server is unreachable.
+  let xerp: XerpScalars = {
+    totalOutstanding: null,
+    totalOverdue: null,
+    billedMonthly: null,
+    billedToday: null,
+    billedPrevMonth: null,
+    billedSameMonthPrevYear: null,
+  };
+  try {
+    xerp = await fetchXerpScalars();
+  } catch (e) {
+    errors.xerp = describeError(e);
+  }
+
+  // SPISA block: margin requires PostgreSQL + system_settings.
+  let usdRate = 1000;
+  let margin: MarginBlock = {
+    grossMarginPercent: null,
+    grossMarginAmountArs: null,
+    grossMarginPrevPercent: null,
+  };
+  try {
+    usdRate = await getUsdExchangeRate();
+    margin = await fetchMarginBlock(usdRate);
+  } catch (e) {
+    errors.spisa = describeError(e);
+  }
+
+  const dailyAverage =
+    xerp.billedMonthly !== null && daysElapsed > 0 ? xerp.billedMonthly / daysElapsed : null;
 
   return {
-    totalOutstanding: totalOutstanding || 0,
-    totalOverdue: totalOverdue || 0,
-    billedMonthly: billed,
-    billedToday: billedToday || 0,
-    billedPrevMonth: billedPrevMonth || 0,
-    billedSameMonthPrevYear: billedSameMonthPrevYear || 0,
+    ...xerp,
     dailyAverageThisMonth: dailyAverage,
     daysElapsedThisMonth: daysElapsed,
-    grossMarginPercent,
-    grossMarginAmountArs,
-    grossMarginPrevPercent,
+    ...margin,
+    errors,
   };
 }
 
-export async function getCharts(): Promise<{
+export interface DashboardChartsResponse {
   topCustomers: TopCustomer[];
   salesTrend: MonthlySalesTrend[];
   topCustomersByRevenue: TopCustomerByRevenue[];
-}> {
+  errors: { xerp: string | null; spisa: string | null };
+}
+
+async function fetchTopCustomersByRevenue(): Promise<TopCustomerByRevenue[]> {
   const monthRange = getCurrentMonthRange();
-
-  const [topCustomers, salesTrend, topCustomersByRevenueRaw] = await Promise.all([
-    executeXerpQuery<TopCustomer>(XERP_TOP_CUSTOMERS),
-    executeXerpQuery<MonthlySalesTrend>(XERP_MONTHLY_SALES_TREND),
-    prisma.$queryRawUnsafe<
-      Array<{
-        client_id: bigint;
-        business_name: string;
-        revenue_ars: number | null;
-        invoice_count: number | null;
-      }>
-    >(
-      `SELECT
-        c.id as client_id,
-        c.business_name,
-        COALESCE(SUM(i.total_amount), 0) as revenue_ars,
-        COUNT(DISTINCT i.id) as invoice_count
-      FROM invoices i
-      INNER JOIN sales_orders so ON i.sales_order_id = so.id
-      INNER JOIN clients c ON so.client_id = c.id
-      WHERE i.is_printed = true
-        AND i.is_cancelled = false
-        AND i.deleted_at IS NULL
-        AND i.invoice_date >= $1
-        AND i.invoice_date < $2
-      GROUP BY c.id, c.business_name
-      HAVING COALESCE(SUM(i.total_amount), 0) > 0
-      ORDER BY revenue_ars DESC
-      LIMIT 10`,
-      monthRange.start,
-      monthRange.end
-    ),
-  ]);
-
-  const topCustomersByRevenue: TopCustomerByRevenue[] = topCustomersByRevenueRaw.map((row) => ({
+  const rows = await prisma.$queryRawUnsafe<
+    Array<{
+      client_id: bigint;
+      business_name: string;
+      revenue_ars: number | null;
+      invoice_count: number | null;
+    }>
+  >(
+    `SELECT
+      c.id as client_id,
+      c.business_name,
+      COALESCE(SUM(i.total_amount), 0) as revenue_ars,
+      COUNT(DISTINCT i.id) as invoice_count
+    FROM invoices i
+    INNER JOIN sales_orders so ON i.sales_order_id = so.id
+    INNER JOIN clients c ON so.client_id = c.id
+    WHERE i.is_printed = true
+      AND i.is_cancelled = false
+      AND i.deleted_at IS NULL
+      AND i.invoice_date >= $1
+      AND i.invoice_date < $2
+    GROUP BY c.id, c.business_name
+    HAVING COALESCE(SUM(i.total_amount), 0) > 0
+    ORDER BY revenue_ars DESC
+    LIMIT 10`,
+    monthRange.start,
+    monthRange.end
+  );
+  return rows.map((row) => ({
     clientId: Number(row.client_id),
     businessName: row.business_name,
     revenueArs: Number(row.revenue_ars || 0),
     invoiceCount: Number(row.invoice_count || 0),
   }));
+}
+
+export async function getCharts(): Promise<DashboardChartsResponse> {
+  const errors = { xerp: null as string | null, spisa: null as string | null };
+
+  let topCustomers: TopCustomer[] = [];
+  let salesTrend: MonthlySalesTrend[] = [];
+  try {
+    const [tc, st] = await Promise.all([
+      executeXerpQuery<TopCustomer>(XERP_TOP_CUSTOMERS),
+      executeXerpQuery<MonthlySalesTrend>(XERP_MONTHLY_SALES_TREND),
+    ]);
+    topCustomers = tc ?? [];
+    salesTrend = st ?? [];
+  } catch (e) {
+    errors.xerp = describeError(e);
+  }
+
+  let topCustomersByRevenue: TopCustomerByRevenue[] = [];
+  try {
+    topCustomersByRevenue = await fetchTopCustomersByRevenue();
+  } catch (e) {
+    errors.spisa = describeError(e);
+  }
 
   return {
-    topCustomers: topCustomers || [],
-    salesTrend: salesTrend || [],
+    topCustomers,
+    salesTrend,
     topCustomersByRevenue,
+    errors,
   };
 }
 

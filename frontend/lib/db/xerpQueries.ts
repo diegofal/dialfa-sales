@@ -177,18 +177,24 @@ export const XERP_EXECUTIVE_SUMMARY = `
   AND dt.alloc < dt.ov_amount
 `;
 
+export interface DashboardMetricsErrors {
+  xerp: string | null;
+  spisa: string | null;
+}
+
 export interface DashboardMetrics {
-  totalOutstanding: number;
-  totalOverdue: number;
-  billedMonthly: number;
-  billedToday: number;
-  billedPrevMonth: number;
-  billedSameMonthPrevYear: number;
-  dailyAverageThisMonth: number;
+  totalOutstanding: number | null;
+  totalOverdue: number | null;
+  billedMonthly: number | null;
+  billedToday: number | null;
+  billedPrevMonth: number | null;
+  billedSameMonthPrevYear: number | null;
+  dailyAverageThisMonth: number | null;
   daysElapsedThisMonth: number;
   grossMarginPercent: number | null;
   grossMarginAmountArs: number | null;
   grossMarginPrevPercent: number | null;
+  errors: DashboardMetricsErrors;
 }
 
 export interface TopCustomer {

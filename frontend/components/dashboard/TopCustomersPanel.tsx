@@ -15,6 +15,15 @@ export function TopCustomersPanel() {
 
   const byRevenue = data?.topCustomersByRevenue ?? [];
   const byBalance = data?.topCustomers ?? [];
+  const xerpError = data?.errors?.xerp ?? null;
+  const spisaError = data?.errors?.spisa ?? null;
+
+  const sourceErrorMessage = (label: string, message: string) => (
+    <div className="flex flex-col items-center gap-1 py-8 text-center text-sm">
+      <span className="font-medium text-amber-500">{label} no disponible</span>
+      <span className="text-muted-foreground text-xs">{message}</span>
+    </div>
+  );
 
   return (
     <Card>
@@ -41,6 +50,8 @@ export function TopCustomersPanel() {
               <div className="bg-muted/40 h-[280px] w-full animate-pulse rounded-md" />
             ) : isError ? (
               <p className="text-muted-foreground py-8 text-center text-sm">Error al cargar</p>
+            ) : spisaError ? (
+              sourceErrorMessage('SPISA', spisaError)
             ) : byRevenue.length === 0 ? (
               <p className="text-muted-foreground py-8 text-center text-sm">
                 Aún no hay facturas SPISA en el mes
@@ -78,6 +89,8 @@ export function TopCustomersPanel() {
               <div className="bg-muted/40 h-[280px] w-full animate-pulse rounded-md" />
             ) : isError ? (
               <p className="text-muted-foreground py-8 text-center text-sm">Error al cargar</p>
+            ) : xerpError ? (
+              sourceErrorMessage('xERP', xerpError)
             ) : byBalance.length === 0 ? (
               <p className="text-muted-foreground py-8 text-center text-sm">
                 Sin clientes con saldo

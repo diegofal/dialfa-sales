@@ -7,20 +7,33 @@ import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import axios from 'axios';
 
 /**
- * Dashboard Metrics Response (commercial pulse)
+ * Dashboard data source error envelope.
+ * Each field is null on success, or contains the error message when the
+ * underlying source failed (xerp = legacy SQL Server, spisa = Postgres).
+ */
+export interface DashboardSourceErrors {
+  xerp: string | null;
+  spisa: string | null;
+}
+
+/**
+ * Dashboard Metrics Response (commercial pulse).
+ * xERP-backed fields are null when xERP is unreachable; check `errors.xerp`.
+ * SPISA-backed margin fields are null when there's no data OR when SPISA failed.
  */
 export interface DashboardMetrics {
-  totalOutstanding: number;
-  totalOverdue: number;
-  billedMonthly: number;
-  billedToday: number;
-  billedPrevMonth: number;
-  billedSameMonthPrevYear: number;
-  dailyAverageThisMonth: number;
+  totalOutstanding: number | null;
+  totalOverdue: number | null;
+  billedMonthly: number | null;
+  billedToday: number | null;
+  billedPrevMonth: number | null;
+  billedSameMonthPrevYear: number | null;
+  dailyAverageThisMonth: number | null;
   daysElapsedThisMonth: number;
   grossMarginPercent: number | null;
   grossMarginAmountArs: number | null;
   grossMarginPrevPercent: number | null;
+  errors: DashboardSourceErrors;
 }
 
 /**
@@ -89,6 +102,7 @@ export interface DashboardCharts {
   topCustomers: TopCustomer[];
   salesTrend: MonthlySalesTrend[];
   topCustomersByRevenue: TopCustomerByRevenue[];
+  errors: DashboardSourceErrors;
 }
 
 /**
@@ -196,9 +210,9 @@ export function formatNumber(value: number): string {
 
 /**
  * Compute % delta between current and previous values.
- * Returns null when previous is 0 (delta undefined).
+ * Returns null when either input is null/0 (delta undefined).
  */
-export function computeDelta(current: number, previous: number): number | null {
-  if (previous === 0) return null;
+export function computeDelta(current: number | null, previous: number | null): number | null {
+  if (current === null || previous === null || previous === 0) return null;
   return ((current - previous) / previous) * 100;
 }
