@@ -79,7 +79,7 @@ function CustomTooltip({ active, payload }: { active?: boolean; payload?: Toolti
 }
 
 export function SalesTrendChart() {
-  const { data, isLoading, isError } = useDashboardCharts(12);
+  const { data, isLoading, isError } = useDashboardCharts();
 
   return (
     <Card>
@@ -94,10 +94,10 @@ export function SalesTrendChart() {
           <div className="text-muted-foreground flex h-[280px] items-center justify-center text-sm">
             Error al cargar la tendencia
           </div>
-        ) : data?.error ? (
+        ) : data?.errors?.xerp ? (
           <div className="flex h-[280px] flex-col items-center justify-center gap-1 px-4 text-center text-sm">
-            <span className="font-medium text-amber-500">No se pudo cargar</span>
-            <span className="text-muted-foreground text-xs">{data.error}</span>
+            <span className="font-medium text-amber-500">xERP no disponible</span>
+            <span className="text-muted-foreground text-xs">{data.errors.xerp}</span>
           </div>
         ) : !data?.salesTrend?.length ? (
           <div className="text-muted-foreground flex h-[280px] items-center justify-center text-sm">

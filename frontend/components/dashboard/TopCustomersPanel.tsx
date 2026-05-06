@@ -1,21 +1,44 @@
 /**
  * Top Customers Panel
- * Two views: by current-month revenue (SPISA) and by AR balance (xERP).
+ * Two views: by current-month revenue (SPISA invoices) and by AR balance
+ * (sync_balances). Adds dialfa-bi's risk classification badge on the balance
+ * tab (HIGH > 50%, MEDIUM > 20%, LOW ≤ 20%).
  */
 
 'use client';
 
 import { Users } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { formatCurrency, useDashboardCharts } from '@/lib/hooks/domain/useDashboard';
+import {
+  formatCurrency,
+  type RiskLevel,
+  useDashboardCharts,
+} from '@/lib/hooks/domain/useDashboard';
+
+const RISK_BADGES: Record<RiskLevel, { label: string; className: string }> = {
+  HIGH: {
+    label: 'HIGH RISK',
+    className: 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300',
+  },
+  MEDIUM: {
+    label: 'MEDIUM RISK',
+    className: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300',
+  },
+  LOW: {
+    label: 'LOW RISK',
+    className: 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
+  },
+};
 
 export function TopCustomersPanel() {
-  const { data, isLoading, isError } = useDashboardCharts(12);
+  const { data, isLoading, isError } = useDashboardCharts();
 
   const byRevenue = data?.topCustomersByRevenue ?? [];
   const byBalance = data?.topCustomers ?? [];
-  const dataError = data?.error ?? null;
+  const xerpError = data?.errors?.xerp ?? null;
+  const spisaError = data?.errors?.spisa ?? null;
 
   const errorMessage = (message: string) => (
     <div className="flex flex-col items-center gap-1 py-8 text-center text-sm">
@@ -49,8 +72,8 @@ export function TopCustomersPanel() {
               <div className="bg-muted/40 h-[280px] w-full animate-pulse rounded-md" />
             ) : isError ? (
               <p className="text-muted-foreground py-8 text-center text-sm">Error al cargar</p>
-            ) : dataError ? (
-              errorMessage(dataError)
+            ) : spisaError ? (
+              errorMessage(spisaError)
             ) : byRevenue.length === 0 ? (
               <p className="text-muted-foreground py-8 text-center text-sm">
                 Aún no hay facturas SPISA en el mes
@@ -88,8 +111,10 @@ export function TopCustomersPanel() {
               <div className="bg-muted/40 h-[280px] w-full animate-pulse rounded-md" />
             ) : isError ? (
               <p className="text-muted-foreground py-8 text-center text-sm">Error al cargar</p>
-            ) : dataError ? (
-              errorMessage(dataError)
+            ) : spisaError ? (
+              errorMessage(spisaError)
+            ) : xerpError ? (
+              errorMessage(xerpError)
             ) : byBalance.length === 0 ? (
               <p className="text-muted-foreground py-8 text-center text-sm">
                 Sin clientes con saldo
@@ -101,24 +126,21 @@ export function TopCustomersPanel() {
                     <tr className="border-b">
                       <th className="pb-2 text-left">#</th>
                       <th className="pb-2 text-left">Cliente</th>
-                      <th className="pb-2 text-right">Mora %</th>
+                      <th className="pb-2 text-center">Riesgo</th>
                       <th className="pb-2 text-right">Saldo</th>
                     </tr>
                   </thead>
                   <tbody>
                     {byBalance.map((c, i) => {
-                      const overdueClass =
-                        c.OverduePercentage > 50
-                          ? 'text-red-500'
-                          : c.OverduePercentage > 25
-                            ? 'text-amber-500'
-                            : 'text-muted-foreground';
+                      const badge = RISK_BADGES[c.RiskLevel];
                       return (
                         <tr key={`${c.Name}-${i}`} className="border-border/30 border-b">
                           <td className="text-muted-foreground py-1.5 text-xs">{i + 1}</td>
                           <td className="truncate py-1.5 font-medium">{c.Name}</td>
-                          <td className={`py-1.5 text-right tabular-nums ${overdueClass}`}>
-                            {(c.OverduePercentage || 0).toFixed(0)}%
+                          <td className="py-1.5 text-center">
+                            <Badge className={`${badge.className} text-[10px]`}>
+                              {badge.label}
+                            </Badge>
                           </td>
                           <td className="py-1.5 text-right tabular-nums">
                             {formatCurrency(c.OutstandingBalance)}

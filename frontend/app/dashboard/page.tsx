@@ -6,6 +6,7 @@ import { DashboardMetrics } from '@/components/dashboard/DashboardMetrics';
 import { OperationalMetrics } from '@/components/dashboard/OperationalMetrics';
 import { RecentSalesOrders } from '@/components/dashboard/RecentSalesOrders';
 import { SalesTrendChart } from '@/components/dashboard/SalesTrendChart';
+import { TopArticlesSold } from '@/components/dashboard/TopArticlesSold';
 import { TopCustomersPanel } from '@/components/dashboard/TopCustomersPanel';
 import {
   Accordion,
@@ -48,7 +49,10 @@ export default function DashboardPage() {
         <TopCustomersPanel />
       </div>
 
-      {/* Fila 4 — Listas operativas */}
+      {/* Fila 4 — Top artículos vendidos del mes */}
+      <TopArticlesSold />
+
+      {/* Fila 5 — Listas operativas */}
       <div className="grid gap-6 xl:grid-cols-2">
         <RecentSalesOrders limit={5} />
         <AlertsPanel />
