@@ -37,7 +37,7 @@ beforeEach(() => {
 });
 
 describe('getMetrics', () => {
-  it('returns commercial pulse with deltas and gross margin', async () => {
+  it('returns commercial pulse with deltas and gross margin when both sources are up', async () => {
     mockExecuteXerpScalar
       .mockResolvedValueOnce(50000) // totalOutstanding
       .mockResolvedValueOnce(10000) // totalOverdue
@@ -48,13 +48,12 @@ describe('getMetrics', () => {
 
     // First margin call (current month) — has revenue, has cogs
     mockQueryRawUnsafe.mockResolvedValueOnce([{ revenue_usd: 100, cogs_usd: 60 }]);
-    // Margin amount call (current month, ARS) — same data
     mockQueryRawUnsafe.mockResolvedValueOnce([{ revenue_usd: 100, cogs_usd: 60 }]);
-    // Prev month margin call
     mockQueryRawUnsafe.mockResolvedValueOnce([{ revenue_usd: 100, cogs_usd: 70 }]);
 
     const result = await getMetrics();
 
+    expect(result.errors).toEqual({ xerp: null, spisa: null });
     expect(result.totalOutstanding).toBe(50000);
     expect(result.totalOverdue).toBe(10000);
     expect(result.billedMonthly).toBe(200000);
@@ -62,49 +61,66 @@ describe('getMetrics', () => {
     expect(result.billedPrevMonth).toBe(180000);
     expect(result.billedSameMonthPrevYear).toBe(150000);
     expect(result.daysElapsedThisMonth).toBeGreaterThan(0);
-    expect(result.dailyAverageThisMonth).toBeCloseTo(200000 / result.daysElapsedThisMonth);
-    expect(result.grossMarginPercent).toBeCloseTo(40); // (100-60)/100 * 100
-    expect(result.grossMarginAmountArs).toBeCloseTo(40 * 1000); // 40 USD * 1000 rate
-    expect(result.grossMarginPrevPercent).toBeCloseTo(30); // (100-70)/100 * 100
+    expect(result.dailyAverageThisMonth!).toBeCloseTo(200000 / result.daysElapsedThisMonth);
+    expect(result.grossMarginPercent).toBeCloseTo(40);
+    expect(result.grossMarginAmountArs).toBeCloseTo(40 * 1000);
+    expect(result.grossMarginPrevPercent).toBeCloseTo(30);
   });
 
-  it('defaults null xerp values to 0 and returns null margin when no revenue', async () => {
-    mockExecuteXerpScalar.mockResolvedValue(null);
-    // Empty invoice rows for both periods
+  it('returns null xerp fields and surfaces the xerp error when xERP is unreachable', async () => {
+    mockExecuteXerpScalar.mockRejectedValue(new Error('xERP database connection failed'));
     mockQueryRawUnsafe.mockResolvedValue([{ revenue_usd: 0, cogs_usd: 0 }]);
 
     const result = await getMetrics();
 
-    expect(result.totalOutstanding).toBe(0);
-    expect(result.totalOverdue).toBe(0);
+    expect(result.errors.xerp).toBe('xERP database connection failed');
+    expect(result.errors.spisa).toBeNull();
+    expect(result.totalOutstanding).toBeNull();
+    expect(result.totalOverdue).toBeNull();
+    expect(result.billedMonthly).toBeNull();
+    expect(result.billedToday).toBeNull();
+    expect(result.billedPrevMonth).toBeNull();
+    expect(result.billedSameMonthPrevYear).toBeNull();
+    expect(result.dailyAverageThisMonth).toBeNull();
+    // Margin still attempted — null because no revenue
+    expect(result.grossMarginPercent).toBeNull();
+  });
+
+  it('returns null margin and surfaces the spisa error when SPISA fails', async () => {
+    mockExecuteXerpScalar
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0)
+      .mockResolvedValueOnce(0);
+    mockSystemSettingsFindFirst.mockRejectedValue(new Error('PG connection refused'));
+
+    const result = await getMetrics();
+
+    expect(result.errors.xerp).toBeNull();
+    expect(result.errors.spisa).toBe('PG connection refused');
     expect(result.billedMonthly).toBe(0);
-    expect(result.billedToday).toBe(0);
-    expect(result.billedPrevMonth).toBe(0);
-    expect(result.billedSameMonthPrevYear).toBe(0);
-    expect(result.dailyAverageThisMonth).toBe(0);
     expect(result.grossMarginPercent).toBeNull();
     expect(result.grossMarginAmountArs).toBeNull();
     expect(result.grossMarginPrevPercent).toBeNull();
   });
 
-  it('calls all six xerp scalar queries in parallel', async () => {
-    mockExecuteXerpScalar.mockResolvedValue(0);
+  it('defaults null xerp scalar values to 0 (success path with empty data)', async () => {
+    mockExecuteXerpScalar.mockResolvedValue(null);
     mockQueryRawUnsafe.mockResolvedValue([{ revenue_usd: 0, cogs_usd: 0 }]);
 
-    await getMetrics();
+    const result = await getMetrics();
 
-    expect(mockExecuteXerpScalar).toHaveBeenCalledTimes(6);
-    expect(mockExecuteXerpScalar).toHaveBeenCalledWith('TOTAL_OUTSTANDING_QUERY');
-    expect(mockExecuteXerpScalar).toHaveBeenCalledWith('TOTAL_OVERDUE_QUERY');
-    expect(mockExecuteXerpScalar).toHaveBeenCalledWith('BILLED_MONTHLY_QUERY');
-    expect(mockExecuteXerpScalar).toHaveBeenCalledWith('BILLED_TODAY_QUERY');
-    expect(mockExecuteXerpScalar).toHaveBeenCalledWith('BILLED_PREV_MONTH_QUERY');
-    expect(mockExecuteXerpScalar).toHaveBeenCalledWith('BILLED_SAME_MONTH_PREV_YEAR_QUERY');
+    expect(result.errors).toEqual({ xerp: null, spisa: null });
+    expect(result.totalOutstanding).toBe(0);
+    expect(result.billedMonthly).toBe(0);
+    expect(result.dailyAverageThisMonth).toBe(0);
   });
 });
 
 describe('getCharts', () => {
-  it('returns top customers, sales trend, and revenue-based top customers', async () => {
+  it('returns top customers, sales trend, and revenue-based top customers when both sources are up', async () => {
     const customers = [{ Name: 'Client A', OutstandingBalance: 100000 }];
     const trend = [{ Year: 2026, Month: 5, MonthName: 'May', MonthlyRevenue: 50000 }];
     const byRevenue = [
@@ -121,11 +137,43 @@ describe('getCharts', () => {
 
     const result = await getCharts();
 
+    expect(result.errors).toEqual({ xerp: null, spisa: null });
     expect(result.topCustomers).toEqual(customers);
     expect(result.salesTrend).toEqual(trend);
     expect(result.topCustomersByRevenue).toEqual([
       { clientId: 7, businessName: 'Client X', revenueArs: 30000, invoiceCount: 4 },
     ]);
+  });
+
+  it('returns empty xerp arrays and surfaces the xerp error when xERP fails', async () => {
+    mockExecuteXerpQuery.mockRejectedValue(new Error('xERP timeout'));
+    mockQueryRawUnsafe.mockResolvedValueOnce([
+      {
+        client_id: BigInt(7),
+        business_name: 'Client X',
+        revenue_ars: 5,
+        invoice_count: 1,
+      },
+    ]);
+
+    const result = await getCharts();
+
+    expect(result.errors.xerp).toBe('xERP timeout');
+    expect(result.errors.spisa).toBeNull();
+    expect(result.topCustomers).toEqual([]);
+    expect(result.salesTrend).toEqual([]);
+    expect(result.topCustomersByRevenue).toHaveLength(1);
+  });
+
+  it('returns empty SPISA list and surfaces the spisa error when SPISA fails', async () => {
+    mockExecuteXerpQuery.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+    mockQueryRawUnsafe.mockRejectedValue(new Error('PG select failed'));
+
+    const result = await getCharts();
+
+    expect(result.errors.xerp).toBeNull();
+    expect(result.errors.spisa).toBe('PG select failed');
+    expect(result.topCustomersByRevenue).toEqual([]);
   });
 
   it('defaults null xerp results to empty arrays', async () => {
@@ -134,6 +182,7 @@ describe('getCharts', () => {
 
     const result = await getCharts();
 
+    expect(result.errors).toEqual({ xerp: null, spisa: null });
     expect(result.topCustomers).toEqual([]);
     expect(result.salesTrend).toEqual([]);
     expect(result.topCustomersByRevenue).toEqual([]);

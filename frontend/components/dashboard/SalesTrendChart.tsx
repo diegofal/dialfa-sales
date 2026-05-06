@@ -90,7 +90,16 @@ export function SalesTrendChart() {
       <CardContent>
         {isLoading ? (
           <div className="bg-muted/40 h-[280px] w-full animate-pulse rounded-md" />
-        ) : isError || !data?.salesTrend?.length ? (
+        ) : isError ? (
+          <div className="text-muted-foreground flex h-[280px] items-center justify-center text-sm">
+            Error al cargar la tendencia
+          </div>
+        ) : data?.errors?.xerp ? (
+          <div className="flex h-[280px] flex-col items-center justify-center gap-1 px-4 text-center text-sm">
+            <span className="font-medium text-amber-500">xERP no disponible</span>
+            <span className="text-muted-foreground text-xs">{data.errors.xerp}</span>
+          </div>
+        ) : !data?.salesTrend?.length ? (
           <div className="text-muted-foreground flex h-[280px] items-center justify-center text-sm">
             No hay datos de facturación
           </div>
