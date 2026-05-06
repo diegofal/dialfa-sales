@@ -7,11 +7,24 @@ import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import axios from 'axios';
 
 /**
+ * Per-source error envelope. Each null on success, message on failure.
+ * - xerp: legacy Azure SQL Server (billed amounts, sales trend)
+ * - spisa: PostgreSQL (everything else)
+ */
+export interface DashboardSourceErrors {
+  xerp: string | null;
+  spisa: string | null;
+}
+
+export interface ToCollectMonthly {
+  total: number;
+  cleared: number;
+  pending: number;
+  transactionCount: number;
+}
+
+/**
  * Dashboard Metrics Response (commercial pulse).
- *
- * All commercial fields read from sync_balances + sync_transactions (Postgres
- * mirror of xERP). When the query block fails, every numeric field is null and
- * `error` carries the message.
  */
 export interface DashboardMetrics {
   totalOutstanding: number | null;
@@ -22,40 +35,24 @@ export interface DashboardMetrics {
   billedSameMonthPrevYear: number | null;
   dailyAverageThisMonth: number | null;
   daysElapsedThisMonth: number;
+  toCollectMonthly: ToCollectMonthly | null;
+  checksInPortfolio: number | null;
   grossMarginPercent: number | null;
   grossMarginAmountArs: number | null;
   grossMarginPrevPercent: number | null;
-  error: string | null;
+  errors: DashboardSourceErrors;
 }
 
-/**
- * Operational Metrics Response (stock + backlog)
- */
-export interface OperationalMetrics {
-  stockValueCostUsd: number;
-  stockValueCostArs: number;
-  stockValueRetailArs: number;
-  deadStockValueArs: number;
-  deadStockArticleCount: number;
-  stockoutsCriticalCount: number;
-  pendingToInvoiceCount: number;
-  pendingToInvoiceArs: number;
-  usdExchangeRate: number;
-}
+export type RiskLevel = 'HIGH' | 'MEDIUM' | 'LOW';
 
-/**
- * Top Customer (by AR balance, from xERP)
- */
 export interface TopCustomer {
   Name: string;
   OutstandingBalance: number;
   OverdueAmount: number;
   OverduePercentage: number;
+  RiskLevel: RiskLevel;
 }
 
-/**
- * Top Customer by current-month revenue (from SPISA invoices)
- */
 export interface TopCustomerByRevenue {
   clientId: number;
   businessName: string;
@@ -63,9 +60,6 @@ export interface TopCustomerByRevenue {
   invoiceCount: number;
 }
 
-/**
- * Monthly Sales Trend
- */
 export interface MonthlySalesTrend {
   Year: number;
   Month: number;
@@ -75,50 +69,55 @@ export interface MonthlySalesTrend {
   UniqueCustomers: number;
 }
 
-/**
- * Cash Flow Data
- */
-export interface CashFlowData {
-  Year: number;
-  Month: number;
-  ActualPayments: number;
-  CashPayments: number;
-  ElectronicPayments: number;
-  TransactionCount: number;
-}
-
-/**
- * Dashboard Charts Response
- */
 export interface DashboardCharts {
   topCustomers: TopCustomer[];
   salesTrend: MonthlySalesTrend[];
   topCustomersByRevenue: TopCustomerByRevenue[];
+  errors: DashboardSourceErrors;
+}
+
+export interface OperationalMetrics {
+  stockValueCost: number;
+  stockValueRetail: number;
+  deadStockValue: number;
+  deadStockArticleCount: number;
+  stockoutsCriticalCount: number;
   error: string | null;
 }
 
-/**
- * Dashboard Alerts Response
- */
+// Mirror of types/stockValuation.ts for client-side narrowing.
+export type DashboardStockStatus = 'active' | 'slow_moving' | 'dead_stock' | 'never_sold';
+
+export interface TopArticleSold {
+  articleId: number;
+  code: string;
+  description: string;
+  unitsSold: number;
+  revenueUsd: number;
+  currentStock: number;
+  status: DashboardStockStatus;
+}
+
+export interface TopArticlesSoldResponse {
+  articles: TopArticleSold[];
+  error: string | null;
+}
+
 export interface DashboardAlerts {
   stockoutsCount: number;
   lateProformasCount: number;
   pendingQuotesCount: number;
 }
 
-/**
- * Fetch dashboard metrics
- */
+// ─── Fetchers ─────────────────────────────────────────────────────────────────
+
 async function fetchDashboardMetrics(): Promise<DashboardMetrics> {
   const response = await axios.get('/api/dashboard/metrics');
   return response.data;
 }
 
-/**
- * Fetch dashboard charts
- */
-async function fetchDashboardCharts(months: number = 12): Promise<DashboardCharts> {
-  const response = await axios.get(`/api/dashboard/charts?months=${months}`);
+async function fetchDashboardCharts(): Promise<DashboardCharts> {
+  const response = await axios.get('/api/dashboard/charts');
   return response.data;
 }
 
@@ -127,32 +126,33 @@ async function fetchOperationalMetrics(): Promise<OperationalMetrics> {
   return response.data;
 }
 
+async function fetchTopArticlesSold(): Promise<TopArticlesSoldResponse> {
+  const response = await axios.get('/api/dashboard/top-articles');
+  return response.data;
+}
+
 async function fetchDashboardAlerts(): Promise<DashboardAlerts> {
   const response = await axios.get('/api/dashboard/alerts');
   return response.data;
 }
 
-/**
- * Hook to fetch dashboard metrics
- */
+// ─── Hooks ────────────────────────────────────────────────────────────────────
+
 export function useDashboardMetrics(): UseQueryResult<DashboardMetrics, Error> {
   return useQuery({
     queryKey: ['dashboard', 'metrics'],
     queryFn: fetchDashboardMetrics,
-    staleTime: 1000 * 60 * 5, // 5 minutes
+    staleTime: 1000 * 60 * 5,
     refetchOnWindowFocus: true,
-    refetchInterval: 1000 * 60 * 5, // Auto-refresh every 5 minutes
+    refetchInterval: 1000 * 60 * 5,
   });
 }
 
-/**
- * Hook to fetch dashboard charts
- */
-export function useDashboardCharts(months: number = 12): UseQueryResult<DashboardCharts, Error> {
+export function useDashboardCharts(): UseQueryResult<DashboardCharts, Error> {
   return useQuery({
-    queryKey: ['dashboard', 'charts', months],
-    queryFn: () => fetchDashboardCharts(months),
-    staleTime: 1000 * 60 * 10, // 10 minutes
+    queryKey: ['dashboard', 'charts'],
+    queryFn: fetchDashboardCharts,
+    staleTime: 1000 * 60 * 10,
     refetchOnWindowFocus: false,
   });
 }
@@ -166,6 +166,15 @@ export function useOperationalMetrics(): UseQueryResult<OperationalMetrics, Erro
   });
 }
 
+export function useTopArticlesSold(): UseQueryResult<TopArticlesSoldResponse, Error> {
+  return useQuery({
+    queryKey: ['dashboard', 'top-articles'],
+    queryFn: fetchTopArticlesSold,
+    staleTime: 1000 * 60 * 30,
+    refetchOnWindowFocus: false,
+  });
+}
+
 export function useDashboardAlerts(): UseQueryResult<DashboardAlerts, Error> {
   return useQuery({
     queryKey: ['dashboard', 'alerts'],
@@ -175,34 +184,25 @@ export function useDashboardAlerts(): UseQueryResult<DashboardAlerts, Error> {
   });
 }
 
-/**
- * Currency formatter for ARS
- */
+// ─── Formatters ───────────────────────────────────────────────────────────────
+
 export function formatCurrency(value: number, currency: string = 'ARS'): string {
   return new Intl.NumberFormat('es-AR', {
     style: 'currency',
-    currency: currency,
+    currency,
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
   }).format(value);
 }
 
-/**
- * Number formatter (with K, M suffixes)
- */
 export function formatNumber(value: number): string {
-  if (value >= 1000000) {
-    return `${(value / 1000000).toFixed(1)}M`;
-  }
-  if (value >= 1000) {
-    return `${(value / 1000).toFixed(1)}K`;
-  }
+  if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (value >= 1_000) return `${(value / 1_000).toFixed(1)}K`;
   return value.toFixed(0);
 }
 
 /**
- * Compute % delta between current and previous values.
- * Returns null when either input is null/0 (delta undefined).
+ * % delta between current and previous. Returns null when previous is null/0.
  */
 export function computeDelta(current: number | null, previous: number | null): number | null {
   if (current === null || previous === null || previous === 0) return null;
