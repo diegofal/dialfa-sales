@@ -1,13 +1,13 @@
 /**
  * Commercial Pulse Row (Fila 1)
  * 4 KPI cards with comparison deltas: facturado mes, facturado hoy, a cobrar, margen bruto.
- * Degrades gracefully when xERP or SPISA is unreachable — affected cards show "—" and the
- * page shows a single banner with the underlying error.
+ * Reads from Postgres sync_* tables (mirrors xERP). When the query fails, every
+ * numeric field is null and a single banner shows the underlying error.
  */
 
 'use client';
 
-import { AlertTriangle, Calendar, FileText, Percent, Wallet, WifiOff } from 'lucide-react';
+import { AlertTriangle, Calendar, FileText, Percent, Wallet } from 'lucide-react';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { computeDelta, formatCurrency, useDashboardMetrics } from '@/lib/hooks/domain/useDashboard';
 import { DeltaChip } from './DeltaChip';
@@ -19,7 +19,6 @@ const formatOrDash = (value: number | null): string =>
 export function DashboardMetrics() {
   const { data: metrics, isLoading, isError, error } = useDashboardMetrics();
 
-  // Hard error (request itself failed — auth, network to our own backend, etc.)
   if (isError) {
     return (
       <Alert variant="destructive">
@@ -34,8 +33,7 @@ export function DashboardMetrics() {
   const currentMonth = new Intl.DateTimeFormat('es-AR', { month: 'long' }).format(new Date());
   const monthCapitalized = currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1);
 
-  const xerpError = metrics?.errors?.xerp ?? null;
-  const spisaError = metrics?.errors?.spisa ?? null;
+  const dataError = metrics?.error ?? null;
 
   const billedMonthly = metrics?.billedMonthly ?? null;
   const billedToday = metrics?.billedToday ?? null;
@@ -60,22 +58,11 @@ export function DashboardMetrics() {
 
   return (
     <div className="space-y-3">
-      {(xerpError || spisaError) && (
+      {dataError && (
         <Alert variant="default" className="border-amber-500/40 bg-amber-500/10">
-          <WifiOff className="h-4 w-4 text-amber-500" />
+          <AlertTriangle className="h-4 w-4 text-amber-500" />
           <AlertDescription className="text-sm">
-            {xerpError && (
-              <div>
-                <strong>xERP no disponible:</strong> {xerpError}. Las métricas de facturación y
-                cobranzas no se pudieron cargar.
-              </div>
-            )}
-            {spisaError && (
-              <div>
-                <strong>SPISA no disponible:</strong> {spisaError}. El margen bruto no se pudo
-                calcular.
-              </div>
-            )}
+            <strong>No se pudieron cargar las métricas comerciales:</strong> {dataError}
           </AlertDescription>
         </Alert>
       )}
@@ -84,7 +71,7 @@ export function DashboardMetrics() {
         <MetricCard
           title={`Facturado ${monthCapitalized}`}
           value={formatOrDash(billedMonthly)}
-          subtitle={billedMonthly === null ? 'xERP no disponible' : undefined}
+          subtitle={billedMonthly === null ? 'Sin datos' : undefined}
           icon={FileText}
           gradient="bg-gradient-to-br from-emerald-500 to-emerald-700"
           loading={isLoading}
@@ -104,7 +91,7 @@ export function DashboardMetrics() {
           value={formatOrDash(billedToday)}
           subtitle={
             billedToday === null
-              ? 'xERP no disponible'
+              ? 'Sin datos'
               : dailyAverage !== null
                 ? `Promedio diario: ${formatCurrency(dailyAverage)}`
                 : undefined
@@ -125,7 +112,7 @@ export function DashboardMetrics() {
           value={formatOrDash(totalOutstanding)}
           subtitle={
             totalOutstanding === null
-              ? 'xERP no disponible'
+              ? 'Sin datos'
               : totalOverdue !== null
                 ? `En mora: ${formatCurrency(totalOverdue)}`
                 : undefined
@@ -153,11 +140,9 @@ export function DashboardMetrics() {
             metrics?.grossMarginPercent != null ? `${metrics.grossMarginPercent.toFixed(1)}%` : '—'
           }
           subtitle={
-            spisaError
-              ? 'SPISA no disponible'
-              : metrics?.grossMarginAmountArs != null
-                ? formatCurrency(metrics.grossMarginAmountArs)
-                : 'Sin facturas SPISA en el mes'
+            metrics?.grossMarginAmountArs != null
+              ? formatCurrency(metrics.grossMarginAmountArs)
+              : 'Sin facturas en el mes'
           }
           icon={Percent}
           gradient="bg-gradient-to-br from-violet-500 to-violet-700"

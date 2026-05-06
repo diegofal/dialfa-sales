@@ -94,10 +94,10 @@ export function SalesTrendChart() {
           <div className="text-muted-foreground flex h-[280px] items-center justify-center text-sm">
             Error al cargar la tendencia
           </div>
-        ) : data?.errors?.xerp ? (
+        ) : data?.error ? (
           <div className="flex h-[280px] flex-col items-center justify-center gap-1 px-4 text-center text-sm">
-            <span className="font-medium text-amber-500">xERP no disponible</span>
-            <span className="text-muted-foreground text-xs">{data.errors.xerp}</span>
+            <span className="font-medium text-amber-500">No se pudo cargar</span>
+            <span className="text-muted-foreground text-xs">{data.error}</span>
           </div>
         ) : !data?.salesTrend?.length ? (
           <div className="text-muted-foreground flex h-[280px] items-center justify-center text-sm">

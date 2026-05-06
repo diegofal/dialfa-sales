@@ -1,20 +1,64 @@
+/**
+ * DashboardService
+ *
+ * All commercial KPIs (billed, outstanding, overdue, top customers, sales trend)
+ * read from Postgres sync_* tables, which mirror xERP data via the customer-sync
+ * pipeline. This matches the dialfa-bi dashboard one-for-one and removes the
+ * Azure SQL firewall dependency at runtime.
+ *
+ * Margin uses native SPISA invoice_items + articles (USD-based, with CIF %).
+ *
+ * Operational metrics and alerts read native SPISA tables (articles, sales_orders,
+ * supplier_orders, stock_movements).
+ */
 import { prisma } from '@/lib/db';
-import { executeXerpScalar, executeXerpQuery } from '@/lib/db/xerp';
-import {
-  XERP_TOTAL_OUTSTANDING,
-  XERP_TOTAL_OVERDUE,
-  XERP_BILLED_MONTHLY,
-  XERP_BILLED_TODAY,
-  XERP_BILLED_PREV_MONTH,
-  XERP_BILLED_SAME_MONTH_PREV_YEAR,
-  XERP_TOP_CUSTOMERS,
-  XERP_MONTHLY_SALES_TREND,
-  DashboardMetrics,
-  TopCustomer,
-  MonthlySalesTrend,
-} from '@/lib/db/xerpQueries';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+export interface DashboardMetrics {
+  totalOutstanding: number | null;
+  totalOverdue: number | null;
+  billedMonthly: number | null;
+  billedToday: number | null;
+  billedPrevMonth: number | null;
+  billedSameMonthPrevYear: number | null;
+  dailyAverageThisMonth: number | null;
+  daysElapsedThisMonth: number;
+  grossMarginPercent: number | null;
+  grossMarginAmountArs: number | null;
+  grossMarginPrevPercent: number | null;
+  error: string | null;
+}
+
+export interface TopCustomer {
+  Name: string;
+  OutstandingBalance: number;
+  OverdueAmount: number;
+  OverduePercentage: number;
+}
+
+export interface MonthlySalesTrend {
+  Year: number;
+  Month: number;
+  MonthName: string;
+  MonthlyRevenue: number;
+  InvoiceCount: number;
+  UniqueCustomers: number;
+}
+
+export interface TopCustomerByRevenue {
+  clientId: number;
+  businessName: string;
+  revenueArs: number;
+  invoiceCount: number;
+}
+
+export interface DashboardChartsResponse {
+  topCustomers: TopCustomer[];
+  salesTrend: MonthlySalesTrend[];
+  topCustomersByRevenue: TopCustomerByRevenue[];
+  error: string | null;
+}
 
 export interface OperationalMetrics {
   stockValueCostUsd: number;
@@ -28,13 +72,6 @@ export interface OperationalMetrics {
   usdExchangeRate: number;
 }
 
-export interface TopCustomerByRevenue {
-  clientId: number;
-  businessName: string;
-  revenueArs: number;
-  invoiceCount: number;
-}
-
 export interface DashboardAlerts {
   stockoutsCount: number;
   lateProformasCount: number;
@@ -42,6 +79,11 @@ export interface DashboardAlerts {
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function describeError(e: unknown): string {
+  if (e instanceof Error && e.message) return e.message;
+  return 'Error desconocido';
+}
 
 function getCurrentMonthRange(): { start: Date; end: Date } {
   const now = new Date();
@@ -63,7 +105,7 @@ async function getUsdExchangeRate(): Promise<number> {
   return value > 0 ? value : 1000;
 }
 
-// Compute gross margin % from SPISA invoices for a date range.
+// Margin from SPISA invoices for a date range.
 // Margin = (revenue_usd - cogs_usd) / revenue_usd
 // COGS_usd = qty × last_purchase_price × (1 + cif_pct/100)
 async function computeGrossMargin(start: Date, end: Date): Promise<number | null> {
@@ -126,115 +168,127 @@ async function computeGrossMarginAmountArs(
 
 // ─── Service ──────────────────────────────────────────────────────────────────
 
-function describeError(e: unknown): string {
-  if (e instanceof Error && e.message) return e.message;
-  return 'Error desconocido';
-}
+export async function getMetrics(): Promise<DashboardMetrics> {
+  const now = new Date();
+  const daysElapsed = now.getDate();
 
-interface XerpScalars {
-  totalOutstanding: number | null;
-  totalOverdue: number | null;
-  billedMonthly: number | null;
-  billedToday: number | null;
-  billedPrevMonth: number | null;
-  billedSameMonthPrevYear: number | null;
-}
+  let totalOutstanding: number | null = null;
+  let totalOverdue: number | null = null;
+  let billedMonthly: number | null = null;
+  let billedToday: number | null = null;
+  let billedPrevMonth: number | null = null;
+  let billedSameMonthPrevYear: number | null = null;
+  let grossMarginPercent: number | null = null;
+  let grossMarginAmountArs: number | null = null;
+  let grossMarginPrevPercent: number | null = null;
+  let error: string | null = null;
 
-async function fetchXerpScalars(): Promise<XerpScalars> {
-  const [
+  try {
+    // sync_balances: AR snapshot synced from xERP. amount = current outstanding (net),
+    // due = overdue portion. Filter `amount > 100` to exclude rounding noise (mirrors BI).
+    const balancesQuery = prisma.$queryRawUnsafe<
+      Array<{ total_outstanding: number | null; total_overdue: number | null }>
+    >(
+      `SELECT
+        COALESCE(SUM(amount), 0) as total_outstanding,
+        COALESCE(SUM(due), 0) as total_overdue
+      FROM sync_balances
+      WHERE amount > 100`
+    );
+
+    // sync_transactions: invoice rows live with type=1 (mirrors BI's BILLED queries).
+    const billedMonthlyQuery = prisma.$queryRawUnsafe<Array<{ amount: number | null }>>(
+      `SELECT COALESCE(SUM(invoice_amount), 0) as amount
+      FROM sync_transactions
+      WHERE type = 1
+        AND EXTRACT(MONTH FROM invoice_date)::int = EXTRACT(MONTH FROM NOW())::int
+        AND EXTRACT(YEAR FROM invoice_date)::int = EXTRACT(YEAR FROM NOW())::int`
+    );
+
+    const billedTodayQuery = prisma.$queryRawUnsafe<Array<{ amount: number | null }>>(
+      `SELECT COALESCE(SUM(invoice_amount), 0) as amount
+      FROM sync_transactions
+      WHERE type = 1
+        AND invoice_date::date = NOW()::date`
+    );
+
+    const billedPrevMonthQuery = prisma.$queryRawUnsafe<Array<{ amount: number | null }>>(
+      `SELECT COALESCE(SUM(invoice_amount), 0) as amount
+      FROM sync_transactions
+      WHERE type = 1
+        AND EXTRACT(MONTH FROM invoice_date)::int = EXTRACT(MONTH FROM (NOW() - INTERVAL '1 month'))::int
+        AND EXTRACT(YEAR FROM invoice_date)::int = EXTRACT(YEAR FROM (NOW() - INTERVAL '1 month'))::int`
+    );
+
+    const billedSameMonthPrevYearQuery = prisma.$queryRawUnsafe<Array<{ amount: number | null }>>(
+      `SELECT COALESCE(SUM(invoice_amount), 0) as amount
+      FROM sync_transactions
+      WHERE type = 1
+        AND EXTRACT(MONTH FROM invoice_date)::int = EXTRACT(MONTH FROM NOW())::int
+        AND EXTRACT(YEAR FROM invoice_date)::int = EXTRACT(YEAR FROM NOW())::int - 1`
+    );
+
+    const monthRange = getCurrentMonthRange();
+    const prevMonthRange = getPrevMonthRange();
+
+    const usdRatePromise = getUsdExchangeRate();
+    const marginThisMonthPromise = computeGrossMargin(monthRange.start, monthRange.end);
+    const marginPrevMonthPromise = computeGrossMargin(prevMonthRange.start, prevMonthRange.end);
+
+    const [
+      balancesRows,
+      billedMonthlyRows,
+      billedTodayRows,
+      billedPrevMonthRows,
+      billedSameMonthPrevYearRows,
+      usdRate,
+      mPercent,
+      mPrev,
+    ] = await Promise.all([
+      balancesQuery,
+      billedMonthlyQuery,
+      billedTodayQuery,
+      billedPrevMonthQuery,
+      billedSameMonthPrevYearQuery,
+      usdRatePromise,
+      marginThisMonthPromise,
+      marginPrevMonthPromise,
+    ]);
+
+    totalOutstanding = Number(balancesRows[0]?.total_outstanding || 0);
+    totalOverdue = Number(balancesRows[0]?.total_overdue || 0);
+    billedMonthly = Number(billedMonthlyRows[0]?.amount || 0);
+    billedToday = Number(billedTodayRows[0]?.amount || 0);
+    billedPrevMonth = Number(billedPrevMonthRows[0]?.amount || 0);
+    billedSameMonthPrevYear = Number(billedSameMonthPrevYearRows[0]?.amount || 0);
+    grossMarginPercent = mPercent;
+    grossMarginPrevPercent = mPrev;
+    grossMarginAmountArs = await computeGrossMarginAmountArs(
+      monthRange.start,
+      monthRange.end,
+      usdRate
+    );
+  } catch (e) {
+    error = describeError(e);
+  }
+
+  const dailyAverage =
+    billedMonthly !== null && daysElapsed > 0 ? billedMonthly / daysElapsed : null;
+
+  return {
     totalOutstanding,
     totalOverdue,
     billedMonthly,
     billedToday,
     billedPrevMonth,
     billedSameMonthPrevYear,
-  ] = await Promise.all([
-    executeXerpScalar<number>(XERP_TOTAL_OUTSTANDING),
-    executeXerpScalar<number>(XERP_TOTAL_OVERDUE),
-    executeXerpScalar<number>(XERP_BILLED_MONTHLY),
-    executeXerpScalar<number>(XERP_BILLED_TODAY),
-    executeXerpScalar<number>(XERP_BILLED_PREV_MONTH),
-    executeXerpScalar<number>(XERP_BILLED_SAME_MONTH_PREV_YEAR),
-  ]);
-  return {
-    totalOutstanding: totalOutstanding ?? 0,
-    totalOverdue: totalOverdue ?? 0,
-    billedMonthly: billedMonthly ?? 0,
-    billedToday: billedToday ?? 0,
-    billedPrevMonth: billedPrevMonth ?? 0,
-    billedSameMonthPrevYear: billedSameMonthPrevYear ?? 0,
-  };
-}
-
-interface MarginBlock {
-  grossMarginPercent: number | null;
-  grossMarginAmountArs: number | null;
-  grossMarginPrevPercent: number | null;
-}
-
-async function fetchMarginBlock(usdRate: number): Promise<MarginBlock> {
-  const monthRange = getCurrentMonthRange();
-  const prevMonthRange = getPrevMonthRange();
-  const [grossMarginPercent, grossMarginAmountArs, grossMarginPrevPercent] = await Promise.all([
-    computeGrossMargin(monthRange.start, monthRange.end),
-    computeGrossMarginAmountArs(monthRange.start, monthRange.end, usdRate),
-    computeGrossMargin(prevMonthRange.start, prevMonthRange.end),
-  ]);
-  return { grossMarginPercent, grossMarginAmountArs, grossMarginPrevPercent };
-}
-
-export async function getMetrics(): Promise<DashboardMetrics> {
-  const now = new Date();
-  const daysElapsed = now.getDate();
-
-  const errors = { xerp: null as string | null, spisa: null as string | null };
-
-  // xERP block: degrade gracefully if the legacy SQL Server is unreachable.
-  let xerp: XerpScalars = {
-    totalOutstanding: null,
-    totalOverdue: null,
-    billedMonthly: null,
-    billedToday: null,
-    billedPrevMonth: null,
-    billedSameMonthPrevYear: null,
-  };
-  try {
-    xerp = await fetchXerpScalars();
-  } catch (e) {
-    errors.xerp = describeError(e);
-  }
-
-  // SPISA block: margin requires PostgreSQL + system_settings.
-  let usdRate = 1000;
-  let margin: MarginBlock = {
-    grossMarginPercent: null,
-    grossMarginAmountArs: null,
-    grossMarginPrevPercent: null,
-  };
-  try {
-    usdRate = await getUsdExchangeRate();
-    margin = await fetchMarginBlock(usdRate);
-  } catch (e) {
-    errors.spisa = describeError(e);
-  }
-
-  const dailyAverage =
-    xerp.billedMonthly !== null && daysElapsed > 0 ? xerp.billedMonthly / daysElapsed : null;
-
-  return {
-    ...xerp,
     dailyAverageThisMonth: dailyAverage,
     daysElapsedThisMonth: daysElapsed,
-    ...margin,
-    errors,
+    grossMarginPercent,
+    grossMarginAmountArs,
+    grossMarginPrevPercent,
+    error,
   };
-}
-
-export interface DashboardChartsResponse {
-  topCustomers: TopCustomer[];
-  salesTrend: MonthlySalesTrend[];
-  topCustomersByRevenue: TopCustomerByRevenue[];
-  errors: { xerp: string | null; spisa: string | null };
 }
 
 async function fetchTopCustomersByRevenue(): Promise<TopCustomerByRevenue[]> {
@@ -276,40 +330,93 @@ async function fetchTopCustomersByRevenue(): Promise<TopCustomerByRevenue[]> {
 }
 
 export async function getCharts(): Promise<DashboardChartsResponse> {
-  const errors = { xerp: null as string | null, spisa: null as string | null };
-
   let topCustomers: TopCustomer[] = [];
   let salesTrend: MonthlySalesTrend[] = [];
-  try {
-    const [tc, st] = await Promise.all([
-      executeXerpQuery<TopCustomer>(XERP_TOP_CUSTOMERS),
-      executeXerpQuery<MonthlySalesTrend>(XERP_MONTHLY_SALES_TREND),
-    ]);
-    topCustomers = tc ?? [];
-    salesTrend = st ?? [];
-  } catch (e) {
-    errors.xerp = describeError(e);
-  }
-
   let topCustomersByRevenue: TopCustomerByRevenue[] = [];
+  let error: string | null = null;
+
   try {
-    topCustomersByRevenue = await fetchTopCustomersByRevenue();
+    // Top 10 customers by AR balance — from sync_*, mirrors dialfa-bi.
+    const topCustomersQuery = prisma.$queryRawUnsafe<
+      Array<{
+        name: string;
+        outstanding_balance: number | null;
+        overdue_amount: number | null;
+      }>
+    >(
+      `SELECT
+        c.name as name,
+        b.amount as outstanding_balance,
+        b.due as overdue_amount
+      FROM sync_customers c
+      INNER JOIN sync_balances b ON c.id = b.customer_id
+      WHERE b.amount > 100
+      ORDER BY b.amount DESC
+      LIMIT 10`
+    );
+
+    // 12-month invoice trend grouped by year-month — from sync_transactions.
+    const salesTrendQuery = prisma.$queryRawUnsafe<
+      Array<{
+        year: number;
+        month: number;
+        month_name: string;
+        monthly_revenue: number | null;
+        invoice_count: number | null;
+        unique_customers: number | null;
+      }>
+    >(
+      `SELECT
+        EXTRACT(YEAR FROM invoice_date)::int as year,
+        EXTRACT(MONTH FROM invoice_date)::int as month,
+        TRIM(TO_CHAR(invoice_date, 'Month')) as month_name,
+        COALESCE(SUM(invoice_amount), 0) as monthly_revenue,
+        COUNT(*) as invoice_count,
+        COUNT(DISTINCT customer_id) as unique_customers
+      FROM sync_transactions
+      WHERE type = 1
+        AND invoice_date >= NOW() - INTERVAL '12 months'
+      GROUP BY EXTRACT(YEAR FROM invoice_date)::int, EXTRACT(MONTH FROM invoice_date)::int, TRIM(TO_CHAR(invoice_date, 'Month'))
+      ORDER BY year DESC, month DESC`
+    );
+
+    const [topRows, trendRows, byRevenue] = await Promise.all([
+      topCustomersQuery,
+      salesTrendQuery,
+      fetchTopCustomersByRevenue(),
+    ]);
+
+    topCustomers = topRows.map((row) => {
+      const balance = Number(row.outstanding_balance || 0);
+      const overdue = Number(row.overdue_amount || 0);
+      return {
+        Name: row.name,
+        OutstandingBalance: balance,
+        OverdueAmount: overdue,
+        OverduePercentage: balance > 0 ? (overdue / balance) * 100 : 0,
+      };
+    });
+
+    salesTrend = trendRows.map((row) => ({
+      Year: Number(row.year),
+      Month: Number(row.month),
+      MonthName: row.month_name,
+      MonthlyRevenue: Number(row.monthly_revenue || 0),
+      InvoiceCount: Number(row.invoice_count || 0),
+      UniqueCustomers: Number(row.unique_customers || 0),
+    }));
+
+    topCustomersByRevenue = byRevenue;
   } catch (e) {
-    errors.spisa = describeError(e);
+    error = describeError(e);
   }
 
-  return {
-    topCustomers,
-    salesTrend,
-    topCustomersByRevenue,
-    errors,
-  };
+  return { topCustomers, salesTrend, topCustomersByRevenue, error };
 }
 
 export async function getOperationalMetrics(): Promise<OperationalMetrics> {
   const usdRate = await getUsdExchangeRate();
 
-  // Stock valuation. last_purchase_price is USD FOB; CIF % brings it to landed cost.
   const stockValueRows = await prisma.$queryRawUnsafe<
     Array<{
       cost_usd: number | null;
@@ -331,8 +438,6 @@ export async function getOperationalMetrics(): Promise<OperationalMetrics> {
   const stockValueRetailArs = Number(stockValueRows[0]?.retail_ars || 0);
   const stockValueCostArs = stockValueCostUsd * usdRate;
 
-  // Dead stock: stock > 0 AND (no sale ever OR last sale > 365 days ago)
-  // Valued at retail (ARS) so the user sees "capital muerto a precio de venta"
   const deadStockRows = await prisma.$queryRawUnsafe<
     Array<{ value_ars: number | null; article_count: number | null }>
   >(
@@ -356,7 +461,6 @@ export async function getOperationalMetrics(): Promise<OperationalMetrics> {
   const deadStockValueArs = Number(deadStockRows[0]?.value_ars || 0);
   const deadStockArticleCount = Number(deadStockRows[0]?.article_count || 0);
 
-  // Stockouts críticos: stock <= 0 AND has sale in last 180 days.
   const stockoutRows = await prisma.$queryRawUnsafe<Array<{ count: number | null }>>(
     `SELECT COUNT(*) as count
     FROM articles a
@@ -374,7 +478,6 @@ export async function getOperationalMetrics(): Promise<OperationalMetrics> {
   );
   const stockoutsCriticalCount = Number(stockoutRows[0]?.count || 0);
 
-  // Pending to invoice: sales orders status PENDING and no active invoice.
   const pendingRows = await prisma.$queryRawUnsafe<
     Array<{ count: number | null; total_ars: number | null }>
   >(
@@ -408,7 +511,6 @@ export async function getOperationalMetrics(): Promise<OperationalMetrics> {
 }
 
 export async function getAlerts(): Promise<DashboardAlerts> {
-  // Stockouts (already counted in operational; we expose here too for the alerts panel).
   const stockoutRows = await prisma.$queryRawUnsafe<Array<{ count: number | null }>>(
     `SELECT COUNT(*) as count
     FROM articles a
@@ -426,7 +528,6 @@ export async function getAlerts(): Promise<DashboardAlerts> {
   );
   const stockoutsCount = Number(stockoutRows[0]?.count || 0);
 
-  // Late proformas: confirmed supplier orders past expected delivery, not yet received.
   const lateProformaRows = await prisma.$queryRawUnsafe<Array<{ count: number | null }>>(
     `SELECT COUNT(*) as count
     FROM supplier_orders so
@@ -438,7 +539,6 @@ export async function getAlerts(): Promise<DashboardAlerts> {
   );
   const lateProformasCount = Number(lateProformaRows[0]?.count || 0);
 
-  // Pending quotes: sales orders in PENDING that haven't been touched in > 14 days.
   const pendingQuotesRows = await prisma.$queryRawUnsafe<Array<{ count: number | null }>>(
     `SELECT COUNT(*) as count
     FROM sales_orders so
