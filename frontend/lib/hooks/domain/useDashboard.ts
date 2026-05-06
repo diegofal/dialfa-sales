@@ -7,19 +7,11 @@ import { useQuery, UseQueryResult } from '@tanstack/react-query';
 import axios from 'axios';
 
 /**
- * Dashboard data source error envelope.
- * Each field is null on success, or contains the error message when the
- * underlying source failed (xerp = legacy SQL Server, spisa = Postgres).
- */
-export interface DashboardSourceErrors {
-  xerp: string | null;
-  spisa: string | null;
-}
-
-/**
  * Dashboard Metrics Response (commercial pulse).
- * xERP-backed fields are null when xERP is unreachable; check `errors.xerp`.
- * SPISA-backed margin fields are null when there's no data OR when SPISA failed.
+ *
+ * All commercial fields read from sync_balances + sync_transactions (Postgres
+ * mirror of xERP). When the query block fails, every numeric field is null and
+ * `error` carries the message.
  */
 export interface DashboardMetrics {
   totalOutstanding: number | null;
@@ -33,7 +25,7 @@ export interface DashboardMetrics {
   grossMarginPercent: number | null;
   grossMarginAmountArs: number | null;
   grossMarginPrevPercent: number | null;
-  errors: DashboardSourceErrors;
+  error: string | null;
 }
 
 /**
@@ -102,7 +94,7 @@ export interface DashboardCharts {
   topCustomers: TopCustomer[];
   salesTrend: MonthlySalesTrend[];
   topCustomersByRevenue: TopCustomerByRevenue[];
-  errors: DashboardSourceErrors;
+  error: string | null;
 }
 
 /**
