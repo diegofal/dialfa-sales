@@ -4,6 +4,7 @@ import { Loader2 } from 'lucide-react';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { ArticleForm } from '@/components/articles/ArticleForm';
+import { ArticleChartsTab } from '@/components/articles/detail/ArticleChartsTab';
 import { ArticleDetailHeader } from '@/components/articles/detail/ArticleDetailHeader';
 import { ArticleHeroStats } from '@/components/articles/detail/ArticleHeroStats';
 import { ArticleMovementsTab } from '@/components/articles/detail/ArticleMovementsTab';
@@ -62,6 +63,7 @@ export default function ArticleDetailPage() {
           <TabsTrigger value="resumen">Resumen</TabsTrigger>
           <TabsTrigger value="ventas">Ventas</TabsTrigger>
           <TabsTrigger value="movimientos">Movimientos</TabsTrigger>
+          <TabsTrigger value="graficos">Gráficos</TabsTrigger>
           <TabsTrigger value="edit">Editar</TabsTrigger>
         </TabsList>
 
@@ -75,6 +77,10 @@ export default function ArticleDetailPage() {
 
         <TabsContent value="movimientos" className="mt-4">
           <ArticleMovementsTab articleId={article.id} />
+        </TabsContent>
+
+        <TabsContent value="graficos" className="mt-4">
+          <ArticleChartsTab articleId={article.id} />
         </TabsContent>
 
         <TabsContent value="edit" className="mt-4">
