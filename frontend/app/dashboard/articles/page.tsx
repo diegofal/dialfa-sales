@@ -31,6 +31,7 @@ import { useSupplierOrderDraft } from '@/lib/hooks/domain/useSupplierOrderDraft'
 import { usePagination } from '@/lib/hooks/generic/usePagination';
 import { useAuthStore } from '@/store/authStore';
 import { Article } from '@/types/article';
+import { StockStatus } from '@/types/stockValuation';
 
 export default function ArticlesPage() {
   const router = useRouter();
@@ -56,6 +57,11 @@ export default function ArticlesPage() {
       'last-12-months',
     ];
     return fromUrl && valid.includes(fromUrl) ? (fromUrl as SoldInPeriod) : 'all';
+  });
+  const [stockStatusFilter, setStockStatusFilter] = useState<StockStatus | 'all'>(() => {
+    const fromUrl = searchParams.get('stockStatus');
+    const valid: readonly string[] = Object.values(StockStatus);
+    return fromUrl && valid.includes(fromUrl) ? (fromUrl as StockStatus) : 'all';
   });
   const [supplierOrderTrendMonths, setSupplierOrderTrendMonths] = useState<number>(12);
 
@@ -128,6 +134,7 @@ export default function ArticlesPage() {
     salesSort: salesSortFilter !== 'none' ? salesSortFilter : undefined,
     trendMonths,
     soldInPeriod: soldInPeriod !== 'all' ? soldInPeriod : undefined,
+    stockStatusFilter: stockStatusFilter !== 'all' ? stockStatusFilter : undefined,
   });
 
   const { data: movementsData, isLoading: isLoadingMovements } = useStockMovements({
@@ -192,6 +199,7 @@ export default function ArticlesPage() {
     abcFilter !== 'all',
     salesSortFilter !== 'none',
     soldInPeriod !== 'all',
+    stockStatusFilter !== 'all',
     searchTerm.length > 0,
   ].filter(Boolean).length;
 
@@ -312,6 +320,29 @@ export default function ArticlesPage() {
               </Select>
             </div>
 
+            {/* Stock Status Filter */}
+            <div className="space-y-2 md:w-[180px]">
+              <label className="text-sm font-medium">Estado de stock</label>
+              <Select
+                value={stockStatusFilter}
+                onValueChange={(v) => {
+                  setStockStatusFilter(v as StockStatus | 'all');
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Todos" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  <SelectItem value={StockStatus.ACTIVE}>🟢 Activo</SelectItem>
+                  <SelectItem value={StockStatus.SLOW_MOVING}>🟡 Mov. Lento</SelectItem>
+                  <SelectItem value={StockStatus.DEAD_STOCK}>🔴 Stock Muerto</SelectItem>
+                  <SelectItem value={StockStatus.NEVER_SOLD}>⚪ Nunca Vendido</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Sold In Period Filter */}
             <div className="space-y-2 md:w-[180px]">
               <label className="text-sm font-medium">Vendido en</label>
@@ -382,6 +413,7 @@ export default function ArticlesPage() {
                   setAbcFilter('all');
                   setSalesSortFilter('none');
                   setSoldInPeriod('all');
+                  setStockStatusFilter('all');
                   setPage(1);
                 }}
               >

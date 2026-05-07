@@ -5,6 +5,7 @@ import { handleError } from '@/lib/errors';
 import * as ArticleService from '@/lib/services/ArticleService';
 import type { SoldInPeriod } from '@/lib/services/ArticleService';
 import { createArticleSchema } from '@/lib/validations/schemas';
+import { StockStatus } from '@/types/stockValuation';
 
 const SOLD_IN_PERIODS: readonly SoldInPeriod[] = [
   'current-month',
@@ -14,6 +15,13 @@ const SOLD_IN_PERIODS: readonly SoldInPeriod[] = [
   'last-12-months',
 ];
 
+const STOCK_STATUSES: readonly StockStatus[] = [
+  StockStatus.ACTIVE,
+  StockStatus.SLOW_MOVING,
+  StockStatus.DEAD_STOCK,
+  StockStatus.NEVER_SOLD,
+];
+
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
@@ -21,6 +29,11 @@ export async function GET(request: NextRequest) {
     const soldInPeriod =
       rawSoldIn && (SOLD_IN_PERIODS as readonly string[]).includes(rawSoldIn)
         ? (rawSoldIn as SoldInPeriod)
+        : undefined;
+    const rawStatus = searchParams.get('stockStatus');
+    const stockStatusFilter =
+      rawStatus && (STOCK_STATUSES as readonly string[]).includes(rawStatus)
+        ? (rawStatus as StockStatus)
         : undefined;
     const result = await ArticleService.list({
       page: parseInt(searchParams.get('page') || '1'),
@@ -41,6 +54,7 @@ export async function GET(request: NextRequest) {
       codes: searchParams.get('codes') || undefined,
       includeTrends: searchParams.get('includeTrends') === 'true',
       soldInPeriod,
+      stockStatusFilter,
     });
 
     return NextResponse.json(result);
