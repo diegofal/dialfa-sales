@@ -7,6 +7,7 @@ import { ArticleForm } from '@/components/articles/ArticleForm';
 import { ArticleDetailHeader } from '@/components/articles/detail/ArticleDetailHeader';
 import { ArticleHeroStats } from '@/components/articles/detail/ArticleHeroStats';
 import { ArticleResumenTab } from '@/components/articles/detail/ArticleResumenTab';
+import { ArticleSalesHistoryTab } from '@/components/articles/detail/ArticleSalesHistoryTab';
 import { Card, CardContent } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useArticle, useUpdateArticle } from '@/lib/hooks/domain/useArticles';
@@ -58,11 +59,16 @@ export default function ArticleDetailPage() {
       <Tabs value={tab} onValueChange={setTab}>
         <TabsList>
           <TabsTrigger value="resumen">Resumen</TabsTrigger>
+          <TabsTrigger value="ventas">Ventas</TabsTrigger>
           <TabsTrigger value="edit">Editar</TabsTrigger>
         </TabsList>
 
         <TabsContent value="resumen" className="mt-4">
           <ArticleResumenTab article={article} />
+        </TabsContent>
+
+        <TabsContent value="ventas" className="mt-4">
+          <ArticleSalesHistoryTab articleId={article.id} />
         </TabsContent>
 
         <TabsContent value="edit" className="mt-4">
