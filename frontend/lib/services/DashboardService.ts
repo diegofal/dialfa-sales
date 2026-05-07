@@ -101,6 +101,12 @@ export interface OperationalMetrics {
   error: string | null;
 }
 
+export interface TopArticleInvoice {
+  id: number;
+  number: string;
+  date: string; // ISO date
+}
+
 export interface TopArticleSold {
   articleId: number;
   code: string;
@@ -109,6 +115,7 @@ export interface TopArticleSold {
   revenueUsd: number;
   currentStock: number;
   status: StockStatus;
+  invoices: TopArticleInvoice[];
 }
 
 export interface DashboardAlerts {
@@ -510,9 +517,40 @@ export async function getTopArticlesSold(): Promise<{
       return { articles: [], error: null };
     }
 
-    // Enrich each top article with current stock and canonical status.
-    // Use the same valuation cache so the status badge matches the valuation page.
-    const valuation = await calculateStockValuation({ includeZeroStock: true });
+    const top = analytics.topArticles.slice(0, 10);
+    const articleIds = top.map((a) => a.articleId);
+
+    // Run valuation enrichment + invoice lookup in parallel.
+    const [valuation, invoiceRows] = await Promise.all([
+      calculateStockValuation({ includeZeroStock: true }),
+      prisma.$queryRawUnsafe<
+        Array<{
+          article_id: bigint;
+          invoice_id: bigint;
+          invoice_number: string;
+          invoice_date: Date;
+        }>
+      >(
+        `SELECT DISTINCT
+          ii.article_id,
+          i.id as invoice_id,
+          i.invoice_number,
+          i.invoice_date
+        FROM invoice_items ii
+        INNER JOIN invoices i ON ii.invoice_id = i.id
+        WHERE ii.article_id = ANY($1::bigint[])
+          AND i.is_printed = true
+          AND i.is_cancelled = false
+          AND i.deleted_at IS NULL
+          AND i.invoice_date >= $2
+          AND i.invoice_date < $3
+        ORDER BY ii.article_id, i.invoice_date DESC, i.id DESC`,
+        articleIds.map((id) => BigInt(id)),
+        monthRange.start,
+        monthRange.end
+      ),
+    ]);
+
     const byId = new Map<number, { currentStock: number; status: StockStatus }>();
     for (const status of Object.values(StockStatus)) {
       for (const a of valuation.byStatus[status].articles) {
@@ -523,7 +561,19 @@ export async function getTopArticlesSold(): Promise<{
       }
     }
 
-    const articles: TopArticleSold[] = analytics.topArticles.slice(0, 10).map((a) => {
+    const invoicesByArticle = new Map<number, TopArticleInvoice[]>();
+    for (const row of invoiceRows) {
+      const articleId = Number(row.article_id);
+      const list = invoicesByArticle.get(articleId) ?? [];
+      list.push({
+        id: Number(row.invoice_id),
+        number: row.invoice_number,
+        date: row.invoice_date.toISOString(),
+      });
+      invoicesByArticle.set(articleId, list);
+    }
+
+    const articles: TopArticleSold[] = top.map((a) => {
       const enrichment = byId.get(a.articleId);
       return {
         articleId: a.articleId,
@@ -533,6 +583,7 @@ export async function getTopArticlesSold(): Promise<{
         revenueUsd: a.revenue,
         currentStock: enrichment?.currentStock ?? 0,
         status: enrichment?.status ?? StockStatus.NEVER_SOLD,
+        invoices: invoicesByArticle.get(a.articleId) ?? [],
       };
     });
 
