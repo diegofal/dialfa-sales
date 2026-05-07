@@ -88,6 +88,12 @@ export interface OperationalMetrics {
 // Mirror of types/stockValuation.ts for client-side narrowing.
 export type DashboardStockStatus = 'active' | 'slow_moving' | 'dead_stock' | 'never_sold';
 
+export interface TopArticleInvoice {
+  id: number;
+  number: string;
+  date: string;
+}
+
 export interface TopArticleSold {
   articleId: number;
   code: string;
@@ -96,6 +102,7 @@ export interface TopArticleSold {
   revenueUsd: number;
   currentStock: number;
   status: DashboardStockStatus;
+  invoices: TopArticleInvoice[];
 }
 
 export interface TopArticlesSoldResponse {

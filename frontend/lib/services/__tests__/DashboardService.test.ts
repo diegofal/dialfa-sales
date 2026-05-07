@@ -379,6 +379,32 @@ describe('getTopArticlesSold', () => {
       calculatedAt: new Date(),
       config: {},
     });
+    // Invoice lookup: article 1 has 2 invoices, article 2 has 1.
+    mockQueriesByFragment([
+      {
+        match: 'FROM invoice_items ii',
+        rows: [
+          {
+            article_id: BigInt(1),
+            invoice_id: BigInt(101),
+            invoice_number: 'F-101',
+            invoice_date: new Date('2026-05-15'),
+          },
+          {
+            article_id: BigInt(1),
+            invoice_id: BigInt(98),
+            invoice_number: 'F-098',
+            invoice_date: new Date('2026-05-10'),
+          },
+          {
+            article_id: BigInt(2),
+            invoice_id: BigInt(102),
+            invoice_number: 'F-102',
+            invoice_date: new Date('2026-05-20'),
+          },
+        ],
+      },
+    ]);
 
     const result = await getTopArticlesSold();
 
@@ -392,9 +418,16 @@ describe('getTopArticlesSold', () => {
       revenueUsd: 5000,
       currentStock: 35,
       status: 'active',
+      invoices: [
+        { id: 101, number: 'F-101', date: new Date('2026-05-15').toISOString() },
+        { id: 98, number: 'F-098', date: new Date('2026-05-10').toISOString() },
+      ],
     });
     expect(result.articles[1].currentStock).toBe(0);
     expect(result.articles[1].status).toBe('never_sold');
+    expect(result.articles[1].invoices).toEqual([
+      { id: 102, number: 'F-102', date: new Date('2026-05-20').toISOString() },
+    ]);
   });
 
   it('returns empty + null error when there are no top articles', async () => {
