@@ -82,6 +82,17 @@ const DEFAULT_STATUS_CONFIG: StockClassificationConfig = {
   fastUpgradeMonthsThreshold: 4,
 };
 
+/**
+ * Presets for the "vendido en período" filter. Resolved server-side to a
+ * concrete date range so clients can't pass arbitrary windows.
+ */
+export type SoldInPeriod =
+  | 'current-month'
+  | 'last-month'
+  | 'last-3-months'
+  | 'last-6-months'
+  | 'last-12-months';
+
 export interface ArticleListParams {
   page: number;
   limit: number;
@@ -100,6 +111,38 @@ export interface ArticleListParams {
   ids?: string;
   codes?: string;
   includeTrends?: boolean;
+  soldInPeriod?: SoldInPeriod;
+}
+
+function resolveSoldInPeriod(period: SoldInPeriod): { start: Date; end: Date } {
+  const now = new Date();
+  switch (period) {
+    case 'current-month': {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1);
+      const end = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      return { start, end };
+    }
+    case 'last-month': {
+      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      const end = new Date(now.getFullYear(), now.getMonth(), 1);
+      return { start, end };
+    }
+    case 'last-3-months':
+      return {
+        start: new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000),
+        end: now,
+      };
+    case 'last-6-months':
+      return {
+        start: new Date(now.getTime() - 180 * 24 * 60 * 60 * 1000),
+        end: now,
+      };
+    case 'last-12-months':
+      return {
+        start: new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000),
+        end: now,
+      };
+  }
 }
 
 // Rating helper for calculated sorting (delegates to shared util)
@@ -272,6 +315,7 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
     ids,
     codes,
     includeTrends,
+    soldInPeriod,
   } = params;
 
   const skip = (page - 1) * limit;
@@ -309,6 +353,20 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
     where.stock = { gt: 0 };
   } else if (zeroStockOnly) {
     where.stock = { equals: 0 };
+  }
+
+  if (soldInPeriod) {
+    const { start, end } = resolveSoldInPeriod(soldInPeriod);
+    where.invoice_items = {
+      some: {
+        invoices: {
+          is_printed: true,
+          is_cancelled: false,
+          deleted_at: null,
+          invoice_date: { gte: start, lt: end },
+        },
+      },
+    };
   }
 
   // Get ABC classification and trends if requested

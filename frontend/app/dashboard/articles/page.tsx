@@ -23,7 +23,7 @@ import {
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ROUTES } from '@/lib/constants/routes';
-import { useArticles, useDeleteArticle } from '@/lib/hooks/domain/useArticles';
+import { type SoldInPeriod, useArticles, useDeleteArticle } from '@/lib/hooks/domain/useArticles';
 import { useCategories } from '@/lib/hooks/domain/useCategories';
 import { useImportCsvToOrder } from '@/lib/hooks/domain/useImportCsvToOrder';
 import { useStockMovements } from '@/lib/hooks/domain/useStockMovements';
@@ -46,6 +46,17 @@ export default function ArticlesPage() {
   const [abcFilter, setAbcFilter] = useState<string>('all');
   const [salesSortFilter, setSalesSortFilter] = useState<string>('none');
   const [trendMonths, setTrendMonths] = useState<number>(12);
+  const [soldInPeriod, setSoldInPeriod] = useState<SoldInPeriod | 'all'>(() => {
+    const fromUrl = searchParams.get('soldInPeriod');
+    const valid: readonly string[] = [
+      'current-month',
+      'last-month',
+      'last-3-months',
+      'last-6-months',
+      'last-12-months',
+    ];
+    return fromUrl && valid.includes(fromUrl) ? (fromUrl as SoldInPeriod) : 'all';
+  });
   const [supplierOrderTrendMonths, setSupplierOrderTrendMonths] = useState<number>(12);
 
   // Supplier order mode
@@ -116,6 +127,7 @@ export default function ArticlesPage() {
     abcFilter: abcFilter !== 'all' ? abcFilter : undefined,
     salesSort: salesSortFilter !== 'none' ? salesSortFilter : undefined,
     trendMonths,
+    soldInPeriod: soldInPeriod !== 'all' ? soldInPeriod : undefined,
   });
 
   const { data: movementsData, isLoading: isLoadingMovements } = useStockMovements({
@@ -179,6 +191,7 @@ export default function ArticlesPage() {
     stockFilter !== 'all',
     abcFilter !== 'all',
     salesSortFilter !== 'none',
+    soldInPeriod !== 'all',
     searchTerm.length > 0,
   ].filter(Boolean).length;
 
@@ -299,6 +312,30 @@ export default function ArticlesPage() {
               </Select>
             </div>
 
+            {/* Sold In Period Filter */}
+            <div className="space-y-2 md:w-[180px]">
+              <label className="text-sm font-medium">Vendido en</label>
+              <Select
+                value={soldInPeriod}
+                onValueChange={(v) => {
+                  setSoldInPeriod(v as SoldInPeriod | 'all');
+                  setPage(1);
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Cualquier período" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Cualquier período</SelectItem>
+                  <SelectItem value="current-month">📅 Mes actual</SelectItem>
+                  <SelectItem value="last-month">📆 Mes anterior</SelectItem>
+                  <SelectItem value="last-3-months">📈 Últimos 3 meses</SelectItem>
+                  <SelectItem value="last-6-months">📈 Últimos 6 meses</SelectItem>
+                  <SelectItem value="last-12-months">📈 Últimos 12 meses</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Sales Sort Filter */}
             <div className="space-y-2 md:w-[200px]">
               <label className="text-sm font-medium">Ordenar por Ventas</label>
@@ -344,6 +381,7 @@ export default function ArticlesPage() {
                   setStockFilter('all');
                   setAbcFilter('all');
                   setSalesSortFilter('none');
+                  setSoldInPeriod('all');
                   setPage(1);
                 }}
               >
@@ -376,6 +414,19 @@ export default function ArticlesPage() {
               {salesSortFilter !== 'none' && (
                 <Badge variant="outline" className="px-3 py-1.5 text-sm">
                   {salesSortFilter === 'most' ? '📈 Más vendidos' : '📉 Menos vendidos'}
+                </Badge>
+              )}
+              {soldInPeriod !== 'all' && (
+                <Badge variant="outline" className="px-3 py-1.5 text-sm">
+                  {soldInPeriod === 'current-month'
+                    ? '📅 Vendidos en el mes actual'
+                    : soldInPeriod === 'last-month'
+                      ? '📆 Vendidos en el mes anterior'
+                      : soldInPeriod === 'last-3-months'
+                        ? '📈 Vendidos últimos 3 meses'
+                        : soldInPeriod === 'last-6-months'
+                          ? '📈 Vendidos últimos 6 meses'
+                          : '📈 Vendidos últimos 12 meses'}
                 </Badge>
               )}
               {stockFilter === 'low' && (
