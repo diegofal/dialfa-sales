@@ -1,0 +1,302 @@
+/**
+ * ArticleForm — reusable form used by both ArticleDialog (create flow) and the
+ * inline Edit tab on /dashboard/articles/[id]. Encapsulates validation +
+ * permission-aware disabling. Submission is delegated to the parent.
+ */
+
+'use client';
+
+import { zodResolver } from '@hookform/resolvers/zod';
+import { Info } from 'lucide-react';
+import { useEffect } from 'react';
+import { useForm } from 'react-hook-form';
+import * as z from 'zod';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { Button } from '@/components/ui/button';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { Textarea } from '@/components/ui/textarea';
+import { useCategories } from '@/lib/hooks/domain/useCategories';
+import { useAuthStore } from '@/store/authStore';
+import { Article, ArticleFormData } from '@/types/article';
+
+const articleSchema = z.object({
+  code: z.string().min(1, 'El código es requerido').max(50, 'Máximo 50 caracteres'),
+  description: z.string().min(1, 'La descripción es requerida').max(500, 'Máximo 500 caracteres'),
+  categoryId: z.number().min(1, 'Debe seleccionar una categoría'),
+  unitPrice: z.number().min(0, 'El precio no puede ser negativo'),
+  stock: z.number().min(0, 'El stock no puede ser negativo'),
+  minimumStock: z.number().min(0, 'El stock mínimo no puede ser negativo'),
+  location: z.string().max(100, 'Máximo 100 caracteres').optional(),
+  isDiscontinued: z.boolean(),
+  notes: z.string().max(1000, 'Máximo 1000 caracteres').optional(),
+});
+
+type ArticleFormValues = z.infer<typeof articleSchema>;
+
+interface ArticleFormProps {
+  article?: Article | null;
+  onSubmit: (data: ArticleFormData) => Promise<void>;
+  onCancel?: () => void;
+  isSubmitting?: boolean;
+  /** Override submit button label (defaults: 'Crear' / 'Actualizar'). */
+  submitLabel?: string;
+}
+
+export function ArticleForm({
+  article,
+  onSubmit,
+  onCancel,
+  isSubmitting = false,
+  submitLabel,
+}: ArticleFormProps) {
+  const isEditing = !!article;
+  const { data: categories, isLoading: categoriesLoading } = useCategories({ activeOnly: true });
+  const { isAdmin, isVendedor } = useAuthStore();
+
+  const canEdit = isAdmin() || isVendedor();
+  const isVendedorUser = isVendedor();
+
+  const {
+    register,
+    handleSubmit,
+    reset,
+    setValue,
+    watch,
+    formState: { errors },
+  } = useForm<ArticleFormValues>({
+    resolver: zodResolver(articleSchema),
+    defaultValues: {
+      code: '',
+      description: '',
+      categoryId: 0,
+      unitPrice: 0,
+      stock: 0,
+      minimumStock: 0,
+      location: '',
+      isDiscontinued: false,
+      notes: '',
+    },
+  });
+
+  const categoryId = watch('categoryId');
+  const isDiscontinued = watch('isDiscontinued');
+
+  useEffect(() => {
+    if (article) {
+      reset({
+        code: article.code,
+        description: article.description,
+        categoryId: article.categoryId,
+        unitPrice: article.unitPrice,
+        stock: article.stock,
+        minimumStock: article.minimumStock,
+        location: article.location || '',
+        isDiscontinued: article.isDiscontinued,
+        notes: article.notes || '',
+      });
+    } else {
+      reset({
+        code: '',
+        description: '',
+        categoryId: 0,
+        unitPrice: 0,
+        stock: 0,
+        minimumStock: 0,
+        location: '',
+        isDiscontinued: false,
+        notes: '',
+      });
+    }
+  }, [article, reset]);
+
+  const handleFormSubmit = async (data: ArticleFormValues) => {
+    const formData: ArticleFormData = {
+      code: data.code,
+      description: data.description,
+      categoryId: data.categoryId,
+      unitPrice: data.unitPrice,
+      stock: data.stock,
+      minimumStock: data.minimumStock,
+      location: data.location || undefined,
+      isDiscontinued: data.isDiscontinued ?? false,
+      notes: data.notes || undefined,
+    };
+    await onSubmit(formData);
+  };
+
+  const finalSubmitLabel = submitLabel ?? (isEditing ? 'Actualizar' : 'Crear');
+
+  return (
+    <form onSubmit={handleSubmit(handleFormSubmit)} className="space-y-4">
+      {!canEdit && (
+        <Alert>
+          <Info className="h-4 w-4" />
+          <AlertDescription>
+            Solo los administradores pueden {isEditing ? 'editar' : 'crear'} artículos. Los
+            vendedores solo pueden ajustar el stock desde la tabla de artículos.
+          </AlertDescription>
+        </Alert>
+      )}
+
+      <div className="grid grid-cols-2 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="code">Código *</Label>
+          <Input id="code" {...register('code')} disabled={!canEdit} />
+          {errors.code && <p className="text-destructive text-sm">{errors.code.message}</p>}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="categoryId">Categoría *</Label>
+          <Select
+            value={categoryId > 0 ? categoryId.toString() : ''}
+            onValueChange={(value) => setValue('categoryId', parseInt(value))}
+            disabled={!canEdit}
+          >
+            <SelectTrigger>
+              <SelectValue placeholder="Seleccione una categoría" />
+            </SelectTrigger>
+            <SelectContent>
+              {categoriesLoading ? (
+                <SelectItem value="0" disabled>
+                  Cargando...
+                </SelectItem>
+              ) : (
+                categories?.data?.map((cat) => (
+                  <SelectItem key={cat.id} value={cat.id.toString()}>
+                    {cat.name}
+                  </SelectItem>
+                ))
+              )}
+            </SelectContent>
+          </Select>
+          {errors.categoryId && (
+            <p className="text-destructive text-sm">{errors.categoryId.message}</p>
+          )}
+        </div>
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="description">Descripción *</Label>
+        <Textarea id="description" {...register('description')} rows={2} disabled={!canEdit} />
+        {errors.description && (
+          <p className="text-destructive text-sm">{errors.description.message}</p>
+        )}
+      </div>
+
+      <div className="grid grid-cols-3 gap-4">
+        <div className="space-y-2">
+          <Label htmlFor="unitPrice">Precio Unitario *</Label>
+          <Input
+            id="unitPrice"
+            type="number"
+            step="0.01"
+            {...register('unitPrice', { valueAsNumber: true })}
+            disabled={!canEdit}
+          />
+          {errors.unitPrice && (
+            <p className="text-destructive text-sm">{errors.unitPrice.message}</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="stock">Stock Actual *</Label>
+          <Input
+            id="stock"
+            type="number"
+            {...register('stock', { valueAsNumber: true })}
+            disabled={!canEdit}
+          />
+          {errors.stock && <p className="text-destructive text-sm">{errors.stock.message}</p>}
+          {isVendedorUser && (
+            <p className="text-muted-foreground text-[10px]">
+              Use el botón de ajuste de stock en la tabla
+            </p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="minimumStock">Stock Mínimo *</Label>
+          <Input
+            id="minimumStock"
+            type="number"
+            {...register('minimumStock', { valueAsNumber: true })}
+            disabled={!canEdit}
+          />
+          {errors.minimumStock && (
+            <p className="text-destructive text-sm">{errors.minimumStock.message}</p>
+          )}
+        </div>
+      </div>
+
+      {isEditing && (article?.lastPurchasePrice || article?.lastPurchaseProformaNumber) && (
+        <div className="bg-muted/30 rounded-md border px-3 py-2 text-sm">
+          <div className="text-muted-foreground text-xs tracking-wide uppercase">Última compra</div>
+          <div className="mt-1 flex flex-wrap items-baseline gap-x-3">
+            {article.lastPurchasePrice != null && (
+              <span className="font-medium">USD {article.lastPurchasePrice.toFixed(2)}</span>
+            )}
+            {article.lastPurchaseProformaNumber && (
+              <span className="text-muted-foreground text-xs">
+                {article.lastPurchaseProformaNumber}
+                {article.lastPurchaseProformaDate
+                  ? ` · ${article.lastPurchaseProformaDate.slice(0, 10)}`
+                  : ''}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="space-y-2">
+        <Label htmlFor="location">Ubicación</Label>
+        <Input
+          id="location"
+          {...register('location')}
+          placeholder="Ej: Depósito A - Estante 3"
+          disabled={!canEdit}
+        />
+        {errors.location && <p className="text-destructive text-sm">{errors.location.message}</p>}
+      </div>
+
+      <div className="space-y-2">
+        <Label htmlFor="notes">Notas</Label>
+        <Textarea id="notes" {...register('notes')} rows={3} disabled={!canEdit} />
+        {errors.notes && <p className="text-destructive text-sm">{errors.notes.message}</p>}
+      </div>
+
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id="isDiscontinued"
+          checked={isDiscontinued}
+          onCheckedChange={(checked) => setValue('isDiscontinued', checked as boolean)}
+          disabled={!canEdit}
+        />
+        <Label htmlFor="isDiscontinued" className="cursor-pointer font-normal">
+          Producto descontinuado
+        </Label>
+      </div>
+
+      <div className="flex justify-end gap-2 pt-4">
+        {onCancel && (
+          <Button type="button" variant="outline" onClick={onCancel}>
+            {canEdit ? 'Cancelar' : 'Cerrar'}
+          </Button>
+        )}
+        {canEdit && (
+          <Button type="submit" disabled={isSubmitting}>
+            {finalSubmitLabel}
+          </Button>
+        )}
+      </div>
+    </form>
+  );
+}

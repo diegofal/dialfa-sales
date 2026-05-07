@@ -143,8 +143,8 @@ export default function ArticlesPage() {
   };
 
   const handleEditArticle = (article: Article) => {
-    setSelectedArticle(article);
-    setDialogOpen(true);
+    // Edit is now handled on the dedicated detail page.
+    router.push(`${ROUTES.ARTICLES}/${article.id}`);
   };
 
   const handleDeleteArticle = (id: number) => {
