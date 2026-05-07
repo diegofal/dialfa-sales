@@ -6,6 +6,7 @@ import { useState } from 'react';
 import { ArticleForm } from '@/components/articles/ArticleForm';
 import { ArticleDetailHeader } from '@/components/articles/detail/ArticleDetailHeader';
 import { ArticleHeroStats } from '@/components/articles/detail/ArticleHeroStats';
+import { ArticleMovementsTab } from '@/components/articles/detail/ArticleMovementsTab';
 import { ArticleResumenTab } from '@/components/articles/detail/ArticleResumenTab';
 import { ArticleSalesHistoryTab } from '@/components/articles/detail/ArticleSalesHistoryTab';
 import { Card, CardContent } from '@/components/ui/card';
@@ -60,6 +61,7 @@ export default function ArticleDetailPage() {
         <TabsList>
           <TabsTrigger value="resumen">Resumen</TabsTrigger>
           <TabsTrigger value="ventas">Ventas</TabsTrigger>
+          <TabsTrigger value="movimientos">Movimientos</TabsTrigger>
           <TabsTrigger value="edit">Editar</TabsTrigger>
         </TabsList>
 
@@ -69,6 +71,10 @@ export default function ArticleDetailPage() {
 
         <TabsContent value="ventas" className="mt-4">
           <ArticleSalesHistoryTab articleId={article.id} />
+        </TabsContent>
+
+        <TabsContent value="movimientos" className="mt-4">
+          <ArticleMovementsTab articleId={article.id} />
         </TabsContent>
 
         <TabsContent value="edit" className="mt-4">
