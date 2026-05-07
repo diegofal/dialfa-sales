@@ -418,15 +418,24 @@ export default function ArticlesPage() {
               )}
               {soldInPeriod !== 'all' && (
                 <Badge variant="outline" className="px-3 py-1.5 text-sm">
-                  {soldInPeriod === 'current-month'
-                    ? '📅 Vendidos en el mes actual'
-                    : soldInPeriod === 'last-month'
-                      ? '📆 Vendidos en el mes anterior'
-                      : soldInPeriod === 'last-3-months'
-                        ? '📈 Vendidos últimos 3 meses'
-                        : soldInPeriod === 'last-6-months'
-                          ? '📈 Vendidos últimos 6 meses'
-                          : '📈 Vendidos últimos 12 meses'}
+                  {(() => {
+                    const periodLabel =
+                      soldInPeriod === 'current-month'
+                        ? 'mes actual'
+                        : soldInPeriod === 'last-month'
+                          ? 'mes anterior'
+                          : soldInPeriod === 'last-3-months'
+                            ? 'últimos 3 meses'
+                            : soldInPeriod === 'last-6-months'
+                              ? 'últimos 6 meses'
+                              : 'últimos 12 meses';
+                    const total = data.totalUnitsSoldInPeriod;
+                    if (total !== undefined) {
+                      const formatted = new Intl.NumberFormat('es-AR').format(total);
+                      return `📅 ${formatted} unidades vendidas en ${periodLabel}`;
+                    }
+                    return `📅 Vendidos en ${periodLabel}`;
+                  })()}
                 </Badge>
               )}
               {stockFilter === 'low' && (
@@ -452,6 +461,20 @@ export default function ArticlesPage() {
                 currentSortDescending={pagination.sortDescending}
                 onSort={setSorting}
                 trendMonths={trendMonths}
+                showSoldInPeriod={soldInPeriod !== 'all'}
+                soldInPeriodLabel={
+                  soldInPeriod === 'current-month'
+                    ? 'Vendido (mes act.)'
+                    : soldInPeriod === 'last-month'
+                      ? 'Vendido (mes ant.)'
+                      : soldInPeriod === 'last-3-months'
+                        ? 'Vendido (3m)'
+                        : soldInPeriod === 'last-6-months'
+                          ? 'Vendido (6m)'
+                          : soldInPeriod === 'last-12-months'
+                            ? 'Vendido (12m)'
+                            : 'Vendido en período'
+                }
                 selectionMode={supplierOrderMode}
                 selectedIds={selectedArticleIds}
                 onToggleSelect={handleToggleSelect}
