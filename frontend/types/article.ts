@@ -41,6 +41,8 @@ export interface Article {
   lastPurchaseProformaDate?: string | null; // ISO date
   cifPercentage?: number | null;
   costPrice?: number | null;
+  /** Units of this article sold within the active `soldInPeriod` filter window. */
+  soldUnitsInPeriod?: number;
 }
 
 export interface ArticleFormData {

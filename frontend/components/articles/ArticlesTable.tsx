@@ -49,6 +49,10 @@ interface ArticlesTableProps {
   currentSortDescending?: boolean;
   onSort?: (sortBy: string, sortDescending: boolean) => void;
   trendMonths?: number;
+  /** Adds a "Vendido en período" column when set. */
+  showSoldInPeriod?: boolean;
+  /** Header label for the period column (e.g. "Vendido en mes actual"). */
+  soldInPeriodLabel?: string;
   // Supplier order mode
   selectionMode?: boolean;
   selectedIds?: Set<number>;
@@ -63,6 +67,8 @@ export function ArticlesTable({
   currentSortDescending,
   onSort,
   trendMonths = 12,
+  showSoldInPeriod = false,
+  soldInPeriodLabel = 'Vendido en período',
   selectionMode = false,
   selectedIds = new Set(),
   onToggleSelect,
@@ -131,6 +137,9 @@ export function ArticlesTable({
             >
               Stock Mín.
             </SortableTableHead>
+            {showSoldInPeriod && (
+              <SortableTableHead align="right">{soldInPeriodLabel}</SortableTableHead>
+            )}
             <SortableTableHead>Tendencia ({trendMonths} meses)</SortableTableHead>
             <SortableTableHead>Tend. Activa</SortableTableHead>
             <TooltipProvider>
@@ -288,7 +297,7 @@ export function ArticlesTable({
           {articles.length === 0 ? (
             <TableRow>
               <TableCell
-                colSpan={selectionMode ? 17 : 16}
+                colSpan={(selectionMode ? 17 : 16) + (showSoldInPeriod ? 1 : 0)}
                 className="text-muted-foreground text-center"
               >
                 No hay artículos para mostrar
@@ -353,6 +362,24 @@ export function ArticlesTable({
                   <TableCell className="text-muted-foreground text-right">
                     {article.minimumStock}
                   </TableCell>
+
+                  {showSoldInPeriod && (
+                    <TableCell className="text-right tabular-nums">
+                      {article.soldUnitsInPeriod !== undefined ? (
+                        <span
+                          className={
+                            article.soldUnitsInPeriod > 0
+                              ? 'font-semibold text-emerald-500'
+                              : 'text-muted-foreground'
+                          }
+                        >
+                          {new Intl.NumberFormat('es-AR').format(article.soldUnitsInPeriod)}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                  )}
 
                   {/* Tendencia */}
                   <TableCell>

@@ -6,6 +6,11 @@ export interface PagedResult<T> {
     total: number;
     totalPages: number;
   };
+  /**
+   * Articles only — total units sold across the full filtered set when
+   * `soldInPeriod` is active. Independent of pagination.
+   */
+  totalUnitsSoldInPeriod?: number;
 }
 
 export interface PaginationParams {
