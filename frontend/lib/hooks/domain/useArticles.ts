@@ -1,7 +1,9 @@
 import { Article, ArticleFormData } from '@/types/article';
 import { PaginationParams } from '@/types/pagination';
-import { articlesApi } from '../../api/articles';
+import { articlesApi, type SoldInPeriod } from '../../api/articles';
 import { createCRUDHooks } from '../api';
+
+export type { SoldInPeriod };
 
 export interface ArticlesListParams extends PaginationParams {
   activeOnly?: boolean;
@@ -15,6 +17,7 @@ export interface ArticlesListParams extends PaginationParams {
   abcFilter?: string;
   salesSort?: string;
   trendMonths?: number;
+  soldInPeriod?: SoldInPeriod;
 }
 
 const { useList, useById, useCreate, useUpdate, useDelete } = createCRUDHooks<

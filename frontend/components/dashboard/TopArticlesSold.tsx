@@ -98,7 +98,7 @@ export function TopArticlesSold() {
             <CardDescription>Por revenue, con stock actual y estado</CardDescription>
           </div>
           <Link
-            href={ROUTES.ARTICLES}
+            href={`${ROUTES.ARTICLES}?soldInPeriod=current-month`}
             className="text-primary flex items-center gap-1 text-sm hover:underline"
           >
             Ver artículos

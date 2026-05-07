@@ -3,11 +3,25 @@ import { RESOURCES, ACTIONS } from '@/lib/auth/permissions';
 import { requirePermission } from '@/lib/auth/roles';
 import { handleError } from '@/lib/errors';
 import * as ArticleService from '@/lib/services/ArticleService';
+import type { SoldInPeriod } from '@/lib/services/ArticleService';
 import { createArticleSchema } from '@/lib/validations/schemas';
+
+const SOLD_IN_PERIODS: readonly SoldInPeriod[] = [
+  'current-month',
+  'last-month',
+  'last-3-months',
+  'last-6-months',
+  'last-12-months',
+];
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams;
+    const rawSoldIn = searchParams.get('soldInPeriod');
+    const soldInPeriod =
+      rawSoldIn && (SOLD_IN_PERIODS as readonly string[]).includes(rawSoldIn)
+        ? (rawSoldIn as SoldInPeriod)
+        : undefined;
     const result = await ArticleService.list({
       page: parseInt(searchParams.get('page') || '1'),
       limit: parseInt(searchParams.get('limit') || '50'),
@@ -26,6 +40,7 @@ export async function GET(request: NextRequest) {
       ids: searchParams.get('ids') || undefined,
       codes: searchParams.get('codes') || undefined,
       includeTrends: searchParams.get('includeTrends') === 'true',
+      soldInPeriod,
     });
 
     return NextResponse.json(result);

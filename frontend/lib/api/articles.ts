@@ -2,6 +2,13 @@ import { Article, ArticleFormData } from '@/types/article';
 import { PagedResult, PaginationParams } from '@/types/pagination';
 import apiClient from './client';
 
+export type SoldInPeriod =
+  | 'current-month'
+  | 'last-month'
+  | 'last-3-months'
+  | 'last-6-months'
+  | 'last-12-months';
+
 export const articlesApi = {
   getAll: async (
     params: PaginationParams & {
@@ -16,6 +23,7 @@ export const articlesApi = {
       abcFilter?: string;
       salesSort?: string;
       trendMonths?: number;
+      soldInPeriod?: SoldInPeriod;
     } = {}
   ): Promise<PagedResult<Article>> => {
     const apiParams = {
@@ -35,6 +43,7 @@ export const articlesApi = {
       lowStockOnly: params.lowStockOnly,
       hasStockOnly: params.hasStockOnly,
       zeroStockOnly: params.zeroStockOnly,
+      soldInPeriod: params.soldInPeriod,
     };
 
     const { data } = await apiClient.get<PagedResult<Article>>('/articles', {
