@@ -114,6 +114,7 @@ export interface ArticleListParams {
   codes?: string;
   includeTrends?: boolean;
   soldInPeriod?: SoldInPeriod;
+  stockStatusFilter?: StockStatus;
 }
 
 function resolveSoldInPeriod(period: SoldInPeriod): { start: Date; end: Date } {
@@ -320,6 +321,7 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
     codes,
     includeTrends,
     soldInPeriod,
+    stockStatusFilter,
   } = params;
 
   const skip = (page - 1) * limit;
@@ -429,7 +431,13 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
     }
   }
 
-  const needsFullDataset = !!(abcFilter || salesSort || lowStockOnly || isCalculatedSort);
+  const needsFullDataset = !!(
+    abcFilter ||
+    salesSort ||
+    lowStockOnly ||
+    isCalculatedSort ||
+    stockStatusFilter
+  );
 
   let finalArticles: EnrichedArticleDTO[] = [];
   let totalCount = 0;
@@ -458,7 +466,7 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
       });
     }
 
-    const mappedArticles = filtered.map((a) =>
+    let mappedArticles = filtered.map((a) =>
       enrichArticle(
         a,
         abcMap,
@@ -469,6 +477,10 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
         recentStatuses
       )
     );
+
+    if (stockStatusFilter) {
+      mappedArticles = mappedArticles.filter((a) => a.stockStatus === stockStatusFilter);
+    }
 
     if (salesSort && trendsData) {
       mappedArticles.sort((a, b) => {

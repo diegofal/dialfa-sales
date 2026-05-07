@@ -1,5 +1,6 @@
 import { Article, ArticleFormData } from '@/types/article';
 import { PagedResult, PaginationParams } from '@/types/pagination';
+import type { StockStatus } from '@/types/stockValuation';
 import apiClient from './client';
 
 export type SoldInPeriod =
@@ -24,6 +25,7 @@ export const articlesApi = {
       salesSort?: string;
       trendMonths?: number;
       soldInPeriod?: SoldInPeriod;
+      stockStatusFilter?: StockStatus;
     } = {}
   ): Promise<PagedResult<Article>> => {
     const apiParams = {
@@ -44,6 +46,7 @@ export const articlesApi = {
       hasStockOnly: params.hasStockOnly,
       zeroStockOnly: params.zeroStockOnly,
       soldInPeriod: params.soldInPeriod,
+      stockStatus: params.stockStatusFilter,
     };
 
     const { data } = await apiClient.get<PagedResult<Article>>('/articles', {

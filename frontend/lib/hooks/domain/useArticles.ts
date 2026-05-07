@@ -1,5 +1,6 @@
 import { Article, ArticleFormData } from '@/types/article';
 import { PaginationParams } from '@/types/pagination';
+import type { StockStatus } from '@/types/stockValuation';
 import { articlesApi, type SoldInPeriod } from '../../api/articles';
 import { createCRUDHooks } from '../api';
 
@@ -18,6 +19,7 @@ export interface ArticlesListParams extends PaginationParams {
   salesSort?: string;
   trendMonths?: number;
   soldInPeriod?: SoldInPeriod;
+  stockStatusFilter?: StockStatus;
 }
 
 const { useList, useById, useCreate, useUpdate, useDelete } = createCRUDHooks<
