@@ -74,6 +74,9 @@ jest.mock('@/lib/utils/articles/salesTrends', () => ({
 jest.mock('@/lib/utils/articles/stockValuation', () => ({
   calculateStockValuation: jest.fn().mockResolvedValue({ byStatus: {} }),
   getStockValuationCacheInfo: jest.fn().mockReturnValue({ isCached: false }),
+  classifyStockStatus: jest.fn().mockReturnValue('never_sold'),
+  calculateActiveStockTrends: jest.fn().mockResolvedValue({ data: new Map() }),
+  getRecentArticleStatuses: jest.fn().mockResolvedValue(new Map()),
 }));
 
 jest.mock('@/lib/utils/mapper', () => ({

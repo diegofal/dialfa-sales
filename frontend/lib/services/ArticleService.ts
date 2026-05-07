@@ -726,7 +726,51 @@ export async function getById(id: bigint) {
     return null;
   }
 
-  return mapArticleToDTO(article);
+  // Enrich with the same fields the list view exposes (lastSaleDate, sales
+  // trend/sparkline, ABC class, stockStatus). Without this the detail page
+  // shows "Sin ventas registradas" even for articles that have sales.
+  const trendMonths = 12;
+  let abcMap: Map<string, 'A' | 'B' | 'C'> | null = null;
+  let trendsData: { data: Map<string, number[]>; labels: string[] } | null = null;
+  let classificationTrendsData: { data: Map<string, number[]>; labels: string[] } | null = null;
+  let activeTrends: ActiveStockTrendResult | null = null;
+  let lastSaleDates: Map<string, Date | null> | null = null;
+  let recentStatuses: Map<string, RecentSnapshotStatuses> | null = null;
+
+  try {
+    [lastSaleDates, abcMap, trendsData] = await Promise.all([
+      calculateLastSaleDates(),
+      calculateABCClassification(),
+      calculateSalesTrends(trendMonths),
+    ]);
+    activeTrends = await calculateActiveStockTrends(trendMonths);
+    const classificationMonths = Math.max(
+      DEFAULT_STATUS_CONFIG.deadStockNoActivityWindowMonths ?? 12,
+      trendMonths
+    );
+    classificationTrendsData =
+      classificationMonths === trendMonths
+        ? trendsData
+        : await calculateSalesTrends(classificationMonths);
+    const historyDays =
+      Math.max(
+        DEFAULT_STATUS_CONFIG.upgradeConfirmDays ?? 7,
+        DEFAULT_STATUS_CONFIG.downgradeConfirmDays ?? 14
+      ) + 3;
+    recentStatuses = await getRecentArticleStatuses(historyDays);
+  } catch (error) {
+    logger.error('Error enriching article detail', { articleId: id.toString() }, error as Error);
+  }
+
+  return enrichArticle(
+    article as ArticleWithCategory,
+    abcMap,
+    trendsData,
+    lastSaleDates,
+    activeTrends,
+    classificationTrendsData,
+    recentStatuses
+  );
 }
 
 export async function create(data: CreateArticleInput, request: NextRequest) {
