@@ -161,7 +161,7 @@ export default function ClientsPage() {
         <CardContent>
           {isLoading && <LoadingSpinner size="md" className="py-8" />}
 
-          {error && (
+          {!!error && (
             <div className="text-destructive py-8 text-center">Error al cargar los clientes</div>
           )}
 
