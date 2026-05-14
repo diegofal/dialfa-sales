@@ -1,14 +1,22 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, type UseQueryOptions } from '@tanstack/react-query';
 import type { PaginationParams, PagedResult } from '@/types/pagination';
 import { useEntityMutation } from './useEntityMutation';
 
 interface CRUDApi<TEntity, TCreateData, TUpdateData, TListParams> {
-  getAll: (params?: TListParams) => Promise<PagedResult<TEntity>>;
+  getAll: (
+    params?: TListParams,
+    options?: { signal?: AbortSignal }
+  ) => Promise<PagedResult<TEntity>>;
   getById: (id: number) => Promise<TEntity>;
   create: (data: TCreateData) => Promise<TEntity>;
   update: (id: number, data: TUpdateData) => Promise<TEntity>;
   delete: (id: number) => Promise<void>;
 }
+
+type ListQueryOptions<TEntity> = Omit<
+  UseQueryOptions<PagedResult<TEntity>, unknown, PagedResult<TEntity>>,
+  'queryKey' | 'queryFn'
+>;
 
 interface CRUDMessages {
   created?: string;
@@ -46,10 +54,14 @@ export function createCRUDHooks<
     deleteError = `Error al eliminar ${entityName.toLowerCase()}`,
   } = messages;
 
-  function useList(params: TListParams = {} as TListParams) {
+  function useList(
+    params: TListParams = {} as TListParams,
+    queryOptions: ListQueryOptions<TEntity> = {}
+  ) {
     return useQuery({
       queryKey: [queryKey, params],
-      queryFn: () => api.getAll(params),
+      queryFn: ({ signal }) => api.getAll(params, { signal }),
+      ...queryOptions,
     });
   }
 

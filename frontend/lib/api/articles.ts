@@ -26,7 +26,8 @@ export const articlesApi = {
       trendMonths?: number;
       soldInPeriod?: SoldInPeriod;
       stockStatusFilter?: StockStatus;
-    } = {}
+    } = {},
+    options: { signal?: AbortSignal } = {}
   ): Promise<PagedResult<Article>> => {
     const apiParams = {
       page: params.pageNumber || 1,
@@ -51,6 +52,7 @@ export const articlesApi = {
 
     const { data } = await apiClient.get<PagedResult<Article>>('/articles', {
       params: apiParams,
+      signal: options.signal,
     });
     return data;
   },

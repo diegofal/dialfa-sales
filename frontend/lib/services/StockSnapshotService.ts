@@ -1,6 +1,9 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '@/lib/db';
-import { calculateStockValuation } from '@/lib/utils/articles/stockValuation';
+import {
+  calculateStockValuation,
+  invalidateRecentArticleStatusesCache,
+} from '@/lib/utils/articles/stockValuation';
 import {
   StockSnapshot,
   StockCategorySnapshotsByStatus,
@@ -182,6 +185,8 @@ export async function createArticleStatusSnapshots(
     data: records,
     skipDuplicates: true,
   });
+
+  invalidateRecentArticleStatusesCache();
 }
 
 // `getRecentArticleStatuses` is defined in `lib/utils/articles/stockValuation.ts`
