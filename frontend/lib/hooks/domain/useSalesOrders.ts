@@ -133,6 +133,7 @@ export const useCancelSalesOrder = () => {
     mutationFn: (id: number) => salesOrdersApi.cancel(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['salesOrders'] });
+      queryClient.invalidateQueries({ queryKey: ['articles'] });
       toast.success('Pedido cancelado exitosamente');
     },
     onError: (error: unknown) => {
@@ -171,6 +172,8 @@ export const useDeleteSalesOrder = () => {
       // Invalidate invoices and delivery notes queries since they may have been deleted/cancelled
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['delivery-notes'] });
+      // Stock may have been restored if affected invoices were printed
+      queryClient.invalidateQueries({ queryKey: ['articles'] });
 
       // Build detailed success message
       let message = `Pedido ${data.orderNumber || ''} eliminado exitosamente`;
@@ -212,6 +215,7 @@ export const useGenerateInvoice = () => {
     onSuccess: (invoice: Invoice) => {
       queryClient.invalidateQueries({ queryKey: ['salesOrders'] });
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
+      queryClient.invalidateQueries({ queryKey: ['articles'] });
       toast.success(`Factura ${invoice.invoiceNumber} generada exitosamente`);
       return invoice;
     },
