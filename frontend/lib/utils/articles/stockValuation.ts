@@ -631,9 +631,28 @@ export function confirmedFor(
  * circular: StockSnapshotService ya importa de este archivo. El servicio lo
  * re-exporta para callers externos.
  */
+const recentArticleStatusesCache: {
+  data: Map<number, Map<string, RecentSnapshotStatuses>>;
+  timestamp: number | null;
+} = {
+  data: new Map(),
+  timestamp: null,
+};
+
+const RECENT_STATUSES_CACHE_DURATION = 24 * 60 * 60 * 1000;
+
 export async function getRecentArticleStatuses(
   daysBack: number
 ): Promise<Map<string, RecentSnapshotStatuses>> {
+  const now = Date.now();
+  if (
+    recentArticleStatusesCache.timestamp &&
+    now - recentArticleStatusesCache.timestamp < RECENT_STATUSES_CACHE_DURATION
+  ) {
+    const cached = recentArticleStatusesCache.data.get(daysBack);
+    if (cached) return cached;
+  }
+
   const since = new Date();
   since.setUTCDate(since.getUTCDate() - daysBack);
   since.setUTCHours(0, 0, 0, 0);
@@ -654,7 +673,22 @@ export async function getRecentArticleStatuses(
     }
     list.push({ date: row.date, status: row.status as StockStatus });
   }
+
+  if (
+    !recentArticleStatusesCache.timestamp ||
+    now - recentArticleStatusesCache.timestamp >= RECENT_STATUSES_CACHE_DURATION
+  ) {
+    recentArticleStatusesCache.data.clear();
+    recentArticleStatusesCache.timestamp = now;
+  }
+  recentArticleStatusesCache.data.set(daysBack, result);
+
   return result;
+}
+
+export function invalidateRecentArticleStatusesCache(): void {
+  recentArticleStatusesCache.data.clear();
+  recentArticleStatusesCache.timestamp = null;
 }
 
 /**

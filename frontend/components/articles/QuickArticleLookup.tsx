@@ -1,5 +1,6 @@
 'use client';
 
+import { keepPreviousData } from '@tanstack/react-query';
 import { Search } from 'lucide-react';
 import { useState, useRef, useEffect } from 'react';
 import { toast } from 'sonner';
@@ -8,6 +9,7 @@ import { Input } from '@/components/ui/input';
 import { useArticles } from '@/lib/hooks/domain/useArticles';
 import { useClient } from '@/lib/hooks/domain/useClients';
 import { useQuickCartTabs } from '@/lib/hooks/domain/useQuickCartTabs';
+import { useDebounce } from '@/lib/hooks/generic/useDebounce';
 import {
   formatMarginPercent,
   getArticleCifCost,
@@ -45,12 +47,22 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
 
   // Search articles as user types code.
   // includeTrends=true so the API returns stockStatus + trends used by StockStatusBadge.
-  const { data: articlesResult } = useArticles({
-    searchTerm: articleCode,
-    activeOnly: true,
-    pageSize: 5,
-    includeTrends: true,
-  });
+  // Debounce + min-length gating keeps us at one request per pause (not per keystroke);
+  // keepPreviousData stops the dropdown from blanking between fetches.
+  const debouncedCode = useDebounce(articleCode, 300);
+  const trimmedDebounced = debouncedCode.trim();
+  const { data: articlesResult } = useArticles(
+    {
+      searchTerm: trimmedDebounced,
+      activeOnly: true,
+      pageSize: 5,
+      includeTrends: true,
+    },
+    {
+      enabled: trimmedDebounced.length >= 2,
+      placeholderData: keepPreviousData,
+    }
+  );
 
   const articles = articlesResult?.data || [];
 
@@ -205,7 +217,7 @@ export function QuickArticleLookup({ autoFocus = false, focusTrigger }: QuickArt
         </div>
 
         {/* Search Results Dropdown */}
-        {showCodeResults && articleCode && articles.length > 0 && (
+        {showCodeResults && articleCode.trim().length >= 2 && articles.length > 0 && (
           <Card className="absolute z-[60] mt-1 max-h-[320px] w-[420px] overflow-auto shadow-xl">
             <div className="p-1">
               {articles.map((article, index) => {
