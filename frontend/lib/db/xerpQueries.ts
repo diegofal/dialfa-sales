@@ -115,8 +115,8 @@ export const XERP_MONTHLY_SALES_TREND_NET = `
     YEAR(so.ord_date) as Year,
     MONTH(so.ord_date) as Month,
     DATENAME(MONTH, so.ord_date) as MonthName,
-    SUM(CASE WHEN dt.Type = 10 THEN dt.Total * 1.21
-             WHEN dt.Type = 11 THEN dt.Total * -1.21
+    SUM(CASE WHEN dt.Type = 10 THEN Total * 1.21
+             WHEN dt.Type = 11 THEN Total * -1.21
              ELSE 0 END) as MonthlyRevenue,
     COUNT(DISTINCT CASE WHEN dt.Type = 10 THEN dt.trans_no END) as InvoiceCount,
     COUNT(DISTINCT so.debtor_no) as UniqueCustomers
