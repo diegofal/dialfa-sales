@@ -7,6 +7,7 @@ import {
   Truck,
   Settings,
   FileCheck,
+  FileBarChart2,
   UserCog,
   History,
   MessageSquare,
@@ -34,6 +35,7 @@ const navigation = [
 
 const navigationAfterRemitos = [
   { name: 'Certificados', href: ROUTES.CERTIFICATES, icon: FileCheck },
+  { name: 'Reportes', href: ROUTES.REPORTS, icon: FileBarChart2 },
   { name: 'Feedback', href: ROUTES.FEEDBACK, icon: MessageSquare },
   { name: 'Configuración', href: ROUTES.SETTINGS, icon: Settings },
 ];
