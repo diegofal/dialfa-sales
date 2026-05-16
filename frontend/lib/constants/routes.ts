@@ -20,6 +20,8 @@ export const ROUTES = {
   FEEDBACK: '/dashboard/feedback',
   FEEDBACK_ADMIN: '/dashboard/feedback/admin',
   FINANCIAL_ANALYSIS: '/dashboard/financial-analysis',
+  REPORTS: '/dashboard/reports',
+  REPORTS_DEAD_STOCK_MOVEMENTS: '/dashboard/reports/dead-stock-movements',
 } as const;
 
 export type RoutePath = (typeof ROUTES)[keyof typeof ROUTES];

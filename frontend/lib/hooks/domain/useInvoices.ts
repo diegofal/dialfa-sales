@@ -49,6 +49,7 @@ export function useCancelInvoice() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['sales-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['articles'] });
       toast.success('Factura cancelada exitosamente');
     },
     onError: (error: unknown) => {
@@ -65,6 +66,7 @@ export function usePrintInvoice() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['invoices'] });
       queryClient.invalidateQueries({ queryKey: ['sales-orders'] });
+      queryClient.invalidateQueries({ queryKey: ['articles'] });
       toast.success('Factura marcada como impresa');
     },
     onError: (error: unknown) => {
