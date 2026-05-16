@@ -59,8 +59,8 @@ interface CandidateRow {
 }
 
 interface InvoiceRow {
-  article_id: string;
-  invoice_id: string;
+  article_id: bigint;
+  invoice_id: bigint;
   invoice_number: string;
   invoice_date: Date;
 }
@@ -148,10 +148,12 @@ export async function getDeadStockMovements(params: {
   // Lista de facturas DISTINCT (por (article_id, invoice_id)) para el período,
   // usando el mismo predicado canónico. `$queryRawUnsafe` con parámetros
   // posicionales, alineado con el patrón en DashboardService para arrays bigint.
+  // Sin casts en la proyección: con SELECT DISTINCT, las expresiones del
+  // ORDER BY deben coincidir con el SELECT.
   const invoices = await prisma.$queryRawUnsafe<InvoiceRow[]>(
     `SELECT DISTINCT
-      ii.article_id::text AS article_id,
-      i.id::text AS invoice_id,
+      ii.article_id,
+      i.id AS invoice_id,
       i.invoice_number,
       i.invoice_date
     FROM invoice_items ii
@@ -170,13 +172,14 @@ export async function getDeadStockMovements(params: {
 
   const invoicesByArticle = new Map<string, DeadStockMovementInvoice[]>();
   for (const row of invoices) {
-    const list = invoicesByArticle.get(row.article_id) ?? [];
+    const articleKey = row.article_id.toString();
+    const list = invoicesByArticle.get(articleKey) ?? [];
     list.push({
-      id: row.invoice_id,
+      id: row.invoice_id.toString(),
       number: row.invoice_number,
       date: row.invoice_date.toISOString(),
     });
-    invoicesByArticle.set(row.article_id, list);
+    invoicesByArticle.set(articleKey, list);
   }
 
   const items: DeadStockMovementItem[] = candidates.map((c) => ({
