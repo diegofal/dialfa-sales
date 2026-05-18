@@ -28,6 +28,7 @@ export interface DeadStockMovementItem {
   statusTo: StockStatus | null;
   unitsSold: number;
   revenueArs: number;
+  currentStock: number;
   lastSaleDate: string | null; // ISO
   invoices: DeadStockMovementInvoice[];
 }
@@ -55,6 +56,7 @@ interface CandidateRow {
   status_to: string | null;
   units_sold: number;
   revenue_ars: string;
+  current_stock: string | null;
   last_sale_date: Date | null;
 }
 
@@ -131,6 +133,7 @@ export async function getDeadStockMovements(params: {
       st.status AS status_to,
       s.units_sold::int AS units_sold,
       s.revenue_ars::text AS revenue_ars,
+      a.stock::text AS current_stock,
       s.last_sale_date
     FROM candidate_articles ca
     INNER JOIN sales s ON s.article_id = ca.article_id
@@ -199,6 +202,7 @@ export async function getDeadStockMovements(params: {
     statusTo: (c.status_to as StockStatus | null) ?? null,
     unitsSold: c.units_sold,
     revenueArs: Number(c.revenue_ars),
+    currentStock: c.current_stock ? Number(c.current_stock) : 0,
     lastSaleDate: c.last_sale_date ? c.last_sale_date.toISOString() : null,
     invoices: invoicesByArticle.get(c.article_id) ?? [],
   }));
