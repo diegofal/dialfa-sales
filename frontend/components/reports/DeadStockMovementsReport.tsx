@@ -159,8 +159,8 @@ export function DeadStockMovementsReport() {
         <div>
           <h1 className="text-2xl font-bold">Movimientos en Dead Stock</h1>
           <p className="text-muted-foreground text-sm">
-            Artículos que estaban en stock muerto al inicio del período y tuvieron ventas en el
-            rango. El estado @ fin muestra si además salieron de la categoría.
+            Artículos que estuvieron en stock muerto en algún momento del rango y tuvieron ventas en
+            el período. El estado @ fin indica si salieron de la categoría.
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
