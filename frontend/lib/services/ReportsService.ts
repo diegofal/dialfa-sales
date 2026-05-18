@@ -126,12 +126,11 @@ export async function getDeadStockMovements(params: {
       COALESCE(s.revenue_ars, 0)::text AS revenue_ars,
       s.last_sale_date
     FROM candidates c
+    INNER JOIN sales s ON s.article_id = c.article_id
     LEFT JOIN articles a ON a.id = c.article_id
     LEFT JOIN categories cat ON cat.id = a.category_id
-    LEFT JOIN sales s ON s.article_id = c.article_id
-    WHERE c.status_to <> ${StockStatus.DEAD_STOCK}
-       OR COALESCE(s.units_sold, 0) > 0
-    ORDER BY COALESCE(s.revenue_ars, 0) DESC, COALESCE(s.units_sold, 0) DESC
+    WHERE s.units_sold > 0
+    ORDER BY s.revenue_ars DESC, s.units_sold DESC
   `;
 
   if (candidates.length === 0) {
