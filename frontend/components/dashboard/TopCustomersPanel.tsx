@@ -8,14 +8,25 @@
 'use client';
 
 import { Users } from 'lucide-react';
+import Link from 'next/link';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ROUTES } from '@/lib/constants/routes';
 import {
   formatCurrency,
   type RiskLevel,
   useDashboardCharts,
 } from '@/lib/hooks/domain/useDashboard';
+
+function currentMonthBounds() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const endExclusive = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const toInclusive = new Date(endExclusive.getTime() - 1);
+  const iso = (d: Date) => d.toISOString().slice(0, 10);
+  return { fromDate: iso(start), toDate: iso(toInclusive) };
+}
 
 const RISK_BADGES: Record<RiskLevel, { label: string; className: string }> = {
   HIGH: {
@@ -90,16 +101,28 @@ export function TopCustomersPanel() {
                     </tr>
                   </thead>
                   <tbody>
-                    {byRevenue.map((c, i) => (
-                      <tr key={c.clientId} className="border-border/30 border-b">
-                        <td className="text-muted-foreground py-1.5 text-xs">{i + 1}</td>
-                        <td className="truncate py-1.5 font-medium">{c.businessName}</td>
-                        <td className="py-1.5 text-right tabular-nums">{c.invoiceCount}</td>
-                        <td className="py-1.5 text-right tabular-nums">
-                          {formatCurrency(c.revenueArs)}
-                        </td>
-                      </tr>
-                    ))}
+                    {byRevenue.map((c, i) => {
+                      const { fromDate, toDate } = currentMonthBounds();
+                      const invoicesHref = `${ROUTES.INVOICES}?clientId=${c.clientId}&clientName=${encodeURIComponent(c.businessName)}&fromDate=${fromDate}&toDate=${toDate}`;
+                      return (
+                        <tr key={c.clientId} className="border-border/30 border-b">
+                          <td className="text-muted-foreground py-1.5 text-xs">{i + 1}</td>
+                          <td className="truncate py-1.5 font-medium">{c.businessName}</td>
+                          <td className="py-1.5 text-right tabular-nums">
+                            <Link
+                              href={invoicesHref}
+                              className="text-primary hover:underline"
+                              title={`Ver ${c.invoiceCount} factura${c.invoiceCount === 1 ? '' : 's'} del mes`}
+                            >
+                              {c.invoiceCount}
+                            </Link>
+                          </td>
+                          <td className="py-1.5 text-right tabular-nums">
+                            {formatCurrency(c.revenueArs)}
+                          </td>
+                        </tr>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

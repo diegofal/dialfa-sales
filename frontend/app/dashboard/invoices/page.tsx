@@ -1,7 +1,7 @@
 'use client';
 
-import { Plus, Filter, X } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { Plus, Filter, X, User } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
 import { InvoicesTable } from '@/components/invoices/InvoicesTable';
 import { PDFPreviewModal } from '@/components/print/PDFPreviewModal';
@@ -17,19 +17,25 @@ import { usePrintDocument } from '@/lib/hooks/generic/usePrintDocument';
 
 export default function InvoicesPage() {
   const router = useRouter();
-  const [filters, setFilters] = useState({
-    clientId: undefined as number | undefined,
-    fromDate: '',
-    toDate: '',
-    isPrinted: undefined as boolean | undefined,
-    isCancelled: undefined as boolean | undefined,
-    activeOnly: true,
+  const searchParams = useSearchParams();
+  const [filters, setFilters] = useState(() => {
+    const clientIdParam = searchParams.get('clientId');
+    return {
+      clientId: clientIdParam ? Number(clientIdParam) : undefined,
+      clientName: searchParams.get('clientName') ?? undefined,
+      fromDate: searchParams.get('fromDate') ?? '',
+      toDate: searchParams.get('toDate') ?? '',
+      isPrinted: undefined as boolean | undefined,
+      isCancelled: undefined as boolean | undefined,
+      activeOnly: true,
+    };
   });
 
   const { pagination, setPage, setPageSize, setSorting } = usePagination(10);
 
+  const { clientName, ...filterParams } = filters;
   const { data, isLoading, refetch } = useInvoices({
-    ...filters,
+    ...filterParams,
     pageNumber: pagination.pageNumber,
     pageSize: pagination.pageSize,
     sortBy: pagination.sortBy,
@@ -51,19 +57,28 @@ export default function InvoicesPage() {
   const [isPreviewOpen, setIsPreviewOpen] = useState(false);
   const [selectedInvoiceId, setSelectedInvoiceId] = useState<number | null>(null);
 
-  const activeFiltersCount = Object.values(filters).filter(
-    (v) => v !== undefined && v !== '' && v !== true
-  ).length;
+  const activeFiltersCount = [
+    filters.clientId !== undefined,
+    filters.fromDate !== '',
+    filters.toDate !== '',
+    filters.isPrinted !== undefined,
+    filters.isCancelled !== undefined,
+  ].filter(Boolean).length;
 
   const handleClearFilters = () => {
     setFilters({
       clientId: undefined,
+      clientName: undefined,
       fromDate: '',
       toDate: '',
       isPrinted: undefined,
       isCancelled: undefined,
       activeOnly: true,
     });
+  };
+
+  const handleClearClient = () => {
+    setFilters((f) => ({ ...f, clientId: undefined, clientName: undefined }));
   };
 
   const handleViewInvoice = (id: number) => {
@@ -185,7 +200,22 @@ export default function InvoicesPage() {
             )}
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          {filters.clientId !== undefined && (
+            <div className="bg-muted/40 inline-flex items-center gap-2 rounded-full border px-3 py-1 text-sm">
+              <User className="h-3.5 w-3.5" />
+              <span className="font-medium">Cliente:</span>
+              <span>{filters.clientName ?? `#${filters.clientId}`}</span>
+              <button
+                type="button"
+                onClick={handleClearClient}
+                className="hover:bg-background ml-1 rounded-full p-0.5"
+                aria-label="Quitar filtro de cliente"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          )}
           <div className="grid gap-4 md:grid-cols-4">
             <div className="space-y-2">
               <label className="text-sm font-medium">Desde</label>
