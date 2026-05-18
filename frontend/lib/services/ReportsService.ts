@@ -24,8 +24,8 @@ export interface DeadStockMovementItem {
   code: string;
   description: string;
   categoryName: string | null;
-  statusFrom: StockStatus;
-  statusTo: StockStatus;
+  statusFrom: StockStatus | null;
+  statusTo: StockStatus | null;
   unitsSold: number;
   revenueArs: number;
   lastSaleDate: string | null; // ISO
@@ -48,11 +48,11 @@ export interface DeadStockMovementsResult {
 
 interface CandidateRow {
   article_id: string;
-  article_code: string;
+  article_code: string | null;
   description: string | null;
   category_name: string | null;
-  status_from: string;
-  status_to: string;
+  status_from: string | null;
+  status_to: string | null;
   units_sold: number;
   revenue_ars: string;
   last_sale_date: Date | null;
@@ -71,14 +71,19 @@ export async function getDeadStockMovements(params: {
 }): Promise<DeadStockMovementsResult> {
   const { from, to } = params;
 
-  // Una sola query que:
-  //  - resuelve status@from y status@to usando el snapshot más reciente con date <= cada bound
-  //  - filtra candidatos con status@from = 'dead_stock'
-  //  - agrega ventas (sólo facturas impresas, no canceladas) del rango [from, to)
-  //  - aplica el criterio (a) salió de dead OR (b) sigue pero tuvo ventas
+  // Criterio cumulativo: un artículo califica si estuvo en DEAD_STOCK en algún
+  // momento del rango [from, to] (ya sea entrando, dentro, o saliendo) Y tuvo
+  // ventas en [from, to). Esto garantiza que un rango más largo es siempre
+  // superset del corto — al revés del criterio anterior basado en status@from.
+  //
+  // - status_from / status_to: snapshot más reciente <= cada bound (informativo).
+  // - dead_in_window: artículos con al menos un snapshot DEAD_STOCK dentro de
+  //   (from, to]. Cubre los que entraron a dead durante la ventana.
+  // - candidates: union de (status_from = dead) ∪ dead_in_window.
+  // - sales: ventas en [from, to) sólo de facturas impresas no canceladas.
   const candidates = await prisma.$queryRaw<CandidateRow[]>`
     WITH status_from AS (
-      SELECT DISTINCT ON (article_id) article_id, article_code, status
+      SELECT DISTINCT ON (article_id) article_id, status
       FROM article_status_snapshots
       WHERE date <= ${from}
       ORDER BY article_id, date DESC
@@ -89,15 +94,17 @@ export async function getDeadStockMovements(params: {
       WHERE date <= ${to}
       ORDER BY article_id, date DESC
     ),
-    candidates AS (
-      SELECT
-        sf.article_id,
-        sf.article_code,
-        sf.status AS status_from,
-        st.status AS status_to
-      FROM status_from sf
-      INNER JOIN status_to st ON sf.article_id = st.article_id
-      WHERE sf.status = ${StockStatus.DEAD_STOCK}
+    dead_in_window AS (
+      SELECT DISTINCT article_id
+      FROM article_status_snapshots
+      WHERE status = ${StockStatus.DEAD_STOCK}
+        AND date > ${from}
+        AND date <= ${to}
+    ),
+    candidate_articles AS (
+      SELECT article_id FROM status_from WHERE status = ${StockStatus.DEAD_STOCK}
+      UNION
+      SELECT article_id FROM dead_in_window
     ),
     sales AS (
       SELECT
@@ -107,7 +114,7 @@ export async function getDeadStockMovements(params: {
         MAX(i.invoice_date) AS last_sale_date
       FROM invoice_items ii
       INNER JOIN invoices i ON ii.invoice_id = i.id
-      INNER JOIN candidates c ON c.article_id = ii.article_id
+      INNER JOIN candidate_articles ca ON ca.article_id = ii.article_id
       WHERE i.is_printed = true
         AND i.is_cancelled = false
         AND i.deleted_at IS NULL
@@ -116,18 +123,20 @@ export async function getDeadStockMovements(params: {
       GROUP BY ii.article_id
     )
     SELECT
-      c.article_id::text AS article_id,
-      c.article_code,
+      ca.article_id::text AS article_id,
+      a.code AS article_code,
       a.description,
       cat.name AS category_name,
-      c.status_from,
-      c.status_to,
-      COALESCE(s.units_sold, 0)::int AS units_sold,
-      COALESCE(s.revenue_ars, 0)::text AS revenue_ars,
+      sf.status AS status_from,
+      st.status AS status_to,
+      s.units_sold::int AS units_sold,
+      s.revenue_ars::text AS revenue_ars,
       s.last_sale_date
-    FROM candidates c
-    INNER JOIN sales s ON s.article_id = c.article_id
-    LEFT JOIN articles a ON a.id = c.article_id
+    FROM candidate_articles ca
+    INNER JOIN sales s ON s.article_id = ca.article_id
+    LEFT JOIN status_from sf ON sf.article_id = ca.article_id
+    LEFT JOIN status_to st ON st.article_id = ca.article_id
+    LEFT JOIN articles a ON a.id = ca.article_id
     LEFT JOIN categories cat ON cat.id = a.category_id
     WHERE s.units_sold > 0
     ORDER BY s.revenue_ars DESC, s.units_sold DESC
@@ -183,11 +192,11 @@ export async function getDeadStockMovements(params: {
 
   const items: DeadStockMovementItem[] = candidates.map((c) => ({
     articleId: c.article_id,
-    code: c.article_code,
+    code: c.article_code ?? '—',
     description: c.description ?? '—',
     categoryName: c.category_name,
-    statusFrom: c.status_from as StockStatus,
-    statusTo: c.status_to as StockStatus,
+    statusFrom: (c.status_from as StockStatus | null) ?? null,
+    statusTo: (c.status_to as StockStatus | null) ?? null,
     unitsSold: c.units_sold,
     revenueArs: Number(c.revenue_ars),
     lastSaleDate: c.last_sale_date ? c.last_sale_date.toISOString() : null,
@@ -196,8 +205,8 @@ export async function getDeadStockMovements(params: {
 
   const summary = items.reduce<DeadStockMovementsSummary>(
     (acc, item) => {
-      if (item.statusTo !== StockStatus.DEAD_STOCK) acc.exited += 1;
-      else if (item.unitsSold > 0) acc.stayedWithSales += 1;
+      if (item.statusTo === StockStatus.DEAD_STOCK) acc.stayedWithSales += 1;
+      else acc.exited += 1;
       acc.units += item.unitsSold;
       acc.revenueArs += item.revenueArs;
       return acc;
