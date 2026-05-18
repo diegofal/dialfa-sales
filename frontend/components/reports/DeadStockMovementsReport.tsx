@@ -282,6 +282,7 @@ export function DeadStockMovementsReport() {
                       <th className="pb-2 text-left">Estado @ fin</th>
                       <th className="pb-2 text-center">Δ</th>
                       <th className="pb-2 text-right">Vendido</th>
+                      <th className="pb-2 text-right">Stock</th>
                       <th className="pb-2 text-right">Revenue</th>
                       <th className="pb-2 text-left">Última venta</th>
                       <th className="pb-2 text-left">Facturas</th>
@@ -321,6 +322,17 @@ export function DeadStockMovementsReport() {
                           </td>
                           <td className="py-2 text-right tabular-nums">
                             {formatNum(item.unitsSold)}
+                          </td>
+                          <td
+                            className={`py-2 text-right tabular-nums ${
+                              item.currentStock <= 0
+                                ? 'font-medium text-red-500'
+                                : item.currentStock < item.unitsSold
+                                  ? 'font-medium text-amber-500'
+                                  : ''
+                            }`}
+                          >
+                            {formatNum(item.currentStock)}
                           </td>
                           <td className="py-2 text-right tabular-nums">
                             {formatArs(item.revenueArs)}
