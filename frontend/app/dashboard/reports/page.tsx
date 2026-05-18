@@ -17,7 +17,7 @@ const REPORTS: ReportLink[] = [
     href: ROUTES.REPORTS_DEAD_STOCK_MOVEMENTS,
     title: 'Movimientos en Dead Stock',
     description:
-      'Artículos que estaban en stock muerto al inicio del período y se movieron (salieron de la categoría o tuvieron ventas).',
+      'Artículos que estaban en stock muerto al inicio del período y tuvieron ventas en el rango.',
     icon: TrendingDown,
   },
 ];
