@@ -276,17 +276,17 @@ export function DeadStockMovementsReport() {
                 <table className="w-full text-sm">
                   <thead className="bg-card text-muted-foreground sticky top-0 text-xs uppercase">
                     <tr className="border-b">
-                      <th className="pb-2 text-left">Código</th>
-                      <th className="pb-2 text-left">Descripción</th>
-                      <th className="pb-2 text-left">Estado @ inicio</th>
-                      <th className="pb-2 text-left">Estado @ fin</th>
-                      <th className="pb-2 text-center">Δ</th>
-                      <th className="pb-2 text-right">Vendido</th>
-                      <th className="pb-2 text-right">Stock</th>
-                      <th className="pb-2 text-right">Revenue</th>
-                      <th className="pb-2 text-left">Última venta</th>
-                      <th className="pb-2 text-left">Facturas</th>
-                      <th className="pb-2 text-left">Detalle</th>
+                      <th className="px-3 pb-2 text-left">Código</th>
+                      <th className="px-3 pb-2 text-left">Descripción</th>
+                      <th className="px-3 pb-2 text-left">Estado @ inicio</th>
+                      <th className="px-3 pb-2 text-left">Estado @ fin</th>
+                      <th className="px-3 pb-2 text-center">Δ</th>
+                      <th className="px-3 pb-2 text-right">Vendido</th>
+                      <th className="px-3 pb-2 text-right">Stock</th>
+                      <th className="px-3 pb-2 text-right">Revenue</th>
+                      <th className="px-3 pb-2 text-left">Última venta</th>
+                      <th className="px-3 pb-2 text-left">Facturas</th>
+                      <th className="px-3 pb-2 text-left">Detalle</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -297,17 +297,17 @@ export function DeadStockMovementsReport() {
                           key={item.articleId}
                           className="border-border/30 hover:bg-accent/40 border-b"
                         >
-                          <td className="py-2 font-mono text-xs">{item.code}</td>
-                          <td className="max-w-[280px] truncate py-2" title={item.description}>
+                          <td className="px-3 py-2 font-mono text-xs">{item.code}</td>
+                          <td className="max-w-[280px] truncate px-3 py-2" title={item.description}>
                             {item.description}
                           </td>
-                          <td className="py-2">
+                          <td className="px-3 py-2">
                             <StockStatusBadge status={item.statusFrom} />
                           </td>
-                          <td className="py-2">
+                          <td className="px-3 py-2">
                             <StockStatusBadge status={item.statusTo} />
                           </td>
-                          <td className="py-2 text-center">
+                          <td className="px-3 py-2 text-center">
                             {exited ? (
                               <ArrowRight
                                 className="inline h-4 w-4 text-emerald-500"
@@ -320,11 +320,11 @@ export function DeadStockMovementsReport() {
                               />
                             )}
                           </td>
-                          <td className="py-2 text-right tabular-nums">
+                          <td className="px-3 py-2 text-right tabular-nums">
                             {formatNum(item.unitsSold)}
                           </td>
                           <td
-                            className={`py-2 text-right tabular-nums ${
+                            className={`px-3 py-2 text-right tabular-nums ${
                               item.currentStock <= 0
                                 ? 'font-medium text-red-500'
                                 : item.currentStock < item.unitsSold
@@ -334,16 +334,16 @@ export function DeadStockMovementsReport() {
                           >
                             {formatNum(item.currentStock)}
                           </td>
-                          <td className="py-2 text-right tabular-nums">
+                          <td className="px-3 py-2 text-right tabular-nums">
                             {formatArs(item.revenueArs)}
                           </td>
-                          <td className="text-muted-foreground py-2 text-xs">
+                          <td className="text-muted-foreground px-3 py-2 text-xs whitespace-nowrap">
                             {item.lastSaleDate ? formatDate(item.lastSaleDate) : '—'}
                           </td>
-                          <td className="py-2">
+                          <td className="px-3 py-2">
                             <InvoicesCell invoices={item.invoices} />
                           </td>
-                          <td className="py-2">
+                          <td className="px-3 py-2">
                             <Link
                               href={`${ROUTES.ARTICLES}/${item.articleId}`}
                               className="text-primary inline-flex items-center gap-1 text-xs hover:underline"
