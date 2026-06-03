@@ -43,6 +43,8 @@ export interface Article {
   costPrice?: number | null;
   /** Units of this article sold within the active `soldInPeriod` filter window. */
   soldUnitsInPeriod?: number;
+  /** Invoices this article appears in within the active `soldInPeriod` filter window. */
+  salesInvoicesInPeriod?: { id: number; number: string; date: string }[];
 }
 
 export interface ArticleFormData {

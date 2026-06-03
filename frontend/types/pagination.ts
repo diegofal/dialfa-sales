@@ -11,6 +11,16 @@ export interface PagedResult<T> {
    * `soldInPeriod` is active. Independent of pagination.
    */
   totalUnitsSoldInPeriod?: number;
+  /**
+   * Articles only — sales totals (SPISA data) across the full filtered set
+   * when `soldInPeriod` is active. Independent of pagination.
+   */
+  salesSummaryInPeriod?: {
+    netAmount: number;
+    totalWithIva: number;
+    invoiceCount: number;
+    unitsSold: number;
+  };
 }
 
 export interface PaginationParams {

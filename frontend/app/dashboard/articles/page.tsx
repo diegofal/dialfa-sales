@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus, Search, Filter, Package, History, BarChart3 } from 'lucide-react';
+import { Plus, Search, Filter, Package, History, BarChart3, Info } from 'lucide-react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
 import { ArticleDialog } from '@/components/articles/ArticleDialog';
@@ -10,6 +10,7 @@ import { StockMovementsTable } from '@/components/articles/StockMovementsTable';
 import { SupplierOrderPanel } from '@/components/articles/SupplierOrderPanel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Pagination } from '@/components/ui/pagination';
@@ -32,6 +33,16 @@ import { usePagination } from '@/lib/hooks/generic/usePagination';
 import { useAuthStore } from '@/store/authStore';
 import { Article } from '@/types/article';
 import { StockStatus } from '@/types/stockValuation';
+
+const formatArs = (n: number): string =>
+  new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(n);
+
+const formatNum = (n: number): string => new Intl.NumberFormat('es-AR').format(n);
 
 export default function ArticlesPage() {
   const router = useRouter();
@@ -476,6 +487,52 @@ export default function ArticlesPage() {
                 </Badge>
               )}
             </div>
+          )}
+
+          {/* Sales summary (only when a period filter is active) */}
+          {soldInPeriod !== 'all' && data?.salesSummaryInPeriod && (
+            <Card>
+              <CardContent className="py-4">
+                <p className="text-muted-foreground mb-3 text-sm font-medium">
+                  Resumen de ventas del período
+                </p>
+                <div className="grid grid-cols-2 gap-x-8 gap-y-3 sm:grid-cols-4">
+                  <div>
+                    <p className="text-muted-foreground text-xs uppercase">Facturado (c/IVA)</p>
+                    <p className="text-xl font-semibold tabular-nums">
+                      {formatArs(data.salesSummaryInPeriod.totalWithIva)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs uppercase">Neto (s/IVA)</p>
+                    <p className="text-xl font-semibold tabular-nums">
+                      {formatArs(data.salesSummaryInPeriod.netAmount)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs uppercase">Unidades</p>
+                    <p className="text-xl font-semibold tabular-nums">
+                      {formatNum(data.salesSummaryInPeriod.unitsSold)}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-muted-foreground text-xs uppercase">Facturas</p>
+                    <p className="text-xl font-semibold tabular-nums">
+                      {formatNum(data.salesSummaryInPeriod.invoiceCount)}
+                    </p>
+                  </div>
+                </div>
+                <p className="text-muted-foreground mt-3 flex items-start gap-1.5 text-xs">
+                  <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                  <span>
+                    Suma de los {data.pagination.total} artículos filtrados (datos SPISA, NC
+                    restadas). Coincide con &quot;Facturado (Mes)&quot; del dashboard solo sin
+                    filtros de artículo y con período = mes actual (esa métrica usa otra fuente:
+                    xERP).
+                  </span>
+                </p>
+              </CardContent>
+            </Card>
           )}
 
           {/* Table */}

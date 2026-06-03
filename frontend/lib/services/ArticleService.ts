@@ -66,6 +66,8 @@ type EnrichedArticleDTO = ReturnType<typeof mapArticleToDTO> & {
   trendDirection?: 'increasing' | 'stable' | 'decreasing' | 'none';
   /** Units sold in the selected period (only set when `soldInPeriod` is active). */
   soldUnitsInPeriod?: number;
+  /** Invoices this article appears in within the selected period (only set when `soldInPeriod` is active). */
+  salesInvoicesInPeriod?: { id: number; number: string; date: string }[];
 };
 
 const DEFAULT_STATUS_CONFIG: StockClassificationConfig = {
@@ -191,6 +193,20 @@ export interface ArticleListResult {
   };
   /** Total units sold across all filtered articles in the active period. Only set when `soldInPeriod` is provided. */
   totalUnitsSoldInPeriod?: number;
+  /**
+   * Sales totals across all filtered articles in the active period (SPISA data).
+   * Only set when `soldInPeriod` is provided.
+   */
+  salesSummaryInPeriod?: {
+    /** Net amount (sum of line totals, pre-IVA), credit notes subtracted. */
+    netAmount: number;
+    /** Net amount × 1.21 (IVA included), to compare against the dashboard "Facturado". */
+    totalWithIva: number;
+    /** Distinct invoices touching the filtered set. */
+    invoiceCount: number;
+    /** Units sold across the filtered set (mirrors `totalUnitsSoldInPeriod`). */
+    unitsSold: number;
+  };
 }
 
 export interface StockMovementListParams {
@@ -668,9 +684,10 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
   }
 
   // Sales-in-period enrichment: when soldInPeriod is set, compute units sold
-  // per article (for the displayed page) and total units across the full
-  // filtered set (independent of pagination).
+  // and the invoices each article appears in (for the displayed page), plus
+  // totals across the full filtered set (independent of pagination).
   let totalUnitsSoldInPeriod: number | undefined;
+  let salesSummaryInPeriod: ArticleListResult['salesSummaryInPeriod'];
   if (soldInPeriod && finalArticles.length > 0) {
     const { start, end } = resolveSoldInPeriod(soldInPeriod);
     const invoiceFilter = {
@@ -679,39 +696,103 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
       deleted_at: null,
       invoice_date: { gte: start, lt: end },
     };
+    // Summary filter mirrors the dashboard "Facturado" metric: printed,
+    // non-cancelled, non-quotation invoices, with credit notes handled apart.
+    const summaryInvoiceFilter = { ...invoiceFilter, is_quotation: false };
     const pageIds = finalArticles.map((a) => BigInt(a.id));
 
     // Fetch all article IDs matching the full filter (cheap — only ids).
-    // Used to compute totalUnitsSoldInPeriod across the entire filtered set.
+    // Used to compute totals across the entire filtered set.
     const allMatchingArticles = await prisma.articles.findMany({
       where,
       select: { id: true },
     });
     const allIds = allMatchingArticles.map((a) => a.id);
 
-    const [perArticleRows, totalRow] = await Promise.all([
-      prisma.invoice_items.groupBy({
-        by: ['article_id'],
-        where: { article_id: { in: pageIds }, invoices: invoiceFilter },
-        _sum: { quantity: true },
-      }),
-      prisma.invoice_items.aggregate({
-        where: { article_id: { in: allIds }, invoices: invoiceFilter },
-        _sum: { quantity: true },
-      }),
-    ]);
+    const [perArticleRows, totalRow, invoiceRows, normalAgg, creditAgg, invoiceCount] =
+      await Promise.all([
+        prisma.invoice_items.groupBy({
+          by: ['article_id'],
+          where: { article_id: { in: pageIds }, invoices: invoiceFilter },
+          _sum: { quantity: true },
+        }),
+        prisma.invoice_items.aggregate({
+          where: { article_id: { in: allIds }, invoices: invoiceFilter },
+          _sum: { quantity: true },
+        }),
+        // Per-article invoice list for the displayed page.
+        prisma.invoice_items.findMany({
+          where: { article_id: { in: pageIds }, invoices: invoiceFilter },
+          select: {
+            article_id: true,
+            invoices: { select: { id: true, invoice_number: true, invoice_date: true } },
+          },
+          orderBy: { invoices: { invoice_date: 'desc' } },
+        }),
+        // Net sales (pre-IVA): regular invoices minus credit notes, full set.
+        prisma.invoice_items.aggregate({
+          where: {
+            article_id: { in: allIds },
+            invoices: { ...summaryInvoiceFilter, is_credit_note: false },
+          },
+          _sum: { line_total: true },
+        }),
+        prisma.invoice_items.aggregate({
+          where: {
+            article_id: { in: allIds },
+            invoices: { ...summaryInvoiceFilter, is_credit_note: true },
+          },
+          _sum: { line_total: true },
+        }),
+        // Distinct invoices touching the filtered set.
+        prisma.invoices.count({
+          where: {
+            ...summaryInvoiceFilter,
+            invoice_items: { some: { article_id: { in: allIds } } },
+          },
+        }),
+      ]);
 
     const qtyById = new Map<string, number>();
     for (const row of perArticleRows) {
       qtyById.set(row.article_id.toString(), Number(row._sum.quantity ?? 0));
     }
+
+    // Group invoices per article, de-duplicating by invoice id (an article may
+    // appear in more than one line of the same invoice).
+    const invoicesByArticle = new Map<string, { id: number; number: string; date: string }[]>();
+    for (const row of invoiceRows) {
+      const key = row.article_id.toString();
+      const list = invoicesByArticle.get(key) ?? [];
+      const invoiceId = Number(row.invoices.id);
+      if (!list.some((i) => i.id === invoiceId)) {
+        list.push({
+          id: invoiceId,
+          number: row.invoices.invoice_number,
+          date: row.invoices.invoice_date.toISOString(),
+        });
+      }
+      invoicesByArticle.set(key, list);
+    }
+
     finalArticles = finalArticles.map((a) => ({
       ...a,
       soldUnitsInPeriod: qtyById.get(a.id.toString()) ?? 0,
+      salesInvoicesInPeriod: invoicesByArticle.get(a.id.toString()) ?? [],
     }));
     totalUnitsSoldInPeriod = Number(totalRow._sum.quantity ?? 0);
+
+    const netAmount =
+      Number(normalAgg._sum.line_total ?? 0) - Number(creditAgg._sum.line_total ?? 0);
+    salesSummaryInPeriod = {
+      netAmount,
+      totalWithIva: netAmount * 1.21,
+      invoiceCount,
+      unitsSold: totalUnitsSoldInPeriod,
+    };
   } else if (soldInPeriod) {
     totalUnitsSoldInPeriod = 0;
+    salesSummaryInPeriod = { netAmount: 0, totalWithIva: 0, invoiceCount: 0, unitsSold: 0 };
   }
 
   return {
@@ -723,6 +804,7 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
       totalPages: Math.ceil(totalCount / limit),
     },
     ...(totalUnitsSoldInPeriod !== undefined && { totalUnitsSoldInPeriod }),
+    ...(salesSummaryInPeriod !== undefined && { salesSummaryInPeriod }),
   };
 }
 

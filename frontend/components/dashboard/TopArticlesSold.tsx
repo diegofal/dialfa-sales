@@ -8,13 +8,13 @@
 
 'use client';
 
-import { FileText, Package, TrendingUp } from 'lucide-react';
+import { Package, TrendingUp } from 'lucide-react';
 import Link from 'next/link';
 import { StockStatusBadge } from '@/components/articles/StockStatusBadge';
+import { InvoicesCell } from '@/components/invoices/InvoicesCell';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { ROUTES } from '@/lib/constants/routes';
-import { type TopArticleInvoice, useTopArticlesSold } from '@/lib/hooks/domain/useDashboard';
+import { useTopArticlesSold } from '@/lib/hooks/domain/useDashboard';
 import { StockStatus } from '@/types/stockValuation';
 
 const formatUsd = (value: number): string =>
@@ -26,59 +26,6 @@ const formatUsd = (value: number): string =>
   }).format(value);
 
 const formatUnits = (value: number): string => new Intl.NumberFormat('es-AR').format(value);
-
-const formatShortDate = (iso: string): string => {
-  const d = new Date(iso);
-  return new Intl.DateTimeFormat('es-AR', { day: '2-digit', month: 'short' }).format(d);
-};
-
-function InvoicesCell({ invoices }: { invoices: TopArticleInvoice[] }) {
-  if (invoices.length === 0) {
-    return <span className="text-muted-foreground text-xs">—</span>;
-  }
-  if (invoices.length === 1) {
-    const inv = invoices[0];
-    return (
-      <Link
-        href={`${ROUTES.INVOICES}/${inv.id}`}
-        className="text-primary inline-flex items-center gap-1 font-mono text-xs hover:underline"
-        title={`Ver factura ${inv.number}`}
-      >
-        <FileText className="h-3 w-3" />
-        {inv.number}
-      </Link>
-    );
-  }
-  return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <button
-          type="button"
-          className="text-primary inline-flex items-center gap-1 text-xs hover:underline"
-        >
-          <FileText className="h-3 w-3" />
-          {invoices.length} facturas
-        </button>
-      </PopoverTrigger>
-      <PopoverContent align="end" className="max-h-[320px] w-64 overflow-y-auto p-2">
-        <p className="text-muted-foreground mb-2 px-2 text-xs uppercase">Facturas del mes</p>
-        <ul className="space-y-1">
-          {invoices.map((inv) => (
-            <li key={inv.id}>
-              <Link
-                href={`${ROUTES.INVOICES}/${inv.id}`}
-                className="hover:bg-accent flex items-center justify-between rounded-md px-2 py-1.5 text-xs"
-              >
-                <span className="font-mono">{inv.number}</span>
-                <span className="text-muted-foreground">{formatShortDate(inv.date)}</span>
-              </Link>
-            </li>
-          ))}
-        </ul>
-      </PopoverContent>
-    </Popover>
-  );
-}
 
 export function TopArticlesSold() {
   const { data, isLoading, isError } = useTopArticlesSold();
@@ -159,7 +106,7 @@ export function TopArticlesSold() {
                         <StockStatusBadge status={a.status as StockStatus} />
                       </td>
                       <td className="py-2">
-                        <InvoicesCell invoices={a.invoices} />
+                        <InvoicesCell invoices={a.invoices} label="Facturas del mes" />
                       </td>
                     </tr>
                   );
