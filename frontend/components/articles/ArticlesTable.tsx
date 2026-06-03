@@ -2,6 +2,7 @@
 
 import { Pencil, Trash2, Package } from 'lucide-react';
 import { useState } from 'react';
+import { InvoicesCell } from '@/components/invoices/InvoicesCell';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -140,6 +141,7 @@ export function ArticlesTable({
             {showSoldInPeriod && (
               <SortableTableHead align="right">{soldInPeriodLabel}</SortableTableHead>
             )}
+            {showSoldInPeriod && <SortableTableHead>Facturas</SortableTableHead>}
             <SortableTableHead>Tendencia ({trendMonths} meses)</SortableTableHead>
             <SortableTableHead>Tend. Activa</SortableTableHead>
             <TooltipProvider>
@@ -378,6 +380,15 @@ export function ArticlesTable({
                       ) : (
                         <span className="text-muted-foreground">—</span>
                       )}
+                    </TableCell>
+                  )}
+
+                  {showSoldInPeriod && (
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <InvoicesCell
+                        invoices={article.salesInvoicesInPeriod ?? []}
+                        label="Facturas del período"
+                      />
                     </TableCell>
                   )}
 
