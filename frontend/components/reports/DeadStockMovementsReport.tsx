@@ -4,6 +4,8 @@ import { useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import {
   ArrowRight,
+  ChevronLeft,
+  ChevronRight,
   DollarSign,
   ExternalLink,
   LogOut,
@@ -40,30 +42,26 @@ const relativeMonths =
     return { from, to };
   };
 
+// Multi-month presets shown in the dropdown. Single-month navigation is
+// handled separately by the month stepper (◀ Mes ▶).
 const RANGES: Record<string, { label: string; resolve: RangeResolver }> = {
-  'current-month': {
-    label: 'Mes actual',
-    resolve: () => {
-      const now = new Date();
-      return {
-        from: new Date(now.getFullYear(), now.getMonth(), 1),
-        to: new Date(now.getFullYear(), now.getMonth() + 1, 1),
-      };
-    },
-  },
-  'last-month': {
-    label: 'Mes anterior',
-    resolve: () => {
-      const now = new Date();
-      return {
-        from: new Date(now.getFullYear(), now.getMonth() - 1, 1),
-        to: new Date(now.getFullYear(), now.getMonth(), 1),
-      };
-    },
-  },
   '3': { label: 'Últimos 3 meses', resolve: relativeMonths(3) },
   '6': { label: 'Últimos 6 meses', resolve: relativeMonths(6) },
   '12': { label: 'Últimos 12 meses', resolve: relativeMonths(12) },
+};
+
+/** First day of the calendar month containing `d`. */
+const startOfMonth = (d: Date): Date => new Date(d.getFullYear(), d.getMonth(), 1);
+
+/** Range covering the full calendar month anchored at `monthStart`. */
+const monthRange = (monthStart: Date): { from: Date; to: Date } => ({
+  from: monthStart,
+  to: new Date(monthStart.getFullYear(), monthStart.getMonth() + 1, 1),
+});
+
+const formatMonth = (d: Date): string => {
+  const label = new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric' }).format(d);
+  return label.charAt(0).toUpperCase() + label.slice(1);
 };
 
 const formatArs = (n: number): string =>
@@ -81,7 +79,15 @@ const formatDate = (iso: string): string =>
     new Date(iso)
   );
 
-function computeRange(rangeKey: string, custom: { from: string; to: string }) {
+function computeRange(
+  mode: 'month' | 'range',
+  monthAnchor: Date,
+  rangeKey: string,
+  custom: { from: string; to: string }
+) {
+  if (mode === 'month') {
+    return monthRange(monthAnchor);
+  }
   if (rangeKey === 'custom') {
     if (!custom.from || !custom.to) return null;
     return { from: new Date(custom.from), to: new Date(custom.to) };
@@ -94,12 +100,32 @@ function computeRange(rangeKey: string, custom: { from: string; to: string }) {
 const PAGE_SIZE_DEFAULT = 25;
 
 export function DeadStockMovementsReport() {
-  const [rangeKey, setRangeKey] = useState('current-month');
+  // Two filter modes: month-by-month stepper, or a multi-month / custom range.
+  const [mode, setMode] = useState<'month' | 'range'>('month');
+  const [monthAnchor, setMonthAnchor] = useState<Date>(() => startOfMonth(new Date()));
+  const [rangeKey, setRangeKey] = useState('3');
   const [custom, setCustom] = useState({ from: '', to: '' });
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE_DEFAULT);
 
-  const range = useMemo(() => computeRange(rangeKey, custom), [rangeKey, custom]);
+  // Can't navigate into the future: disable ▶ once the anchor is the current month.
+  const isCurrentMonth = useMemo(() => {
+    const now = startOfMonth(new Date());
+    return (
+      monthAnchor.getFullYear() === now.getFullYear() && monthAnchor.getMonth() === now.getMonth()
+    );
+  }, [monthAnchor]);
+
+  const stepMonth = (delta: number) => {
+    setMode('month');
+    setMonthAnchor((prev) => new Date(prev.getFullYear(), prev.getMonth() + delta, 1));
+    setPage(1);
+  };
+
+  const range = useMemo(
+    () => computeRange(mode, monthAnchor, rangeKey, custom),
+    [mode, monthAnchor, rangeKey, custom]
+  );
 
   const { data, isLoading, isError, error } = useQuery<DeadStockMovementsResult>({
     queryKey: [
@@ -136,15 +162,52 @@ export function DeadStockMovementsReport() {
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3">
+          <div
+            className={`flex items-center rounded-md border ${
+              mode === 'month' ? 'border-input bg-accent/40' : 'border-transparent'
+            }`}
+          >
+            <button
+              type="button"
+              onClick={() => stepMonth(-1)}
+              aria-label="Mes anterior"
+              className="hover:bg-accent text-muted-foreground hover:text-foreground flex h-9 w-9 items-center justify-center rounded-l-md"
+            >
+              <ChevronLeft className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setMode('month');
+                setPage(1);
+              }}
+              title="Filtrar por este mes"
+              className={`min-w-[130px] px-2 text-center text-sm ${
+                mode === 'month' ? 'font-medium' : 'text-muted-foreground'
+              }`}
+            >
+              {formatMonth(monthAnchor)}
+            </button>
+            <button
+              type="button"
+              onClick={() => stepMonth(1)}
+              disabled={isCurrentMonth}
+              aria-label="Mes siguiente"
+              className="hover:bg-accent text-muted-foreground hover:text-foreground flex h-9 w-9 items-center justify-center rounded-r-md disabled:pointer-events-none disabled:opacity-40"
+            >
+              <ChevronRight className="h-4 w-4" />
+            </button>
+          </div>
           <Select
-            value={rangeKey}
+            value={mode === 'range' ? rangeKey : ''}
             onValueChange={(v) => {
+              setMode('range');
               setRangeKey(v);
               setPage(1);
             }}
           >
-            <SelectTrigger className="w-[200px]">
-              <SelectValue />
+            <SelectTrigger className="w-[180px]">
+              <SelectValue placeholder="Rango largo…" />
             </SelectTrigger>
             <SelectContent>
               {Object.entries(RANGES).map(([k, r]) => (
@@ -155,7 +218,7 @@ export function DeadStockMovementsReport() {
               <SelectItem value="custom">Personalizado</SelectItem>
             </SelectContent>
           </Select>
-          {rangeKey === 'custom' && (
+          {mode === 'range' && rangeKey === 'custom' && (
             <div className="flex items-center gap-2">
               <input
                 type="date"
