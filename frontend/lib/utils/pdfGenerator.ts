@@ -220,21 +220,28 @@ export class PDFService {
           );
         }
 
-        // Peso - con formato "Peso: X kg."
-        if (deliveryNote.weight_kg) {
-          this.renderField(doc, template.fields.peso, `Peso: ${deliveryNote.weight_kg} kg.`);
-        }
+        // Peso - siempre se imprime la etiqueta (para completar a mano si está vacío)
+        this.renderField(
+          doc,
+          template.fields.peso,
+          deliveryNote.weight_kg ? `Peso: ${deliveryNote.weight_kg} kg.` : 'Peso:'
+        );
 
-        // Bultos - con formato "Bultos: X"
-        if (deliveryNote.packages_count) {
-          this.renderField(doc, template.fields.bultos, `Bultos: ${deliveryNote.packages_count}`);
-        }
+        // Bultos - siempre se imprime la etiqueta
+        this.renderField(
+          doc,
+          template.fields.bultos,
+          deliveryNote.packages_count ? `Bultos: ${deliveryNote.packages_count}` : 'Bultos:'
+        );
 
-        // Valor declarado - con formato "Valor: $X"
-        if (deliveryNote.declared_value) {
-          const declaredValue = Number(deliveryNote.declared_value);
-          this.renderField(doc, template.fields.valor, `Valor: $${declaredValue.toFixed(2)}`);
-        }
+        // Valor declarado - siempre se imprime la etiqueta
+        this.renderField(
+          doc,
+          template.fields.valor,
+          deliveryNote.declared_value
+            ? `Valor: $${Number(deliveryNote.declared_value).toFixed(2)}`
+            : 'Valor declarado:'
+        );
 
         // Renderizar items si existen
         if (template.items && deliveryNote.delivery_note_items) {

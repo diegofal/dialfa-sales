@@ -50,6 +50,12 @@ export const updateArticleSchema = createArticleSchema
   .partial()
   .required({ code: true, description: true, categoryId: true });
 
+// Article Price Change Schema (dedicated "modify price" action)
+export const changeArticlePriceSchema = z.object({
+  newPrice: z.coerce.number().min(0, 'El precio no puede ser negativo'),
+  notes: z.string().max(1000).optional().nullable(),
+});
+
 // Category Validation Schema
 export const createCategorySchema = z.object({
   code: z

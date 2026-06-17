@@ -1171,3 +1171,80 @@ export async function adjustStock(data: StockAdjustmentData, request: NextReques
 
   return { newStock: Number(result.updatedArticle.stock) };
 }
+
+interface ChangePriceData {
+  articleId: number;
+  newPrice: number;
+  notes?: string | null;
+}
+
+export async function changePrice(
+  data: ChangePriceData,
+  userId: number | null,
+  userEmail: string | null,
+  request: NextRequest
+) {
+  const { articleId, newPrice, notes } = data;
+
+  const article = await prisma.articles.findUnique({
+    where: { id: BigInt(articleId) },
+  });
+
+  if (!article || article.deleted_at) {
+    return null;
+  }
+
+  const oldPrice = Number(article.unit_price);
+
+  const tracker = new ChangeTracker();
+  await tracker.trackBefore('article', BigInt(articleId));
+
+  const now = new Date();
+
+  const updatedArticle = await prisma.$transaction(async (tx) => {
+    const updated = await tx.articles.update({
+      where: { id: BigInt(articleId) },
+      data: {
+        unit_price: newPrice,
+        updated_at: now,
+        updated_by: userId,
+      },
+    });
+
+    await tx.price_history.create({
+      data: {
+        article_id: updated.id,
+        old_price: oldPrice,
+        new_price: newPrice,
+        change_type: 'manual',
+        changed_by: userId,
+        changed_by_name: userEmail,
+        notes: notes || null,
+      },
+    });
+
+    return updated;
+  });
+
+  await tracker.trackAfter('article', BigInt(articleId));
+
+  const activityLogId = await logActivity({
+    request,
+    operation: OPERATIONS.PRICE_UPDATE,
+    description: `Precio de ${article.description} (${article.code}) modificado de $${oldPrice.toFixed(2)} a $${newPrice.toFixed(2)}`,
+    entityType: 'article',
+    entityId: article.id,
+    details: {
+      articleCode: article.code,
+      oldPrice,
+      newPrice,
+      notes: notes || null,
+    },
+  });
+
+  if (activityLogId) {
+    await tracker.saveChanges(activityLogId);
+  }
+
+  return { newPrice: Number(updatedArticle.unit_price) };
+}
