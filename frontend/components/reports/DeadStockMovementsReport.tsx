@@ -29,11 +29,41 @@ import { ROUTES } from '@/lib/constants/routes';
 import type { DeadStockMovementsResult } from '@/lib/services/ReportsService';
 import { StockStatus } from '@/types/stockValuation';
 
-const RANGES: Record<string, { label: string; months: number }> = {
-  '1': { label: 'Último mes', months: 1 },
-  '3': { label: 'Últimos 3 meses', months: 3 },
-  '6': { label: 'Últimos 6 meses', months: 6 },
-  '12': { label: 'Últimos 12 meses', months: 12 },
+type RangeResolver = () => { from: Date; to: Date };
+
+const relativeMonths =
+  (months: number): RangeResolver =>
+  () => {
+    const to = new Date();
+    const from = new Date(to);
+    from.setMonth(from.getMonth() - months);
+    return { from, to };
+  };
+
+const RANGES: Record<string, { label: string; resolve: RangeResolver }> = {
+  'current-month': {
+    label: 'Mes actual',
+    resolve: () => {
+      const now = new Date();
+      return {
+        from: new Date(now.getFullYear(), now.getMonth(), 1),
+        to: new Date(now.getFullYear(), now.getMonth() + 1, 1),
+      };
+    },
+  },
+  'last-month': {
+    label: 'Mes anterior',
+    resolve: () => {
+      const now = new Date();
+      return {
+        from: new Date(now.getFullYear(), now.getMonth() - 1, 1),
+        to: new Date(now.getFullYear(), now.getMonth(), 1),
+      };
+    },
+  },
+  '3': { label: 'Últimos 3 meses', resolve: relativeMonths(3) },
+  '6': { label: 'Últimos 6 meses', resolve: relativeMonths(6) },
+  '12': { label: 'Últimos 12 meses', resolve: relativeMonths(12) },
 };
 
 const formatArs = (n: number): string =>
@@ -58,16 +88,13 @@ function computeRange(rangeKey: string, custom: { from: string; to: string }) {
   }
   const cfg = RANGES[rangeKey];
   if (!cfg) return null;
-  const to = new Date();
-  const from = new Date(to);
-  from.setMonth(from.getMonth() - cfg.months);
-  return { from, to };
+  return cfg.resolve();
 }
 
 const PAGE_SIZE_DEFAULT = 25;
 
 export function DeadStockMovementsReport() {
-  const [rangeKey, setRangeKey] = useState('1');
+  const [rangeKey, setRangeKey] = useState('current-month');
   const [custom, setCustom] = useState({ from: '', to: '' });
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(PAGE_SIZE_DEFAULT);
