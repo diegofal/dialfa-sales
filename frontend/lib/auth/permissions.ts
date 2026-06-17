@@ -40,6 +40,7 @@ export const ACTIONS = {
   REVERT_BATCH: 'revert-batch',
   UNDO: 'undo',
   ADJUST: 'adjust',
+  MODIFY_PRICE: 'modify-price',
   CLASSIFICATION: 'classification',
   CHANGES: 'changes',
   IMPORT_PROFORMA: 'import-proforma',
@@ -73,6 +74,10 @@ export const PERMISSIONS: Record<Resource, Partial<Record<Action, PermissionRule
     [ACTIONS.CREATE]: { roles: [ROLES.ADMIN, ROLES.VENDEDOR], description: 'Create articles' },
     [ACTIONS.UPDATE]: { roles: [ROLES.ADMIN, ROLES.VENDEDOR], description: 'Update articles' },
     [ACTIONS.DELETE]: { roles: [ROLES.ADMIN], description: 'Delete articles' },
+    [ACTIONS.MODIFY_PRICE]: {
+      roles: [ROLES.ADMIN, ROLES.VENDEDOR],
+      description: 'Modify article price',
+    },
     [ACTIONS.ABC_REFRESH]: { roles: [ROLES.ADMIN], description: 'Refresh ABC classification' },
     [ACTIONS.VALUATION]: { roles: [ROLES.ADMIN], description: 'Recalculate stock valuation' },
   },

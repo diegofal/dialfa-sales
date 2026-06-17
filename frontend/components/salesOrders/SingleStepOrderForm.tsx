@@ -153,6 +153,10 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   const [editingDiscountId, setEditingDiscountId] = useState<number | null>(null);
   const [editedDiscountValue, setEditedDiscountValue] = useState('');
 
+  // Per-line unit price overrides (e.g. to match Empiria's rounding to the cent).
+  const [editingPriceId, setEditingPriceId] = useState<number | null>(null);
+  const [editedPriceValue, setEditedPriceValue] = useState('');
+
   // Local state for edit mode (saved orders should NOT use Quick Cart Tabs)
   const [localItems, setLocalItems] = useState<QuickCartItem[]>([]);
   const [localClientId, setLocalClientId] = useState<number | undefined>(undefined);
@@ -698,6 +702,31 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
   const handleCancelEditDiscount = () => {
     setEditingDiscountId(null);
     setEditedDiscountValue('');
+  };
+
+  // Unit price edit handlers (mirrors the discount edit pattern)
+  const handleStartEditPrice = (articleId: number, currentPrice: number) => {
+    setEditingPriceId(articleId);
+    setEditedPriceValue(currentPrice.toString());
+  };
+
+  const handleSavePrice = (articleId: number) => {
+    const value = parseFloat(editedPriceValue);
+    if (isNaN(value) || value < 0) {
+      toast.error('El precio no puede ser negativo', {
+        duration: 2000,
+        position: 'top-center',
+      });
+      return;
+    }
+    setPrices((prev) => ({ ...prev, [articleId]: value }));
+    setEditingPriceId(null);
+    setEditedPriceValue('');
+  };
+
+  const handleCancelEditPrice = () => {
+    setEditingPriceId(null);
+    setEditedPriceValue('');
   };
 
   const handleEditKeyDown = (e: React.KeyboardEvent) => {
@@ -1408,9 +1437,61 @@ export function SingleStepOrderForm({ orderId }: SingleStepOrderFormProps) {
                           />
                         </TableCell>
                         <TableCell className="text-right">
-                          <span className="font-medium">
-                            {formatCurrency(prices[item.article.id] ?? item.article.unitPrice)}
-                          </span>
+                          {editingPriceId === item.article.id ? (
+                            <div className="flex items-center justify-end gap-1">
+                              <Input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                value={editedPriceValue}
+                                onChange={(e) => setEditedPriceValue(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') handleSavePrice(item.article.id);
+                                  if (e.key === 'Escape') handleCancelEditPrice();
+                                }}
+                                className="h-7 w-24 text-right"
+                                autoFocus
+                              />
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6"
+                                onClick={() => handleSavePrice(item.article.id)}
+                              >
+                                <Save className="h-3 w-3" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6"
+                                onClick={handleCancelEditPrice}
+                              >
+                                <X className="h-3 w-3" />
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-end gap-1">
+                              <span className="font-medium">
+                                {formatCurrency(prices[item.article.id] ?? item.article.unitPrice)}
+                              </span>
+                              {!isReadOnly && (
+                                <Button
+                                  size="icon"
+                                  variant="ghost"
+                                  className="h-6 w-6"
+                                  onClick={() =>
+                                    handleStartEditPrice(
+                                      item.article.id,
+                                      prices[item.article.id] ?? item.article.unitPrice
+                                    )
+                                  }
+                                  title="Editar precio"
+                                >
+                                  <Pencil className="h-3 w-3" />
+                                </Button>
+                              )}
+                            </div>
+                          )}
                         </TableCell>
                         <TableCell className="text-right">
                           {editingDiscountId === item.article.id ? (

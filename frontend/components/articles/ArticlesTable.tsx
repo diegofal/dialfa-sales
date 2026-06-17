@@ -1,6 +1,6 @@
 'use client';
 
-import { Pencil, Trash2, Package } from 'lucide-react';
+import { Pencil, Trash2, Package, DollarSign } from 'lucide-react';
 import { useState } from 'react';
 import { InvoicesCell } from '@/components/invoices/InvoicesCell';
 import {
@@ -39,6 +39,7 @@ import {
 } from '@/lib/utils/salesCalculations';
 import { useAuthStore } from '@/store/authStore';
 import { Article } from '@/types/article';
+import ChangePriceDialog from './ChangePriceDialog';
 import StockAdjustDialog from './StockAdjustDialog';
 import { StockStatusBadge } from './StockStatusBadge';
 
@@ -75,6 +76,7 @@ export function ArticlesTable({
   onToggleSelect,
 }: ArticlesTableProps) {
   const [adjustingArticle, setAdjustingArticle] = useState<Article | null>(null);
+  const [pricingArticle, setPricingArticle] = useState<Article | null>(null);
   const { isAdmin } = useAuthStore();
 
   const canEdit = isAdmin();
@@ -620,6 +622,18 @@ Precio lista: ${formatPrice(article.unitPrice)} · Desc. aplicado: ${effDiscount
                             <Package className="h-4 w-4" />
                           </Button>
 
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPricingArticle(article);
+                            }}
+                            title="Modificar Precio"
+                          >
+                            <DollarSign className="h-4 w-4" />
+                          </Button>
+
                           {canEdit && (
                             <Button
                               variant={ACTION_BUTTON_CONFIG.edit.variant}
@@ -679,6 +693,17 @@ Precio lista: ${formatPrice(article.unitPrice)} · Desc. aplicado: ${effDiscount
           articleCode={adjustingArticle.code}
           articleDescription={adjustingArticle.description}
           currentStock={adjustingArticle.stock}
+        />
+      )}
+
+      {pricingArticle && (
+        <ChangePriceDialog
+          isOpen={!!pricingArticle}
+          onClose={() => setPricingArticle(null)}
+          articleId={pricingArticle.id}
+          articleCode={pricingArticle.code}
+          articleDescription={pricingArticle.description}
+          currentPrice={pricingArticle.unitPrice}
         />
       )}
     </div>
