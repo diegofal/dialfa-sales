@@ -16,6 +16,8 @@ export interface InvoiceListParams {
   limit: number;
   search?: string;
   isCancelled?: string;
+  fromDate?: string;
+  toDate?: string;
 }
 
 // ─── Service ──────────────────────────────────────────────────────────────────
@@ -32,7 +34,7 @@ function getMovementTypeName(type: number): string {
 }
 
 export async function list(params: InvoiceListParams) {
-  const { page, limit, search, isCancelled } = params;
+  const { page, limit, search, isCancelled, fromDate, toDate } = params;
   const skip = (page - 1) * limit;
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -43,6 +45,15 @@ export async function list(params: InvoiceListParams) {
   }
   if (isCancelled !== undefined && isCancelled !== null) {
     where.is_cancelled = isCancelled === 'true';
+  }
+  if (fromDate || toDate) {
+    where.invoice_date = {};
+    if (fromDate) {
+      where.invoice_date.gte = new Date(`${fromDate}T00:00:00`);
+    }
+    if (toDate) {
+      where.invoice_date.lte = new Date(`${toDate}T23:59:59.999`);
+    }
   }
 
   const [invoices, total] = await Promise.all([

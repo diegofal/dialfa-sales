@@ -11,6 +11,8 @@ export async function GET(request: NextRequest) {
       limit: parseInt(searchParams.get('limit') || '50'),
       search: searchParams.get('search') || undefined,
       isCancelled: searchParams.get('isCancelled') || undefined,
+      fromDate: searchParams.get('fromDate') || undefined,
+      toDate: searchParams.get('toDate') || undefined,
     });
 
     return NextResponse.json(result);

@@ -19,6 +19,14 @@ import { MetricCard } from './MetricCard';
 const formatOrDash = (value: number | null): string =>
   value === null ? '—' : formatCurrency(value);
 
+/** Local YYYY-MM-DD (avoids UTC shift from toISOString). */
+const toLocalDate = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
 export function DashboardMetrics() {
   const { data: metrics, isLoading, isError, error } = useDashboardMetrics();
 
@@ -33,8 +41,14 @@ export function DashboardMetrics() {
     );
   }
 
-  const currentMonth = new Intl.DateTimeFormat('es-AR', { month: 'long' }).format(new Date());
+  const now = new Date();
+  const currentMonth = new Intl.DateTimeFormat('es-AR', { month: 'long' }).format(now);
   const monthCapitalized = currentMonth.charAt(0).toUpperCase() + currentMonth.slice(1);
+
+  const monthStart = toLocalDate(new Date(now.getFullYear(), now.getMonth(), 1));
+  const today = toLocalDate(now);
+  const monthInvoicesHref = `/dashboard/invoices?fromDate=${monthStart}&toDate=${today}`;
+  const todayInvoicesHref = `/dashboard/invoices?fromDate=${today}&toDate=${today}`;
 
   const xerpError = metrics?.errors?.xerp ?? null;
   const spisaError = metrics?.errors?.spisa ?? null;
@@ -126,6 +140,7 @@ export function DashboardMetrics() {
           icon={FileText}
           gradient="bg-gradient-to-br from-emerald-500 to-emerald-700"
           loading={isLoading}
+          href={monthInvoicesHref}
         >
           {billedMonthly !== null && (
             <div className="mt-1 space-y-1">
@@ -151,6 +166,7 @@ export function DashboardMetrics() {
           icon={Calendar}
           gradient="bg-gradient-to-br from-teal-500 to-teal-700"
           loading={isLoading}
+          href={todayInvoicesHref}
         >
           {todayVsAvg !== null && (
             <div className="mt-1">

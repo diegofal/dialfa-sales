@@ -23,6 +23,8 @@ export const invoicesApi = {
       page: params.pageNumber || 1,
       limit: params.pageSize || 50,
       isCancelled: params.isCancelled,
+      fromDate: params.fromDate || undefined,
+      toDate: params.toDate || undefined,
     };
 
     const { data } = await apiClient.get<PagedResult<InvoiceListDto>>('/invoices', {
