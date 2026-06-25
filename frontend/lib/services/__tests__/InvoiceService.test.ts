@@ -190,6 +190,24 @@ describe('list', () => {
       })
     );
   });
+
+  it('filters by date range (inclusive of full days)', async () => {
+    mockFindMany.mockResolvedValue([]);
+    mockCount.mockResolvedValue(0);
+
+    await list({ page: 1, limit: 10, fromDate: '2026-06-01', toDate: '2026-06-30' });
+
+    expect(mockFindMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          invoice_date: {
+            gte: new Date('2026-06-01T00:00:00'),
+            lte: new Date('2026-06-30T23:59:59.999'),
+          },
+        }),
+      })
+    );
+  });
 });
 
 describe('remove', () => {

@@ -4,6 +4,7 @@
  */
 
 import { LucideIcon } from 'lucide-react';
+import Link from 'next/link';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
 
@@ -15,6 +16,8 @@ export interface MetricCardProps {
   gradient: string;
   loading?: boolean;
   children?: React.ReactNode;
+  /** When provided, the card becomes a link to this route. */
+  href?: string;
 }
 
 export function MetricCard({
@@ -25,11 +28,13 @@ export function MetricCard({
   gradient,
   loading = false,
   children,
+  href,
 }: MetricCardProps) {
-  return (
+  const card = (
     <Card
       className={cn(
         'relative overflow-hidden border-0 text-white transition-all duration-300 hover:scale-105 hover:shadow-2xl',
+        href && 'cursor-pointer',
         gradient
       )}
     >
@@ -54,4 +59,14 @@ export function MetricCard({
       </CardContent>
     </Card>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className="block">
+        {card}
+      </Link>
+    );
+  }
+
+  return card;
 }
