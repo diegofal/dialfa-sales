@@ -109,6 +109,26 @@ const DEFAULT_CONTAINER_KG = 25000;
 const COVERAGE_MONTHS_OPTIONS = [3, 6, 12, 18] as const;
 const DEFAULT_COVERAGE_MONTHS = 6;
 
+/** How the auto-fill prioritizes and sizes what it brings. */
+export type FillMode = 'money' | 'rotation' | 'critical';
+export interface FillOptions {
+  remainingKg: number;
+  capacityKg: number;
+  coverageMonths: number;
+  mode: FillMode;
+  excludeNoRotation: boolean;
+  /** Max months of stock to hold per item (0 = no cap). */
+  maxStockMonths: number;
+}
+const FILL_MODES: { key: FillMode; label: string }[] = [
+  { key: 'money', label: '💰 Plata' },
+  { key: 'rotation', label: '🔥 Rotación' },
+  { key: 'critical', label: '🚨 Crítico' },
+];
+/** Over-stock cap options (months); 0 = "Sin tope". */
+const MAX_STOCK_MONTHS_OPTIONS = [0, 12, 24, 36] as const;
+const DEFAULT_MAX_STOCK_MONTHS = 24;
+
 interface SupplierOrderPanelProps {
   items: SupplierOrderItem[];
   totalEstimatedTime: number;
@@ -120,11 +140,10 @@ interface SupplierOrderPanelProps {
   onViewOrder?: () => void;
   onImportCsv?: (file: File) => void;
   /**
-   * Build / top up the container by profitability. Receives the kg still free in
-   * the current container, the configured capacity, and the coverage period
-   * (months of projected demand to bring stock up to).
+   * Build / top up the container. Receives the free kg in the current container,
+   * the capacity, the coverage period, and the strategy options (mode + filters).
    */
-  onFillContainer?: (remainingKg: number, capacityKg: number, coverageMonths: number) => void;
+  onFillContainer?: (options: FillOptions) => void;
   isSaving?: boolean;
   isLoading?: boolean;
   isImporting?: boolean;
@@ -152,6 +171,9 @@ export function SupplierOrderPanel({
   const [sortDesc, setSortDesc] = useState(false);
   const [containerCapacityKg, setContainerCapacityKg] = useState<number>(DEFAULT_CONTAINER_KG);
   const [coverageMonths, setCoverageMonths] = useState<number>(DEFAULT_COVERAGE_MONTHS);
+  const [fillMode, setFillMode] = useState<FillMode>('money');
+  const [excludeNoRotation, setExcludeNoRotation] = useState<boolean>(true);
+  const [maxStockMonths, setMaxStockMonths] = useState<number>(DEFAULT_MAX_STOCK_MONTHS);
 
   const handleSort = (key: string) => {
     if (sortKey === key) {
@@ -753,9 +775,16 @@ export function SupplierOrderPanel({
               variant="outline"
               disabled={isFilling || isSaving || remainingInContainerKg <= 0}
               onClick={() =>
-                onFillContainer(remainingInContainerKg, containerCapacityKg, coverageMonths)
+                onFillContainer({
+                  remainingKg: remainingInContainerKg,
+                  capacityKg: containerCapacityKg,
+                  coverageMonths,
+                  mode: fillMode,
+                  excludeNoRotation,
+                  maxStockMonths,
+                })
               }
-              title="Trae los artículos con mayor ganancia por kg y demanda no cubierta para el período, hasta llenar el contenedor"
+              title="Llena el espacio restante del contenedor según el modo elegido"
             >
               {isFilling ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -767,6 +796,53 @@ export function SupplierOrderPanel({
           )}
         </div>
       </div>
+
+      {/* Strategy controls */}
+      {onFillContainer && (
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <div className="flex items-center gap-1">
+            <span className="text-muted-foreground mr-1 text-xs">Modo:</span>
+            {FILL_MODES.map((m) => (
+              <Button
+                key={m.key}
+                size="sm"
+                variant={fillMode === m.key ? 'default' : 'outline'}
+                className="h-7 text-xs"
+                onClick={() => setFillMode(m.key)}
+              >
+                {m.label}
+              </Button>
+            ))}
+          </div>
+          <Button
+            size="sm"
+            variant={excludeNoRotation ? 'default' : 'outline'}
+            className="h-7 text-xs"
+            onClick={() => setExcludeNoRotation((v) => !v)}
+            title="No traer artículos que no se venden"
+          >
+            {excludeNoRotation ? '✓ ' : ''}Excluir sin rotación
+          </Button>
+          <div className="flex items-center gap-1">
+            <span className="text-muted-foreground text-xs">Tope stock:</span>
+            <Select
+              value={maxStockMonths.toString()}
+              onValueChange={(v) => setMaxStockMonths(parseInt(v))}
+            >
+              <SelectTrigger className="h-7 w-[110px] text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MAX_STOCK_MONTHS_OPTIONS.map((m) => (
+                  <SelectItem key={m} value={m.toString()}>
+                    {m === 0 ? 'Sin tope' : `${m} meses`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+      )}
 
       <Progress value={currentFillPct} className="h-2.5" />
 
