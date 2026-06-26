@@ -38,6 +38,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { getArticleCifCost } from '@/lib/utils/articles/marginCalculations';
 import {
   formatSaleTime,
   calculateWeightedAvgSales,
@@ -311,6 +312,20 @@ export function SupplierOrderPanel({
   const formatKg = (kg: number) =>
     kg >= 1000 ? `${(kg / 1000).toFixed(2)} t` : `${kg.toFixed(0)} kg`;
 
+  // Container cost from stored prices (CIF landed cost = FOB × (1 + CIF%), USD)
+  const lineCifCost = (item: SupplierOrderItem) => {
+    const cif = getArticleCifCost(item.article);
+    return cif !== null ? cif * item.quantity : 0;
+  };
+  const totalCifCost = items.reduce((sum, item) => sum + lineCifCost(item), 0);
+  const totalFobCost = items.reduce(
+    (sum, item) => sum + (Number(item.article.lastPurchasePrice) || 0) * item.quantity,
+    0
+  );
+  const itemsMissingCost = items.filter((item) => getArticleCifCost(item.article) === null).length;
+  const formatUsd = (n: number) =>
+    `USD ${new Intl.NumberFormat('es-AR', { maximumFractionDigits: 0 }).format(Math.round(n))}`;
+
   const handleExportToHTML = () => {
     if (items.length === 0) return;
 
@@ -495,6 +510,10 @@ export function SupplierOrderPanel({
       <div class="summary-item">
         <div class="summary-label">Peso Total</div>
         <div class="summary-value">${formatKg(totalWeightKg)}</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Costo Total (CIF)</div>
+        <div class="summary-value">${formatUsd(totalCifCost)}</div>
       </div>
       <div class="summary-item">
         <div class="summary-label">Tiempo Est. Venta</div>
@@ -1310,6 +1329,22 @@ export function SupplierOrderPanel({
             <div>
               <div className="text-muted-foreground text-xs">Peso Total</div>
               <div className="text-lg font-semibold">{formatKg(totalWeightKg)}</div>
+            </div>
+            <div>
+              <div className="text-muted-foreground flex items-center gap-1 text-xs">
+                Costo Total (CIF)
+                {itemsMissingCost > 0 && (
+                  <span title={`${itemsMissingCost} artículo(s) sin costo cargado`}>
+                    <AlertTriangle className="h-3 w-3 text-amber-500" />
+                  </span>
+                )}
+              </div>
+              <div className="text-lg font-semibold">{formatUsd(totalCifCost)}</div>
+              {totalFobCost > 0 && (
+                <div className="text-muted-foreground text-[10px]">
+                  FOB {formatUsd(totalFobCost)}
+                </div>
+              )}
             </div>
             <div>
               <div className="text-muted-foreground flex items-center gap-1 text-xs">
