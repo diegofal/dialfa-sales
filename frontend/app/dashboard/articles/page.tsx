@@ -8,7 +8,7 @@ import { ArticleDialog } from '@/components/articles/ArticleDialog';
 import { ArticlesTable } from '@/components/articles/ArticlesTable';
 import { SalesAnalyticsTab } from '@/components/articles/SalesAnalyticsTab';
 import { StockMovementsTable } from '@/components/articles/StockMovementsTable';
-import { SupplierOrderPanel } from '@/components/articles/SupplierOrderPanel';
+import { SupplierOrderPanel, type FillOptions } from '@/components/articles/SupplierOrderPanel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -237,20 +237,26 @@ export default function ArticlesPage() {
   };
 
   /**
-   * Build / top up a container by profitability per kg. A container is weight-
-   * constrained, so to maximize profit we rank by profit per kg of space
-   * (sell − landed CIF cost, same currency, ÷ unit weight) and bring each
-   * article only up to the units needed to cover projected demand for the
-   * chosen period given current stock, until the capacity (kg) is filled.
+   * Build / top up a weight-constrained container using a strategy mode. Starts
+   * from the full active catalog (does not require low stock, works on an empty
+   * order) and fills the remaining kg with the best candidates per the mode:
    *
-   * Independent of the current list: starts from the full active catalog, does
-   * not require low stock, and works even with an empty order.
+   * - money:    rank by profit per kg of space (sell − landed CIF cost ÷ weight)
+   * - rotation: rank by sales velocity (fastest movers first)
+   * - critical: only items short for the period, rank by urgency (least coverage)
+   *
+   * Quantity per article = projected demand for the period (WMA × coverageMonths)
+   * for money/rotation, or the shortfall to reach it for critical — both capped
+   * by the over-stock limit (maxStockMonths) and the remaining container weight.
    */
-  const handleFillContainer = async (
-    remainingKg: number,
-    capacityKg: number,
-    coverageMonths: number
-  ) => {
+  const handleFillContainer = async ({
+    remainingKg,
+    capacityKg,
+    coverageMonths,
+    mode,
+    excludeNoRotation,
+    maxStockMonths,
+  }: FillOptions) => {
     if (remainingKg <= 0) return;
     setIsFillingContainer(true);
     try {
@@ -263,40 +269,67 @@ export default function ArticlesPage() {
 
       const inDraft = supplierOrder.draftArticleIds;
 
-      // Candidates: weighable, profitable, with demand not yet covered by stock
-      // for the target period, and not already in the order. Ranked by profit
-      // per kg of container space (sell − landed CIF cost, ÷ unit weight).
-      const candidates = result.data
+      const scored = result.data
         .filter((a) => !inDraft.has(a.id) && Number(a.weightKg) > 0)
         .map((a) => {
+          const weightPer = Number(a.weightKg);
+          const stock = Number(a.stock);
           const wma = calculateWeightedAvgSales(a.salesTrend ?? [], supplierOrderTrendMonths);
-          const deficit = Math.ceil(wma * coverageMonths - Number(a.stock));
           const sell = getArticleDiscountedSellPrice(a);
           const cost = getArticleCifCost(a);
           const profitPerUnit = sell !== null && cost !== null ? sell - cost : null;
-          const profitPerKg =
-            profitPerUnit !== null ? profitPerUnit / Number(a.weightKg) : -Infinity;
-          return { article: a, deficit, profitPerKg };
-        })
-        .filter((c) => c.deficit >= 1 && c.profitPerKg > 0)
-        // Highest profit per kg of container space first (weight-knapsack heuristic)
-        .sort((a, b) => b.profitPerKg - a.profitPerKg);
+          const profitPerKg = profitPerUnit !== null ? profitPerUnit / weightPer : -Infinity;
+          // Months of stock currently on hand (Infinity if it doesn't sell)
+          const coverage = wma > 0 ? stock / wma : Infinity;
+          // Demand to bring for the period; critical only covers the shortfall
+          const demandQty = Math.ceil(wma * coverageMonths);
+          const shortfallQty = Math.max(0, Math.ceil(wma * coverageMonths - stock));
+          // Over-stock cap: don't push stock beyond maxStockMonths of demand
+          const headroom =
+            maxStockMonths > 0 ? Math.max(0, Math.ceil(maxStockMonths * wma - stock)) : Infinity;
+          return {
+            article: a,
+            weightPer,
+            wma,
+            coverage,
+            profitPerKg,
+            demandQty,
+            shortfallQty,
+            headroom,
+          };
+        });
+
+      // Mode-specific candidate filter + ranking
+      const hasRotation = (c: (typeof scored)[number]) => c.wma > 0;
+      let candidates = scored.filter((c) => (excludeNoRotation ? hasRotation(c) : true));
+
+      if (mode === 'money') {
+        candidates = candidates
+          .filter((c) => c.profitPerKg > 0)
+          .sort((a, b) => b.profitPerKg - a.profitPerKg);
+      } else if (mode === 'rotation') {
+        candidates = candidates.filter((c) => c.wma > 0).sort((a, b) => b.wma - a.wma);
+      } else {
+        // critical: only items that won't cover the period, most urgent first
+        candidates = candidates
+          .filter((c) => c.wma > 0 && c.coverage < coverageMonths && c.shortfallQty >= 1)
+          .sort((a, b) => a.coverage - b.coverage);
+      }
 
       let remaining = remainingKg;
       const entries: { article: Article; quantity: number }[] = [];
       for (const c of candidates) {
         if (remaining <= 0) break;
-        const weightPer = Number(c.article.weightKg);
-        const maxByWeight = Math.floor(remaining / weightPer);
-        if (maxByWeight < 1) continue; // too heavy for the space left — try a lighter item
-        const qty = Math.min(c.deficit, maxByWeight);
-        if (qty < 1) continue;
+        const target = mode === 'critical' ? c.shortfallQty : c.demandQty;
+        const maxByWeight = Math.floor(remaining / c.weightPer);
+        const qty = Math.min(target, c.headroom, maxByWeight);
+        if (qty < 1) continue; // nothing sensible fits — try the next item
         entries.push({ article: c.article, quantity: qty });
-        remaining -= qty * weightPer;
+        remaining -= qty * c.weightPer;
       }
 
       if (entries.length === 0) {
-        toast.info('No se encontraron artículos rentables con demanda para el período elegido.');
+        toast.info('No se encontraron artículos que cumplan los criterios del modo elegido.');
         return;
       }
 
@@ -307,9 +340,11 @@ export default function ArticlesPage() {
         return updated;
       });
 
+      const modeLabel =
+        mode === 'money' ? 'plata' : mode === 'rotation' ? 'rotación' : 'stock crítico';
       const addedTons = ((remainingKg - remaining) / 1000).toFixed(2);
       toast.success(
-        `Se agregaron ${entries.length} artículos (~${addedTons} t) al contenedor de ${capacityKg / 1000} t (cobertura ${coverageMonths} meses).`
+        `Se agregaron ${entries.length} artículos (~${addedTons} t) al contenedor de ${capacityKg / 1000} t — modo ${modeLabel}, ${coverageMonths} meses.`
       );
     } catch (error) {
       console.error('Error al armar el contenedor:', error);
