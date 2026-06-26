@@ -12,12 +12,15 @@ import {
   ArrowUpDown,
   ArrowUp,
   ArrowDown,
+  Container,
+  Sparkles,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
+import { Progress } from '@/components/ui/progress';
 import {
   Select,
   SelectContent,
@@ -98,6 +101,10 @@ function getActiveRating(item: SupplierOrderItem): ActiveRating {
   return 'SLOW';
 }
 
+/** Selectable container capacities (kg). 25 t is the default standard container. */
+const CONTAINER_CAPACITIES_KG = [20000, 25000, 28000] as const;
+const DEFAULT_CONTAINER_KG = 25000;
+
 interface SupplierOrderPanelProps {
   items: SupplierOrderItem[];
   totalEstimatedTime: number;
@@ -108,9 +115,16 @@ interface SupplierOrderPanelProps {
   onClear: () => void;
   onViewOrder?: () => void;
   onImportCsv?: (file: File) => void;
+  /**
+   * Auto-fill the order with the most-needed low-stock articles until the
+   * remaining container capacity is reached. Receives the kg still free in the
+   * current container and the configured capacity.
+   */
+  onFillContainer?: (remainingKg: number, capacityKg: number) => void;
   isSaving?: boolean;
   isLoading?: boolean;
   isImporting?: boolean;
+  isFilling?: boolean;
 }
 
 export function SupplierOrderPanel({
@@ -123,13 +137,16 @@ export function SupplierOrderPanel({
   onClear,
   onViewOrder,
   onImportCsv,
+  onFillContainer,
   isSaving = false,
   isLoading = false,
   isImporting = false,
+  isFilling = false,
 }: SupplierOrderPanelProps) {
   const [ratingFilter, setRatingFilter] = useState<ActiveRating | 'ALL'>('ALL');
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDesc, setSortDesc] = useState(false);
+  const [containerCapacityKg, setContainerCapacityKg] = useState<number>(DEFAULT_CONTAINER_KG);
 
   const handleSort = (key: string) => {
     if (sortKey === key) {
@@ -165,6 +182,10 @@ export function SupplierOrderPanel({
           case 'Quantity':
             aVal = a.quantity;
             bVal = b.quantity;
+            break;
+          case 'Weight':
+            aVal = (Number(a.article.weightKg) || 0) * a.quantity;
+            bVal = (Number(b.article.weightKg) || 0) * b.quantity;
             break;
           case 'Stock':
             aVal = a.currentStock;
@@ -269,6 +290,22 @@ export function SupplierOrderPanel({
 
   const totalItems = items.length;
   const totalQuantity = items.reduce((sum, item) => sum + item.quantity, 0);
+
+  // Container / tonnage planning
+  const lineWeightKg = (item: SupplierOrderItem) =>
+    (Number(item.article.weightKg) || 0) * item.quantity;
+  const totalWeightKg = items.reduce((sum, item) => sum + lineWeightKg(item), 0);
+  const itemsMissingWeight = items.filter((item) => !(Number(item.article.weightKg) > 0)).length;
+  const containersNeeded = totalWeightKg > 0 ? Math.ceil(totalWeightKg / containerCapacityKg) : 0;
+  // Fill % of the *current* (last) container being filled
+  const currentContainerKg =
+    containersNeeded <= 1
+      ? totalWeightKg
+      : totalWeightKg - (containersNeeded - 1) * containerCapacityKg;
+  const currentFillPct = Math.min(100, (currentContainerKg / containerCapacityKg) * 100);
+  const remainingInContainerKg = Math.max(0, containerCapacityKg - currentContainerKg);
+  const formatKg = (kg: number) =>
+    kg >= 1000 ? `${(kg / 1000).toFixed(2)} t` : `${kg.toFixed(0)} kg`;
 
   const handleExportToHTML = () => {
     if (items.length === 0) return;
@@ -450,6 +487,10 @@ export function SupplierOrderPanel({
       <div class="summary-item">
         <div class="summary-label">Cantidad Total</div>
         <div class="summary-value">${totalQuantity}</div>
+      </div>
+      <div class="summary-item">
+        <div class="summary-label">Peso Total</div>
+        <div class="summary-value">${formatKg(totalWeightKg)}</div>
       </div>
       <div class="summary-item">
         <div class="summary-label">Tiempo Est. Venta</div>
@@ -827,6 +868,12 @@ export function SupplierOrderPanel({
                 </TableHead>
                 <TableHead
                   className="cursor-pointer text-right"
+                  onClick={() => handleSort('Weight')}
+                >
+                  Peso <SortIcon col="Weight" />
+                </TableHead>
+                <TableHead
+                  className="cursor-pointer text-right"
                   onClick={() => handleSort('Stock')}
                 >
                   Stock Actual <SortIcon col="Stock" />
@@ -950,6 +997,20 @@ export function SupplierOrderPanel({
                       className="h-8 w-24 text-right"
                       onFocus={(e) => e.target.select()}
                     />
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {Number(item.article.weightKg) > 0 ? (
+                      <div className="flex flex-col items-end leading-tight">
+                        <span className="font-medium">{formatKg(lineWeightKg(item))}</span>
+                        <span className="text-muted-foreground text-[10px]">
+                          {Number(item.article.weightKg).toFixed(2)} kg/u
+                        </span>
+                      </div>
+                    ) : (
+                      <span className="text-xs text-amber-600" title="Artículo sin peso cargado">
+                        s/peso
+                      </span>
+                    )}
                   </TableCell>
                   <TableCell className="text-right">
                     <span
@@ -1152,6 +1213,10 @@ export function SupplierOrderPanel({
               <div className="text-lg font-semibold">{totalQuantity}</div>
             </div>
             <div>
+              <div className="text-muted-foreground text-xs">Peso Total</div>
+              <div className="text-lg font-semibold">{formatKg(totalWeightKg)}</div>
+            </div>
+            <div>
               <div className="text-muted-foreground flex items-center gap-1 text-xs">
                 Tiempo Prom. Est. Venta
                 {!isFinite(totalEstimatedTime) && (
@@ -1166,6 +1231,76 @@ export function SupplierOrderPanel({
             </div>
           </div>
         </div>
+
+        {/* Container (tonnage) planner */}
+        {items.length > 0 && (
+          <div className="bg-muted/40 mt-2 space-y-2 rounded-lg border p-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2 text-sm font-medium">
+                <Container className="h-4 w-4 text-blue-600" />
+                Contenedor
+                <span className="text-muted-foreground font-normal">
+                  ({containersNeeded || 1} {containersNeeded === 1 ? 'contenedor' : 'contenedores'})
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="text-muted-foreground text-xs">Capacidad:</span>
+                <Select
+                  value={containerCapacityKg.toString()}
+                  onValueChange={(v) => setContainerCapacityKg(parseInt(v))}
+                >
+                  <SelectTrigger className="h-8 w-[110px]">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CONTAINER_CAPACITIES_KG.map((kg) => (
+                      <SelectItem key={kg} value={kg.toString()}>
+                        {kg / 1000} t
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {onFillContainer && (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={isFilling || isSaving || remainingInContainerKg <= 0}
+                    onClick={() => onFillContainer(remainingInContainerKg, containerCapacityKg)}
+                    title="Agregar artículos de bajo stock más necesarios hasta llenar el contenedor"
+                  >
+                    {isFilling ? (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    ) : (
+                      <Sparkles className="mr-2 h-4 w-4" />
+                    )}
+                    Completar contenedor
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            <Progress value={currentFillPct} className="h-2.5" />
+
+            <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 text-xs">
+              <span>
+                <span className="font-semibold">{formatKg(currentContainerKg)}</span>
+                <span className="text-muted-foreground"> / {formatKg(containerCapacityKg)}</span>
+                <span className="text-muted-foreground"> ({currentFillPct.toFixed(0)}%)</span>
+              </span>
+              <span className="text-muted-foreground">
+                Faltan <span className="font-medium">{formatKg(remainingInContainerKg)}</span> para
+                completar
+              </span>
+              {itemsMissingWeight > 0 && (
+                <span className="flex items-center gap-1 text-amber-600">
+                  <AlertTriangle className="h-3 w-3" />
+                  {itemsMissingWeight} artículo{itemsMissingWeight !== 1 ? 's' : ''} sin peso (no
+                  computa{itemsMissingWeight !== 1 ? 'n' : ''})
+                </span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </Card>
   );
