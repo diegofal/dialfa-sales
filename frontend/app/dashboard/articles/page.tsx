@@ -44,6 +44,23 @@ const formatArs = (n: number): string =>
 
 const formatNum = (n: number): string => new Intl.NumberFormat('es-AR').format(n);
 
+// Remembers, per browser, whether the user dismissed the supplier-order panel.
+// The draft itself stays in the DB; this only controls panel visibility so the
+// toggle stays off across refreshes when explicitly turned off.
+const SUPPLIER_MODE_HIDDEN_KEY = 'supplier-order-mode-hidden';
+
+const isSupplierModeHidden = (): boolean =>
+  typeof window !== 'undefined' && localStorage.getItem(SUPPLIER_MODE_HIDDEN_KEY) === 'true';
+
+const setSupplierModeHidden = (hidden: boolean): void => {
+  if (typeof window === 'undefined') return;
+  if (hidden) {
+    localStorage.setItem(SUPPLIER_MODE_HIDDEN_KEY, 'true');
+  } else {
+    localStorage.removeItem(SUPPLIER_MODE_HIDDEN_KEY);
+  }
+};
+
 export default function ArticlesPage() {
   const router = useRouter();
   const pathname = usePathname();
@@ -87,9 +104,10 @@ export default function ArticlesPage() {
     supplierOrderTrendMonths
   );
 
-  // Auto-restore supplier order mode when draft has items
+  // Auto-restore supplier order mode when a draft has items, unless the user
+  // explicitly dismissed the panel (persisted per browser).
   useEffect(() => {
-    if (!supplierOrder.isLoading && supplierOrder.hasDraft) {
+    if (!supplierOrder.isLoading && supplierOrder.hasDraft && !isSupplierModeHidden()) {
       setSupplierOrderMode(true);
       setSelectedArticleIds(new Set(supplierOrder.draftArticleIds));
     }
@@ -195,7 +213,13 @@ export default function ArticlesPage() {
 
   const handleSupplierOrderModeToggle = (checked: boolean) => {
     setSupplierOrderMode(checked);
-    // Don't clear draft when toggling off — it persists in DB and will auto-restore
+    // Persist the user's intent so it survives a refresh. The draft stays in
+    // the DB either way; this only controls panel visibility.
+    setSupplierModeHidden(!checked);
+    if (checked) {
+      // Re-entering the panel: reflect the existing draft's selection
+      setSelectedArticleIds(new Set(supplierOrder.draftArticleIds));
+    }
   };
 
   const handleViewSupplierOrder = () => {
@@ -605,6 +629,8 @@ export default function ArticlesPage() {
                   await supplierOrder.deleteDraft();
                   setSelectedArticleIds(new Set());
                   setSupplierOrderMode(false);
+                  // Draft is gone — reset the dismissal flag to its default
+                  setSupplierModeHidden(false);
                 }}
                 onViewOrder={supplierOrder.currentDraftId ? handleViewSupplierOrder : undefined}
                 onImportCsv={importCsv}
