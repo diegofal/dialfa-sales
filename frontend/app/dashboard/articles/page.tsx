@@ -3,6 +3,7 @@
 import { Plus, Search, Filter, Package, History, BarChart3, Info } from 'lucide-react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
+import { toast } from 'sonner';
 import { ArticleDialog } from '@/components/articles/ArticleDialog';
 import { ArticlesTable } from '@/components/articles/ArticlesTable';
 import { SalesAnalyticsTab } from '@/components/articles/SalesAnalyticsTab';
@@ -23,6 +24,7 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { articlesApi } from '@/lib/api/articles';
 import { ROUTES } from '@/lib/constants/routes';
 import { type SoldInPeriod, useArticles, useDeleteArticle } from '@/lib/hooks/domain/useArticles';
 import { useCategories } from '@/lib/hooks/domain/useCategories';
@@ -96,6 +98,7 @@ export default function ArticlesPage() {
   // Supplier order mode
   const [supplierOrderMode, setSupplierOrderMode] = useState(false);
   const [selectedArticleIds, setSelectedArticleIds] = useState<Set<number>>(new Set());
+  const [isFillingContainer, setIsFillingContainer] = useState(false);
 
   // Supplier order draft hook with trendMonths
   const supplierOrder = useSupplierOrderDraft(supplierOrderTrendMonths);
@@ -225,6 +228,75 @@ export default function ArticlesPage() {
   const handleViewSupplierOrder = () => {
     if (supplierOrder.currentDraftId) {
       router.push(`${ROUTES.SUPPLIER_ORDERS}/${supplierOrder.currentDraftId}`);
+    }
+  };
+
+  /**
+   * Auto-fill the order with the most-needed low-stock articles (by sales) until
+   * the remaining container capacity (kg) is reached. Only articles that have a
+   * weight loaded contribute, so tonnage targeting stays accurate.
+   */
+  const handleFillContainer = async (remainingKg: number, capacityKg: number) => {
+    if (remainingKg <= 0) return;
+    setIsFillingContainer(true);
+    try {
+      const result = await articlesApi.getAll({
+        pageSize: 1000,
+        lowStockOnly: true,
+        includeTrends: true,
+        trendMonths: supplierOrderTrendMonths,
+        activeOnly: true,
+      });
+
+      const inDraft = supplierOrder.draftArticleIds;
+      // Candidates: low stock, have a weight, have sales, not already in the order.
+      // Most urgent first (largest stock deficit relative to minimum).
+      const candidates = result.data
+        .filter(
+          (a) =>
+            !inDraft.has(a.id) &&
+            Number(a.weightKg) > 0 &&
+            (a.salesTrend?.reduce((s, v) => s + v, 0) ?? 0) > 0
+        )
+        .sort(
+          (a, b) =>
+            Number(a.stock) - Number(a.minimumStock) - (Number(b.stock) - Number(b.minimumStock))
+        );
+
+      let remaining = remainingKg;
+      const entries: { article: Article; quantity: number }[] = [];
+      for (const article of candidates) {
+        if (remaining <= 0) break;
+        const weightPer = Number(article.weightKg);
+        const maxByWeight = Math.floor(remaining / weightPer);
+        if (maxByWeight < 1) continue; // too heavy for the space left — try a lighter item
+        const qty = Math.min(supplierOrder.getSuggestedQuantity(article), maxByWeight);
+        if (qty < 1) continue;
+        entries.push({ article, quantity: qty });
+        remaining -= qty * weightPer;
+      }
+
+      if (entries.length === 0) {
+        toast.info('No hay artículos de bajo stock que entren en el espacio restante.');
+        return;
+      }
+
+      supplierOrder.addItems(entries);
+      setSelectedArticleIds((prev) => {
+        const updated = new Set(prev);
+        entries.forEach((e) => updated.add(e.article.id));
+        return updated;
+      });
+
+      const addedTons = ((remainingKg - remaining) / 1000).toFixed(2);
+      toast.success(
+        `Se agregaron ${entries.length} artículos (~${addedTons} t) para completar el contenedor de ${capacityKg / 1000} t.`
+      );
+    } catch (error) {
+      console.error('Error al completar el contenedor:', error);
+      toast.error('No se pudo completar el contenedor.');
+    } finally {
+      setIsFillingContainer(false);
     }
   };
 
@@ -634,9 +706,11 @@ export default function ArticlesPage() {
                 }}
                 onViewOrder={supplierOrder.currentDraftId ? handleViewSupplierOrder : undefined}
                 onImportCsv={importCsv}
+                onFillContainer={handleFillContainer}
                 isSaving={supplierOrder.isSaving}
                 isLoading={supplierOrder.isLoading}
                 isImporting={isImporting}
+                isFilling={isFillingContainer}
               />
             </div>
           )}
