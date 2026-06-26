@@ -32,7 +32,10 @@ import { useImportCsvToOrder } from '@/lib/hooks/domain/useImportCsvToOrder';
 import { useStockMovements } from '@/lib/hooks/domain/useStockMovements';
 import { useSupplierOrderDraft } from '@/lib/hooks/domain/useSupplierOrderDraft';
 import { usePagination } from '@/lib/hooks/generic/usePagination';
-import { getArticleMarginPercent } from '@/lib/utils/articles/marginCalculations';
+import {
+  getArticleCifCost,
+  getArticleDiscountedSellPrice,
+} from '@/lib/utils/articles/marginCalculations';
 import { calculateWeightedAvgSales } from '@/lib/utils/salesCalculations';
 import { useAuthStore } from '@/store/authStore';
 import { Article } from '@/types/article';
@@ -234,10 +237,11 @@ export default function ArticlesPage() {
   };
 
   /**
-   * Build / top up a container by profitability. For the chosen coverage period
-   * it brings the most profitable articles (by canonical margin %), each only up
-   * to the units needed to cover projected demand for the period given current
-   * stock, until the remaining container capacity (kg) is filled.
+   * Build / top up a container by profitability per kg. A container is weight-
+   * constrained, so to maximize profit we rank by profit per kg of space
+   * (sell − landed CIF cost, same currency, ÷ unit weight) and bring each
+   * article only up to the units needed to cover projected demand for the
+   * chosen period given current stock, until the capacity (kg) is filled.
    *
    * Independent of the current list: starts from the full active catalog, does
    * not require low stock, and works even with an empty order.
@@ -260,18 +264,23 @@ export default function ArticlesPage() {
       const inDraft = supplierOrder.draftArticleIds;
 
       // Candidates: weighable, profitable, with demand not yet covered by stock
-      // for the target period, and not already in the order.
+      // for the target period, and not already in the order. Ranked by profit
+      // per kg of container space (sell − landed CIF cost, ÷ unit weight).
       const candidates = result.data
         .filter((a) => !inDraft.has(a.id) && Number(a.weightKg) > 0)
         .map((a) => {
           const wma = calculateWeightedAvgSales(a.salesTrend ?? [], supplierOrderTrendMonths);
           const deficit = Math.ceil(wma * coverageMonths - Number(a.stock));
-          const margin = getArticleMarginPercent(a);
-          return { article: a, deficit, margin: margin ?? -Infinity };
+          const sell = getArticleDiscountedSellPrice(a);
+          const cost = getArticleCifCost(a);
+          const profitPerUnit = sell !== null && cost !== null ? sell - cost : null;
+          const profitPerKg =
+            profitPerUnit !== null ? profitPerUnit / Number(a.weightKg) : -Infinity;
+          return { article: a, deficit, profitPerKg };
         })
-        .filter((c) => c.deficit >= 1 && c.margin > 0)
-        // Most profitable first
-        .sort((a, b) => b.margin - a.margin);
+        .filter((c) => c.deficit >= 1 && c.profitPerKg > 0)
+        // Highest profit per kg of container space first (weight-knapsack heuristic)
+        .sort((a, b) => b.profitPerKg - a.profitPerKg);
 
       let remaining = remainingKg;
       const entries: { article: Article; quantity: number }[] = [];

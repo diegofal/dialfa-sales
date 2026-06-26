@@ -736,7 +736,7 @@ export function SupplierOrderPanel({
               onClick={() =>
                 onFillContainer(remainingInContainerKg, containerCapacityKg, coverageMonths)
               }
-              title="Trae los artículos más rentables con demanda no cubierta para el período, hasta llenar el contenedor"
+              title="Trae los artículos con mayor ganancia por kg y demanda no cubierta para el período, hasta llenar el contenedor"
             >
               {isFilling ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
