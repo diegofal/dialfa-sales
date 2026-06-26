@@ -32,6 +32,8 @@ import { useImportCsvToOrder } from '@/lib/hooks/domain/useImportCsvToOrder';
 import { useStockMovements } from '@/lib/hooks/domain/useStockMovements';
 import { useSupplierOrderDraft } from '@/lib/hooks/domain/useSupplierOrderDraft';
 import { usePagination } from '@/lib/hooks/generic/usePagination';
+import { getArticleMarginPercent } from '@/lib/utils/articles/marginCalculations';
+import { calculateWeightedAvgSales } from '@/lib/utils/salesCalculations';
 import { useAuthStore } from '@/store/authStore';
 import { Article } from '@/types/article';
 import { StockStatus } from '@/types/stockValuation';
@@ -232,52 +234,60 @@ export default function ArticlesPage() {
   };
 
   /**
-   * Auto-fill the order with the most-needed low-stock articles (by sales) until
-   * the remaining container capacity (kg) is reached. Only articles that have a
-   * weight loaded contribute, so tonnage targeting stays accurate.
+   * Build / top up a container by profitability. For the chosen coverage period
+   * it brings the most profitable articles (by canonical margin %), each only up
+   * to the units needed to cover projected demand for the period given current
+   * stock, until the remaining container capacity (kg) is filled.
+   *
+   * Independent of the current list: starts from the full active catalog, does
+   * not require low stock, and works even with an empty order.
    */
-  const handleFillContainer = async (remainingKg: number, capacityKg: number) => {
+  const handleFillContainer = async (
+    remainingKg: number,
+    capacityKg: number,
+    coverageMonths: number
+  ) => {
     if (remainingKg <= 0) return;
     setIsFillingContainer(true);
     try {
       const result = await articlesApi.getAll({
-        pageSize: 1000,
-        lowStockOnly: true,
+        pageSize: 2000,
         includeTrends: true,
         trendMonths: supplierOrderTrendMonths,
         activeOnly: true,
       });
 
       const inDraft = supplierOrder.draftArticleIds;
-      // Candidates: low stock, have a weight, have sales, not already in the order.
-      // Most urgent first (largest stock deficit relative to minimum).
+
+      // Candidates: weighable, profitable, with demand not yet covered by stock
+      // for the target period, and not already in the order.
       const candidates = result.data
-        .filter(
-          (a) =>
-            !inDraft.has(a.id) &&
-            Number(a.weightKg) > 0 &&
-            (a.salesTrend?.reduce((s, v) => s + v, 0) ?? 0) > 0
-        )
-        .sort(
-          (a, b) =>
-            Number(a.stock) - Number(a.minimumStock) - (Number(b.stock) - Number(b.minimumStock))
-        );
+        .filter((a) => !inDraft.has(a.id) && Number(a.weightKg) > 0)
+        .map((a) => {
+          const wma = calculateWeightedAvgSales(a.salesTrend ?? [], supplierOrderTrendMonths);
+          const deficit = Math.ceil(wma * coverageMonths - Number(a.stock));
+          const margin = getArticleMarginPercent(a);
+          return { article: a, deficit, margin: margin ?? -Infinity };
+        })
+        .filter((c) => c.deficit >= 1 && c.margin > 0)
+        // Most profitable first
+        .sort((a, b) => b.margin - a.margin);
 
       let remaining = remainingKg;
       const entries: { article: Article; quantity: number }[] = [];
-      for (const article of candidates) {
+      for (const c of candidates) {
         if (remaining <= 0) break;
-        const weightPer = Number(article.weightKg);
+        const weightPer = Number(c.article.weightKg);
         const maxByWeight = Math.floor(remaining / weightPer);
         if (maxByWeight < 1) continue; // too heavy for the space left — try a lighter item
-        const qty = Math.min(supplierOrder.getSuggestedQuantity(article), maxByWeight);
+        const qty = Math.min(c.deficit, maxByWeight);
         if (qty < 1) continue;
-        entries.push({ article, quantity: qty });
+        entries.push({ article: c.article, quantity: qty });
         remaining -= qty * weightPer;
       }
 
       if (entries.length === 0) {
-        toast.info('No hay artículos de bajo stock que entren en el espacio restante.');
+        toast.info('No se encontraron artículos rentables con demanda para el período elegido.');
         return;
       }
 
@@ -290,11 +300,11 @@ export default function ArticlesPage() {
 
       const addedTons = ((remainingKg - remaining) / 1000).toFixed(2);
       toast.success(
-        `Se agregaron ${entries.length} artículos (~${addedTons} t) para completar el contenedor de ${capacityKg / 1000} t.`
+        `Se agregaron ${entries.length} artículos (~${addedTons} t) al contenedor de ${capacityKg / 1000} t (cobertura ${coverageMonths} meses).`
       );
     } catch (error) {
-      console.error('Error al completar el contenedor:', error);
-      toast.error('No se pudo completar el contenedor.');
+      console.error('Error al armar el contenedor:', error);
+      toast.error('No se pudo armar el contenedor.');
     } finally {
       setIsFillingContainer(false);
     }
