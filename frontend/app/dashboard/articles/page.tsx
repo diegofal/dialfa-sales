@@ -32,11 +32,7 @@ import { useImportCsvToOrder } from '@/lib/hooks/domain/useImportCsvToOrder';
 import { useStockMovements } from '@/lib/hooks/domain/useStockMovements';
 import { useSupplierOrderDraft } from '@/lib/hooks/domain/useSupplierOrderDraft';
 import { usePagination } from '@/lib/hooks/generic/usePagination';
-import {
-  getArticleCifCost,
-  getArticleDiscountedSellPrice,
-} from '@/lib/utils/articles/marginCalculations';
-import { calculateWeightedAvgSales } from '@/lib/utils/salesCalculations';
+import { buildContainerFill } from '@/lib/utils/articles/containerFill';
 import { useAuthStore } from '@/store/authStore';
 import { Article } from '@/types/article';
 import { StockStatus } from '@/types/stockValuation';
@@ -269,64 +265,13 @@ export default function ArticlesPage() {
 
       const inDraft = supplierOrder.draftArticleIds;
 
-      const scored = result.data
-        .filter((a) => !inDraft.has(a.id) && Number(a.weightKg) > 0)
-        .map((a) => {
-          const weightPer = Number(a.weightKg);
-          const stock = Number(a.stock);
-          const wma = calculateWeightedAvgSales(a.salesTrend ?? [], supplierOrderTrendMonths);
-          const sell = getArticleDiscountedSellPrice(a);
-          const cost = getArticleCifCost(a);
-          const profitPerUnit = sell !== null && cost !== null ? sell - cost : null;
-          const profitPerKg = profitPerUnit !== null ? profitPerUnit / weightPer : -Infinity;
-          // Months of stock currently on hand (Infinity if it doesn't sell)
-          const coverage = wma > 0 ? stock / wma : Infinity;
-          // Demand to bring for the period; critical only covers the shortfall
-          const demandQty = Math.ceil(wma * coverageMonths);
-          const shortfallQty = Math.max(0, Math.ceil(wma * coverageMonths - stock));
-          // Over-stock cap: don't push stock beyond maxStockMonths of demand
-          const headroom =
-            maxStockMonths > 0 ? Math.max(0, Math.ceil(maxStockMonths * wma - stock)) : Infinity;
-          return {
-            article: a,
-            weightPer,
-            wma,
-            coverage,
-            profitPerKg,
-            demandQty,
-            shortfallQty,
-            headroom,
-          };
-        });
-
-      // Mode-specific candidate filter + ranking
-      const hasRotation = (c: (typeof scored)[number]) => c.wma > 0;
-      let candidates = scored.filter((c) => (excludeNoRotation ? hasRotation(c) : true));
-
-      if (mode === 'money') {
-        candidates = candidates
-          .filter((c) => c.profitPerKg > 0)
-          .sort((a, b) => b.profitPerKg - a.profitPerKg);
-      } else if (mode === 'rotation') {
-        candidates = candidates.filter((c) => c.wma > 0).sort((a, b) => b.wma - a.wma);
-      } else {
-        // critical: only items that won't cover the period, most urgent first
-        candidates = candidates
-          .filter((c) => c.wma > 0 && c.coverage < coverageMonths && c.shortfallQty >= 1)
-          .sort((a, b) => a.coverage - b.coverage);
-      }
-
-      let remaining = remainingKg;
-      const entries: { article: Article; quantity: number }[] = [];
-      for (const c of candidates) {
-        if (remaining <= 0) break;
-        const target = mode === 'critical' ? c.shortfallQty : c.demandQty;
-        const maxByWeight = Math.floor(remaining / c.weightPer);
-        const qty = Math.min(target, c.headroom, maxByWeight);
-        if (qty < 1) continue; // nothing sensible fits — try the next item
-        entries.push({ article: c.article, quantity: qty });
-        remaining -= qty * c.weightPer;
-      }
+      const { entries, addedKg } = buildContainerFill(
+        result.data,
+        inDraft,
+        remainingKg,
+        supplierOrderTrendMonths,
+        { mode, coverageMonths, excludeNoRotation, maxStockMonths }
+      );
 
       if (entries.length === 0) {
         toast.info('No se encontraron artículos que cumplan los criterios del modo elegido.');
@@ -342,7 +287,7 @@ export default function ArticlesPage() {
 
       const modeLabel =
         mode === 'money' ? 'plata' : mode === 'rotation' ? 'rotación' : 'stock crítico';
-      const addedTons = ((remainingKg - remaining) / 1000).toFixed(2);
+      const addedTons = (addedKg / 1000).toFixed(2);
       toast.success(
         `Se agregaron ${entries.length} artículos (~${addedTons} t) al contenedor de ${capacityKg / 1000} t — modo ${modeLabel}, ${coverageMonths} meses.`
       );
