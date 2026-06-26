@@ -104,6 +104,9 @@ function getActiveRating(item: SupplierOrderItem): ActiveRating {
 /** Selectable container capacities (kg). 25 t is the default standard container. */
 const CONTAINER_CAPACITIES_KG = [20000, 25000, 28000] as const;
 const DEFAULT_CONTAINER_KG = 25000;
+/** Months of projected demand the auto-fill aims to cover. */
+const COVERAGE_MONTHS_OPTIONS = [3, 6, 12, 18] as const;
+const DEFAULT_COVERAGE_MONTHS = 6;
 
 interface SupplierOrderPanelProps {
   items: SupplierOrderItem[];
@@ -116,11 +119,11 @@ interface SupplierOrderPanelProps {
   onViewOrder?: () => void;
   onImportCsv?: (file: File) => void;
   /**
-   * Auto-fill the order with the most-needed low-stock articles until the
-   * remaining container capacity is reached. Receives the kg still free in the
-   * current container and the configured capacity.
+   * Build / top up the container by profitability. Receives the kg still free in
+   * the current container, the configured capacity, and the coverage period
+   * (months of projected demand to bring stock up to).
    */
-  onFillContainer?: (remainingKg: number, capacityKg: number) => void;
+  onFillContainer?: (remainingKg: number, capacityKg: number, coverageMonths: number) => void;
   isSaving?: boolean;
   isLoading?: boolean;
   isImporting?: boolean;
@@ -147,6 +150,7 @@ export function SupplierOrderPanel({
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDesc, setSortDesc] = useState(false);
   const [containerCapacityKg, setContainerCapacityKg] = useState<number>(DEFAULT_CONTAINER_KG);
+  const [coverageMonths, setCoverageMonths] = useState<number>(DEFAULT_COVERAGE_MONTHS);
 
   const handleSort = (key: string) => {
     if (sortKey === key) {
@@ -680,13 +684,104 @@ export function SupplierOrderPanel({
     URL.revokeObjectURL(url);
   };
 
+  // Container (tonnage) planner — reused in the empty state and the full panel.
+  const containerPlanner = (
+    <div className="bg-muted/40 mt-2 space-y-2 rounded-lg border p-3 text-left">
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <div className="flex items-center gap-2 text-sm font-medium">
+          <Container className="h-4 w-4 text-blue-600" />
+          Contenedor
+          <span className="text-muted-foreground font-normal">
+            ({containersNeeded || 1} {containersNeeded === 1 ? 'contenedor' : 'contenedores'})
+          </span>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-muted-foreground text-xs">Capacidad:</span>
+          <Select
+            value={containerCapacityKg.toString()}
+            onValueChange={(v) => setContainerCapacityKg(parseInt(v))}
+          >
+            <SelectTrigger className="h-8 w-[90px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {CONTAINER_CAPACITIES_KG.map((kg) => (
+                <SelectItem key={kg} value={kg.toString()}>
+                  {kg / 1000} t
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <span className="text-muted-foreground text-xs">Cubrir:</span>
+          <Select
+            value={coverageMonths.toString()}
+            onValueChange={(v) => setCoverageMonths(parseInt(v))}
+          >
+            <SelectTrigger className="h-8 w-[110px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {COVERAGE_MONTHS_OPTIONS.map((m) => (
+                <SelectItem key={m} value={m.toString()}>
+                  {m} meses
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          {onFillContainer && (
+            <Button
+              size="sm"
+              variant="outline"
+              disabled={isFilling || isSaving || remainingInContainerKg <= 0}
+              onClick={() =>
+                onFillContainer(remainingInContainerKg, containerCapacityKg, coverageMonths)
+              }
+              title="Trae los artículos más rentables con demanda no cubierta para el período, hasta llenar el contenedor"
+            >
+              {isFilling ? (
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              ) : (
+                <Sparkles className="mr-2 h-4 w-4" />
+              )}
+              {items.length === 0 ? 'Armar contenedor' : 'Completar contenedor'}
+            </Button>
+          )}
+        </div>
+      </div>
+
+      <Progress value={currentFillPct} className="h-2.5" />
+
+      <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 text-xs">
+        <span>
+          <span className="font-semibold">{formatKg(currentContainerKg)}</span>
+          <span className="text-muted-foreground"> / {formatKg(containerCapacityKg)}</span>
+          <span className="text-muted-foreground"> ({currentFillPct.toFixed(0)}%)</span>
+        </span>
+        <span className="text-muted-foreground">
+          Faltan <span className="font-medium">{formatKg(remainingInContainerKg)}</span> para
+          completar
+        </span>
+        {itemsMissingWeight > 0 && (
+          <span className="flex items-center gap-1 text-amber-600">
+            <AlertTriangle className="h-3 w-3" />
+            {itemsMissingWeight} artículo{itemsMissingWeight !== 1 ? 's' : ''} sin peso (no computa
+            {itemsMissingWeight !== 1 ? 'n' : ''})
+          </span>
+        )}
+      </div>
+    </div>
+  );
+
   if (items.length === 0) {
     return (
       <Card className="p-6">
         <div className="text-muted-foreground flex flex-col items-center justify-center py-8 text-center">
           <ShoppingCart className="mb-3 h-12 w-12 opacity-30" />
           <p className="text-sm">No hay artículos seleccionados para el pedido</p>
-          <p className="mt-1 text-xs">Selecciona artículos de la tabla para agregarlos</p>
+          <p className="mt-1 text-xs">
+            Seleccioná artículos de la tabla, o armá un contenedor automáticamente por rentabilidad
+          </p>
+          {onFillContainer && <div className="mt-4 w-full max-w-2xl">{containerPlanner}</div>}
           {onImportCsv && (
             <div className="mt-4">
               <input
@@ -1233,74 +1328,7 @@ export function SupplierOrderPanel({
         </div>
 
         {/* Container (tonnage) planner */}
-        {items.length > 0 && (
-          <div className="bg-muted/40 mt-2 space-y-2 rounded-lg border p-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2 text-sm font-medium">
-                <Container className="h-4 w-4 text-blue-600" />
-                Contenedor
-                <span className="text-muted-foreground font-normal">
-                  ({containersNeeded || 1} {containersNeeded === 1 ? 'contenedor' : 'contenedores'})
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="text-muted-foreground text-xs">Capacidad:</span>
-                <Select
-                  value={containerCapacityKg.toString()}
-                  onValueChange={(v) => setContainerCapacityKg(parseInt(v))}
-                >
-                  <SelectTrigger className="h-8 w-[110px]">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {CONTAINER_CAPACITIES_KG.map((kg) => (
-                      <SelectItem key={kg} value={kg.toString()}>
-                        {kg / 1000} t
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                {onFillContainer && (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={isFilling || isSaving || remainingInContainerKg <= 0}
-                    onClick={() => onFillContainer(remainingInContainerKg, containerCapacityKg)}
-                    title="Agregar artículos de bajo stock más necesarios hasta llenar el contenedor"
-                  >
-                    {isFilling ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    ) : (
-                      <Sparkles className="mr-2 h-4 w-4" />
-                    )}
-                    Completar contenedor
-                  </Button>
-                )}
-              </div>
-            </div>
-
-            <Progress value={currentFillPct} className="h-2.5" />
-
-            <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 text-xs">
-              <span>
-                <span className="font-semibold">{formatKg(currentContainerKg)}</span>
-                <span className="text-muted-foreground"> / {formatKg(containerCapacityKg)}</span>
-                <span className="text-muted-foreground"> ({currentFillPct.toFixed(0)}%)</span>
-              </span>
-              <span className="text-muted-foreground">
-                Faltan <span className="font-medium">{formatKg(remainingInContainerKg)}</span> para
-                completar
-              </span>
-              {itemsMissingWeight > 0 && (
-                <span className="flex items-center gap-1 text-amber-600">
-                  <AlertTriangle className="h-3 w-3" />
-                  {itemsMissingWeight} artículo{itemsMissingWeight !== 1 ? 's' : ''} sin peso (no
-                  computa{itemsMissingWeight !== 1 ? 'n' : ''})
-                </span>
-              )}
-            </div>
-          </div>
-        )}
+        {containerPlanner}
       </div>
     </Card>
   );
