@@ -38,6 +38,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { type FillMode } from '@/lib/utils/articles/containerFill';
 import { getArticleCifCost } from '@/lib/utils/articles/marginCalculations';
 import {
   formatSaleTime,
@@ -110,7 +111,6 @@ const COVERAGE_MONTHS_OPTIONS = [3, 6, 12, 18] as const;
 const DEFAULT_COVERAGE_MONTHS = 6;
 
 /** How the auto-fill prioritizes and sizes what it brings. */
-export type FillMode = 'money' | 'rotation' | 'critical';
 export interface FillOptions {
   remainingKg: number;
   capacityKg: number;
