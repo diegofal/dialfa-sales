@@ -30,6 +30,11 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
   const currentDraftIdRef = useRef<number | null>(null);
   currentDraftIdRef.current = currentDraftId;
 
+  // When the user clears the order, the delete mutation invalidates the
+  // drafts query and triggers a refetch. This guard prevents the load effect
+  // from auto-reloading a leftover draft during that refetch.
+  const clearingRef = useRef(false);
+
   // Fetch existing drafts - refetch on mount to restore after navigation
   const { data: draftsData } = useSupplierOrders(
     { status: 'draft' },
@@ -45,6 +50,11 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
 
   // Load the first draft on mount
   useEffect(() => {
+    // Don't repopulate from a refetch triggered by clearing the order
+    if (clearingRef.current) {
+      setIsLoading(false);
+      return;
+    }
     if (draftsData?.data) {
       const drafts = draftsData.data;
       if (drafts.length > 0) {
@@ -320,6 +330,7 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
 
   const addItem = useCallback(
     (article: Article, quantity: number = 1) => {
+      clearingRef.current = false;
       const avgSales = calculateWeightedAvgSales(article.salesTrend, trendMonths);
 
       setItems((prev) => {
@@ -353,6 +364,7 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
 
   const addItems = useCallback(
     (entries: { article: Article; quantity: number }[]) => {
+      clearingRef.current = false;
       setItems((prev) => {
         const updated = new Map(prev);
         for (const { article, quantity } of entries) {
@@ -441,18 +453,29 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
     }
     pendingSaveRef.current = null;
 
-    // Delete from DB if there's an active draft
-    if (currentDraftId) {
-      try {
-        await deleteMutation.mutateAsync(currentDraftId);
-      } catch {
-        // Error captured by Sentry; still clear local state
-      }
-    }
+    // Block the refetch (triggered by the delete invalidation) from
+    // auto-reloading another draft into the panel.
+    clearingRef.current = true;
 
+    // Collect every existing draft id — not just the one currently loaded —
+    // so "Limpiar" fully clears even if duplicate drafts accumulated in the DB.
+    const ids = new Set<number>();
+    if (currentDraftIdRef.current) ids.add(currentDraftIdRef.current);
+    draftsData?.data?.forEach((d) => ids.add(d.id));
+
+    // Clear local state immediately so the UI empties without waiting on the network
     setItems(new Map());
     setCurrentDraftId(null);
-  }, [currentDraftId, deleteMutation]);
+
+    // Delete all drafts from the DB
+    await Promise.all(
+      Array.from(ids).map((id) =>
+        deleteMutation.mutateAsync(id).catch(() => {
+          // Error captured by Sentry; still clear local state
+        })
+      )
+    );
+  }, [draftsData, deleteMutation]);
 
   const getItems = useCallback(() => {
     return Array.from(items.values());
