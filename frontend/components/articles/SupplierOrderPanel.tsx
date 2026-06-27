@@ -15,8 +15,9 @@ import {
   Container,
   Sparkles,
   Layers,
+  RotateCcw,
 } from 'lucide-react';
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect, useRef } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -41,6 +42,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { type ContainerStrategy } from '@/lib/hooks/domain/useContainerPlanner';
 import { type FillMode } from '@/lib/utils/articles/containerFill';
 import { getArticleCifCost } from '@/lib/utils/articles/marginCalculations';
 import {
@@ -109,28 +111,9 @@ function getActiveRating(item: SupplierOrderItem): ActiveRating {
 /** Selectable container capacities (kg). 25 t is the default standard container. */
 const CONTAINER_CAPACITIES_KG = [20000, 25000, 28000] as const;
 const DEFAULT_CONTAINER_KG = 25000;
-/** Months of projected demand the auto-fill aims to cover. */
-const COVERAGE_MONTHS_OPTIONS = [3, 6, 12, 18] as const;
-const DEFAULT_COVERAGE_MONTHS = 12;
-
-/** How the auto-fill prioritizes and sizes what it brings. */
-export interface FillOptions {
-  remainingKg: number;
-  capacityKg: number;
-  coverageMonths: number;
-  mode: FillMode;
-  excludeNoRotation: boolean;
-  /** Max months of stock to hold per item (0 = no cap). */
-  maxStockMonths: number;
-  /** Max distinct lines; undefined = no limit. */
-  maxSkus?: number;
-  /** Selected category ids; empty = all. */
-  categoryIds: number[];
-}
-/** Item-limit slider bounds; the max value means "no limit". */
-const ITEM_LIMIT_MIN = 10;
-const ITEM_LIMIT_MAX = 100;
-const ITEM_LIMIT_STEP = 5;
+/** "Cubrir" (coverage) slider bounds in months — the main live lever. */
+const COVERAGE_MIN = 1;
+const COVERAGE_MAX = 36;
 const FILL_MODES: { key: FillMode; label: string }[] = [
   { key: 'money', label: '💰 Plata' },
   { key: 'rotation', label: '🔥 Rotación' },
@@ -138,7 +121,6 @@ const FILL_MODES: { key: FillMode; label: string }[] = [
 ];
 /** Over-stock cap options (months); 0 = "Sin tope". Default: no cap (fill the box). */
 const MAX_STOCK_MONTHS_OPTIONS = [0, 12, 24, 36] as const;
-const DEFAULT_MAX_STOCK_MONTHS = 0;
 
 interface SupplierOrderPanelProps {
   items: SupplierOrderItem[];
@@ -150,17 +132,26 @@ interface SupplierOrderPanelProps {
   onClear: () => void;
   onViewOrder?: () => void;
   onImportCsv?: (file: File) => void;
-  /**
-   * Build / top up the container. Receives the free kg in the current container,
-   * the capacity, the coverage period, and the strategy options (mode + filters).
-   */
-  onFillContainer?: (options: FillOptions) => void;
-  /** Categories for the auto-fill category filter. */
+  // Reactive container planner wiring (present when supplier-order mode is on).
+  strategy?: ContainerStrategy;
+  onModeChange?: (mode: FillMode) => void;
+  onCoverageMonthsChange?: (months: number) => void;
+  onCapacityChange?: (kg: number) => void;
+  onExcludeNoRotationChange?: (value: boolean) => void;
+  onMaxStockMonthsChange?: (months: number) => void;
+  onCategoryIdsChange?: (ids: number[]) => void;
+  /** Build / rebuild the order from scratch (clears manual overrides). */
+  onRegenerate?: () => void;
+  /** Reset a manually-edited line back to its suggested quantity. */
+  onResetLine?: (articleId: number) => void;
+  /** Article ids the user has pinned (manually edited). */
+  overriddenIds?: Set<number>;
+  /** Categories for the category filter. */
   categories?: { id: number; name: string }[];
   isSaving?: boolean;
   isLoading?: boolean;
   isImporting?: boolean;
-  isFilling?: boolean;
+  isComputing?: boolean;
 }
 
 export function SupplierOrderPanel({
@@ -173,23 +164,27 @@ export function SupplierOrderPanel({
   onClear,
   onViewOrder,
   onImportCsv,
-  onFillContainer,
+  strategy,
+  onModeChange,
+  onCoverageMonthsChange,
+  onCapacityChange,
+  onExcludeNoRotationChange,
+  onMaxStockMonthsChange,
+  onCategoryIdsChange,
+  onRegenerate,
+  onResetLine,
+  overriddenIds,
   categories = [],
   isSaving = false,
   isLoading = false,
   isImporting = false,
-  isFilling = false,
+  isComputing = false,
 }: SupplierOrderPanelProps) {
   const [ratingFilter, setRatingFilter] = useState<ActiveRating | 'ALL'>('ALL');
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDesc, setSortDesc] = useState(false);
-  const [containerCapacityKg, setContainerCapacityKg] = useState<number>(DEFAULT_CONTAINER_KG);
-  const [coverageMonths, setCoverageMonths] = useState<number>(DEFAULT_COVERAGE_MONTHS);
-  const [fillMode, setFillMode] = useState<FillMode>('money');
-  const [excludeNoRotation, setExcludeNoRotation] = useState<boolean>(true);
-  const [maxStockMonths, setMaxStockMonths] = useState<number>(DEFAULT_MAX_STOCK_MONTHS);
-  const [itemLimit, setItemLimit] = useState<number>(ITEM_LIMIT_MAX); // MAX = sin límite
-  const [fillCategoryIds, setFillCategoryIds] = useState<number[]>([]);
+  const capacityKg = strategy?.capacityKg ?? DEFAULT_CONTAINER_KG;
+  const coverageMonths = strategy?.coverageMonths ?? 12;
 
   const handleSort = (key: string) => {
     if (sortKey === key) {
@@ -339,14 +334,12 @@ export function SupplierOrderPanel({
     (Number(item.article.weightKg) || 0) * item.quantity;
   const totalWeightKg = items.reduce((sum, item) => sum + lineWeightKg(item), 0);
   const itemsMissingWeight = items.filter((item) => !(Number(item.article.weightKg) > 0)).length;
-  const containersNeeded = totalWeightKg > 0 ? Math.ceil(totalWeightKg / containerCapacityKg) : 0;
+  const containersNeeded = totalWeightKg > 0 ? Math.ceil(totalWeightKg / capacityKg) : 0;
   // Fill % of the *current* (last) container being filled
   const currentContainerKg =
-    containersNeeded <= 1
-      ? totalWeightKg
-      : totalWeightKg - (containersNeeded - 1) * containerCapacityKg;
-  const currentFillPct = Math.min(100, (currentContainerKg / containerCapacityKg) * 100);
-  const remainingInContainerKg = Math.max(0, containerCapacityKg - currentContainerKg);
+    containersNeeded <= 1 ? totalWeightKg : totalWeightKg - (containersNeeded - 1) * capacityKg;
+  const currentFillPct = Math.min(100, (currentContainerKg / capacityKg) * 100);
+  const remainingInContainerKg = Math.max(0, capacityKg - currentContainerKg);
   const formatKg = (kg: number) =>
     kg >= 1000 ? `${(kg / 1000).toFixed(2)} t` : `${kg.toFixed(0)} kg`;
 
@@ -751,72 +744,48 @@ export function SupplierOrderPanel({
           <span className="text-muted-foreground font-normal">
             ({containersNeeded || 1} {containersNeeded === 1 ? 'contenedor' : 'contenedores'})
           </span>
+          {isComputing && <Loader2 className="text-muted-foreground h-3 w-3 animate-spin" />}
         </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="text-muted-foreground text-xs">Capacidad:</span>
-          <Select
-            value={containerCapacityKg.toString()}
-            onValueChange={(v) => setContainerCapacityKg(parseInt(v))}
-          >
-            <SelectTrigger className="h-8 w-[90px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {CONTAINER_CAPACITIES_KG.map((kg) => (
-                <SelectItem key={kg} value={kg.toString()}>
-                  {kg / 1000} t
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <span className="text-muted-foreground text-xs">Cubrir:</span>
-          <Select
-            value={coverageMonths.toString()}
-            onValueChange={(v) => setCoverageMonths(parseInt(v))}
-          >
-            <SelectTrigger className="h-8 w-[110px]">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              {COVERAGE_MONTHS_OPTIONS.map((m) => (
-                <SelectItem key={m} value={m.toString()}>
-                  {m} meses
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          {onFillContainer && (
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={isFilling || isSaving || remainingInContainerKg <= 0}
-              onClick={() =>
-                onFillContainer({
-                  remainingKg: remainingInContainerKg,
-                  capacityKg: containerCapacityKg,
-                  coverageMonths,
-                  mode: fillMode,
-                  excludeNoRotation,
-                  maxStockMonths,
-                  maxSkus: itemLimit >= ITEM_LIMIT_MAX ? undefined : itemLimit,
-                  categoryIds: fillCategoryIds,
-                })
-              }
-              title="Llena el espacio restante del contenedor según el modo elegido"
+        {strategy && (
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-muted-foreground text-xs">Capacidad:</span>
+            <Select
+              value={capacityKg.toString()}
+              onValueChange={(v) => onCapacityChange?.(parseInt(v))}
             >
-              {isFilling ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Sparkles className="mr-2 h-4 w-4" />
-              )}
-              {items.length === 0 ? 'Armar contenedor' : 'Completar contenedor'}
-            </Button>
-          )}
-        </div>
+              <SelectTrigger className="h-8 w-[90px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CONTAINER_CAPACITIES_KG.map((kg) => (
+                  <SelectItem key={kg} value={kg.toString()}>
+                    {kg / 1000} t
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {onRegenerate && (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={isComputing || isSaving}
+                onClick={onRegenerate}
+                title="Rehace el pedido desde cero (descarta ediciones manuales)"
+              >
+                {isComputing ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Sparkles className="mr-2 h-4 w-4" />
+                )}
+                {items.length === 0 ? 'Armar contenedor' : 'Regenerar'}
+              </Button>
+            )}
+          </div>
+        )}
       </div>
 
-      {/* Strategy controls */}
-      {onFillContainer && (
+      {/* Strategy controls (live) */}
+      {strategy && (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <div className="flex items-center gap-1">
             <span className="text-muted-foreground mr-1 text-xs">Modo:</span>
@@ -824,28 +793,50 @@ export function SupplierOrderPanel({
               <Button
                 key={m.key}
                 size="sm"
-                variant={fillMode === m.key ? 'default' : 'outline'}
+                variant={strategy.mode === m.key ? 'default' : 'outline'}
                 className="h-7 text-xs"
-                onClick={() => setFillMode(m.key)}
+                onClick={() => onModeChange?.(m.key)}
               >
                 {m.label}
               </Button>
             ))}
           </div>
+
+          {/* Cubrir (coverage) — main live lever */}
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground text-xs whitespace-nowrap">
+              Cubrir:{' '}
+              <span className="text-foreground font-medium">
+                {coverageMonths} {coverageMonths === 1 ? 'mes' : 'meses'}
+              </span>
+            </span>
+            <input
+              type="range"
+              min={COVERAGE_MIN}
+              max={COVERAGE_MAX}
+              step={1}
+              value={coverageMonths}
+              onChange={(e) => onCoverageMonthsChange?.(parseInt(e.target.value))}
+              className="accent-primary h-1 w-32 cursor-pointer"
+              title="Meses de demanda a traer (escala todo el pedido)"
+            />
+          </div>
+
           <Button
             size="sm"
-            variant={excludeNoRotation ? 'default' : 'outline'}
+            variant={strategy.excludeNoRotation ? 'default' : 'outline'}
             className="h-7 text-xs"
-            onClick={() => setExcludeNoRotation((v) => !v)}
+            onClick={() => onExcludeNoRotationChange?.(!strategy.excludeNoRotation)}
             title="No traer artículos que no se venden"
           >
-            {excludeNoRotation ? '✓ ' : ''}Excluir sin rotación
+            {strategy.excludeNoRotation ? '✓ ' : ''}Excluir sin rotación
           </Button>
+
           <div className="flex items-center gap-1">
             <span className="text-muted-foreground text-xs">Tope stock:</span>
             <Select
-              value={maxStockMonths.toString()}
-              onValueChange={(v) => setMaxStockMonths(parseInt(v))}
+              value={strategy.maxStockMonths.toString()}
+              onValueChange={(v) => onMaxStockMonthsChange?.(parseInt(v))}
             >
               <SelectTrigger className="h-7 w-[110px] text-xs">
                 <SelectValue />
@@ -860,46 +851,26 @@ export function SupplierOrderPanel({
             </Select>
           </div>
 
-          {/* Max items (slider) */}
-          <div className="flex items-center gap-2">
-            <span className="text-muted-foreground text-xs whitespace-nowrap">
-              Ítems:{' '}
-              <span className="text-foreground font-medium">
-                {itemLimit >= ITEM_LIMIT_MAX ? 'sin límite' : itemLimit}
-              </span>
-            </span>
-            <input
-              type="range"
-              min={ITEM_LIMIT_MIN}
-              max={ITEM_LIMIT_MAX}
-              step={ITEM_LIMIT_STEP}
-              value={itemLimit}
-              onChange={(e) => setItemLimit(parseInt(e.target.value))}
-              className="accent-primary h-1 w-28 cursor-pointer"
-              title="Máximo de líneas distintas en el pedido"
-            />
-          </div>
-
           {/* Category multi-select */}
           {categories.length > 0 && (
             <Popover>
               <PopoverTrigger asChild>
                 <Button size="sm" variant="outline" className="h-7 text-xs">
                   <Layers className="mr-1 h-3 w-3" />
-                  {fillCategoryIds.length === 0
+                  {strategy.categoryIds.length === 0
                     ? 'Todas las categorías'
-                    : `${fillCategoryIds.length} categoría${fillCategoryIds.length !== 1 ? 's' : ''}`}
+                    : `${strategy.categoryIds.length} categoría${strategy.categoryIds.length !== 1 ? 's' : ''}`}
                 </Button>
               </PopoverTrigger>
               <PopoverContent align="start" className="max-h-80 w-64 overflow-auto p-2">
                 <div className="flex items-center justify-between px-1 pb-2">
                   <span className="text-xs font-medium">Categorías</span>
-                  {fillCategoryIds.length > 0 && (
+                  {strategy.categoryIds.length > 0 && (
                     <Button
                       size="sm"
                       variant="ghost"
                       className="h-6 px-2 text-xs"
-                      onClick={() => setFillCategoryIds([])}
+                      onClick={() => onCategoryIdsChange?.([])}
                     >
                       Limpiar
                     </Button>
@@ -907,7 +878,7 @@ export function SupplierOrderPanel({
                 </div>
                 <div className="space-y-1">
                   {categories.map((cat) => {
-                    const checked = fillCategoryIds.includes(cat.id);
+                    const checked = strategy.categoryIds.includes(cat.id);
                     return (
                       <label
                         key={cat.id}
@@ -916,8 +887,10 @@ export function SupplierOrderPanel({
                         <Checkbox
                           checked={checked}
                           onCheckedChange={(v) =>
-                            setFillCategoryIds((prev) =>
-                              v ? [...prev, cat.id] : prev.filter((id) => id !== cat.id)
+                            onCategoryIdsChange?.(
+                              v
+                                ? [...strategy.categoryIds, cat.id]
+                                : strategy.categoryIds.filter((id) => id !== cat.id)
                             )
                           }
                         />
@@ -937,7 +910,7 @@ export function SupplierOrderPanel({
       <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-1 text-xs">
         <span>
           <span className="font-semibold">{formatKg(currentContainerKg)}</span>
-          <span className="text-muted-foreground"> / {formatKg(containerCapacityKg)}</span>
+          <span className="text-muted-foreground"> / {formatKg(capacityKg)}</span>
           <span className="text-muted-foreground"> ({currentFillPct.toFixed(0)}%)</span>
         </span>
         <span className="text-muted-foreground">
@@ -964,7 +937,7 @@ export function SupplierOrderPanel({
           <p className="mt-1 text-xs">
             Seleccioná artículos de la tabla, o armá un contenedor automáticamente por rentabilidad
           </p>
-          {onFillContainer && <div className="mt-4 w-full max-w-2xl">{containerPlanner}</div>}
+          {onRegenerate && <div className="mt-4 w-full max-w-2xl">{containerPlanner}</div>}
           {onImportCsv && (
             <div className="mt-4">
               <input
@@ -1264,17 +1237,18 @@ export function SupplierOrderPanel({
                     <div className="max-w-md truncate">{item.article.description}</div>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Input
-                      type="number"
-                      min="1"
-                      value={item.quantity}
-                      onChange={(e) => {
-                        const newQty = parseInt(e.target.value) || 1;
-                        onQuantityChange(item.article.id, newQty);
-                      }}
-                      className="h-8 w-24 text-right"
-                      onFocus={(e) => e.target.select()}
-                    />
+                    <div className="flex flex-col items-end gap-0.5">
+                      <QtyCell
+                        value={item.quantity}
+                        pinned={overriddenIds?.has(item.article.id) ?? false}
+                        onChange={(qty) => onQuantityChange(item.article.id, qty)}
+                      />
+                      <span className="text-muted-foreground text-[10px]">
+                        {item.avgMonthlySales > 0
+                          ? `≈ ${(item.quantity / item.avgMonthlySales).toFixed(0)} meses`
+                          : 'sin ventas'}
+                      </span>
+                    </div>
                   </TableCell>
                   <TableCell className="text-right">
                     {Number(item.article.weightKg) > 0 ? (
@@ -1463,15 +1437,28 @@ export function SupplierOrderPanel({
 
                   {/* Actions */}
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => onRemove(item.article.id)}
-                      title="Quitar"
-                    >
-                      <Trash2 className="h-4 w-4 text-red-600" />
-                    </Button>
+                    <div className="flex items-center justify-end">
+                      {onResetLine && overriddenIds?.has(item.article.id) && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8"
+                          onClick={() => onResetLine(item.article.id)}
+                          title="Volver a la cantidad sugerida"
+                        >
+                          <RotateCcw className="h-4 w-4 text-blue-600" />
+                        </Button>
+                      )}
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => onRemove(item.article.id)}
+                        title="Quitar"
+                      >
+                        <Trash2 className="h-4 w-4 text-red-600" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
@@ -1530,5 +1517,59 @@ export function SupplierOrderPanel({
         {containerPlanner}
       </div>
     </Card>
+  );
+}
+
+/**
+ * Quantity input with a local mirror + debounce so typing stays snappy and a
+ * live recompute only fires after the user pauses. Highlights pinned (manually
+ * edited) lines.
+ */
+function QtyCell({
+  value,
+  pinned,
+  onChange,
+}: {
+  value: number;
+  pinned: boolean;
+  onChange: (qty: number) => void;
+}) {
+  const [local, setLocal] = useState(value.toString());
+  const editingRef = useRef(false);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Sync from upstream (recompute) only when the user isn't actively editing.
+  useEffect(() => {
+    if (!editingRef.current) setLocal(value.toString());
+  }, [value]);
+
+  const commit = (raw: string) => {
+    onChange(parseInt(raw) || 1);
+  };
+
+  return (
+    <Input
+      type="number"
+      min="1"
+      value={local}
+      onChange={(e) => {
+        const v = e.target.value;
+        editingRef.current = true;
+        setLocal(v);
+        if (timerRef.current) clearTimeout(timerRef.current);
+        timerRef.current = setTimeout(() => {
+          editingRef.current = false;
+          commit(v);
+        }, 400);
+      }}
+      onBlur={(e) => {
+        if (timerRef.current) clearTimeout(timerRef.current);
+        editingRef.current = false;
+        commit(e.target.value);
+      }}
+      className={`h-8 w-24 text-right ${pinned ? 'border-blue-500 ring-1 ring-blue-500/30' : ''}`}
+      onFocus={(e) => e.target.select()}
+      title={pinned ? 'Cantidad fijada a mano' : undefined}
+    />
   );
 }

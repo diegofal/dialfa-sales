@@ -3,12 +3,11 @@
 import { Plus, Search, Filter, Package, History, BarChart3, Info } from 'lucide-react';
 import { useSearchParams, useRouter, usePathname } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { toast } from 'sonner';
 import { ArticleDialog } from '@/components/articles/ArticleDialog';
 import { ArticlesTable } from '@/components/articles/ArticlesTable';
 import { SalesAnalyticsTab } from '@/components/articles/SalesAnalyticsTab';
 import { StockMovementsTable } from '@/components/articles/StockMovementsTable';
-import { SupplierOrderPanel, type FillOptions } from '@/components/articles/SupplierOrderPanel';
+import { SupplierOrderPanel } from '@/components/articles/SupplierOrderPanel';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -24,15 +23,14 @@ import {
 } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { articlesApi } from '@/lib/api/articles';
 import { ROUTES } from '@/lib/constants/routes';
 import { type SoldInPeriod, useArticles, useDeleteArticle } from '@/lib/hooks/domain/useArticles';
 import { useCategories } from '@/lib/hooks/domain/useCategories';
+import { useContainerPlanner } from '@/lib/hooks/domain/useContainerPlanner';
 import { useImportCsvToOrder } from '@/lib/hooks/domain/useImportCsvToOrder';
 import { useStockMovements } from '@/lib/hooks/domain/useStockMovements';
 import { useSupplierOrderDraft } from '@/lib/hooks/domain/useSupplierOrderDraft';
 import { usePagination } from '@/lib/hooks/generic/usePagination';
-import { buildContainerFill } from '@/lib/utils/articles/containerFill';
 import { useAuthStore } from '@/store/authStore';
 import { Article } from '@/types/article';
 import { StockStatus } from '@/types/stockValuation';
@@ -99,7 +97,6 @@ export default function ArticlesPage() {
   // Supplier order mode
   const [supplierOrderMode, setSupplierOrderMode] = useState(false);
   const [selectedArticleIds, setSelectedArticleIds] = useState<Set<number>>(new Set());
-  const [isFillingContainer, setIsFillingContainer] = useState(false);
 
   // Supplier order draft hook with trendMonths
   const supplierOrder = useSupplierOrderDraft(supplierOrderTrendMonths);
@@ -107,6 +104,13 @@ export default function ArticlesPage() {
     supplierOrder.addItems,
     supplierOrderTrendMonths
   );
+
+  // Reactive container planner — recomputes the order live from strategy controls.
+  const planner = useContainerPlanner({
+    trendMonths: supplierOrderTrendMonths,
+    enabled: supplierOrderMode,
+    draft: supplierOrder,
+  });
 
   // Auto-restore supplier order mode when a draft has items, unless the user
   // explicitly dismissed the panel (persisted per browser).
@@ -202,14 +206,14 @@ export default function ArticlesPage() {
     setSelectedArticleIds((prev) => {
       const updated = new Set(prev);
       if (updated.has(article.id)) {
-        // Remove from both sets
         updated.delete(article.id);
         supplierOrder.removeItem(article.id);
+        planner.removeLine(article.id); // keep it out of the auto pool
       } else {
-        // Add to both
         updated.add(article.id);
         const suggestedQty = supplierOrder.getSuggestedQuantity(article);
-        supplierOrder.addItem(article, suggestedQty);
+        supplierOrder.addItem(article, suggestedQty); // show immediately
+        planner.setManualQuantity(article.id, suggestedQty); // pin as manual override
       }
       return updated;
     });
@@ -229,86 +233,6 @@ export default function ArticlesPage() {
   const handleViewSupplierOrder = () => {
     if (supplierOrder.currentDraftId) {
       router.push(`${ROUTES.SUPPLIER_ORDERS}/${supplierOrder.currentDraftId}`);
-    }
-  };
-
-  /**
-   * Build / top up a weight-constrained container using a strategy mode. Starts
-   * from the full active catalog (does not require low stock, works on an empty
-   * order) and fills the remaining kg with the best candidates per the mode:
-   *
-   * - money:    rank by profit per kg of space (sell − landed CIF cost ÷ weight)
-   * - rotation: rank by sales velocity (fastest movers first)
-   * - critical: only items short for the period, rank by urgency (least coverage)
-   *
-   * Quantity per article = projected demand for the period (WMA × coverageMonths)
-   * for money/rotation, or the shortfall to reach it for critical — both capped
-   * by the over-stock limit (maxStockMonths) and the remaining container weight.
-   */
-  const handleFillContainer = async ({
-    remainingKg,
-    capacityKg,
-    coverageMonths,
-    mode,
-    excludeNoRotation,
-    maxStockMonths,
-    maxSkus,
-    categoryIds,
-  }: FillOptions) => {
-    if (remainingKg <= 0) return;
-    setIsFillingContainer(true);
-    try {
-      const result = await articlesApi.getAll({
-        pageSize: 2000,
-        includeTrends: true,
-        trendMonths: supplierOrderTrendMonths,
-        activeOnly: true,
-      });
-
-      const inDraft = supplierOrder.draftArticleIds;
-
-      const { entries, addedKg } = buildContainerFill(
-        result.data,
-        inDraft,
-        remainingKg,
-        supplierOrderTrendMonths,
-        {
-          mode,
-          coverageMonths,
-          excludeNoRotation,
-          maxStockMonths,
-          maxSkus,
-          categoryIds,
-          // Always-on tuning: round to clean quantities and cap any single SKU at
-          // ~10% of the space so the mix stays diversified (ignored when maxSkus set).
-          roundQuantities: true,
-          maxShare: 0.1,
-        }
-      );
-
-      if (entries.length === 0) {
-        toast.info('No se encontraron artículos que cumplan los criterios del modo elegido.');
-        return;
-      }
-
-      supplierOrder.addItems(entries);
-      setSelectedArticleIds((prev) => {
-        const updated = new Set(prev);
-        entries.forEach((e) => updated.add(e.article.id));
-        return updated;
-      });
-
-      const modeLabel =
-        mode === 'money' ? 'plata' : mode === 'rotation' ? 'rotación' : 'stock crítico';
-      const addedTons = (addedKg / 1000).toFixed(2);
-      toast.success(
-        `Se agregaron ${entries.length} artículos (~${addedTons} t) al contenedor de ${capacityKg / 1000} t — modo ${modeLabel}, ${coverageMonths} meses.`
-      );
-    } catch (error) {
-      console.error('Error al armar el contenedor:', error);
-      toast.error('No se pudo armar el contenedor.');
-    } finally {
-      setIsFillingContainer(false);
     }
   };
 
@@ -700,9 +624,10 @@ export default function ArticlesPage() {
                 totalEstimatedTime={supplierOrder.getTotalEstimatedTime()}
                 trendMonths={supplierOrderTrendMonths}
                 onTrendMonthsChange={setSupplierOrderTrendMonths}
-                onQuantityChange={supplierOrder.updateQuantity}
+                onQuantityChange={planner.setManualQuantity}
                 onRemove={(articleId) => {
                   supplierOrder.removeItem(articleId);
+                  planner.removeLine(articleId);
                   setSelectedArticleIds((prev) => {
                     const updated = new Set(prev);
                     updated.delete(articleId);
@@ -710,7 +635,7 @@ export default function ArticlesPage() {
                   });
                 }}
                 onClear={async () => {
-                  await supplierOrder.deleteDraft();
+                  await planner.clear();
                   setSelectedArticleIds(new Set());
                   setSupplierOrderMode(false);
                   // Draft is gone — reset the dismissal flag to its default
@@ -718,14 +643,23 @@ export default function ArticlesPage() {
                 }}
                 onViewOrder={supplierOrder.currentDraftId ? handleViewSupplierOrder : undefined}
                 onImportCsv={importCsv}
-                onFillContainer={handleFillContainer}
                 categories={
                   categories?.data?.map((c) => ({ id: Number(c.id), name: c.name })) ?? []
                 }
+                strategy={planner.strategy}
+                onModeChange={planner.setMode}
+                onCoverageMonthsChange={planner.setCoverageMonths}
+                onCapacityChange={planner.setCapacityKg}
+                onExcludeNoRotationChange={planner.setExcludeNoRotation}
+                onMaxStockMonthsChange={planner.setMaxStockMonths}
+                onCategoryIdsChange={planner.setCategoryIds}
+                onRegenerate={planner.regenerate}
+                onResetLine={planner.resetLine}
+                overriddenIds={planner.overriddenIds}
                 isSaving={supplierOrder.isSaving}
                 isLoading={supplierOrder.isLoading}
                 isImporting={isImporting}
-                isFilling={isFillingContainer}
+                isComputing={planner.isCatalogLoading}
               />
             </div>
           )}
