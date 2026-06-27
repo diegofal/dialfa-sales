@@ -29,8 +29,16 @@ export interface FillStrategy {
   /**
    * Cap how much of the container a single SKU may take, as a fraction of the
    * space available when it is added (0..1). undefined = no per-SKU cap.
+   * Ignored when `maxSkus` is set (few-items orders are meant to concentrate).
    */
   maxShare?: number;
+  /**
+   * Max number of distinct articles (lines) to include. undefined / 0 = no limit.
+   * When set, quantities concentrate into the top-ranked items.
+   */
+  maxSkus?: number;
+  /** Only consider these category ids. undefined / empty = all categories. */
+  categoryIds?: number[];
 }
 
 export interface ContainerFillEntry {
@@ -77,8 +85,13 @@ function score(
   strategy: FillStrategy
 ): ScoredCandidate[] {
   const { coverageMonths, maxStockMonths } = strategy;
+  const catSet =
+    strategy.categoryIds && strategy.categoryIds.length ? new Set(strategy.categoryIds) : null;
   return articles
-    .filter((a) => !excludeIds.has(a.id) && Number(a.weightKg) > 0)
+    .filter(
+      (a) =>
+        !excludeIds.has(a.id) && Number(a.weightKg) > 0 && (!catSet || catSet.has(a.categoryId))
+    )
     .map((a) => {
       const weightPer = Number(a.weightKg);
       const stock = Number(a.stock);
@@ -141,16 +154,22 @@ export function buildContainerFill(
       .sort((a, b) => a.coverage - b.coverage);
   }
 
+  const maxSkus = strategy.maxSkus && strategy.maxSkus > 0 ? strategy.maxSkus : Infinity;
+  // A per-SKU share cap fragments the order, so it only applies when there is no
+  // explicit item limit (few-items orders are meant to concentrate).
+  const applyShare =
+    strategy.maxShare !== undefined && strategy.maxShare > 0 && !Number.isFinite(maxSkus);
+
   let remaining = remainingKg;
   const entries: ContainerFillEntry[] = [];
   for (const c of candidates) {
-    if (remaining <= 0) break;
+    if (remaining <= 0 || entries.length >= maxSkus) break;
     const target = mode === 'critical' ? c.shortfallQty : c.demandQty;
     let maxByWeight = Math.floor(remaining / c.weightPer);
-    if (strategy.maxShare !== undefined && strategy.maxShare > 0) {
+    if (applyShare) {
       maxByWeight = Math.min(
         maxByWeight,
-        Math.floor((remaining * strategy.maxShare) / c.weightPer)
+        Math.floor((remaining * strategy.maxShare!) / c.weightPer)
       );
     }
     let qty = Math.min(target, c.headroom, maxByWeight);

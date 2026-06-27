@@ -228,6 +228,56 @@ describe('buildContainerFill — roundQuantities', () => {
   });
 });
 
+describe('buildContainerFill — maxSkus', () => {
+  it('limits the number of distinct lines to the top-ranked items', () => {
+    // Three profitable items; cap at 2 lines.
+    const a = mkArticle({ id: 1, unitPrice: 100, lastPurchasePrice: 10, weightKg: 1 }); // best
+    const b = mkArticle({ id: 2, unitPrice: 100, lastPurchasePrice: 20, weightKg: 1 });
+    const c = mkArticle({ id: 3, unitPrice: 100, lastPurchasePrice: 30, weightKg: 1 });
+    const res = buildContainerFill([a, b, c], NO_EXCLUDE, 100_000, 6, {
+      ...baseStrategy,
+      maxSkus: 2,
+    });
+    expect(res.entries).toHaveLength(2);
+    expect(res.entries.map((e) => e.article.id)).toEqual([1, 2]);
+  });
+
+  it('ignores the per-SKU share cap when an item limit is set (concentrates)', () => {
+    // demand huge; with maxShare alone it would cap at 50 units, but maxSkus
+    // disables the share cap so it fills by weight (100 units).
+    const a = mkArticle({ id: 1, salesTrend: [1000, 1000, 1000], weightKg: 1 });
+    const res = buildContainerFill([a], NO_EXCLUDE, 100, 6, {
+      ...baseStrategy,
+      maxShare: 0.5,
+      maxSkus: 5,
+    });
+    expect(res.entries[0].quantity).toBe(100);
+  });
+});
+
+describe('buildContainerFill — categoryIds', () => {
+  it('only considers articles in the selected categories', () => {
+    const a = mkArticle({ id: 1, categoryId: 10 });
+    const b = mkArticle({ id: 2, categoryId: 20 });
+    const res = buildContainerFill([a, b], NO_EXCLUDE, 100_000, 6, {
+      ...baseStrategy,
+      categoryIds: [20],
+    });
+    expect(res.entries).toHaveLength(1);
+    expect(res.entries[0].article.id).toBe(2);
+  });
+
+  it('considers all categories when the list is empty', () => {
+    const a = mkArticle({ id: 1, categoryId: 10 });
+    const b = mkArticle({ id: 2, categoryId: 20 });
+    const res = buildContainerFill([a, b], NO_EXCLUDE, 100_000, 6, {
+      ...baseStrategy,
+      categoryIds: [],
+    });
+    expect(res.entries).toHaveLength(2);
+  });
+});
+
 describe('buildContainerFill — maxShare', () => {
   it('limits how much of the remaining space a single SKU may take', () => {
     // demand huge, but maxShare 0.5 of 100 kg = 50 kg → 50 units at 1 kg
