@@ -207,12 +207,11 @@ export default function ArticlesPage() {
       const updated = new Set(prev);
       if (updated.has(article.id)) {
         updated.delete(article.id);
-        supplierOrder.removeItem(article.id);
-        planner.removeLine(article.id); // keep it out of the auto pool
+        planner.removeLine(article.id); // removes from the draft + keeps it out of the pool
       } else {
         updated.add(article.id);
         const suggestedQty = supplierOrder.getSuggestedQuantity(article);
-        supplierOrder.addItem(article, suggestedQty); // show immediately
+        supplierOrder.addItem(article, suggestedQty); // create the line
         planner.setManualQuantity(article.id, suggestedQty); // pin as manual override
       }
       return updated;
@@ -626,7 +625,6 @@ export default function ArticlesPage() {
                 onTrendMonthsChange={setSupplierOrderTrendMonths}
                 onQuantityChange={planner.setManualQuantity}
                 onRemove={(articleId) => {
-                  supplierOrder.removeItem(articleId);
                   planner.removeLine(articleId);
                   setSelectedArticleIds((prev) => {
                     const updated = new Set(prev);
