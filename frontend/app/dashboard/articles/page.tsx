@@ -252,6 +252,8 @@ export default function ArticlesPage() {
     mode,
     excludeNoRotation,
     maxStockMonths,
+    maxSkus,
+    categoryIds,
   }: FillOptions) => {
     if (remainingKg <= 0) return;
     setIsFillingContainer(true);
@@ -275,8 +277,10 @@ export default function ArticlesPage() {
           coverageMonths,
           excludeNoRotation,
           maxStockMonths,
+          maxSkus,
+          categoryIds,
           // Always-on tuning: round to clean quantities and cap any single SKU at
-          // ~10% of the space so the mix stays diversified.
+          // ~10% of the space so the mix stays diversified (ignored when maxSkus set).
           roundQuantities: true,
           maxShare: 0.1,
         }
@@ -715,6 +719,9 @@ export default function ArticlesPage() {
                 onViewOrder={supplierOrder.currentDraftId ? handleViewSupplierOrder : undefined}
                 onImportCsv={importCsv}
                 onFillContainer={handleFillContainer}
+                categories={
+                  categories?.data?.map((c) => ({ id: Number(c.id), name: c.name })) ?? []
+                }
                 isSaving={supplierOrder.isSaving}
                 isLoading={supplierOrder.isLoading}
                 isImporting={isImporting}

@@ -14,12 +14,15 @@ import {
   ArrowDown,
   Container,
   Sparkles,
+  Layers,
 } from 'lucide-react';
 import { useState, useMemo } from 'react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
+import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Progress } from '@/components/ui/progress';
 import {
   Select,
@@ -119,7 +122,15 @@ export interface FillOptions {
   excludeNoRotation: boolean;
   /** Max months of stock to hold per item (0 = no cap). */
   maxStockMonths: number;
+  /** Max distinct lines; undefined = no limit. */
+  maxSkus?: number;
+  /** Selected category ids; empty = all. */
+  categoryIds: number[];
 }
+/** Item-limit slider bounds; the max value means "no limit". */
+const ITEM_LIMIT_MIN = 10;
+const ITEM_LIMIT_MAX = 100;
+const ITEM_LIMIT_STEP = 5;
 const FILL_MODES: { key: FillMode; label: string }[] = [
   { key: 'money', label: '💰 Plata' },
   { key: 'rotation', label: '🔥 Rotación' },
@@ -144,6 +155,8 @@ interface SupplierOrderPanelProps {
    * the capacity, the coverage period, and the strategy options (mode + filters).
    */
   onFillContainer?: (options: FillOptions) => void;
+  /** Categories for the auto-fill category filter. */
+  categories?: { id: number; name: string }[];
   isSaving?: boolean;
   isLoading?: boolean;
   isImporting?: boolean;
@@ -161,6 +174,7 @@ export function SupplierOrderPanel({
   onViewOrder,
   onImportCsv,
   onFillContainer,
+  categories = [],
   isSaving = false,
   isLoading = false,
   isImporting = false,
@@ -174,6 +188,8 @@ export function SupplierOrderPanel({
   const [fillMode, setFillMode] = useState<FillMode>('money');
   const [excludeNoRotation, setExcludeNoRotation] = useState<boolean>(true);
   const [maxStockMonths, setMaxStockMonths] = useState<number>(DEFAULT_MAX_STOCK_MONTHS);
+  const [itemLimit, setItemLimit] = useState<number>(ITEM_LIMIT_MAX); // MAX = sin límite
+  const [fillCategoryIds, setFillCategoryIds] = useState<number[]>([]);
 
   const handleSort = (key: string) => {
     if (sortKey === key) {
@@ -782,6 +798,8 @@ export function SupplierOrderPanel({
                   mode: fillMode,
                   excludeNoRotation,
                   maxStockMonths,
+                  maxSkus: itemLimit >= ITEM_LIMIT_MAX ? undefined : itemLimit,
+                  categoryIds: fillCategoryIds,
                 })
               }
               title="Llena el espacio restante del contenedor según el modo elegido"
@@ -841,6 +859,76 @@ export function SupplierOrderPanel({
               </SelectContent>
             </Select>
           </div>
+
+          {/* Max items (slider) */}
+          <div className="flex items-center gap-2">
+            <span className="text-muted-foreground text-xs whitespace-nowrap">
+              Ítems:{' '}
+              <span className="text-foreground font-medium">
+                {itemLimit >= ITEM_LIMIT_MAX ? 'sin límite' : itemLimit}
+              </span>
+            </span>
+            <input
+              type="range"
+              min={ITEM_LIMIT_MIN}
+              max={ITEM_LIMIT_MAX}
+              step={ITEM_LIMIT_STEP}
+              value={itemLimit}
+              onChange={(e) => setItemLimit(parseInt(e.target.value))}
+              className="accent-primary h-1 w-28 cursor-pointer"
+              title="Máximo de líneas distintas en el pedido"
+            />
+          </div>
+
+          {/* Category multi-select */}
+          {categories.length > 0 && (
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button size="sm" variant="outline" className="h-7 text-xs">
+                  <Layers className="mr-1 h-3 w-3" />
+                  {fillCategoryIds.length === 0
+                    ? 'Todas las categorías'
+                    : `${fillCategoryIds.length} categoría${fillCategoryIds.length !== 1 ? 's' : ''}`}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent align="start" className="max-h-80 w-64 overflow-auto p-2">
+                <div className="flex items-center justify-between px-1 pb-2">
+                  <span className="text-xs font-medium">Categorías</span>
+                  {fillCategoryIds.length > 0 && (
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="h-6 px-2 text-xs"
+                      onClick={() => setFillCategoryIds([])}
+                    >
+                      Limpiar
+                    </Button>
+                  )}
+                </div>
+                <div className="space-y-1">
+                  {categories.map((cat) => {
+                    const checked = fillCategoryIds.includes(cat.id);
+                    return (
+                      <label
+                        key={cat.id}
+                        className="hover:bg-accent flex cursor-pointer items-center gap-2 rounded px-1 py-1 text-xs"
+                      >
+                        <Checkbox
+                          checked={checked}
+                          onCheckedChange={(v) =>
+                            setFillCategoryIds((prev) =>
+                              v ? [...prev, cat.id] : prev.filter((id) => id !== cat.id)
+                            )
+                          }
+                        />
+                        {cat.name}
+                      </label>
+                    );
+                  })}
+                </div>
+              </PopoverContent>
+            </Popover>
+          )}
         </div>
       )}
 
