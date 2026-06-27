@@ -108,7 +108,7 @@ const CONTAINER_CAPACITIES_KG = [20000, 25000, 28000] as const;
 const DEFAULT_CONTAINER_KG = 25000;
 /** Months of projected demand the auto-fill aims to cover. */
 const COVERAGE_MONTHS_OPTIONS = [3, 6, 12, 18] as const;
-const DEFAULT_COVERAGE_MONTHS = 6;
+const DEFAULT_COVERAGE_MONTHS = 12;
 
 /** How the auto-fill prioritizes and sizes what it brings. */
 export interface FillOptions {
@@ -125,9 +125,9 @@ const FILL_MODES: { key: FillMode; label: string }[] = [
   { key: 'rotation', label: '🔥 Rotación' },
   { key: 'critical', label: '🚨 Crítico' },
 ];
-/** Over-stock cap options (months); 0 = "Sin tope". */
+/** Over-stock cap options (months); 0 = "Sin tope". Default: no cap (fill the box). */
 const MAX_STOCK_MONTHS_OPTIONS = [0, 12, 24, 36] as const;
-const DEFAULT_MAX_STOCK_MONTHS = 24;
+const DEFAULT_MAX_STOCK_MONTHS = 0;
 
 interface SupplierOrderPanelProps {
   items: SupplierOrderItem[];
