@@ -62,6 +62,20 @@ export function useContainerPlanner({ trendMonths, enabled, draft }: UseContaine
   const catalog = useMemo(() => data?.data ?? [], [data]);
   const catalogById = useMemo(() => new Map(catalog.map((a) => [a.id, a])), [catalog]);
 
+  // Categories actually present in the orderable catalog (so the filter shows
+  // every relevant family, regardless of the category is_active flag).
+  const categories = useMemo(() => {
+    const byId = new Map<number, string>();
+    for (const a of catalog) {
+      if (a.categoryId != null && !byId.has(a.categoryId)) {
+        byId.set(a.categoryId, a.categoryName ?? `#${a.categoryId}`);
+      }
+    }
+    return [...byId.entries()]
+      .map(([id, name]) => ({ id, name }))
+      .sort((x, y) => x.name.localeCompare(y.name));
+  }, [catalog]);
+
   // Read current draft items without making them an effect dependency (loop breaker).
   const itemsRef = useRef(draft.items);
   itemsRef.current = draft.items;
@@ -72,7 +86,11 @@ export function useContainerPlanner({ trendMonths, enabled, draft }: UseContaine
   );
 
   const debouncedStrategy = useDebounce(strategy, STRATEGY_DEBOUNCE_MS);
-  const { replaceItems } = draft;
+  // draft.replaceItems identity is unstable (it depends on react-query mutation
+  // objects that change every render). Keep it in a ref so the recompute effect
+  // doesn't re-run every render → infinite loop (React error #185).
+  const replaceItemsRef = useRef(draft.replaceItems);
+  replaceItemsRef.current = draft.replaceItems;
 
   // --- Override persistence across reload (localStorage, keyed by draft id) ---
   const restoredForRef = useRef<number | null | undefined>(undefined);
@@ -128,7 +146,7 @@ export function useContainerPlanner({ trendMonths, enabled, draft }: UseContaine
     if (!result) return;
     // Don't wipe an existing order when an over-restrictive strategy yields nothing.
     if (result.entries.length === 0 && itemsRef.current.size > 0 && manualQty.size === 0) return;
-    replaceItems(result.entries);
+    replaceItemsRef.current(result.entries);
   }, [
     enabled,
     isDirty,
@@ -138,7 +156,6 @@ export function useContainerPlanner({ trendMonths, enabled, draft }: UseContaine
     removedIds,
     trendMonths,
     resolveArticle,
-    replaceItems,
   ]);
 
   // --- Strategy setters (each marks dirty) ---
@@ -239,6 +256,7 @@ export function useContainerPlanner({ trendMonths, enabled, draft }: UseContaine
     regenerate,
     clear,
     overriddenIds,
+    categories,
     isCatalogLoading: isFetching && catalog.length === 0,
   };
 }
