@@ -643,9 +643,7 @@ export default function ArticlesPage() {
                 }}
                 onViewOrder={supplierOrder.currentDraftId ? handleViewSupplierOrder : undefined}
                 onImportCsv={importCsv}
-                categories={
-                  categories?.data?.map((c) => ({ id: Number(c.id), name: c.name })) ?? []
-                }
+                categories={planner.categories}
                 strategy={planner.strategy}
                 onModeChange={planner.setMode}
                 onCoverageMonthsChange={planner.setCoverageMonths}
