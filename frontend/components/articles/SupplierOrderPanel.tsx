@@ -770,7 +770,7 @@ export function SupplierOrderPanel({
                 variant="outline"
                 disabled={isComputing || isSaving}
                 onClick={onRegenerate}
-                title="Rehace el pedido desde cero (descarta ediciones manuales)"
+                title="Genera el pedido con la configuración actual (mantiene tus ediciones manuales)"
               >
                 {isComputing ? (
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -928,51 +928,6 @@ export function SupplierOrderPanel({
     </div>
   );
 
-  if (items.length === 0) {
-    return (
-      <Card className="p-6">
-        <div className="text-muted-foreground flex flex-col items-center justify-center py-8 text-center">
-          <ShoppingCart className="mb-3 h-12 w-12 opacity-30" />
-          <p className="text-sm">No hay artículos seleccionados para el pedido</p>
-          <p className="mt-1 text-xs">
-            Seleccioná artículos de la tabla, o armá un contenedor automáticamente por rentabilidad
-          </p>
-          {onRegenerate && <div className="mt-4 w-full max-w-2xl">{containerPlanner}</div>}
-          {onImportCsv && (
-            <div className="mt-4">
-              <input
-                type="file"
-                accept=".csv"
-                className="hidden"
-                id="csv-import-input-empty"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) {
-                    onImportCsv(file);
-                    e.target.value = '';
-                  }
-                }}
-              />
-              <Button
-                variant="outline"
-                size="sm"
-                disabled={isImporting}
-                onClick={() => document.getElementById('csv-import-input-empty')?.click()}
-              >
-                {isImporting ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Upload className="mr-2 h-4 w-4" />
-                )}
-                Importar CSV
-              </Button>
-            </div>
-          )}
-        </div>
-      </Card>
-    );
-  }
-
   return (
     <Card className="p-4">
       <div className="space-y-4">
@@ -1053,6 +1008,9 @@ export function SupplierOrderPanel({
           </div>
         </div>
 
+        {/* Container planner config — always visible & editable */}
+        {onRegenerate && containerPlanner}
+
         {/* Trend Months Selector */}
         {onTrendMonthsChange && (
           <div className="bg-muted/50 flex items-center gap-2 rounded-lg p-3">
@@ -1100,429 +1058,458 @@ export function SupplierOrderPanel({
           </div>
         )}
 
-        {/* Table */}
-        <div className="overflow-x-auto rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="cursor-pointer" onClick={() => handleSort('Code')}>
-                  Código <SortIcon col="Code" />
-                </TableHead>
-                <TableHead className="cursor-pointer" onClick={() => handleSort('Description')}>
-                  Descripción <SortIcon col="Description" />
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer text-right"
-                  onClick={() => handleSort('Quantity')}
-                >
-                  Cantidad <SortIcon col="Quantity" />
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer text-right"
-                  onClick={() => handleSort('Weight')}
-                >
-                  Peso <SortIcon col="Weight" />
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer text-right"
-                  onClick={() => handleSort('Stock')}
-                >
-                  Stock Actual <SortIcon col="Stock" />
-                </TableHead>
-                <TableHead
-                  className="cursor-pointer text-right"
-                  onClick={() => handleSort('MinStock')}
-                >
-                  Stock Mín. <SortIcon col="MinStock" />
-                </TableHead>
-                <TableHead>Tendencia ({trendMonths} meses)</TableHead>
-                <TableHead>Tend. Activa</TableHead>
-                <TooltipProvider>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <TableHead
-                        className="cursor-pointer text-right"
-                        onClick={() => handleSort('Price')}
-                      >
-                        Precio Unit. <SortIcon col="Price" />
-                      </TableHead>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">Precio unitario del artículo</p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <TableHead
-                        className="cursor-pointer text-right"
-                        onClick={() => handleSort('WMA')}
-                      >
-                        Prom Ponderado <SortIcon col="WMA" />
-                      </TableHead>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">
-                        Promedio ponderado de ventas (WMA) sobre los últimos {trendMonths} meses. Da
-                        más peso a los meses recientes.
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <TableHead
-                        className="cursor-pointer text-right"
-                        onClick={() => handleSort('EstTime')}
-                      >
-                        T. Est. Venta <SortIcon col="EstTime" />
-                      </TableHead>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">
-                        Tiempo estimado para vender la cantidad pedida = Cantidad / Prom Ponderado
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <TableHead
-                        className="cursor-pointer text-right"
-                        onClick={() => handleSort('ActiveEstTime')}
-                      >
-                        T. Est. Activa <SortIcon col="ActiveEstTime" />
-                      </TableHead>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">
-                        Tiempo estimado usando el mejor período histórico de actividad
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <TableHead
-                        className="cursor-pointer text-center"
-                        onClick={() => handleSort('Rating')}
-                      >
-                        Clasif. <SortIcon col="Rating" />
-                      </TableHead>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">
-                        Clasificación basada en T. Est. Activa: Excelente (≤1a), Bueno (1-2a),
-                        Regular (2-5a), Lento (&gt;5a). Click para ordenar.
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <TableHead className="cursor-pointer" onClick={() => handleSort('LastSale')}>
-                        Última Venta <SortIcon col="LastSale" />
-                      </TableHead>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      <p className="max-w-xs">
-                        Fecha de la última factura emitida que incluye este artículo
-                      </p>
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-                <TableHead className="w-12"></TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {processedItems.map((item) => (
-                <TableRow key={item.article.id}>
-                  <TableCell className="font-mono font-medium">{item.article.code}</TableCell>
-                  <TableCell>
-                    <div className="max-w-md truncate">{item.article.description}</div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <div className="flex flex-col items-end gap-0.5">
-                      <QtyCell
-                        value={item.quantity}
-                        pinned={overriddenIds?.has(item.article.id) ?? false}
-                        onChange={(qty) => onQuantityChange(item.article.id, qty)}
-                      />
-                      <span className="text-muted-foreground text-[10px]">
-                        {item.avgMonthlySales > 0
-                          ? `≈ ${(item.quantity / item.avgMonthlySales).toFixed(0)} meses`
-                          : 'sin ventas'}
-                      </span>
-                    </div>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    {Number(item.article.weightKg) > 0 ? (
-                      <div className="flex flex-col items-end leading-tight">
-                        <span className="font-medium">{formatKg(lineWeightKg(item))}</span>
-                        <span className="text-muted-foreground text-[10px]">
-                          {Number(item.article.weightKg).toFixed(2)} kg/u
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-xs text-amber-600" title="Artículo sin peso cargado">
-                        s/peso
-                      </span>
-                    )}
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <span
-                      className={
-                        item.currentStock < item.minimumStock ? 'font-semibold text-red-600' : ''
-                      }
-                    >
-                      {item.currentStock.toFixed(0)}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-muted-foreground text-right">
-                    {item.minimumStock.toFixed(0)}
-                  </TableCell>
-                  <TableCell>
-                    {item.article.salesTrend && item.article.salesTrend.length > 0 ? (
-                      <div className="flex flex-col">
-                        <SparklineWithTooltip
-                          data={item.article.salesTrend}
-                          labels={item.article.salesTrendLabels}
-                          width={Math.min(180, Math.max(80, item.article.salesTrend.length * 10))}
-                          height={40}
-                          color={
-                            item.article.abcClass === 'A'
-                              ? 'rgb(34, 197, 94)'
-                              : item.article.abcClass === 'B'
-                                ? 'rgb(59, 130, 246)'
-                                : 'rgb(107, 114, 128)'
-                          }
-                          fillColor={
-                            item.article.abcClass === 'A'
-                              ? 'rgba(34, 197, 94, 0.1)'
-                              : item.article.abcClass === 'B'
-                                ? 'rgba(59, 130, 246, 0.1)'
-                                : 'rgba(107, 114, 128, 0.1)'
-                          }
-                          formatValue={(v) => `${v} unidades`}
-                        />
-                        {item.article.salesTrendLabels &&
-                          item.article.salesTrendLabels.length > 0 && (
-                            <span className="text-muted-foreground text-[10px]">
-                              {item.article.salesTrendLabels[0]} -{' '}
-                              {
-                                item.article.salesTrendLabels[
-                                  item.article.salesTrendLabels.length - 1
-                                ]
-                              }
-                            </span>
-                          )}
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">Sin datos</span>
-                    )}
-                  </TableCell>
-
-                  {/* Tendencia Activa */}
-                  <TableCell>
-                    {item.article.activeStockTrend && item.article.activeStockTrend.length > 0 ? (
-                      <div className="flex flex-col">
-                        <SparklineWithTooltip
-                          data={item.article.activeStockTrend}
-                          labels={item.article.activeStockTrendLabels}
-                          width={Math.min(
-                            180,
-                            Math.max(80, item.article.activeStockTrend.length * 15)
-                          )}
-                          height={40}
-                          color="rgb(245, 158, 11)"
-                          fillColor="rgba(245, 158, 11, 0.1)"
-                          formatValue={(v) => `${v} unidades`}
-                        />
-                        <span className="text-muted-foreground text-[10px]">
-                          {item.article.activeStockTrendLabels?.[0]} -{' '}
-                          {
-                            item.article.activeStockTrendLabels?.[
-                              item.article.activeStockTrendLabels.length - 1
-                            ]
-                          }{' '}
-                          ({item.article.activeStockMonths}m)
-                        </span>
-                      </div>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">= completa</span>
-                    )}
-                  </TableCell>
-
-                  {/* Precio Unitario */}
-                  <TableCell className="text-right font-medium">
-                    {formatPrice(item.article.unitPrice)}
-                  </TableCell>
-
-                  {/* Prom Ponderado (WMA) */}
-                  <TableCell className="text-right">
-                    {item.avgMonthlySales > 0 ? (
-                      <Badge variant="outline" className="text-xs">
-                        {item.avgMonthlySales.toFixed(1)}
-                      </Badge>
-                    ) : item.article.salesTrend && item.article.salesTrend.length > 0 ? (
-                      <span className="text-muted-foreground text-xs">0.0</span>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">-</span>
-                    )}
-                  </TableCell>
-
-                  {/* T. Est. Venta */}
-                  <TableCell className="text-right">
-                    <Badge
-                      variant={
-                        isFinite(item.estimatedSaleTime) && item.estimatedSaleTime > 0
-                          ? 'secondary'
-                          : 'outline'
-                      }
-                      className="text-xs"
-                    >
-                      {formatSaleTime(item.estimatedSaleTime)}
-                    </Badge>
-                  </TableCell>
-
-                  {/* T. Est. Venta (Activa) */}
-                  <TableCell className="text-right">
-                    {item.article.activeStockTrend && item.article.activeStockTrend.length > 0 ? (
-                      (() => {
-                        const activeWma = calculateWeightedAvgSales(
-                          item.article.activeStockTrend,
-                          item.article.activeStockTrend.length
-                        );
-                        const activeEstTime = calculateEstimatedSaleTime(item.quantity, activeWma);
-                        return (
-                          <Badge
-                            variant={
-                              isFinite(activeEstTime) && activeEstTime > 0 ? 'secondary' : 'outline'
-                            }
-                            className="border-amber-500/30 bg-amber-500/10 text-xs text-amber-600 dark:text-amber-400"
-                          >
-                            {formatSaleTime(activeEstTime)}
-                          </Badge>
-                        );
-                      })()
-                    ) : (
-                      <span className="text-muted-foreground text-xs">-</span>
-                    )}
-                  </TableCell>
-
-                  {/* Clasificación */}
-                  <TableCell className="text-center">
-                    {(() => {
-                      const cfg = RATING_CONFIG[item._rating];
-                      return (
-                        <Badge
-                          variant="outline"
-                          className={`text-xs ${cfg.color} ${cfg.bg} ${cfg.border}`}
-                        >
-                          {cfg.label}
-                        </Badge>
-                      );
-                    })()}
-                  </TableCell>
-
-                  {/* Última Venta */}
-                  <TableCell>
-                    {item.article.lastSaleDate ? (
-                      <span className="text-sm">
-                        {new Date(item.article.lastSaleDate).toLocaleDateString('es-AR', {
-                          day: '2-digit',
-                          month: '2-digit',
-                          year: 'numeric',
-                        })}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">Nunca</span>
-                    )}
-                  </TableCell>
-
-                  {/* Actions */}
-                  <TableCell>
-                    <div className="flex items-center justify-end">
-                      {onResetLine && overriddenIds?.has(item.article.id) && (
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="h-8 w-8"
-                          onClick={() => onResetLine(item.article.id)}
-                          title="Volver a la cantidad sugerida"
-                        >
-                          <RotateCcw className="h-4 w-4 text-blue-600" />
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8"
-                        onClick={() => onRemove(item.article.id)}
-                        title="Quitar"
-                      >
-                        <Trash2 className="h-4 w-4 text-red-600" />
-                      </Button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </div>
-
-        {/* Footer with totals */}
-        <div className="flex items-center justify-between border-t pt-2">
-          <div className="flex gap-6">
-            <div>
-              <div className="text-muted-foreground text-xs">Total Artículos</div>
-              <div className="text-lg font-semibold">{totalItems}</div>
-            </div>
-            <div>
-              <div className="text-muted-foreground text-xs">Total Unidades</div>
-              <div className="text-lg font-semibold">{totalQuantity}</div>
-            </div>
-            <div>
-              <div className="text-muted-foreground text-xs">Peso Total</div>
-              <div className="text-lg font-semibold">{formatKg(totalWeightKg)}</div>
-            </div>
-            <div>
-              <div className="text-muted-foreground flex items-center gap-1 text-xs">
-                Costo Total (CIF)
-                {itemsMissingCost > 0 && (
-                  <span title={`${itemsMissingCost} artículo(s) sin costo cargado`}>
-                    <AlertTriangle className="h-3 w-3 text-amber-500" />
-                  </span>
-                )}
-              </div>
-              <div className="text-lg font-semibold">{formatUsd(totalCifCost)}</div>
-              {totalFobCost > 0 && (
-                <div className="text-muted-foreground text-[10px]">
-                  FOB {formatUsd(totalFobCost)}
-                </div>
-              )}
-            </div>
-            <div>
-              <div className="text-muted-foreground flex items-center gap-1 text-xs">
-                Tiempo Prom. Est. Venta
-                {!isFinite(totalEstimatedTime) && (
-                  <AlertTriangle className="h-3 w-3 text-amber-500" />
-                )}
-              </div>
-              <div className="text-lg font-semibold">
-                <Badge variant="secondary" className="text-sm">
-                  {formatSaleTime(totalEstimatedTime)}
-                </Badge>
-              </div>
-            </div>
+        {items.length === 0 ? (
+          <div className="text-muted-foreground flex flex-col items-center justify-center rounded-md border border-dashed py-10 text-center">
+            <ShoppingCart className="mb-3 h-10 w-10 opacity-30" />
+            <p className="text-sm">Todavía no hay artículos en el pedido</p>
+            <p className="mt-1 text-xs">
+              Ajustá la configuración de arriba y apretá &ldquo;Armar contenedor&rdquo;, o
+              seleccioná artículos de la tabla.
+            </p>
           </div>
-        </div>
+        ) : (
+          <>
+            {/* Table */}
+            <div className="overflow-x-auto rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="cursor-pointer" onClick={() => handleSort('Code')}>
+                      Código <SortIcon col="Code" />
+                    </TableHead>
+                    <TableHead className="cursor-pointer" onClick={() => handleSort('Description')}>
+                      Descripción <SortIcon col="Description" />
+                    </TableHead>
+                    <TableHead
+                      className="cursor-pointer text-right"
+                      onClick={() => handleSort('Quantity')}
+                    >
+                      Cantidad <SortIcon col="Quantity" />
+                    </TableHead>
+                    <TableHead
+                      className="cursor-pointer text-right"
+                      onClick={() => handleSort('Weight')}
+                    >
+                      Peso <SortIcon col="Weight" />
+                    </TableHead>
+                    <TableHead
+                      className="cursor-pointer text-right"
+                      onClick={() => handleSort('Stock')}
+                    >
+                      Stock Actual <SortIcon col="Stock" />
+                    </TableHead>
+                    <TableHead
+                      className="cursor-pointer text-right"
+                      onClick={() => handleSort('MinStock')}
+                    >
+                      Stock Mín. <SortIcon col="MinStock" />
+                    </TableHead>
+                    <TableHead>Tendencia ({trendMonths} meses)</TableHead>
+                    <TableHead>Tend. Activa</TableHead>
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <TableHead
+                            className="cursor-pointer text-right"
+                            onClick={() => handleSort('Price')}
+                          >
+                            Precio Unit. <SortIcon col="Price" />
+                          </TableHead>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-xs">Precio unitario del artículo</p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <TableHead
+                            className="cursor-pointer text-right"
+                            onClick={() => handleSort('WMA')}
+                          >
+                            Prom Ponderado <SortIcon col="WMA" />
+                          </TableHead>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-xs">
+                            Promedio ponderado de ventas (WMA) sobre los últimos {trendMonths}{' '}
+                            meses. Da más peso a los meses recientes.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <TableHead
+                            className="cursor-pointer text-right"
+                            onClick={() => handleSort('EstTime')}
+                          >
+                            T. Est. Venta <SortIcon col="EstTime" />
+                          </TableHead>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-xs">
+                            Tiempo estimado para vender la cantidad pedida = Cantidad / Prom
+                            Ponderado
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <TableHead
+                            className="cursor-pointer text-right"
+                            onClick={() => handleSort('ActiveEstTime')}
+                          >
+                            T. Est. Activa <SortIcon col="ActiveEstTime" />
+                          </TableHead>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-xs">
+                            Tiempo estimado usando el mejor período histórico de actividad
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <TableHead
+                            className="cursor-pointer text-center"
+                            onClick={() => handleSort('Rating')}
+                          >
+                            Clasif. <SortIcon col="Rating" />
+                          </TableHead>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-xs">
+                            Clasificación basada en T. Est. Activa: Excelente (≤1a), Bueno (1-2a),
+                            Regular (2-5a), Lento (&gt;5a). Click para ordenar.
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <TableHead
+                            className="cursor-pointer"
+                            onClick={() => handleSort('LastSale')}
+                          >
+                            Última Venta <SortIcon col="LastSale" />
+                          </TableHead>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p className="max-w-xs">
+                            Fecha de la última factura emitida que incluye este artículo
+                          </p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                    <TableHead className="w-12"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {processedItems.map((item) => (
+                    <TableRow key={item.article.id}>
+                      <TableCell className="font-mono font-medium">{item.article.code}</TableCell>
+                      <TableCell>
+                        <div className="max-w-md truncate">{item.article.description}</div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex flex-col items-end gap-0.5">
+                          <QtyCell
+                            value={item.quantity}
+                            pinned={overriddenIds?.has(item.article.id) ?? false}
+                            onChange={(qty) => onQuantityChange(item.article.id, qty)}
+                          />
+                          <span className="text-muted-foreground text-[10px]">
+                            {item.avgMonthlySales > 0
+                              ? `≈ ${(item.quantity / item.avgMonthlySales).toFixed(0)} meses`
+                              : 'sin ventas'}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        {Number(item.article.weightKg) > 0 ? (
+                          <div className="flex flex-col items-end leading-tight">
+                            <span className="font-medium">{formatKg(lineWeightKg(item))}</span>
+                            <span className="text-muted-foreground text-[10px]">
+                              {Number(item.article.weightKg).toFixed(2)} kg/u
+                            </span>
+                          </div>
+                        ) : (
+                          <span
+                            className="text-xs text-amber-600"
+                            title="Artículo sin peso cargado"
+                          >
+                            s/peso
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <span
+                          className={
+                            item.currentStock < item.minimumStock
+                              ? 'font-semibold text-red-600'
+                              : ''
+                          }
+                        >
+                          {item.currentStock.toFixed(0)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="text-muted-foreground text-right">
+                        {item.minimumStock.toFixed(0)}
+                      </TableCell>
+                      <TableCell>
+                        {item.article.salesTrend && item.article.salesTrend.length > 0 ? (
+                          <div className="flex flex-col">
+                            <SparklineWithTooltip
+                              data={item.article.salesTrend}
+                              labels={item.article.salesTrendLabels}
+                              width={Math.min(
+                                180,
+                                Math.max(80, item.article.salesTrend.length * 10)
+                              )}
+                              height={40}
+                              color={
+                                item.article.abcClass === 'A'
+                                  ? 'rgb(34, 197, 94)'
+                                  : item.article.abcClass === 'B'
+                                    ? 'rgb(59, 130, 246)'
+                                    : 'rgb(107, 114, 128)'
+                              }
+                              fillColor={
+                                item.article.abcClass === 'A'
+                                  ? 'rgba(34, 197, 94, 0.1)'
+                                  : item.article.abcClass === 'B'
+                                    ? 'rgba(59, 130, 246, 0.1)'
+                                    : 'rgba(107, 114, 128, 0.1)'
+                              }
+                              formatValue={(v) => `${v} unidades`}
+                            />
+                            {item.article.salesTrendLabels &&
+                              item.article.salesTrendLabels.length > 0 && (
+                                <span className="text-muted-foreground text-[10px]">
+                                  {item.article.salesTrendLabels[0]} -{' '}
+                                  {
+                                    item.article.salesTrendLabels[
+                                      item.article.salesTrendLabels.length - 1
+                                    ]
+                                  }
+                                </span>
+                              )}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">Sin datos</span>
+                        )}
+                      </TableCell>
 
-        {/* Container (tonnage) planner */}
-        {containerPlanner}
+                      {/* Tendencia Activa */}
+                      <TableCell>
+                        {item.article.activeStockTrend &&
+                        item.article.activeStockTrend.length > 0 ? (
+                          <div className="flex flex-col">
+                            <SparklineWithTooltip
+                              data={item.article.activeStockTrend}
+                              labels={item.article.activeStockTrendLabels}
+                              width={Math.min(
+                                180,
+                                Math.max(80, item.article.activeStockTrend.length * 15)
+                              )}
+                              height={40}
+                              color="rgb(245, 158, 11)"
+                              fillColor="rgba(245, 158, 11, 0.1)"
+                              formatValue={(v) => `${v} unidades`}
+                            />
+                            <span className="text-muted-foreground text-[10px]">
+                              {item.article.activeStockTrendLabels?.[0]} -{' '}
+                              {
+                                item.article.activeStockTrendLabels?.[
+                                  item.article.activeStockTrendLabels.length - 1
+                                ]
+                              }{' '}
+                              ({item.article.activeStockMonths}m)
+                            </span>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">= completa</span>
+                        )}
+                      </TableCell>
+
+                      {/* Precio Unitario */}
+                      <TableCell className="text-right font-medium">
+                        {formatPrice(item.article.unitPrice)}
+                      </TableCell>
+
+                      {/* Prom Ponderado (WMA) */}
+                      <TableCell className="text-right">
+                        {item.avgMonthlySales > 0 ? (
+                          <Badge variant="outline" className="text-xs">
+                            {item.avgMonthlySales.toFixed(1)}
+                          </Badge>
+                        ) : item.article.salesTrend && item.article.salesTrend.length > 0 ? (
+                          <span className="text-muted-foreground text-xs">0.0</span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
+                      </TableCell>
+
+                      {/* T. Est. Venta */}
+                      <TableCell className="text-right">
+                        <Badge
+                          variant={
+                            isFinite(item.estimatedSaleTime) && item.estimatedSaleTime > 0
+                              ? 'secondary'
+                              : 'outline'
+                          }
+                          className="text-xs"
+                        >
+                          {formatSaleTime(item.estimatedSaleTime)}
+                        </Badge>
+                      </TableCell>
+
+                      {/* T. Est. Venta (Activa) */}
+                      <TableCell className="text-right">
+                        {item.article.activeStockTrend &&
+                        item.article.activeStockTrend.length > 0 ? (
+                          (() => {
+                            const activeWma = calculateWeightedAvgSales(
+                              item.article.activeStockTrend,
+                              item.article.activeStockTrend.length
+                            );
+                            const activeEstTime = calculateEstimatedSaleTime(
+                              item.quantity,
+                              activeWma
+                            );
+                            return (
+                              <Badge
+                                variant={
+                                  isFinite(activeEstTime) && activeEstTime > 0
+                                    ? 'secondary'
+                                    : 'outline'
+                                }
+                                className="border-amber-500/30 bg-amber-500/10 text-xs text-amber-600 dark:text-amber-400"
+                              >
+                                {formatSaleTime(activeEstTime)}
+                              </Badge>
+                            );
+                          })()
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )}
+                      </TableCell>
+
+                      {/* Clasificación */}
+                      <TableCell className="text-center">
+                        {(() => {
+                          const cfg = RATING_CONFIG[item._rating];
+                          return (
+                            <Badge
+                              variant="outline"
+                              className={`text-xs ${cfg.color} ${cfg.bg} ${cfg.border}`}
+                            >
+                              {cfg.label}
+                            </Badge>
+                          );
+                        })()}
+                      </TableCell>
+
+                      {/* Última Venta */}
+                      <TableCell>
+                        {item.article.lastSaleDate ? (
+                          <span className="text-sm">
+                            {new Date(item.article.lastSaleDate).toLocaleDateString('es-AR', {
+                              day: '2-digit',
+                              month: '2-digit',
+                              year: 'numeric',
+                            })}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">Nunca</span>
+                        )}
+                      </TableCell>
+
+                      {/* Actions */}
+                      <TableCell>
+                        <div className="flex items-center justify-end">
+                          {onResetLine && overriddenIds?.has(item.article.id) && (
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8"
+                              onClick={() => onResetLine(item.article.id)}
+                              title="Volver a la cantidad sugerida"
+                            >
+                              <RotateCcw className="h-4 w-4 text-blue-600" />
+                            </Button>
+                          )}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8"
+                            onClick={() => onRemove(item.article.id)}
+                            title="Quitar"
+                          >
+                            <Trash2 className="h-4 w-4 text-red-600" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+
+            {/* Footer with totals */}
+            <div className="flex items-center justify-between border-t pt-2">
+              <div className="flex gap-6">
+                <div>
+                  <div className="text-muted-foreground text-xs">Total Artículos</div>
+                  <div className="text-lg font-semibold">{totalItems}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground text-xs">Total Unidades</div>
+                  <div className="text-lg font-semibold">{totalQuantity}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground text-xs">Peso Total</div>
+                  <div className="text-lg font-semibold">{formatKg(totalWeightKg)}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground flex items-center gap-1 text-xs">
+                    Costo Total (CIF)
+                    {itemsMissingCost > 0 && (
+                      <span title={`${itemsMissingCost} artículo(s) sin costo cargado`}>
+                        <AlertTriangle className="h-3 w-3 text-amber-500" />
+                      </span>
+                    )}
+                  </div>
+                  <div className="text-lg font-semibold">{formatUsd(totalCifCost)}</div>
+                  {totalFobCost > 0 && (
+                    <div className="text-muted-foreground text-[10px]">
+                      FOB {formatUsd(totalFobCost)}
+                    </div>
+                  )}
+                </div>
+                <div>
+                  <div className="text-muted-foreground flex items-center gap-1 text-xs">
+                    Tiempo Prom. Est. Venta
+                    {!isFinite(totalEstimatedTime) && (
+                      <AlertTriangle className="h-3 w-3 text-amber-500" />
+                    )}
+                  </div>
+                  <div className="text-lg font-semibold">
+                    <Badge variant="secondary" className="text-sm">
+                      {formatSaleTime(totalEstimatedTime)}
+                    </Badge>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </>
+        )}
       </div>
     </Card>
   );
 }
 
 /**
- * Quantity input with a local mirror + debounce so typing stays snappy and a
- * live recompute only fires after the user pauses. Highlights pinned (manually
+ * Quantity input with a local mirror + debounce so typing stays snappy and the
+ * line edit commits only after the user pauses. Highlights pinned (manually
  * edited) lines.
  */
 function QtyCell({
