@@ -397,6 +397,33 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
     [debouncedSave, trendMonths]
   );
 
+  /**
+   * Replace the entire order with the given entries (REEMPLAZA, no mergea).
+   * Used by the reactive container planner so re-tuning doesn't double quantities.
+   */
+  const replaceItems = useCallback(
+    (entries: { article: Article; quantity: number }[]) => {
+      clearingRef.current = false;
+      setItems(() => {
+        const next = new Map<number, SupplierOrderItem>();
+        for (const { article, quantity } of entries) {
+          const avgSales = calculateWeightedAvgSales(article.salesTrend, trendMonths);
+          next.set(article.id, {
+            article,
+            quantity,
+            currentStock: Number(article.stock),
+            minimumStock: Number(article.minimumStock),
+            avgMonthlySales: avgSales,
+            estimatedSaleTime: calculateEstimatedSaleTime(quantity, avgSales),
+          });
+        }
+        debouncedSave(next);
+        return next;
+      });
+    },
+    [debouncedSave, trendMonths]
+  );
+
   const removeItem = useCallback(
     (articleId: number) => {
       setItems((prev) => {
@@ -535,6 +562,7 @@ export function useSupplierOrderDraft(trendMonths: number = 12) {
     draftArticleIds,
     addItem,
     addItems,
+    replaceItems,
     removeItem,
     updateQuantity,
     clear,
