@@ -270,7 +270,16 @@ export default function ArticlesPage() {
         inDraft,
         remainingKg,
         supplierOrderTrendMonths,
-        { mode, coverageMonths, excludeNoRotation, maxStockMonths }
+        {
+          mode,
+          coverageMonths,
+          excludeNoRotation,
+          maxStockMonths,
+          // Always-on tuning: round to clean quantities and cap any single SKU at
+          // ~10% of the space so the mix stays diversified.
+          roundQuantities: true,
+          maxShare: 0.1,
+        }
       );
 
       if (entries.length === 0) {
