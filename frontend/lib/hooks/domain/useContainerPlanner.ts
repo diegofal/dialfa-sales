@@ -28,7 +28,9 @@ export const DEFAULT_CONTAINER_STRATEGY: ContainerStrategy = {
   categoryIds: [],
   // India is blocked by anti-dumping (expected to lift ~Sept 2026); toggle in UI.
   blockedOrigins: ['india'],
-  minMonthsWithSales: 0,
+  // "Papa caliente" on by default: only recurrent sellers (≥8 of last 12 months),
+  // so one-shots like CRC9012/CRL9014 don't slip into the order.
+  minMonthsWithSales: 8,
   maxSkus: 0,
 };
 
