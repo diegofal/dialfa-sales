@@ -189,34 +189,21 @@ export function buildContainerFill(
     remaining -= qty * c.weightPer;
   };
 
-  if (Number.isFinite(maxSkus)) {
-    // Concentrated fill: take the top-N items and scale their quantities to FILL
-    // the container with a UNIFORM coverage horizon. Fewer lines therefore carry
-    // bigger quantities (the box still fills) — that's the point of the "Ítems"
-    // control. `coverageMonths` is a floor: we never bring less than requested.
-    const selected = candidates.slice(0, maxSkus);
-    const demandKgPerMonth = selected.reduce((s, c) => s + c.wma * c.weightPer, 0);
-    const fillMonths =
-      demandKgPerMonth > 0 ? remainingKg / demandKgPerMonth : strategy.coverageMonths;
-    const months = Math.max(strategy.coverageMonths, fillMonths);
-    for (const c of selected) {
-      if (remaining <= 0) break;
-      // Once we've placed lines, a tail item must still reach the coverage floor;
-      // otherwise it's a scrap line (token qty for a fast seller) and we skip it.
-      // The first line always takes whatever fits (a single item never "scraps").
-      addLine(c, Math.ceil(c.wma * months), entries.length > 0 ? c.demandQty : 1);
-    }
-  } else {
-    // No line limit: bring period demand per item, diversified by the per-SKU
-    // weight share, until the box is full or the candidates run out.
-    const applyShare = strategy.maxShare !== undefined && strategy.maxShare > 0;
-    for (const c of candidates) {
-      if (remaining <= 0) break;
-      const shareCap = applyShare
-        ? Math.floor((remaining * strategy.maxShare!) / c.weightPer)
-        : Infinity;
-      addLine(c, Math.min(c.demandQty, shareCap));
-    }
+  // Single fill path for both modes: take the candidate set (top-N when an item
+  // limit is set, otherwise ALL) and scale quantities with a UNIFORM coverage
+  // horizon so the container FILLS. Fewer candidates ⇒ bigger quantities per line;
+  // a small recurrent pool no longer under-fills. `coverageMonths` is a floor.
+  const selected = Number.isFinite(maxSkus) ? candidates.slice(0, maxSkus) : candidates;
+  const demandKgPerMonth = selected.reduce((s, c) => s + c.wma * c.weightPer, 0);
+  const fillMonths =
+    demandKgPerMonth > 0 ? remainingKg / demandKgPerMonth : strategy.coverageMonths;
+  const months = Math.max(strategy.coverageMonths, fillMonths);
+  for (const c of selected) {
+    if (remaining <= 0) break;
+    // Once lines are placed, a tail item must still reach the coverage floor or
+    // it's a scrap line (token qty for a fast seller) and we skip it. The first
+    // line always takes whatever fits (a single item never "scraps").
+    addLine(c, Math.ceil(c.wma * months), entries.length > 0 ? c.demandQty : 1);
   }
 
   return { entries, addedKg: remainingKg - remaining };

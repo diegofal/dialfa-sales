@@ -107,13 +107,14 @@ describe('buildContainerFill — profit ranking (single mode)', () => {
 
   it('brings period demand = ceil(WMA × coverageMonths)', () => {
     const a = mkArticle({ id: 1, salesTrend: [10, 10, 10], weightKg: 1 }); // WMA 10
-    const res = buildContainerFill([a], NO_EXCLUDE, 10_000, 6, baseStrategy);
+    // box sized to exactly the coverage demand → fill == demandQty
+    const res = buildContainerFill([a], NO_EXCLUDE, 60, 6, baseStrategy);
     expect(res.entries[0].quantity).toBe(60); // 10 × 6
   });
 
   it('does NOT subtract current stock (money ignores stock without a cap)', () => {
     const a = mkArticle({ id: 1, salesTrend: [10, 10, 10], stock: 1000, weightKg: 1 });
-    const res = buildContainerFill([a], NO_EXCLUDE, 10_000, 6, baseStrategy);
+    const res = buildContainerFill([a], NO_EXCLUDE, 60, 6, baseStrategy);
     expect(res.entries[0].quantity).toBe(60);
   });
 
@@ -180,7 +181,7 @@ describe('buildContainerFill — roundQuantities', () => {
   it('rounds quantities to nice increments without exceeding weight', () => {
     // WMA 31 → demand(6) = 186 → rounds to 190
     const a = mkArticle({ id: 1, salesTrend: [31, 31, 31], weightKg: 1 });
-    const res = buildContainerFill([a], NO_EXCLUDE, 10_000, 6, {
+    const res = buildContainerFill([a], NO_EXCLUDE, 190, 6, {
       ...baseStrategy,
       roundQuantities: true,
     });
@@ -214,15 +215,14 @@ describe('buildContainerFill — maxSkus', () => {
     expect(res.entries[0].quantity).toBe(100);
   });
 
-  it('scales quantities up to FILL the box when a line limit is set', () => {
-    // Two light items (WMA 10, 1 kg). At coverage 6 their demand is 60 each =
-    // 120 kg, which would leave a 1000 kg box almost empty. With maxSkus the
-    // quantities grow (uniform horizon) so the box fills.
+  it('scales quantities up to FILL the box (with or without a line limit)', () => {
+    // Two light items (WMA 10, 1 kg). The uniform horizon scales the quantities
+    // so the 1000 kg box fills in both modes; fewer lines ⇒ bigger per line.
     const a = mkArticle({ id: 1, salesTrend: [10, 10, 10], weightKg: 1, lastPurchasePrice: 50 });
     const b = mkArticle({ id: 2, salesTrend: [10, 10, 10], weightKg: 1, lastPurchasePrice: 50 });
 
     const noLimit = buildContainerFill([a, b], NO_EXCLUDE, 1000, 6, baseStrategy);
-    expect(noLimit.addedKg).toBe(120); // under-fills: just period demand
+    expect(noLimit.addedKg).toBe(1000); // no limit also fills now
 
     const twoLines = buildContainerFill([a, b], NO_EXCLUDE, 1000, 6, {
       ...baseStrategy,
@@ -261,18 +261,6 @@ describe('buildContainerFill — categoryIds', () => {
       categoryIds: [],
     });
     expect(res.entries).toHaveLength(2);
-  });
-});
-
-describe('buildContainerFill — maxShare', () => {
-  it('limits how much of the remaining space a single SKU may take', () => {
-    // demand huge, but maxShare 0.5 of 100 kg = 50 kg → 50 units at 1 kg
-    const a = mkArticle({ id: 1, salesTrend: [1000, 1000, 1000], weightKg: 1 });
-    const res = buildContainerFill([a], NO_EXCLUDE, 100, 6, {
-      ...baseStrategy,
-      maxShare: 0.5,
-    });
-    expect(res.entries[0].quantity).toBe(50);
   });
 });
 
