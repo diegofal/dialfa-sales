@@ -111,18 +111,19 @@ async function main() {
   );
 
   // B) Tuned toward the AI container: 24-month horizon + papa caliente.
-  await run(
-    'B · papa-caliente (24m, ≥8 months, exclude India)',
-    {
-      coverageMonths: 24,
-      trendMonths: 12,
-      maxStockMonths: 0,
-      categoryIds: [],
-      blockedOrigins: ['india'],
-      minMonthsWithSales: 8,
-    },
-    cat
-  );
+  const tuned = {
+    coverageMonths: 24,
+    trendMonths: 12,
+    maxStockMonths: 0,
+    categoryIds: [],
+    blockedOrigins: ['india'],
+    minMonthsWithSales: 8,
+  };
+  await run('B · papa-caliente (24m, ≥8 months, exclude India)', tuned, cat);
+
+  // C/D) Same, but with a line limit — must still FILL the box, fewer lines = bigger qty.
+  await run('C · …+ maxSkus=22 (≈ AI line count)', { ...tuned, maxSkus: 22 }, cat);
+  await run('D · …+ maxSkus=12', { ...tuned, maxSkus: 12 }, cat);
 }
 
 main()

@@ -79,8 +79,13 @@ no React/network in `buildContainerFill`.
 - Quantity target = `ceil(WMA × coverageMonths)`, capped by `maxStockMonths` headroom
   and remaining weight.
 - `maxShare` caps a single SKU's weight share (diversify; the panel uses 0.1 = 2.5 t
-  of a 25 t box); `maxSkus` caps line count (concentrate — disables `maxShare`).
-  `roundQuantities` snaps to clean increments (`roundQuantityNicely`).
+  of a 25 t box). `roundQuantities` snaps to clean increments (`roundQuantityNicely`).
+- `maxSkus` (the "Ítems" control) caps the line count AND **scales quantities to
+  fill the box**: the top-N items share a uniform coverage horizon `H = capacity /
+Σ(WMA × weight)` (never below `coverageMonths`), so fewer lines ⇒ bigger
+  quantities per line and the container still fills. Without a limit, each line
+  brings just `coverageMonths` of demand (diversified by `maxShare`), which can
+  leave the box under-filled if the catalog's demand-weight is low.
 - Verified: with this ranking the deterministic planner reproduces the AI-built
   "papa caliente" container (workhorse codos/bridas/espárragos at the top, 22/22
   item overlap). `scripts/run-container-planner.ts` runs the real code path for comparison.
