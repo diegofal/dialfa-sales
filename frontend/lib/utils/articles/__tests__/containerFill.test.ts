@@ -34,9 +34,7 @@ function mkArticle(over: Partial<Article> & { id: number }): Article {
 }
 
 const baseStrategy: FillStrategy = {
-  mode: 'money',
   coverageMonths: 6,
-  excludeNoRotation: true,
   maxStockMonths: 0, // no over-stock cap unless a test sets it
 };
 
@@ -84,12 +82,26 @@ describe('buildContainerFill — guards', () => {
   });
 });
 
-describe('buildContainerFill — money mode', () => {
-  it('ranks by profit per kg (higher first)', () => {
-    // A: profit 50/u, 1 kg → 50/kg.  B: profit 80/u, 4 kg → 20/kg. A wins.
-    const a = mkArticle({ id: 1, unitPrice: 100, lastPurchasePrice: 50, weightKg: 1 });
-    const b = mkArticle({ id: 2, unitPrice: 100, lastPurchasePrice: 20, weightKg: 4 });
-    const res = buildContainerFill([b, a], NO_EXCLUDE, 100, 6, baseStrategy);
+describe('buildContainerFill — profit ranking (single mode)', () => {
+  it('ranks by TOTAL profit per line (WMA × margin), not profit per kg', () => {
+    // workhorse: WMA 100, margin 5/u → total 500 (per-kg only 5).
+    // boutique:  WMA 1,  margin 50/u → total 50  (per-kg 500 — would win the old money mode).
+    const workhorse = mkArticle({
+      id: 1,
+      salesTrend: [100, 100, 100],
+      unitPrice: 55,
+      lastPurchasePrice: 50,
+      weightKg: 1,
+    });
+    const boutique = mkArticle({
+      id: 2,
+      salesTrend: [1, 1, 1],
+      unitPrice: 100,
+      lastPurchasePrice: 50,
+      weightKg: 0.1,
+    });
+    // tiny container → only the top-ranked line fits
+    const res = buildContainerFill([boutique, workhorse], NO_EXCLUDE, 1, 6, baseStrategy);
     expect(res.entries[0].article.id).toBe(1);
   });
 
@@ -156,62 +168,10 @@ describe('buildContainerFill — over-stock cap (maxStockMonths)', () => {
   });
 });
 
-describe('buildContainerFill — rotation mode', () => {
-  it('ranks by sales velocity (WMA), ignoring margin', () => {
-    // B sells faster but is less profitable; rotation should pick B first.
-    const a = mkArticle({ id: 1, salesTrend: [5, 5, 5], unitPrice: 1000, lastPurchasePrice: 10 });
-    const b = mkArticle({ id: 2, salesTrend: [50, 50, 50], unitPrice: 60, lastPurchasePrice: 50 });
-    const res = buildContainerFill([a, b], NO_EXCLUDE, 10, 6, {
-      ...baseStrategy,
-      mode: 'rotation',
-    });
-    expect(res.entries[0].article.id).toBe(2);
-  });
-
-  it('includes profitable-unknown articles (no cost) since it ignores margin', () => {
-    const a = mkArticle({ id: 1, lastPurchasePrice: null, salesTrend: [10, 10, 10] });
-    const res = buildContainerFill([a], NO_EXCLUDE, 10_000, 6, {
-      ...baseStrategy,
-      mode: 'rotation',
-    });
-    expect(res.entries[0].quantity).toBe(60);
-  });
-});
-
-describe('buildContainerFill — critical mode', () => {
-  it('only includes items whose on-hand coverage is below the period', () => {
-    // covered: stock 100 / WMA 10 = 10 months ≥ 6 → excluded
-    const covered = mkArticle({ id: 1, salesTrend: [10, 10, 10], stock: 100 });
-    // short: stock 10 / WMA 10 = 1 month < 6 → included, shortfall = 60-10 = 50
-    const short = mkArticle({ id: 2, salesTrend: [10, 10, 10], stock: 10 });
-    const res = buildContainerFill([covered, short], NO_EXCLUDE, 10_000, 6, {
-      ...baseStrategy,
-      mode: 'critical',
-    });
-    expect(res.entries).toHaveLength(1);
-    expect(res.entries[0].article.id).toBe(2);
-    expect(res.entries[0].quantity).toBe(50); // shortfall to reach 6 months
-  });
-
-  it('ranks by urgency (least coverage first)', () => {
-    const urgent = mkArticle({ id: 1, salesTrend: [10, 10, 10], stock: 5 }); // 0.5 mo
-    const lessUrgent = mkArticle({ id: 2, salesTrend: [10, 10, 10], stock: 30 }); // 3 mo
-    const res = buildContainerFill([lessUrgent, urgent], NO_EXCLUDE, 10, 6, {
-      ...baseStrategy,
-      mode: 'critical',
-    });
-    expect(res.entries[0].article.id).toBe(1);
-  });
-});
-
-describe('buildContainerFill — excludeNoRotation', () => {
-  it('drops never-sold articles from rotation mode', () => {
+describe('buildContainerFill — never-sold articles', () => {
+  it('drops articles with WMA = 0 (profitTotal = 0) without an explicit flag', () => {
     const dead = mkArticle({ id: 1, salesTrend: [0, 0, 0] });
-    const res = buildContainerFill([dead], NO_EXCLUDE, 10_000, 6, {
-      ...baseStrategy,
-      mode: 'rotation',
-      excludeNoRotation: true,
-    });
+    const res = buildContainerFill([dead], NO_EXCLUDE, 10_000, 6, baseStrategy);
     expect(res.entries).toHaveLength(0);
   });
 });
@@ -287,5 +247,69 @@ describe('buildContainerFill — maxShare', () => {
       maxShare: 0.5,
     });
     expect(res.entries[0].quantity).toBe(50);
+  });
+});
+
+describe('buildContainerFill — blockedOrigins (sourcing)', () => {
+  it('drops articles whose origin is blocked, keeps china/both/unknown', () => {
+    const india = mkArticle({ id: 1, importOrigin: 'india' });
+    const china = mkArticle({ id: 2, importOrigin: 'china' });
+    const both = mkArticle({ id: 3, importOrigin: 'both' });
+    const unknown = mkArticle({ id: 4, importOrigin: null });
+    const res = buildContainerFill([india, china, both, unknown], NO_EXCLUDE, 10_000, 6, {
+      ...baseStrategy,
+      blockedOrigins: ['india'],
+    });
+    const ids = res.entries.map((e) => e.article.id).sort();
+    expect(ids).toEqual([2, 3, 4]);
+  });
+
+  it('no origin filter when blockedOrigins is empty/undefined', () => {
+    const india = mkArticle({ id: 1, importOrigin: 'india' });
+    const res = buildContainerFill([india], NO_EXCLUDE, 10_000, 6, baseStrategy);
+    expect(res.entries).toHaveLength(1);
+  });
+});
+
+describe('buildContainerFill — minMonthsWithSales (papa caliente)', () => {
+  it('drops one-shots and keeps recurrent sellers', () => {
+    // one-shot: a single month with sales out of 12; recurrent: every month.
+    const oneShot = mkArticle({ id: 1, salesTrend: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 600] });
+    const recurrent = mkArticle({ id: 2, salesTrend: Array(12).fill(5) });
+    const res = buildContainerFill([oneShot, recurrent], NO_EXCLUDE, 10_000, 12, {
+      ...baseStrategy,
+      minMonthsWithSales: 8,
+    });
+    expect(res.entries.map((e) => e.article.id)).toEqual([2]);
+  });
+});
+
+describe('buildContainerFill — determinism / repeatability', () => {
+  // Four articles with IDENTICAL economics (same profitPerKg and WMA), so every
+  // ranking metric ties. Only the id tie-break decides order/selection.
+  const tied = (ids: number[]) =>
+    ids.map((id) =>
+      mkArticle({
+        id,
+        unitPrice: 100,
+        lastPurchasePrice: 50,
+        weightKg: 1,
+        salesTrend: [10, 10, 10],
+      })
+    );
+
+  it('equal-profit items are selected lowest-id-first, regardless of input order', () => {
+    const strat: FillStrategy = { ...baseStrategy, maxSkus: 2 };
+    const a = buildContainerFill(tied([4, 2, 3, 1]), NO_EXCLUDE, 10_000, 6, strat);
+    const b = buildContainerFill(tied([1, 3, 2, 4]), NO_EXCLUDE, 10_000, 6, strat);
+    expect(a.entries.map((e) => e.article.id)).toEqual([1, 2]);
+    expect(b.entries.map((e) => e.article.id)).toEqual([1, 2]);
+  });
+
+  it('tie-break keeps the full ordering stable across input shuffles', () => {
+    const a = buildContainerFill(tied([3, 1, 4, 2]), NO_EXCLUDE, 10_000, 6, baseStrategy);
+    const b = buildContainerFill(tied([2, 4, 1, 3]), NO_EXCLUDE, 10_000, 6, baseStrategy);
+    expect(a.entries.map((e) => e.article.id)).toEqual([1, 2, 3, 4]);
+    expect(b.entries.map((e) => e.article.id)).toEqual([1, 2, 3, 4]);
   });
 });

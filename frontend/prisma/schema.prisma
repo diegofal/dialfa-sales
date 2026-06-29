@@ -69,6 +69,9 @@ model articles {
   last_purchase_proforma_number String?                @db.VarChar(100)
   last_purchase_proforma_date   DateTime?              @db.Date
   cif_percentage                Decimal?               @db.Decimal(5, 2)
+  // Where this article can be imported from: 'china' | 'india' | 'both' | 'unknown'.
+  // Editable override; seeded from proforma history by scripts/seed-article-origin.ts.
+  import_origin                 String?                @db.VarChar(20)
   categories                    categories             @relation(fields: [category_id], references: [id], onUpdate: NoAction, map: "f_k_articles__categories_category_id")
   supplier                      suppliers?             @relation(fields: [supplier_id], references: [id], onUpdate: NoAction, map: "f_k_articles__suppliers_supplier_id")
   delivery_note_items           delivery_note_items[]
@@ -546,6 +549,8 @@ model suppliers {
   phone           String?           @db.VarChar(50)
   address         String?           @db.VarChar(300)
   notes           String?
+  /** Country of origin, e.g. 'China' / 'India'. Used to derive article import_origin and to block origins (anti-dumping). */
+  country         String?           @db.VarChar(50)
   is_active       Boolean           @default(true)
   created_at      DateTime          @default(now()) @db.Timestamptz(6)
   updated_at      DateTime          @updatedAt @db.Timestamptz(6)

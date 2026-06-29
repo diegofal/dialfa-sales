@@ -24,6 +24,8 @@ export const articlesApi = {
       abcFilter?: string;
       salesSort?: string;
       trendMonths?: number;
+      /** ISO date anchoring the trend window (repeatability for the container planner). */
+      trendAsOf?: string;
       soldInPeriod?: SoldInPeriod;
       stockStatusFilter?: StockStatus;
     } = {},
@@ -43,6 +45,7 @@ export const articlesApi = {
       sortBy: params.sortBy,
       sortDescending: params.sortDescending,
       trendMonths: params.trendMonths,
+      trendAsOf: params.trendAsOf,
       lowStockOnly: params.lowStockOnly,
       hasStockOnly: params.hasStockOnly,
       zeroStockOnly: params.zeroStockOnly,

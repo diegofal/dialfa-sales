@@ -1,9 +1,14 @@
 /**
  * Container fill planner — pure, deterministic logic for "armar contenedor".
  *
- * A container is weight-constrained (e.g. 25 t). Given the active catalog, a
- * coverage period and a strategy mode, this picks which articles to import and
- * how many units of each, until the remaining capacity (kg) is filled.
+ * A container is weight-constrained (e.g. 25 t). Given the active catalog and a
+ * coverage period, this picks which articles to import and how many units of
+ * each until the remaining capacity (kg) is filled.
+ *
+ * There is a single ranking criterion: total profit contribution per line
+ * (`WMA × unit margin`). This concentrates the order on the items that actually
+ * make the most money over the period — codos/bridas/espárragos — instead of the
+ * long tail of light, high-margin-per-kg fittings that barely sell.
  *
  * Kept free of React/network so it can be unit-tested and reused.
  */
@@ -11,14 +16,20 @@ import { Article } from '@/types/article';
 import { calculateWeightedAvgSales } from '../salesCalculations';
 import { getArticleCifCost, getArticleDiscountedSellPrice } from './marginCalculations';
 
-export type FillMode = 'money' | 'rotation' | 'critical';
+/**
+ * Count how many of the last `windowMonths` entries of a sales trend had sales.
+ * Local (pure) copy of the helper in salesTrends.ts so this browser module stays
+ * free of the prisma import that file carries.
+ */
+function monthsWithSales(trend: number[] | undefined, windowMonths: number): number {
+  if (!trend || trend.length === 0 || windowMonths <= 0) return 0;
+  const slice = windowMonths >= trend.length ? trend : trend.slice(-windowMonths);
+  return slice.filter((q) => q > 0).length;
+}
 
 export interface FillStrategy {
-  mode: FillMode;
   /** Months of projected demand to bring (the fill "lever"). */
   coverageMonths: number;
-  /** Drop articles that never sell (WMA = 0). */
-  excludeNoRotation: boolean;
   /** Cap so stock + ordered never exceeds this many months of demand. 0 = no cap. */
   maxStockMonths: number;
   /**
@@ -39,6 +50,18 @@ export interface FillStrategy {
   maxSkus?: number;
   /** Only consider these category ids. undefined / empty = all categories. */
   categoryIds?: number[];
+  /**
+   * Exclude articles whose `importOrigin` is one of these (e.g. ['india'] under
+   * anti-dumping). Articles available from a non-blocked origin ('china', 'both')
+   * or of unknown origin (null) are kept. undefined / empty = no origin filter.
+   */
+  blockedOrigins?: string[];
+  /**
+   * "Papa caliente" recurrence floor: require sales in at least this many of the
+   * last 12 months (uses the loaded salesTrend). 0 / undefined = no requirement.
+   * Filters out one-shots that a single big sale would otherwise rank high.
+   */
+  minMonthsWithSales?: number;
 }
 
 export interface ContainerFillEntry {
@@ -55,11 +78,9 @@ interface ScoredCandidate {
   article: Article;
   weightPer: number;
   wma: number;
-  /** Months of stock currently on hand (Infinity if it doesn't sell). */
-  coverage: number;
-  profitPerKg: number;
+  /** Total profit the line makes per month: WMA × unit margin. The ranking key. */
+  profitTotal: number;
   demandQty: number;
-  shortfallQty: number;
   headroom: number;
 }
 
@@ -87,10 +108,22 @@ function score(
   const { coverageMonths, maxStockMonths } = strategy;
   const catSet =
     strategy.categoryIds && strategy.categoryIds.length ? new Set(strategy.categoryIds) : null;
+  const blockedSet =
+    strategy.blockedOrigins && strategy.blockedOrigins.length
+      ? new Set(strategy.blockedOrigins)
+      : null;
+  const minMonths = strategy.minMonthsWithSales ?? 0;
   return articles
     .filter(
       (a) =>
-        !excludeIds.has(a.id) && Number(a.weightKg) > 0 && (!catSet || catSet.has(a.categoryId))
+        !excludeIds.has(a.id) &&
+        Number(a.weightKg) > 0 &&
+        (!catSet || catSet.has(a.categoryId)) &&
+        // Sourcing: drop articles only available from a blocked origin. 'china',
+        // 'both' and unknown (null) pass; an exactly-'india' article is dropped.
+        (!blockedSet || !a.importOrigin || !blockedSet.has(a.importOrigin)) &&
+        // Papa caliente: require recurrent sales (months with sales in last 12).
+        (minMonths <= 0 || monthsWithSales(a.salesTrend, 12) >= minMonths)
     )
     .map((a) => {
       const weightPer = Number(a.weightKg);
@@ -98,23 +131,14 @@ function score(
       const wma = calculateWeightedAvgSales(a.salesTrend ?? [], trendMonths);
       const sell = getArticleDiscountedSellPrice(a);
       const cost = getArticleCifCost(a);
-      const profitPerUnit = sell !== null && cost !== null ? sell - cost : null;
-      const profitPerKg = profitPerUnit !== null ? profitPerUnit / weightPer : -Infinity;
-      const coverage = wma > 0 ? stock / wma : Infinity;
+      const profitPerUnit = sell !== null && cost !== null ? sell - cost : 0;
+      // Rank by total profit the line generates (WMA × unit margin), so the order
+      // concentrates on the real money-makers, not the light high-margin-per-kg tail.
+      const profitTotal = wma * profitPerUnit;
       const demandQty = Math.ceil(wma * coverageMonths);
-      const shortfallQty = Math.max(0, Math.ceil(wma * coverageMonths - stock));
       const headroom =
         maxStockMonths > 0 ? Math.max(0, Math.ceil(maxStockMonths * wma - stock)) : Infinity;
-      return {
-        article: a,
-        weightPer,
-        wma,
-        coverage,
-        profitPerKg,
-        demandQty,
-        shortfallQty,
-        headroom,
-      };
+      return { article: a, weightPer, wma, profitTotal, demandQty, headroom };
     });
 }
 
@@ -125,7 +149,7 @@ function score(
  * @param excludeIds  article ids already in the order (skipped)
  * @param remainingKg free kg in the container to fill
  * @param trendMonths historical window used to compute WMA
- * @param strategy    mode + coverage + filters
+ * @param strategy    coverage + filters
  */
 export function buildContainerFill(
   articles: Article[],
@@ -136,23 +160,16 @@ export function buildContainerFill(
 ): ContainerFillResult {
   if (remainingKg <= 0) return { entries: [], addedKg: 0 };
 
-  const { mode, coverageMonths, excludeNoRotation } = strategy;
   const scored = score(articles, excludeIds, trendMonths, strategy);
 
-  let candidates = scored.filter((c) => (excludeNoRotation ? c.wma > 0 : true));
-
-  if (mode === 'money') {
-    candidates = candidates
-      .filter((c) => c.profitPerKg > 0)
-      .sort((a, b) => b.profitPerKg - a.profitPerKg);
-  } else if (mode === 'rotation') {
-    candidates = candidates.filter((c) => c.wma > 0).sort((a, b) => b.wma - a.wma);
-  } else {
-    // critical: only items that won't cover the period, most urgent first
-    candidates = candidates
-      .filter((c) => c.wma > 0 && c.coverage < coverageMonths && c.shortfallQty >= 1)
-      .sort((a, b) => a.coverage - b.coverage);
-  }
+  // Single criterion: rank by total profit per line (WMA × unit margin), keeping
+  // only items that actually make money. `profitTotal > 0` already implies WMA > 0
+  // and a positive margin, so this subsumes the old "exclude no rotation" filter.
+  // The stable id tie-break makes equal-ranked selection repeatable (independent
+  // of input order), which matters once the weight limit or `maxSkus` cuts mid-tie.
+  const candidates = scored
+    .filter((c) => c.profitTotal > 0)
+    .sort((a, b) => b.profitTotal - a.profitTotal || a.article.id - b.article.id);
 
   const maxSkus = strategy.maxSkus && strategy.maxSkus > 0 ? strategy.maxSkus : Infinity;
   // A per-SKU share cap fragments the order, so it only applies when there is no
@@ -164,7 +181,7 @@ export function buildContainerFill(
   const entries: ContainerFillEntry[] = [];
   for (const c of candidates) {
     if (remaining <= 0 || entries.length >= maxSkus) break;
-    const target = mode === 'critical' ? c.shortfallQty : c.demandQty;
+    const target = c.demandQty;
     let maxByWeight = Math.floor(remaining / c.weightPer);
     if (applyShare) {
       maxByWeight = Math.min(

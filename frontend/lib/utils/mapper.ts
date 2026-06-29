@@ -47,6 +47,7 @@ export interface ArticleDTO {
   weightKg: number | null;
   lastPurchaseProformaNumber: string | null;
   lastPurchaseProformaDate: string | null;
+  importOrigin: string | null;
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
@@ -283,6 +284,7 @@ export function mapArticleToDTO(article: unknown): ArticleDTO {
       a.last_purchase_proforma_date instanceof Date
         ? (a.last_purchase_proforma_date as Date).toISOString().slice(0, 10)
         : ((a.last_purchase_proforma_date as string | null) ?? null),
+    importOrigin: (a.import_origin as string | null) ?? null,
     isActive: a.is_active as boolean,
     createdAt: a.created_at as Date,
     updatedAt: a.updated_at as Date,

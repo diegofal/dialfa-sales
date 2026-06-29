@@ -47,6 +47,9 @@ export async function GET(request: NextRequest) {
       sortBy: searchParams.get('sortBy') || undefined,
       sortDescending: searchParams.get('sortDescending') === 'true',
       trendMonths: parseInt(searchParams.get('trendMonths') || '12'),
+      trendAsOf: searchParams.get('trendAsOf')
+        ? new Date(searchParams.get('trendAsOf')!)
+        : undefined,
       lowStockOnly: searchParams.get('lowStockOnly') === 'true',
       hasStockOnly: searchParams.get('hasStockOnly') === 'true',
       zeroStockOnly: searchParams.get('zeroStockOnly') === 'true',
