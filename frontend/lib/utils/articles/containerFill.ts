@@ -172,31 +172,45 @@ export function buildContainerFill(
     .sort((a, b) => b.profitTotal - a.profitTotal || a.article.id - b.article.id);
 
   const maxSkus = strategy.maxSkus && strategy.maxSkus > 0 ? strategy.maxSkus : Infinity;
-  // A per-SKU share cap fragments the order, so it only applies when there is no
-  // explicit item limit (few-items orders are meant to concentrate).
-  const applyShare =
-    strategy.maxShare !== undefined && strategy.maxShare > 0 && !Number.isFinite(maxSkus);
 
   let remaining = remainingKg;
   const entries: ContainerFillEntry[] = [];
-  for (const c of candidates) {
-    if (remaining <= 0 || entries.length >= maxSkus) break;
-    const target = c.demandQty;
-    let maxByWeight = Math.floor(remaining / c.weightPer);
-    if (applyShare) {
-      maxByWeight = Math.min(
-        maxByWeight,
-        Math.floor((remaining * strategy.maxShare!) / c.weightPer)
-      );
-    }
-    let qty = Math.min(target, c.headroom, maxByWeight);
+
+  const addLine = (c: ScoredCandidate, target: number) => {
+    let qty = Math.min(target, c.headroom, Math.floor(remaining / c.weightPer));
     if (strategy.roundQuantities && qty >= 1) {
-      // Round nicely, but never exceed what fits by weight
       qty = Math.min(roundQuantityNicely(qty), Math.floor(remaining / c.weightPer));
     }
-    if (qty < 1) continue; // nothing sensible fits — try the next item
+    if (qty < 1) return; // nothing sensible fits
     entries.push({ article: c.article, quantity: qty });
     remaining -= qty * c.weightPer;
+  };
+
+  if (Number.isFinite(maxSkus)) {
+    // Concentrated fill: take the top-N items and scale their quantities to FILL
+    // the container with a UNIFORM coverage horizon. Fewer lines therefore carry
+    // bigger quantities (the box still fills) — that's the point of the "Ítems"
+    // control. `coverageMonths` is a floor: we never bring less than requested.
+    const selected = candidates.slice(0, maxSkus);
+    const demandKgPerMonth = selected.reduce((s, c) => s + c.wma * c.weightPer, 0);
+    const fillMonths =
+      demandKgPerMonth > 0 ? remainingKg / demandKgPerMonth : strategy.coverageMonths;
+    const months = Math.max(strategy.coverageMonths, fillMonths);
+    for (const c of selected) {
+      if (remaining <= 0) break;
+      addLine(c, Math.ceil(c.wma * months));
+    }
+  } else {
+    // No line limit: bring period demand per item, diversified by the per-SKU
+    // weight share, until the box is full or the candidates run out.
+    const applyShare = strategy.maxShare !== undefined && strategy.maxShare > 0;
+    for (const c of candidates) {
+      if (remaining <= 0) break;
+      const shareCap = applyShare
+        ? Math.floor((remaining * strategy.maxShare!) / c.weightPer)
+        : Infinity;
+      addLine(c, Math.min(c.demandQty, shareCap));
+    }
   }
 
   return { entries, addedKg: remainingKg - remaining };
