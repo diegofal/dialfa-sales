@@ -2,29 +2,34 @@ import { useQuery } from '@tanstack/react-query';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { articlesApi } from '@/lib/api/articles';
 import { composeContainerOrder } from '@/lib/utils/articles/composeContainerOrder';
-import type { FillMode } from '@/lib/utils/articles/containerFill';
 import { Article } from '@/types/article';
 import type { useSupplierOrderDraft } from './useSupplierOrderDraft';
 
 export interface ContainerStrategy {
-  mode: FillMode;
   /** Months of projected demand to bring. */
   coverageMonths: number;
   capacityKg: number;
-  excludeNoRotation: boolean;
   /** 0 = no over-stock cap. */
   maxStockMonths: number;
   /** Empty = all categories. */
   categoryIds: number[];
+  /** Origins we can't import from right now (e.g. ['india'] under anti-dumping). */
+  blockedOrigins: string[];
+  /** "Papa caliente" floor: require sales in ≥ N of the last 12 months. 0 = off. */
+  minMonthsWithSales: number;
+  /** Max distinct lines (0 = no limit). When set, concentrates into the top items. */
+  maxSkus: number;
 }
 
 export const DEFAULT_CONTAINER_STRATEGY: ContainerStrategy = {
-  mode: 'money',
   coverageMonths: 12,
   capacityKg: 25000,
-  excludeNoRotation: true,
   maxStockMonths: 0,
   categoryIds: [],
+  // India is blocked by anti-dumping (expected to lift ~Sept 2026); toggle in UI.
+  blockedOrigins: ['india'],
+  minMonthsWithSales: 0,
+  maxSkus: 0,
 };
 
 interface UseContainerPlannerParams {
@@ -47,11 +52,26 @@ export function useContainerPlanner({ trendMonths, enabled, draft }: UseContaine
   const [manualQty, setManualQty] = useState<Map<number, number>>(new Map());
   const [removedIds, setRemovedIds] = useState<Set<number>>(new Set());
 
+  // Anchor the demand window to the previous (completed) month so the WMA — and
+  // therefore the generated order — doesn't depend on the day it's run and the
+  // partial current month never dilutes demand. The 15th avoids any timezone
+  // month-flip when the server re-parses the date. Stable within a calendar month.
+  const trendAsOf = useMemo(() => {
+    const now = new Date();
+    return new Date(now.getFullYear(), now.getMonth() - 1, 15).toISOString().slice(0, 10);
+  }, []);
+
   // Cached catalog — fetched once per trendMonths window.
   const { data, isFetching } = useQuery({
-    queryKey: ['articles', 'container-catalog', trendMonths],
+    queryKey: ['articles', 'container-catalog', trendMonths, trendAsOf],
     queryFn: () =>
-      articlesApi.getAll({ pageSize: 2000, includeTrends: true, trendMonths, activeOnly: true }),
+      articlesApi.getAll({
+        pageSize: 2000,
+        includeTrends: true,
+        trendMonths,
+        trendAsOf,
+        activeOnly: true,
+      }),
     staleTime: 5 * 60 * 1000,
     enabled,
   });
@@ -96,11 +116,12 @@ export function useContainerPlanner({ trendMonths, enabled, draft }: UseContaine
         removedIds: removed,
         trendMonths,
         strategy: {
-          mode: strat.mode,
           coverageMonths: strat.coverageMonths,
-          excludeNoRotation: strat.excludeNoRotation,
           maxStockMonths: strat.maxStockMonths,
           categoryIds: strat.categoryIds,
+          blockedOrigins: strat.blockedOrigins,
+          minMonthsWithSales: strat.minMonthsWithSales,
+          maxSkus: strat.maxSkus,
         },
         capacityKg: strat.capacityKg,
       });
@@ -148,15 +169,19 @@ export function useContainerPlanner({ trendMonths, enabled, draft }: UseContaine
     },
     []
   );
-  const setMode = useCallback((m: FillMode) => update('mode', m), [update]);
   const setCoverageMonths = useCallback((n: number) => update('coverageMonths', n), [update]);
   const setCapacityKg = useCallback((n: number) => update('capacityKg', n), [update]);
-  const setExcludeNoRotation = useCallback(
-    (b: boolean) => update('excludeNoRotation', b),
-    [update]
-  );
   const setMaxStockMonths = useCallback((n: number) => update('maxStockMonths', n), [update]);
   const setCategoryIds = useCallback((ids: number[]) => update('categoryIds', ids), [update]);
+  const setBlockedOrigins = useCallback(
+    (origins: string[]) => update('blockedOrigins', origins),
+    [update]
+  );
+  const setMinMonthsWithSales = useCallback(
+    (n: number) => update('minMonthsWithSales', n),
+    [update]
+  );
+  const setMaxSkus = useCallback((n: number) => update('maxSkus', n), [update]);
 
   // --- Manual line edits (direct, live; recorded as pins — NO regeneration) ---
   const setManualQuantity = useCallback((id: number, qty: number) => {
@@ -222,12 +247,13 @@ export function useContainerPlanner({ trendMonths, enabled, draft }: UseContaine
 
   return {
     strategy,
-    setMode,
     setCoverageMonths,
     setCapacityKg,
-    setExcludeNoRotation,
     setMaxStockMonths,
     setCategoryIds,
+    setBlockedOrigins,
+    setMinMonthsWithSales,
+    setMaxSkus,
     setManualQuantity,
     removeLine,
     resetLine,

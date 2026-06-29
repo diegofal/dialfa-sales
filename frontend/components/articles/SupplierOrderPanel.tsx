@@ -43,7 +43,6 @@ import {
 } from '@/components/ui/table';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { type ContainerStrategy } from '@/lib/hooks/domain/useContainerPlanner';
-import { type FillMode } from '@/lib/utils/articles/containerFill';
 import { getArticleCifCost } from '@/lib/utils/articles/marginCalculations';
 import {
   formatSaleTime,
@@ -114,13 +113,10 @@ const DEFAULT_CONTAINER_KG = 25000;
 /** "Cubrir" (coverage) slider bounds in months — the main live lever. */
 const COVERAGE_MIN = 1;
 const COVERAGE_MAX = 36;
-const FILL_MODES: { key: FillMode; label: string }[] = [
-  { key: 'money', label: '💰 Plata' },
-  { key: 'rotation', label: '🔥 Rotación' },
-  { key: 'critical', label: '🚨 Crítico' },
-];
 /** Over-stock cap options (months); 0 = "Sin tope". Default: no cap (fill the box). */
 const MAX_STOCK_MONTHS_OPTIONS = [0, 12, 24, 36] as const;
+/** Max distinct lines; 0 = "Sin límite". Fewer = a more concentrated order. */
+const MAX_SKUS_OPTIONS = [0, 15, 20, 25, 30, 40, 50] as const;
 
 interface SupplierOrderPanelProps {
   items: SupplierOrderItem[];
@@ -134,12 +130,13 @@ interface SupplierOrderPanelProps {
   onImportCsv?: (file: File) => void;
   // Reactive container planner wiring (present when supplier-order mode is on).
   strategy?: ContainerStrategy;
-  onModeChange?: (mode: FillMode) => void;
   onCoverageMonthsChange?: (months: number) => void;
   onCapacityChange?: (kg: number) => void;
-  onExcludeNoRotationChange?: (value: boolean) => void;
   onMaxStockMonthsChange?: (months: number) => void;
   onCategoryIdsChange?: (ids: number[]) => void;
+  onBlockedOriginsChange?: (origins: string[]) => void;
+  onMinMonthsWithSalesChange?: (months: number) => void;
+  onMaxSkusChange?: (n: number) => void;
   /** Build / rebuild the order from scratch (clears manual overrides). */
   onRegenerate?: () => void;
   /** Reset a manually-edited line back to its suggested quantity. */
@@ -165,12 +162,13 @@ export function SupplierOrderPanel({
   onViewOrder,
   onImportCsv,
   strategy,
-  onModeChange,
   onCoverageMonthsChange,
   onCapacityChange,
-  onExcludeNoRotationChange,
   onMaxStockMonthsChange,
   onCategoryIdsChange,
+  onBlockedOriginsChange,
+  onMinMonthsWithSalesChange,
+  onMaxSkusChange,
   onRegenerate,
   onResetLine,
   overriddenIds,
@@ -787,21 +785,6 @@ export function SupplierOrderPanel({
       {/* Strategy controls (live) */}
       {strategy && (
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <div className="flex items-center gap-1">
-            <span className="text-muted-foreground mr-1 text-xs">Modo:</span>
-            {FILL_MODES.map((m) => (
-              <Button
-                key={m.key}
-                size="sm"
-                variant={strategy.mode === m.key ? 'default' : 'outline'}
-                className="h-7 text-xs"
-                onClick={() => onModeChange?.(m.key)}
-              >
-                {m.label}
-              </Button>
-            ))}
-          </div>
-
           {/* Cubrir (coverage) — main live lever */}
           <div className="flex items-center gap-2">
             <span className="text-muted-foreground text-xs whitespace-nowrap">
@@ -824,12 +807,24 @@ export function SupplierOrderPanel({
 
           <Button
             size="sm"
-            variant={strategy.excludeNoRotation ? 'default' : 'outline'}
+            variant={strategy.blockedOrigins.includes('india') ? 'default' : 'outline'}
             className="h-7 text-xs"
-            onClick={() => onExcludeNoRotationChange?.(!strategy.excludeNoRotation)}
-            title="No traer artículos que no se venden"
+            onClick={() =>
+              onBlockedOriginsChange?.(strategy.blockedOrigins.includes('india') ? [] : ['india'])
+            }
+            title="Excluir lo que solo se importa de India (antidumping hasta ~sept-2026)"
           >
-            {strategy.excludeNoRotation ? '✓ ' : ''}Excluir sin rotación
+            {strategy.blockedOrigins.includes('india') ? '✓ ' : ''}Solo importable (excluir India)
+          </Button>
+
+          <Button
+            size="sm"
+            variant={strategy.minMonthsWithSales > 0 ? 'default' : 'outline'}
+            className="h-7 text-xs"
+            onClick={() => onMinMonthsWithSalesChange?.(strategy.minMonthsWithSales > 0 ? 0 : 8)}
+            title="Solo artículos que venden recurrentemente (≥8 de los últimos 12 meses); evita one-shots"
+          >
+            {strategy.minMonthsWithSales > 0 ? '✓ ' : ''}Papa caliente
           </Button>
 
           <div className="flex items-center gap-1">
@@ -845,6 +840,28 @@ export function SupplierOrderPanel({
                 {MAX_STOCK_MONTHS_OPTIONS.map((m) => (
                   <SelectItem key={m} value={m.toString()}>
                     {m === 0 ? 'Sin tope' : `${m} meses`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <span className="text-muted-foreground text-xs">Ítems:</span>
+            <Select
+              value={strategy.maxSkus.toString()}
+              onValueChange={(v) => onMaxSkusChange?.(parseInt(v))}
+            >
+              <SelectTrigger
+                className="h-7 w-[110px] text-xs"
+                title="Cantidad máxima de líneas. Menos ítems = pedido más concentrado en los que más rinden."
+              >
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {MAX_SKUS_OPTIONS.map((m) => (
+                  <SelectItem key={m} value={m.toString()}>
+                    {m === 0 ? 'Sin límite' : `${m} líneas`}
                   </SelectItem>
                 ))}
               </SelectContent>

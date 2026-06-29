@@ -19,8 +19,8 @@ export interface LastSaleDateData {
 }
 
 const salesTrendCache: {
-  data: Map<number, Map<string, number[]>> | null; // Map de months -> (Map de articleId -> trend data)
-  labels: Map<number, string[]> | null; // Map de months -> labels
+  data: Map<string, Map<string, number[]>> | null; // Map de "months:asOf" -> (Map de articleId -> trend data)
+  labels: Map<string, string[]> | null; // Map de "months:asOf" -> labels
   timestamp: number | null;
 } = {
   data: null,
@@ -44,12 +44,18 @@ const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 horas en ms
  *
  * @param monthsToShow - Cantidad de meses a mostrar (por defecto 12)
  * @param forceRefresh - Si true, recalcula ignorando el caché
+ * @param asOf - Mes de referencia (default = ahora). El planner de contenedor
+ *   pasa el fin del mes anterior para que la ventana sea de meses COMPLETOS y no
+ *   dependa del día de ejecución (repetibilidad). El resto de los callers usan
+ *   el default y mantienen el comportamiento actual.
  * @returns Map con articleId -> array de cantidades vendidas por mes
  */
 export async function calculateSalesTrends(
   monthsToShow: number = 12,
-  forceRefresh = false
+  forceRefresh = false,
+  asOf: Date = new Date()
 ): Promise<{ data: Map<string, number[]>; labels: string[] }> {
+  const cacheKey = `${monthsToShow}:${asOf.getFullYear()}-${asOf.getMonth()}`;
   // Verificar caché para estos meses específicos
   const now = Date.now();
   if (
@@ -59,8 +65,8 @@ export async function calculateSalesTrends(
     salesTrendCache.timestamp &&
     now - salesTrendCache.timestamp < CACHE_DURATION
   ) {
-    const cachedDataForMonths = salesTrendCache.data.get(monthsToShow);
-    const cachedLabels = salesTrendCache.labels.get(monthsToShow);
+    const cachedDataForMonths = salesTrendCache.data.get(cacheKey);
+    const cachedLabels = salesTrendCache.labels.get(cacheKey);
 
     if (cachedDataForMonths && cachedLabels) {
       return {
@@ -71,9 +77,9 @@ export async function calculateSalesTrends(
   }
 
   try {
-    // 1. Generar array de los últimos N meses
+    // 1. Generar array de los últimos N meses (anclados a `asOf`)
     const monthsArray: { year: number; month: number; label: string }[] = [];
-    const today = new Date();
+    const today = asOf;
 
     for (let i = monthsToShow - 1; i >= 0; i--) {
       const date = new Date(today.getFullYear(), today.getMonth() - i, 1);
@@ -151,8 +157,8 @@ export async function calculateSalesTrends(
       salesTrendCache.labels = new Map();
     }
 
-    salesTrendCache.data.set(monthsToShow, trendsMap);
-    salesTrendCache.labels.set(monthsToShow, labels);
+    salesTrendCache.data.set(cacheKey, trendsMap);
+    salesTrendCache.labels.set(cacheKey, labels);
     salesTrendCache.timestamp = now;
 
     return {
@@ -370,7 +376,9 @@ export function getSalesTrendsCacheInfo(monthsToShow: number = 12) {
 
   const age = Date.now() - salesTrendCache.timestamp;
   const expiresIn = CACHE_DURATION - age;
-  const cachedData = salesTrendCache.data?.get(monthsToShow);
+  const refMonth = new Date();
+  const cacheKey = `${monthsToShow}:${refMonth.getFullYear()}-${refMonth.getMonth()}`;
+  const cachedData = salesTrendCache.data?.get(cacheKey);
 
   return {
     isCached: !!cachedData,
@@ -380,7 +388,7 @@ export function getSalesTrendsCacheInfo(monthsToShow: number = 12) {
     expiresIn: expiresIn > 0 ? expiresIn : 0,
     expiresInHours: expiresIn > 0 ? (expiresIn / (1000 * 60 * 60)).toFixed(2) : 0,
     monthsTracked: monthsToShow,
-    labels: salesTrendCache.labels?.get(monthsToShow) || [],
+    labels: salesTrendCache.labels?.get(cacheKey) || [],
   };
 }
 

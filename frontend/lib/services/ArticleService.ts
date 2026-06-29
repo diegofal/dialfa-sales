@@ -109,6 +109,8 @@ export interface ArticleListParams {
   sortBy?: string;
   sortDescending?: boolean;
   trendMonths?: number;
+  /** Mes de referencia para la ventana de tendencias (repetibilidad del planner). */
+  trendAsOf?: Date;
   lowStockOnly?: boolean;
   hasStockOnly?: boolean;
   zeroStockOnly?: boolean;
@@ -330,6 +332,7 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
     sortBy,
     sortDescending,
     trendMonths = 12,
+    trendAsOf,
     lowStockOnly,
     hasStockOnly,
     zeroStockOnly,
@@ -412,7 +415,7 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
     try {
       [abcMap, trendsData] = await Promise.all([
         calculateABCClassification(),
-        calculateSalesTrends(trendMonths),
+        calculateSalesTrends(trendMonths, false, trendAsOf),
       ]);
       // Calculate active stock trends after sales trends are cached
       if (includeTrends || isCalculatedSort) {
@@ -435,7 +438,7 @@ export async function list(params: ArticleListParams): Promise<ArticleListResult
       classificationTrendsData =
         classificationMonths === trendMonths
           ? trendsData
-          : await calculateSalesTrends(classificationMonths);
+          : await calculateSalesTrends(classificationMonths, false, trendAsOf);
       const historyDays =
         Math.max(
           DEFAULT_STATUS_CONFIG.upgradeConfirmDays ?? 7,

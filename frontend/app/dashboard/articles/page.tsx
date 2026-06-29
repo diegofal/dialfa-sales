@@ -643,12 +643,13 @@ export default function ArticlesPage() {
                 onImportCsv={importCsv}
                 categories={planner.categories}
                 strategy={planner.strategy}
-                onModeChange={planner.setMode}
                 onCoverageMonthsChange={planner.setCoverageMonths}
                 onCapacityChange={planner.setCapacityKg}
-                onExcludeNoRotationChange={planner.setExcludeNoRotation}
                 onMaxStockMonthsChange={planner.setMaxStockMonths}
                 onCategoryIdsChange={planner.setCategoryIds}
+                onBlockedOriginsChange={planner.setBlockedOrigins}
+                onMinMonthsWithSalesChange={planner.setMinMonthsWithSales}
+                onMaxSkusChange={planner.setMaxSkus}
                 onRegenerate={planner.regenerate}
                 onResetLine={planner.resetLine}
                 overriddenIds={planner.overriddenIds}

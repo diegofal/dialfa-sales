@@ -29,9 +29,7 @@ function mkArticle(over: Partial<Article> & { id: number }): Article {
 }
 
 const strategy: FillStrategy = {
-  mode: 'money',
   coverageMonths: 6,
-  excludeNoRotation: true,
   maxStockMonths: 0,
 };
 
