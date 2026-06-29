@@ -176,12 +176,15 @@ export function buildContainerFill(
   let remaining = remainingKg;
   const entries: ContainerFillEntry[] = [];
 
-  const addLine = (c: ScoredCandidate, target: number) => {
+  // `minQty` guards against "scrap" lines: when only a few kg are left, a line
+  // would get a token quantity (1–3 units) for an item that sells dozens a month.
+  // Skip it instead — better a clean order slightly under capacity than junk lines.
+  const addLine = (c: ScoredCandidate, target: number, minQty = 1) => {
     let qty = Math.min(target, c.headroom, Math.floor(remaining / c.weightPer));
     if (strategy.roundQuantities && qty >= 1) {
       qty = Math.min(roundQuantityNicely(qty), Math.floor(remaining / c.weightPer));
     }
-    if (qty < 1) return; // nothing sensible fits
+    if (qty < Math.max(1, minQty)) return; // nothing meaningful fits
     entries.push({ article: c.article, quantity: qty });
     remaining -= qty * c.weightPer;
   };
@@ -198,7 +201,10 @@ export function buildContainerFill(
     const months = Math.max(strategy.coverageMonths, fillMonths);
     for (const c of selected) {
       if (remaining <= 0) break;
-      addLine(c, Math.ceil(c.wma * months));
+      // Once we've placed lines, a tail item must still reach the coverage floor;
+      // otherwise it's a scrap line (token qty for a fast seller) and we skip it.
+      // The first line always takes whatever fits (a single item never "scraps").
+      addLine(c, Math.ceil(c.wma * months), entries.length > 0 ? c.demandQty : 1);
     }
   } else {
     // No line limit: bring period demand per item, diversified by the per-SKU
